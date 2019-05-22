@@ -1,0 +1,18 @@
+{
+  "name": "parse5-bundle",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "parse5": "^5.1.0",
+    "parse5-html-rewriting-stream": "^5.1.0",
+    "parse5-serializer-stream": "^5.1.0",
+    "webpack": "^4.31.0"
+  },
+  "devDependencies": {
+    "webpack-cli": "^3.3.2"
+  },
+  "scripts": {
+    "build": "webpack --mode production"
+  }
+}

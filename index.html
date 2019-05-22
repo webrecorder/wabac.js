@@ -1,0 +1,30 @@
+<html>
+<head>
+<script src="initSW.js"></script>
+<script src="harcache.js"></script>
+<script src="collection.js"></script>
+<script src="rewrite.js"></script>
+</head>
+<body>
+<button onclick="document.getElementById('file-input').click();">Open</button>
+<input id="file-input" type="file" name="file-input" onchange="processFile(this.files)" style="display: none;" />
+<script>
+function processFile(files) {
+	if (navigator.serviceWorker.controller) {
+		parseHAR(files[0]).then(function(har) { 
+			const coll = new Collection("replay", har);
+			navigator.serviceWorker.controller.postMessage({"msg_type": "addColl", "collection": coll});
+			console.log("Setting coll: " + coll);
+		});
+	}
+}
+navigator.serviceWorker.addEventListener("message", function(event) {
+	switch (event.data.msg_type) {
+		case "collAdded":
+			console.log("Collection added: " + event.data.prefix);
+			break;
+	}
+});
+</script>
+</body>
+</html>
