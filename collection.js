@@ -1,3 +1,10 @@
+
+const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
+
+const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?\/{1,3}(.+)/;
+
+
+
 class Collection
 {
 	constructor(name, cache) {
@@ -7,15 +14,13 @@ class Collection
 		this.prefix = null;
 
 		this.staticPrefix = "/static";
-
-		this.replayRX = /^([0-9]{0,14})(?:([A-Za-z]{2,3}_)\/)?(.*)/;
 	}
 
 	setPrefix(prefix) {
 		this.prefix = prefix + this.name + "/";
 	}
 
-	async handleRequest(request) {
+	handleRequest(request) {
 		if (!request.url.startsWith(this.prefix)) {
 			return null;
 		}
@@ -34,8 +39,13 @@ class Collection
 
 			content = '<html><body><h2>Available Pages</h2><ul>'
 
-			for (let pageUrl of this.cache.pageList) {
-				content += `<li><a href="${this.prefix}${pageUrl}">${pageUrl}</a></li>`
+			for (let page of this.cache.pageList) {
+				let href = this.prefix;
+				if (page.ts) {
+					href += page.ts + "/";
+				}
+				href += page.url;
+				content += `<li><a href="${href}">${page.url}</a></li>`
 			}
 
 			content += '</ul></body></html>'
@@ -43,7 +53,7 @@ class Collection
 			return new Response(content, response_data);
 		}
 
-		const wbUrl = this.replayRX.exec(wbUrlStr);
+		const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
 
 		if (!wbUrl) {
 			return this.notFound();
@@ -56,7 +66,7 @@ class Collection
 		if (mod) {
 			let content_response = this.cache.match({"url": url});
 
-			if (content_response) {
+			if (content_response && mod != "id_") {
 				let headInsert = "";
 
 				if (request.destination === "" || request.destination === "document") {
@@ -64,7 +74,11 @@ class Collection
 				}
 
 				const rewriter = new Rewriter(url, this.prefix + "mp_/", headInsert);
-				content_response = rewriter.rewrite(content_response, request.destination);
+				console.log(request.destination);
+				if (!request.destination) {
+					console.log("empty");
+				}
+				content_response = rewriter.rewrite(content_response, request.destination, DEFAULT_CSP);
 			}
 
 			if (content_response) {
@@ -74,6 +88,7 @@ class Collection
 			}
 
 		} else {
+			console.log("dest: " + request.destination);
 			return this.makeTopFrame(url, requestTS);
 		}
 			
@@ -126,7 +141,7 @@ html, body
 `
 		let response_data = {"status": 200,
 							 "statusText": "OK",
-							 "headers": {"Content-Type": "text/html"}
+							 "headers": {"Content-Type": "text/html", "Content-Security-Policy": DEFAULT_CSP}
 							};
 
 		return new Response(content, response_data);

@@ -25,7 +25,10 @@ class HARCache {
 		this.pageList = [];
 
 		for (let page of har.log.pages) {
-			this.pageList.push(page.title);
+			if (!page.pageTimings || !page.pageTimings.onLoad) {
+				continue;
+			}
+			this.pageList.push({"ts": this.getTS(page.startedDateTime), "url": page.title});
 		}
 	}
 
@@ -49,7 +52,14 @@ class HARCache {
 	}
 
 	match(request) {
-		const entry = this.urlMap[request.url];
+		let url = request.url;
+
+		let hash = url.indexOf("#");
+		if (hash > 0) {
+			url = url.substring(0, hash);
+		}
+
+		const entry = this.urlMap[url];
 		if (!entry) {
 			return null;
 		}

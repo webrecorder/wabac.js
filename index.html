@@ -1,30 +1,23 @@
 <html>
 <head>
-<script src="initSW.js"></script>
-<script src="harcache.js"></script>
-<script src="collection.js"></script>
-<script src="rewrite.js"></script>
+	<script src="initSW.js"></script>
+	<script src="harcache.js"></script>
+	<script src="collection.js"></script>
+	<script src="index.js"></script>
+	<style>
+	button { font-size: 24px; }
+	input { font-size: 24px; }
+	</style>
 </head>
 <body>
-<button onclick="document.getElementById('file-input').click();">Open</button>
-<input id="file-input" type="file" name="file-input" onchange="processFile(this.files)" style="display: none;" />
-<script>
-function processFile(files) {
-	if (navigator.serviceWorker.controller) {
-		parseHAR(files[0]).then(function(har) { 
-			const coll = new Collection("replay", har);
-			navigator.serviceWorker.controller.postMessage({"msg_type": "addColl", "collection": coll});
-			console.log("Setting coll: " + coll);
-		});
-	}
-}
-navigator.serviceWorker.addEventListener("message", function(event) {
-	switch (event.data.msg_type) {
-		case "collAdded":
-			console.log("Collection added: " + event.data.prefix);
-			break;
-	}
-});
-</script>
+	<h2>Create New Collection</h2>
+	<span>
+		Coll Name:
+		<input id="file-input" type="file" name="file-input" onchange="processFile(this.files)" style="display: none;" />
+		<input id="coll-name" type="text" value="replay" name="coll-name"/>
+		<button onclick="document.getElementById('file-input').click();">Open HAR File</button>
+	</span>
+	<h2>Collections</h2>
+	<div id="colls"></div>
 </body>
 </html>
