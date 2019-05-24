@@ -1,0 +1,49 @@
+<html>
+<head>
+	<script src="initSW.js"></script>
+	<script src="harcache.js"></script>
+	<script src="collection.js"></script>
+	<script>
+	function init() {
+		var params = new URLSearchParams(window.location.hash.slice(1));
+		var source = params.get("source");
+		var name = params.get("name");
+		var url = params.get("url");
+
+		if (!source) {
+			//document.querySelector("#err").innerText = "No Source";
+			return;
+		}
+
+		const swInit = new Promise(resolve => {
+  		if (navigator.serviceWorker.controller) return resolve();
+  			navigator.serviceWorker.addEventListener('controllerchange', e => resolve());
+		});
+
+		swInit.then(() => {
+			window.fetch(source).then(response => {
+	    		return response.json();
+	    	}).then(harjson => {
+	    		const coll = new Collection(name || "replay", new HARCache(harjson));
+
+				navigator.serviceWorker.controller.postMessage({"msg_type": "addColl", "collection": coll});
+	  		});
+		});
+
+
+		navigator.serviceWorker.addEventListener("message", function(event) {
+			switch (event.data.msg_type) {
+				case "collAdded":
+					window.location.href = event.data.prefix + url;
+					break;
+			}
+		});
+	}
+	init();
+	</script>
+</head>
+<body>
+	<h2>Loading...</h2>
+	<div id="#err"></div>
+</body>
+</html>

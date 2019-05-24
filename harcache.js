@@ -13,8 +13,12 @@ function parseHAR(file) {
 
 
 class HARCache {
-	constructor(string) {
-		let har = JSON.parse(string);
+	constructor(string_or_har) {
+		let har = string_or_har;
+
+		if (typeof har === "string") {
+			har = JSON.parse(har);
+		}
 
 		this.parseEntries(har);
 
