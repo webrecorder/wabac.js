@@ -563,4 +563,5 @@ rewriteJS(response, headers) {
 }
 
 
+module.exports = Rewriter;
 

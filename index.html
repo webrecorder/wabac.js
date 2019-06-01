@@ -1,9 +1,9 @@
 <html>
 <head>
-	<script src="initSW.js"></script>
-	<script src="harcache.js"></script>
-	<script src="collection.js"></script>
-	<script src="index.js"></script>
+	<script src="page.js"></script>
+        <script>
+        window.index = new Page.ReplayIndex();
+        </script>
 	<style>
 	button { font-size: 24px; }
 	input { font-size: 24px; }
@@ -13,7 +13,7 @@
 	<h2>Create New Collection</h2>
 	<span>
 		Coll Name:
-		<input id="file-input" type="file" name="file-input" onchange="processFile(this.files)" style="display: none;" />
+		<input id="file-input" type="file" name="file-input" onchange="window.index.processFile(this.files)" style="display: none;" />
 		<input id="coll-name" type="text" value="replay" name="coll-name"/>
 		<button onclick="document.getElementById('file-input').click();">Open HAR File</button>
 	</span>

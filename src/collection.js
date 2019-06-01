@@ -1,8 +1,10 @@
+"use strict";
+
+import Rewriter from './rewrite.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?\/{0,3}(.+)/;
-
 
 
 class Collection
@@ -196,3 +198,6 @@ html, body
   `
 	}
 }
+
+export { Collection };
+

@@ -4,6 +4,8 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "fs": "^0.0.1-security",
+    "fs-extra": "^8.0.1",
     "parse5": "^5.1.0",
     "parse5-html-rewriting-stream": "^5.1.0",
     "parse5-serializer-stream": "^5.1.0",

@@ -1,11 +1,13 @@
+"use strict";
+
 function parseHAR(file) {
-	var reader = new FileReader();
+	let reader = new FileReader();
 
 	reader.readAsText(file);
 
 	return new Promise(function(resolve) {
 		reader.onloadend = function() {
-			cache = new HARCache(reader.result);
+			const cache = new HARCache(reader.result);
 			resolve(cache);
 		}
 	});
@@ -97,3 +99,6 @@ class HARCache {
 		return resp;
 	}
 }
+
+export { HARCache, parseHAR };
+
