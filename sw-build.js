@@ -10,7 +10,7 @@ export let stream = require('stream');
 
 //export let HARCache = require('./src/harcache.js');
 
-export let Rewrite = require('./src/rewrite.js');
+//export let Rewrite = require('./src/rewrite.js');
 
 let sw = require('./src/swmain.js');
 

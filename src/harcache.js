@@ -1,15 +1,10 @@
 "use strict";
 
-function parseHAR(file) {
-	let reader = new FileReader();
-
-	reader.readAsText(file);
-
-	return new Promise(function(resolve) {
-		reader.onloadend = function() {
-			const cache = new HARCache(reader.result);
-			resolve(cache);
-		}
+function parseHAR(fileUrl) {
+	return fetch(fileUrl).then(function(resp) {
+		return resp.json();
+	}).then(function(har) {
+		return new HARCache(har);
 	});
 }
 

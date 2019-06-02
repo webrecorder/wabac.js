@@ -22,27 +22,56 @@ self.addEventListener('fetch', function(event) {
 	event.respondWith(getResponseFor(event.request));
 });
 
+async function initCollection(data) {
+	// TODO: multiple files
+	let file = data.files[0];
+
+	let cache = null;
+
+	if (file.name.endsWith(".har") && file.url) {
+		const resp = await fetch(file.url);
+		const har = await resp.json();
+		cache = new HARCache(har);
+	}
+
+	if (!cache) {
+		console.log("No Valid Cache!");
+		//reject("No Valid Cache");
+		return;
+	}
+	
+	let coll = new Collection(data.name, cache);
+
+	coll.setPrefix(self.prefix);
+
+	return coll;
+}
+
+function doListAll(source)
+{
+	let msgData = [];
+	for (let coll of Object.values(self.collections)) {
+		msgData.push({"name": coll.name,
+					  "prefix": coll.prefix,
+					  "pageList": coll.cache.pageList});
+	}
+	source.postMessage({"msg_type": "listAll", "colls": msgData});
+}
 
 self.addEventListener("message", function(event) {
 	switch (event.data.msg_type) {
 		case "addColl":
-			const coll = event.data.collection;
-			coll.__proto__ = Collection.prototype;
-			coll.cache.__proto__ = HARCache.prototype;
-			
-			self.collections[coll.name] = coll;
-			coll.setPrefix(self.prefix);
-			event.source.postMessage({"msg_type": "collAdded",
-									  "prefix": coll.prefix});
+			initCollection(event.data).then(function(coll) {
+				self.collections[event.data.name] = coll;
+				event.source.postMessage({"msg_type": "collAdded",
+										  "prefix": coll.prefix});
+
+				doListAll(event.source);
+			});
+			break;
 
 		case "listAll":
-			let msgData = [];
-			for (let coll of Object.values(self.collections)) {
-				msgData.push({"name": coll.name,
-							  "prefix": coll.prefix,
-							  "pageList": coll.cache.pageList});
-			}
-			event.source.postMessage({"msg_type": "listAll", "colls": msgData});
+			doListAll(event.source);
 			break;
 	}
 });

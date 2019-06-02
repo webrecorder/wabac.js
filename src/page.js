@@ -1,6 +1,3 @@
-import { Collection } from './collection.js';
-import { parseHAR, HARCache } from './harcache.js';
-
 class ReplayIndex
 {
     constructor() {
@@ -11,7 +8,6 @@ class ReplayIndex
                     break;
 
                 case "listAll":
-                    console.log("listAll");
                     this.addCollections(event.data.colls);
                     break;
             }
@@ -33,7 +29,12 @@ class ReplayIndex
         for (let entry of us.entries()) {
             if (entry[0].startsWith("coll_")) {
                 any = true;
-                this.initColl(entry[0].slice("coll_".length), entry[1]);
+
+                const name = entry[0].slice("coll_".length);
+                const source = entry[1];
+
+                const files = [{"name": source, "url": source}];
+                navigator.serviceWorker.controller.postMessage({"msg_type": "addColl", name, files});
             }
         }
 
@@ -42,25 +43,21 @@ class ReplayIndex
         }
     }
 
-    initColl(name, source) {
-        window.fetch(source).then(response => {
-            return response.json();
-        }).then(harjson => {
-            const coll = new Collection(name, new HARCache(harjson));
 
-            navigator.serviceWorker.controller.postMessage({"msg_type": "addColl", "collection": coll});
-        });
-    }
-
-
-    processFile(files) {
-        if (navigator.serviceWorker.controller) {
-            parseHAR(files[0]).then(function(har) { 
-                const coll = new Collection(document.querySelector("#coll-name").value, har);
-                navigator.serviceWorker.controller.postMessage({"msg_type": "addColl", "collection": coll});
-                console.log("Setting coll: " + coll);
-            });
+    processFile(localFiles) {
+        if (!navigator.serviceWorker.controller) {
+            console.log("No Service Worker!");
         }
+
+        let files = [];
+
+        //const coll = new Collection(document.querySelector("#coll-name").value, har);
+        const name = document.querySelector("#coll-name").value;
+                
+        for (let file of localFiles) {
+            files.push({"name": file.name, "url": URL.createObjectURL(file)});
+        }
+        navigator.serviceWorker.controller.postMessage({"msg_type": "addColl", name, files});
     }
 
     addCollections(collList) {
