@@ -130,12 +130,14 @@ This file is part of pywb, https://github.com/webrecorder/pywb
      */
     DefaultBanner.prototype.createBanner = function (bid) {
         this.banner = document.createElement("wb_div", true);
+        this.banner.innerHTML += '<span class="left-nav"><a href="' + window.home + '">&lt;&lt;&nbsp;Return to Index</a></span>';
         this.banner.setAttribute("id", bid);
         this.banner.setAttribute("lang", "en");
         this.captureInfo = document.createElement('span');
         this.captureInfo.innerHTML = '<span id="' + this.loadingId + '">Loading...</span>';
         this.captureInfo.id = '_wb_capture_info';
         this.banner.appendChild(this.captureInfo);
+
         document.body.insertBefore(this.banner, document.body.firstChild);
     };
 

@@ -15,6 +15,8 @@ class Collection
 		this.name = name;
 		this.cache = cache;
 
+		this.rootPrefix = prefix;
+
 		this.prefix = prefix + this.name + "/";
 
 		this.staticPrefix = prefix + "static";
@@ -142,6 +144,10 @@ html, body
 
 </style>
 <script src='${this.staticPrefix}/wb_frame.js'> </script>
+
+<script>
+window.home = "${this.rootPrefix}";
+</script>
 
 <script src='${this.staticPrefix}/default_banner.js'> </script>
 <link rel='stylesheet' href='${this.staticPrefix}/default_banner.css'/>

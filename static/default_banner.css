@@ -7,7 +7,7 @@
     font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
     width: 100% !important;
     font-size: 18px !important;
-    background-color: #444 !important;
+    background-color: darkgreen !important;
     color: white !important;
     text-align: center !important;
     z-index: 2147483643 !important;
@@ -56,4 +56,18 @@
     border: 2px solid #545454;
     padding: 0px 0px 0px 0px;
     overflow: scroll;
+}
+
+.left-nav
+{
+    float: left;
+    position: absolute;
+    top: 12px;
+    left: 10px;
+    font-style: italic;
+    font-size: 14px;
+}
+
+.left-nav a {
+    color: white;
 }
