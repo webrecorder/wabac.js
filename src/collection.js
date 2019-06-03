@@ -11,17 +11,13 @@ const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?\/(.+)/;
 
 class Collection
 {
-	constructor(name, cache) {
+	constructor(name, cache, prefix) {
 		this.name = name;
 		this.cache = cache;
 
-		this.prefix = null;
-
-		this.staticPrefix = "/static";
-	}
-
-	setPrefix(prefix) {
 		this.prefix = prefix + this.name + "/";
+
+		this.staticPrefix = prefix + "static";
 	}
 
 	async handleRequest(request) {

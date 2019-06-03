@@ -52,11 +52,7 @@ async function initCollection(data) {
 		return;
 	}
 	
-	let coll = new Collection(data.name, cache);
-
-	coll.setPrefix(self.prefix);
-
-	return coll;
+	return new Collection(data.name, cache, self.prefix);
 }
 
 function doListAll(source)
