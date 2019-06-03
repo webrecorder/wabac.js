@@ -72,11 +72,11 @@ class ReplayIndex
 
         for (let page of coll.pageList) {
             let href = coll.prefix;
-            if (page.ts) {
-                href += page.ts + "/";
+            if (page.timestamp) {
+                href += page.timestamp + "/";
             }
             href += page.url;
-            content += `<li><a href="${href}">${page.url}</a></li>`
+            content += `<li><a href="${href}">${page.title || page.url}</a></li>`
         }
 
         content += '</ul>'

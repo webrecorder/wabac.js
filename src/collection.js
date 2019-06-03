@@ -6,7 +6,7 @@ import { parseHAR } from './harcache.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
-const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?\/{0,3}(.+)/;
+const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?\/(.+)/;
 
 
 class Collection
@@ -24,7 +24,7 @@ class Collection
 		this.prefix = prefix + this.name + "/";
 	}
 
-	handleRequest(request) {
+	async handleRequest(request) {
 		if (!request.url.startsWith(this.prefix)) {
 			return null;
 		}
@@ -65,9 +65,31 @@ class Collection
 
 		const requestTS = wbUrl[1];
 		const mod = wbUrl[2];
-		const url = wbUrl[3];
+		let url = wbUrl[3];
 
 		if (mod) {
+			const hash = url.indexOf("#");
+			if (hash > 0) {
+				url = url.substring(0, hash);
+			}
+
+			let referrer = request.referrer;
+
+			// Resolve scheme relative!
+			if (url.startsWith("//") && referrer.startsWith(this.prefix)) {
+				referrer = referrer.slice(this.prefix.length);
+				const wbRefUrl = REPLAY_REGEX.exec(referrer);
+				if (wbRefUrl) {
+					referrer = wbRefUrl[3];
+				}
+
+				if (referrer.startsWith("http:")) {
+					url = "http:" + url;
+				} else if (referrer.startsWith("https:")) {
+					url = "https:" + url;
+				}
+			}
+
 			let content_response = this.cache.match({"url": url});
 
 			if (content_response && mod != "id_") {
@@ -82,7 +104,7 @@ class Collection
 				if (!request.destination) {
 					console.log("empty");
 				}
-				content_response = rewriter.rewrite(content_response, request.destination, DEFAULT_CSP);
+				content_response = await rewriter.rewrite(content_response, request.destination, DEFAULT_CSP);
 			}
 
 			if (content_response) {

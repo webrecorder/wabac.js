@@ -2,6 +2,8 @@
 
 import { Collection } from './collection.js';
 import { HARCache } from './harcache.js';
+import { WARCCache } from './warccache.js';
+import { WarcParser } from './warcparse.js';
 
 self.prefix = self.registration.scope;
 
@@ -28,11 +30,21 @@ async function initCollection(data) {
 
 	let cache = null;
 
-	if (file.name.endsWith(".har") && file.url) {
+	if (file.url) {
 		const resp = await fetch(file.url);
-		const har = await resp.json();
-		cache = new HARCache(har);
-	}
+
+		if (file.name.endsWith(".har")) {
+			const har = await resp.json();
+			cache = new HARCache(har);
+
+		} else if (file.name.endsWith(".warc")) {
+	        const ab = await resp.arrayBuffer();
+	        cache = new WARCCache();
+
+	        const parser = new WarcParser();
+	        await parser.parse(ab, cache.index.bind(cache));
+	    }
+    }
 
 	if (!cache) {
 		console.log("No Valid Cache!");

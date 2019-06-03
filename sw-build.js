@@ -6,6 +6,8 @@ export let RewritingStream = require('parse5-html-rewriting-stream');
 
 export let stream = require('stream');
 
+export let pako = require('pako');
+
 //export let Collection = require('./src/collection.js');
 
 //export let HARCache = require('./src/harcache.js');

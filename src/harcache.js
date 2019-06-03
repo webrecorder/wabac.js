@@ -1,14 +1,5 @@
 "use strict";
 
-function parseHAR(fileUrl) {
-	return fetch(fileUrl).then(function(resp) {
-		return resp.json();
-	}).then(function(har) {
-		return new HARCache(har);
-	});
-}
-
-
 class HARCache {
 	constructor(string_or_har) {
 		let har = string_or_har;
@@ -29,7 +20,7 @@ class HARCache {
 			if (!page.pageTimings || !page.pageTimings.onLoad) {
 				continue;
 			}
-			this.pageList.push({"ts": this.getTS(page.startedDateTime), "url": page.title});
+			this.pageList.push({"timestamp": this.getTS(page.startedDateTime), "title": page.title, "url": page.title});
 		}
 	}
 
@@ -53,14 +44,7 @@ class HARCache {
 	}
 
 	match(request) {
-		let url = request.url;
-
-		let hash = url.indexOf("#");
-		if (hash > 0) {
-			url = url.substring(0, hash);
-		}
-
-		const entry = this.urlMap[url];
+		const entry = this.urlMap[request.url];
 		if (!entry) {
 			return null;
 		}
@@ -95,5 +79,5 @@ class HARCache {
 	}
 }
 
-export { HARCache, parseHAR };
+export { HARCache };
 

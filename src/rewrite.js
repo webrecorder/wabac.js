@@ -29,9 +29,31 @@ class Rewriter
 		this.headInsert = headInsert || "";
 	}
 
-	rewrite(response, requestType, csp) {
+	async decodeResponse(response, encoding) {
+		if (!encoding) {
+			return response;
+		}
+
+		const ab = await response.arrayBuffer();
+
+		const inflator = new pako.Inflate();
+
+        inflator.push(ab, true);
+
+        const initOpt = {
+        	"status": response.status,
+			"statusText": response.statusText,
+			"headers": response.headers
+		}
+
+        return new Response(inflator.result, initOpt);
+	}
+
+	async rewrite(response, requestType, csp) {
 		let contentType = response.headers.get("Content-Type") || "";
 		contentType = contentType.split(";", 1)[0];
+
+		const encoding = response.headers.get("content-encoding");
 
 		const headers = this.rewriteHeaders(response.headers);
 
@@ -41,16 +63,28 @@ class Rewriter
 
 		switch (requestType) {
 			case "style":
-			return this.rewriteCSS(response, headers);
+				response = await this.decodeResponse(response, encoding);
+				return this.rewriteCSS(response, headers);
 
 			case "script":
-			return this.rewriteJS(response, headers);
+				response = await this.decodeResponse(response, encoding);
+				return this.rewriteJS(response, headers);
 		}
 
 		switch (contentType) {
 			case "text/html":
-			return this.rewriteHtml(response, headers);
-			break;
+				response = await this.decodeResponse(response, encoding);
+				return this.rewriteHtml(response, headers);
+
+			case "text/javascript":
+			case "application/javascript":
+			case "application/x-javascript":
+				response = await this.decodeResponse(response, encoding);
+				return this.rewriteJS(response, headers);
+
+			case "text/css":
+				response = await this.decodeResponse(response, encoding);
+				return this.rewriteCSS(response, headers);
 		}
 
 		return response;
@@ -66,16 +100,23 @@ class Rewriter
 			return origUrl;
 		}
 
-		if (url.startsWith("data:") ||  url.startsWith("blob:")) {
+		if (url.startsWith("data:") ||  url.startsWith("blob:") || url.startsWith("about:")) {
 			return origUrl;
+		}
+
+		if (url.startsWith("http:") || url.startsWith("https:") || url.startsWith("//")) {
+			return this.prefix + url;
 		}
 
 		if (url.startsWith("/") || url.startsWith(".")) {
 			url = new URL(url, this.baseUrl).href;
+			return this.prefix + url;
+		} else {
+			return origUrl;
 		}
 
     	//console.log(`RW ${origUrl} -> ${this.prefix + url}`);
-    	return this.prefix + url;
+
     }
 
     // HTML
@@ -100,7 +141,7 @@ class Rewriter
 
     	let rv = [];
 
-    	for (v of value.split(SRCSET_REGEX)) {
+    	for (let v of value.split(SRCSET_REGEX)) {
     		if (v) {
     			rv.push(this.rewriteUrl(v.trim()));
     		}
@@ -257,10 +298,12 @@ class Rewriter
 	    rwStream.on('text', (textToken, raw) => {
 	    	if (context === "script") {
 	    		//textToken.text = this.rewriteJSProxy(textToken.text);
-	    		rwStream.emitRaw(this.rewriteJSProxy(raw));
+	    		//console.log(raw);
+	    		//console.log(textToken.text);
+	    		rwStream.emitRaw(this.rewriteJSProxy(textToken.text));
 	    	} else if (context === "style") {
 	    		//textToken.text = this.rewriteCSSText(textToken.text);
-	    		rwStream.emitRaw(this.rewriteCSSText(raw));
+	    		rwStream.emitRaw(this.rewriteCSSText(textToken.text));
 	    	} else {
 	    		rwStream.emitText(textToken);
 	    	}
@@ -396,7 +439,8 @@ class Rewriter
 
 rewriteJS(response, headers) {
 	return response.text().then((text) => {
-		const initOpt = {"status": response.status,
+		const initOpt = {
+		"status": response.status,
 		"statusText": response.statusText,
 		"headers": headers || response.headers
 	}

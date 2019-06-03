@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 
 module.exports = {
   mode: 'production',
@@ -12,5 +13,9 @@ module.exports = {
     filename: '[name].js',
     libraryTarget: 'global',
     globalObject: 'self'
-  }
+  },
+
+  plugins: [
+    new webpack.IgnorePlugin(/fs|untildify/),
+  ],
 };
