@@ -56,12 +56,61 @@ class WARCCache {
 			const headers = new Headers(record.httpInfo.headers);
 
 			initInfo = { status, statusText, headers };
+
+            // if no pages found, start detection if hasn't started already
+            if (this.detectPages === undefined) {
+                this.detectPages = !!this.pageList;
+            }
+
+            if (this.detectPages) {
+                if (this.isPage(url, status, headers)) {
+                    this.pageList.push({"url": url,
+                    					"timestamp": timestamp,
+                    					"title": url
+                    					});
+                }
+            }
 		}
 
+        // needed due to bug in node-warc in including trailing \r\n in record
 		const content = record.content.slice(0, record.content.byteLength - 2);
 
 		this.urlMap[url] = {timestamp, initInfo, content};
 	}
+
+    isPage(url, status, headers) {
+        if (status != 200) {
+            return false;
+        }
+
+        if (!url.startsWith("http:") && !url.startsWith("https:")) {
+            return false;
+        }
+
+        if (url.endsWith("/robots.txt")) {
+            return false;
+        }
+
+        // skip urls with long query
+        const parts = url.split("?", 2);
+
+        if (parts.length === 2 && parts[1].length > parts[0].length) {
+            return false;
+        }
+
+        // skip 'files' starting with '.' from being listed as pages
+        if (parts[0].substring(parts[0].lastIndexOf("/") + 1).startsWith(".")) {
+            return false;
+        }
+
+        let contentType = headers.get("Content-Type") || "";
+		contentType = contentType.split(";", 1)[0];
+        if (contentType !== "text/html" && contentType !== "text/plain") {
+            return false;
+        }
+
+        return true;
+    }
 
 	match(request) {
 		const entry = this.urlMap[request.url];

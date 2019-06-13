@@ -37,7 +37,7 @@ async function initCollection(data) {
 			const har = await resp.json();
 			cache = new HARCache(har);
 
-		} else if (file.name.endsWith(".warc")) {
+		} else if (file.name.endsWith(".warc") || file.name.endsWith(".warc.gz")) {
 	        const ab = await resp.arrayBuffer();
 	        cache = new WARCCache();
 
