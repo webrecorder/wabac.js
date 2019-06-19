@@ -95,7 +95,7 @@ function initCollection(collDef, autoLoad) {
 
     swInit.then(() => {
         // auto-load url in the hashtag!
-        if (autoLoad && window.location.hash && window.location.hash.startsWith("#/" + collDef.name)) {
+        if (autoLoad && window.location.hash && window.location.hash.startsWith("#/")) {
             navigator.serviceWorker.addEventListener("message", (event) => {
                 switch (event.data.msg_type) {
                     case "collAdded":

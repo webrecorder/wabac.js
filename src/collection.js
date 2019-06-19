@@ -117,7 +117,7 @@ class Collection
 					headInsert = this.makeHeadInsert(url, response.timestamp, request.url, requestTS);
 				}
 
-				const rewriter = new Rewriter(url, this.prefix + "mp_/", headInsert);
+				const rewriter = new Rewriter(url, this.prefix + requestTS + "mp_/", headInsert);
 				console.log(request.destination);
 				if (!request.destination) {
 					console.log("empty");
@@ -198,7 +198,7 @@ window.home = "${this.rootPrefix}";
 
 	makeHeadInsert(url, timestamp, requestUrl, requestTS) {
 
-		const topUrl = requestUrl.replace("mp_/", "");
+		const topUrl = this.appPrefix + requestTS + (requestTS ? "/" : "") + url;
 		const prefix = this.prefix;
 		const coll = this.name;
 
