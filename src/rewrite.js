@@ -40,54 +40,72 @@ class Rewriter
 
         inflator.push(ab, true);
 
-        const initOpt = {
-        	"status": response.status,
-			"statusText": response.statusText,
-			"headers": response.headers
+        // if error occurs (eg. not gzip), use original arraybuffer
+        const content = (inflator.result && !inflator.err) ? inflator.result : ab;
+
+		return this.makeResponse(content, response);
+	}
+
+	getRewriteMode(requestType, contentType) {
+		switch (requestType) {
+			case "style":
+				return "css";
+
+			case "script":
+				return "js";
 		}
 
-        return new Response(inflator.result, initOpt);
+		switch (contentType) {
+			case "text/html":
+				return "html";
+
+			case "text/javascript":
+			case "application/javascript":
+			case "application/x-javascript":
+				return "js";
+
+
+			case "text/css":
+				return "css";
+
+			case "application/json":
+				return "json";
+		}
+
+		return null;
 	}
 
 	async rewrite(response, requestType, csp) {
 		let contentType = response.headers.get("Content-Type") || "";
 		contentType = contentType.split(";", 1)[0];
 
+
+		const rewriteMode = this.getRewriteMode(requestType, contentType);
+
 		const encoding = response.headers.get("content-encoding");
 
-		const headers = this.rewriteHeaders(response.headers);
+		const headers = this.rewriteHeaders(response.headers, true, rewriteMode !== null);
 
 		if (csp) {
 			headers.append("Content-Security-Policy", csp);
 		}
 
-		switch (requestType) {
-			case "style":
-				response = await this.decodeResponse(response, encoding);
-				return this.rewriteCSS(response, headers);
-
-			case "script":
-				response = await this.decodeResponse(response, encoding);
-				return this.rewriteJS(response, headers);
+		if (rewriteMode) {
+			response = await this.decodeResponse(response, encoding);
 		}
 
-		switch (contentType) {
-			case "text/html":
-				response = await this.decodeResponse(response, encoding);
+		switch (rewriteMode) {
+			case "css":
+				return this.rewriteCSS(response, headers);
+
+			case "js":
+				return this.rewriteJS(response, headers);
+
+			case "html":
 				return this.rewriteHtml(response, headers);
-
-			case "text/javascript":
-			case "application/javascript":
-			case "application/x-javascript":
-				response = await this.decodeResponse(response, encoding);
-				return this.rewriteJS(response, headers);
-
-			case "text/css":
-				response = await this.decodeResponse(response, encoding);
-				return this.rewriteCSS(response, headers);
 		}
 
-		return response;
+		return this.makeResponse(response.body, response, headers);
 	}
 
 	// URL
@@ -274,6 +292,10 @@ class Rewriter
 
 	    		case "base":
 	    			this.baseUrl = this.getAttr(startTag.attrs, "href");
+	    			if (this.baseUrl.startsWith(this.prefix)) {
+	    				this.baseUrl = this.baseUrl.slice(this.prefix.length);
+	    			}
+	    			console.log("BASE: " + this.baseUrl);
 	    			break;
 
 	    		case "script":
@@ -349,13 +371,7 @@ class Rewriter
 	    	}
 	    });
 
-	    const initOpt = {
-	    	"status": response.status,
-	    	"statusText": response.statusText,
-	    	"headers": headers || response.headers
-		};
-
-		return new Response(rs, initOpt);
+	    return this.makeResponse(rs, response, headers);
 	}
 
 	// CSS
@@ -376,14 +392,8 @@ class Rewriter
 
 		}).then((text) => {
 
-			const initOpt = {"status": response.status,
-			"statusText": response.statusText,
-			"headers": headers || response.headers
-		}
-
-		return new Response(text, initOpt);
-
-	});
+			return this.makeResponse(text, response, headers);
+		});
 	}
 
 	// JS
@@ -435,22 +445,27 @@ class Rewriter
 		text +
 		'\n\n}'
 		);
-}
-
-rewriteJS(response, headers) {
-	return response.text().then((text) => {
-		const initOpt = {
-		"status": response.status,
-		"statusText": response.statusText,
-		"headers": headers || response.headers
 	}
 
-	return new Response(this.rewriteJSProxy(text), initOpt);
-});
-}
+	rewriteJS(response, headers) {
+		return response.text().then((text) => {
+
+			return this.makeResponse(this.rewriteJSProxy(text), response, headers);
+		});
+	}
+
+	makeResponse(content, response, headers)  {
+		const initOpt = {
+	    	"status": response.status,
+	    	"statusText": response.statusText,
+	    	"headers": headers || response.headers
+		};
+
+		return new Response(content, initOpt);
+	}
 
 	//Headers
-	rewriteHeaders(headers) {
+	rewriteHeaders(headers, urlRewrite, contentRewrite) {
 		const headerRules = {
 			'access-control-allow-origin': 'prefix-if-url-rewrite',
 			'access-control-allow-credentials': 'prefix-if-url-rewrite',
@@ -529,9 +544,6 @@ rewriteJS(response, headers) {
 		const headerPrefix = 'X-Archive-Orig-';
 
 		let new_headers = new Headers();
-
-		const urlRewrite = true;
-		const contentRewrite = true;
 
 		for (let header of headers.entries()) {
 			const rule = headerRules[header[0]];

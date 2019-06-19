@@ -43,7 +43,7 @@ class HARCache {
 		return iso.replace(/[-:T]/g, '').slice(0, 14);
 	}
 
-	match(request) {
+	async match(request) {
 		const entry = this.urlMap[request.url];
 		if (!entry) {
 			return null;

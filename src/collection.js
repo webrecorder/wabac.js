@@ -11,7 +11,7 @@ const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?\/(.+)/;
 
 class Collection
 {
-	constructor(name, cache, prefix) {
+	constructor(name, cache, prefix, rootColl) {
 		this.name = name;
 		this.cache = cache;
 
@@ -19,19 +19,32 @@ class Collection
 
 		this.prefix = prefix + this.name + "/";
 
+		// support root collection hashtag nav
+		if (rootColl) {
+			this.appPrefix = prefix + "#/";
+			this.isRoot = true;
+		} else {
+			this.appPrefix = this.prefix;
+			this.isRoot = false;
+		}
+
 		this.staticPrefix = prefix + "static";
 	}
 
 	async handleRequest(request) {
-		if (!request.url.startsWith(this.prefix)) {
+		let wbUrlStr = request.url;
+
+		if (wbUrlStr.startsWith(this.prefix)) {
+			wbUrlStr = wbUrlStr.substring(this.prefix.length);
+		} else if (this.isRoot && wbUrlStr.startsWith(this.appPrefix)) {
+			wbUrlStr = wbUrlStr.substring(this.appPrefix.length);
+		} else {
 			return null;
 		}
 
-		const wbUrlStr = request.url.substring(this.prefix.length);
-
-		let response_data = {"status": 200,
+		let responseData = {"status": 200,
 							 "statusText": "OK",
-							 "headers": {"Content-Type": "text/html"}
+						     "headers": {"Content-Type": "text/html"}
 							};
 
 		let content = null;
@@ -42,7 +55,7 @@ class Collection
 			content = '<html><body><h2>Available Pages</h2><ul>'
 
 			for (let page of this.cache.pageList) {
-				let href = this.prefix;
+				let href = this.appPrefix;
 				if (page.ts) {
 					href += page.ts + "/";
 				}
@@ -52,18 +65,23 @@ class Collection
 
 			content += '</ul></body></html>'
 
-			return new Response(content, response_data);
+			return new Response(content, responseData);
 		}
 
 		const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
+		let requestTS = '';
+		let url = '';
+		let mod = '';
 
-		if (!wbUrl) {
+		if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:"))) {
+			url = wbUrlStr;
+		} else if (!wbUrl) {
 			return this.notFound();
+		} else {
+			requestTS = wbUrl[1];
+			mod = wbUrl[2];
+			url = wbUrl[3];
 		}
-
-		const requestTS = wbUrl[1];
-		const mod = wbUrl[2];
-		let url = wbUrl[3];
 
 		if (mod) {
 			const hash = url.indexOf("#");
@@ -73,28 +91,30 @@ class Collection
 
 			let referrer = request.referrer;
 
-			// Resolve scheme relative!
-			if (url.startsWith("//") && referrer.startsWith(this.prefix)) {
-				referrer = referrer.slice(this.prefix.length);
-				const wbRefUrl = REPLAY_REGEX.exec(referrer);
-				if (wbRefUrl) {
-					referrer = wbRefUrl[3];
-				}
+			let response = null;
 
-				if (referrer.startsWith("http:")) {
-					url = "http:" + url;
-				} else if (referrer.startsWith("https:")) {
+			const rwPrefix = this.prefix;// + requestTS + mod + "/";
+
+			if (url.startsWith("//")) {
+				response = await this.cache.match({"url": "https:" + url, "timestamp": requestTS}, rwPrefix);
+
+				if (!response) {
+					response = await this.cache.match({"url": "http:" + url, "timestamp": requestTS}, rwPrefix);
+					if (response) {
+						url = "http:" + url;
+					}
+				} else {
 					url = "https:" + url;
 				}
+			} else {
+				response = await this.cache.match({"url": url, "timestamp": requestTS}, rwPrefix);
 			}
 
-			let content_response = this.cache.match({"url": url});
-
-			if (content_response && mod != "id_") {
+			if (response && !response.noRW && mod != "id_") {
 				let headInsert = "";
 
 				if (request.destination === "" || request.destination === "document") {
-					headInsert = this.makeHeadInsert(url, content_response.timestamp, request.url, requestTS);
+					headInsert = this.makeHeadInsert(url, response.timestamp, request.url, requestTS);
 				}
 
 				const rewriter = new Rewriter(url, this.prefix + "mp_/", headInsert);
@@ -102,11 +122,11 @@ class Collection
 				if (!request.destination) {
 					console.log("empty");
 				}
-				content_response = await rewriter.rewrite(content_response, request.destination, DEFAULT_CSP);
+				response = await rewriter.rewrite(response, request.destination, DEFAULT_CSP);
 			}
 
-			if (content_response) {
-				return content_response;
+			if (response) {
+				return response;
 			} else {
 				return this.notFound();
 			}
@@ -119,12 +139,12 @@ class Collection
 	}
 
 	notFound() {
-		let response_data = {"status": 404,
+		let responseData = {"status": 404,
 						   	 "statusText": "Not Found",
 							 "headers": {"Content-Type": "text/html"}
 							};
 
-		return new Response('404 Not Found', response_data);
+		return new Response('404 Not Found', responseData);
 	}
 
 	makeTopFrame(url, requestTS) {
@@ -158,8 +178,9 @@ window.home = "${this.rootPrefix}";
 <iframe id="replay_iframe" frameborder="0" seamless="seamless" scrolling="yes" class="wb_iframe"></iframe>
 </div>
 <script>
-  var cframe = new ContentFrame({"url": "${url}" + window.location.hash,
-                                 "prefix": "${this.prefix}",
+  var cframe = new ContentFrame({"url": "${url}",
+                                 "app_prefix": "${this.appPrefix}",
+                                 "content_prefix": "${this.prefix}",
                                  "request_ts": "${requestTS}",
                                  "iframe": "#replay_iframe"});
 
@@ -167,12 +188,12 @@ window.home = "${this.rootPrefix}";
 </body>
 </html>
 `
-		let response_data = {"status": 200,
+		let responseData = {"status": 200,
 							 "statusText": "OK",
 							 "headers": {"Content-Type": "text/html", "Content-Security-Policy": DEFAULT_CSP}
 							};
 
-		return new Response(content, response_data);
+		return new Response(content, responseData);
 	}
 
 	makeHeadInsert(url, timestamp, requestUrl, requestTS) {

@@ -2,8 +2,10 @@
 
 import { Collection } from './collection.js';
 import { HARCache } from './harcache.js';
+import { RemoteArchiveCache } from './remotearchive.js'
 import { WARCCache } from './warccache.js';
 import { WarcParser } from './warcparse.js';
+
 
 self.prefix = self.registration.scope;
 
@@ -24,35 +26,39 @@ self.addEventListener('fetch', function(event) {
 	event.respondWith(getResponseFor(event.request));
 });
 
-async function initCollection(data) {
-	// TODO: multiple files
-	let file = data.files[0];
 
+async function initCollection(data) {
 	let cache = null;
 
-	if (file.url) {
-		const resp = await fetch(file.url);
+	if (data.files) {
+		// TODO: multiple files
+		let file = data.files[0];
 
-		if (file.name.endsWith(".har")) {
-			const har = await resp.json();
-			cache = new HARCache(har);
+		if (file.url) {
+			const resp = await fetch(file.url);
 
-		} else if (file.name.endsWith(".warc") || file.name.endsWith(".warc.gz")) {
-	        const ab = await resp.arrayBuffer();
-	        cache = new WARCCache();
+			if (file.name.endsWith(".har")) {
+				const har = await resp.json();
+				cache = new HARCache(har);
 
-	        const parser = new WarcParser();
-	        await parser.parse(ab, cache.index.bind(cache));
+			} else if (file.name.endsWith(".warc") || file.name.endsWith(".warc.gz")) {
+		        const ab = await resp.arrayBuffer();
+		        cache = new WARCCache();
+
+		        const parser = new WarcParser();
+		        await parser.parse(ab, cache.index.bind(cache));
+		    }
 	    }
-    }
+	} else if (data.remote) {
+		cache = new RemoteArchiveCache(data.remote);
+	}
 
 	if (!cache) {
 		console.log("No Valid Cache!");
-		//reject("No Valid Cache");
-		return;
+		return null;
 	}
 	
-	return new Collection(data.name, cache, self.prefix);
+	return new Collection(data.name, cache, self.prefix, data.root);
 }
 
 function doListAll(source)

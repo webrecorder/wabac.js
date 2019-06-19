@@ -23,15 +23,20 @@ This file is part of pywb, https://github.com/webrecorder/pywb
  */
 function ContentFrame(content_info) {
     if (!(this instanceof ContentFrame)) return new ContentFrame(content_info);
-    this.last_inner_hash = window.location.hash;
+
+    this.content_info = content_info;
+    this.extract_prefix();
+
+    this.last_inner_hash = this.getContentHash();
     this.last_url = content_info.url;
     this.last_ts = content_info.request_ts;
-    this.content_info = content_info;
     // bind event callbacks
     this.outer_hash_changed = this.outer_hash_changed.bind(this);
     this.handle_event = this.handle_event.bind(this);
     this.wbBanner = null;
     this.checkBannerToId = null;
+
+    this.content_info.url += this.getContentHash();
 
     window.addEventListener('hashchange', this.outer_hash_changed, false);
     window.addEventListener('message', this.handle_event);
@@ -64,7 +69,6 @@ ContentFrame.prototype.init_iframe = function () {
         return;
     }
 
-    this.extract_prefix();
     if (window.WBBanner) {
         this.wbBanner = window.WBBanner;
         this.wbBanner.init();
@@ -78,6 +82,13 @@ ContentFrame.prototype.init_iframe = function () {
 ContentFrame.prototype.extract_prefix = function () {
     this.app_prefix = this.content_info.app_prefix || this.content_info.prefix;
     this.content_prefix = this.content_info.content_prefix || this.content_info.prefix;
+
+    var hash_inx = this.app_prefix.indexOf("#");
+    if (hash_inx > 0) {
+        this.app_hash_prefix = this.app_prefix.substring(hash_inx);
+    } else {
+        this.app_hash_prefix = "";
+    }
 
     if (this.app_prefix && this.content_prefix) {
         return;
@@ -236,8 +247,8 @@ ContentFrame.prototype.load_url = function (newUrl, newTs) {
  * @param {Object} state - The contents of message received from the replay iframe
  */
 ContentFrame.prototype.inner_hash_changed = function (state) {
-    if (window.location.hash !== state.hash) {
-        window.location.hash = state.hash;
+    if (this.getContentHash() !== state.hash) {
+        this.setContentHash(state.hash);
     }
     this.last_inner_hash = state.hash;
 };
@@ -247,16 +258,66 @@ ContentFrame.prototype.inner_hash_changed = function (state) {
  * @param event
  */
 ContentFrame.prototype.outer_hash_changed = function (event) {
-    if (window.location.hash === this.last_inner_hash) {
+    if (this.app_hash_prefix && window.location.hash.startsWith(this.app_hash_prefix)) {
+        var url = window.location.hash.substring(this.app_hash_prefix.length);
+
+        var replay_url = this.content_prefix + url.replace(/(?:([\d]+)[^\/]*\/)?(.*)/, "$1mp_/$2");
+
+        console.log(replay_url);
+
+        if (replay_url != this.iframe.src) {
+            this.iframe.src = replay_url;
+            return;
+        }
+    }
+
+    var hash = this.getContentHash();
+    if (hash === this.last_inner_hash) {
         return;
     }
 
     if (this.iframe) {
-        var message = {'wb_type': 'outer_hashchange', 'hash': window.location.hash};
+        var message = {'wb_type': 'outer_hashchange', 'hash': hash};
 
         this.iframe.contentWindow.postMessage(message, '*', undefined, true);
     }
 };
+
+
+ContentFrame.prototype.getContentHash = function() {
+    var hash = window.location.hash;
+
+    if (!this.app_hash_prefix) {
+        return hash;
+    }
+
+    if (hash.startsWith(this.app_hash_prefix)) {
+        var inx = hash.indexOf("#", this.app_hash_prefix.length);
+        if (inx > 0) {
+            return hash.substring(inx);
+        }
+    }
+
+    return "";
+}
+
+
+ContentFrame.prototype.setContentHash = function(hash) {
+    if (!this.app_hash_prefix) {
+        window.location.hash = hash;
+        return;
+    }
+
+    var inx = hash.indexOf("#", this.app_hash_prefix.length);
+
+    if (inx < 0) {
+        window.location.hash = window.location.hash + hash;
+    } else {
+        window.location.hash = window.location.hash.substring(0, inx) + hash;
+    }
+}
+
+    
 
 /**
  * @desc Cleans up any event listeners added by the content frame

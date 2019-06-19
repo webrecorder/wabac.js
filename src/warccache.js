@@ -59,7 +59,7 @@ class WARCCache {
 
             // if no pages found, start detection if hasn't started already
             if (this.detectPages === undefined) {
-                this.detectPages = !!this.pageList;
+                this.detectPages = (this.pageList === []);
             }
 
             if (this.detectPages) {
@@ -112,7 +112,7 @@ class WARCCache {
         return true;
     }
 
-	match(request) {
+	async match(request) {
 		const entry = this.urlMap[request.url];
 		if (!entry) {
 			console.log(request.url);

@@ -201,10 +201,10 @@ This file is part of pywb, https://github.com/webrecorder/pywb
         capture_str = "<b id='title_or_url'>" + capture_str + "</b>";
 
         if (is_live) {
-            title_str = " pywb Live: " + title_str;
+            title_str = " WABAC Live: " + title_str;
             capture_str += "<i>Live on&nbsp;</i>";
         } else {
-            title_str += "pywb Archived: " + title_str;
+            title_str = " WABAC: " + title_str;
             capture_str += "<i>Archived on&nbsp;</i>";
         }
 

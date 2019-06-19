@@ -1,23 +1,89 @@
 <html>
 <head>
-	<script src="page.js"></script>
-        <script>
-        window.index = new Page.ReplayIndex();
-        </script>
-	<style>
-	button { font-size: 24px; }
-	input { font-size: 24px; }
-	</style>
+<script src="page.js"></script>
+<script>
+    var ation = "ation";
+    var loc = window["loc" + ation];
+
+    function go(event) {
+        event.preventDefault();
+        var url = document.querySelector("#url").value;
+        if (!url.startsWith("http:") && !url.startsWith("https:")) {
+            url = "http://" + url;
+        }
+        loc.href = loc.origin + loc.pathname + "#/" + url;
+        loc.reload();
+        return false;
+    }
+
+    function getReplayConfig(loc) {
+        if (loc.hostname === "web.archive.org") {
+            return {"replayPrefix": loc.origin + "/web/", "redirMod": "id_"};
+        }
+
+        return {"replayPrefix": loc.origin + "/pywb/"};
+    }
+
+    Page.initSW("sw.js").then(function() {
+        Page.initCollection({"name": "web", "root": true, "remote": getReplayConfig(loc)}, true);
+    }).catch(function(error) {
+        console.log(error);
+    });
+
+</script>
+<style>
+    body { 
+        background-color: white;
+        color: black;
+        font-family: sans-serif;
+    }
+
+    input, button {
+        font-size: 24px;
+    }
+
+    #url::placeholder {
+        color: darkgreen;
+    }
+
+    #url { 
+        width: 50%;
+        background-color: white;
+        color: green;
+    }
+
+    .container {
+        width: 100%;
+        text-align: center;
+    }
+    .header {
+        font-family: fantasy;
+        font-size: 4.0rem;
+        line-height: 4.0rem;
+        color: green;
+        margin: 20px 0 0 0;
+    }
+    .tagline {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+    }
+    span b {
+        color: green;
+    }
+    form {
+        margin-top: 20px;
+    }
+</style>
 </head>
 <body>
-	<h2>Create New Collection</h2>
-	<span>
-		Coll Name:
-		<input id="file-input" type="file" name="file-input" onchange="window.index.processFile(this.files)" style="display: none;" />
-		<input id="coll-name" type="text" value="replay" name="coll-name"/>
-		<button onclick="document.getElementById('file-input').click();">Open WARC or HAR File</button>
-	</span>
-	<h2>Collections</h2>
-	<div id="colls"></div>
+        <div class="container">
+	<h1 class="header">WABAC</h1>
+        <span class="tagline"><b>W</b>eb <b>A</b>rchive <b>B</b>rowsing <b>A</b>ugmented <b>C</b>lient</span>
+	<div>
+        <form onsubmit="go(event)">
+            <input id="url" type="text" placeholder="https://..."/>
+        </form>
+	</div>
+        </div>
 </body>
 </html>

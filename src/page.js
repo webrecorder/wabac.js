@@ -87,5 +87,58 @@ class ReplayIndex
     }
 }
 
+function initCollection(collDef, autoLoad) {
+    const swInit = new Promise(resolve => {
+        if (navigator.serviceWorker.controller) return resolve();
+        navigator.serviceWorker.addEventListener('controllerchange', e => resolve());
+    });
 
-export { ReplayIndex };
+    swInit.then(() => {
+        // auto-load url in the hashtag!
+        if (autoLoad && window.location.hash && window.location.hash.startsWith("#/" + collDef.name)) {
+            navigator.serviceWorker.addEventListener("message", (event) => {
+                switch (event.data.msg_type) {
+                    case "collAdded":
+                        window.location.reload();
+                }
+            });
+        }
+
+        navigator.serviceWorker.controller.postMessage({"msg_type": "addColl", ...collDef});
+    });
+}
+
+function initSW(relUrl) {
+    if (!navigator.serviceWorker) {
+        return Promise.reject('Service workers are not supported');
+    }
+
+    // Register SW in current path scope (if not '/' use curr directory)
+    let path = window.location.origin + window.location.pathname;
+
+    if (!path.endsWith("/")) {
+        path = path.slice(0, path.lastIndexOf("/") + 1);
+    }
+
+    let url = path + relUrl;
+
+    return new Promise((resolve, reject) => {
+        window.fetch(url, {"mode": "cors"}).then(resp => {
+            if (!resp.url.startsWith(path)) {
+                reject("Service Worker in wrong scope!")
+            }
+            return resp.url;
+        }).then((swUrl) => {
+            return navigator.serviceWorker.register(swUrl, {scope: path});
+        }).then((registration) => {
+            console.log('Service worker registration succeeded:', registration);
+            resolve("");
+        }).catch((error) => {
+            console.log('Service worker registration failed:', error);
+            reject(error);
+        });
+    });
+}
+
+
+export { ReplayIndex, initCollection, initSW };
