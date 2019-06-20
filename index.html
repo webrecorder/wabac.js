@@ -1,5 +1,56 @@
-<html> 
+<html>
 <head>
+<style>
+    body { 
+        background-color: white;
+        color: black;
+        font-family: sans-serif;
+    }
+
+    input, button {
+        font-size: 24px;
+        color: green;
+    }
+
+    button { 
+        max-width: 100px;
+    }
+
+    .container {
+        width: 100%;
+    }
+    .header {
+        font-family: fantasy;
+        font-size: 4.0rem;
+        line-height: 4.0rem;
+        color: green;
+        margin: 20px 0 0 0;
+        text-align: center;
+    }
+    .tagline {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+        text-align: center;
+        display: block;
+    }
+    span b {
+        color: green;
+    }
+    form {
+        margin-top: 20px;
+        display: grid;
+    }
+    label {
+        margin-right: 8px;
+        font-weight: bold;
+        font-size:  1.0rem;
+        width: 200px;
+    }
+    .formdiv {
+        width: 800px;
+        margin-left: calc(50% - 400px);
+    }
+   </style>
 <script src="page.js"></script>
 <script>
     var ation = "ation";
@@ -11,7 +62,9 @@
         if (!url.startsWith("http:") && !url.startsWith("https:")) {
             url = "http://" + url;
         }
-        loc.href = loc.origin + loc.pathname + "#/" + url;
+        var timestamp = document.querySelector("#timestamp").value || "";
+        timestamp = timestamp.replace(/[^\d]+/g, '');
+        loc.href = loc.origin + loc.pathname + "#/" + timestamp + (timestamp ? "/" : "") + url;
         loc.reload();
         return false;
     }
@@ -31,57 +84,16 @@
     });
 
 </script>
-<style>
-    body { 
-        background-color: white;
-        color: black;
-        font-family: sans-serif;
-    }
-
-    input, button {
-        font-size: 24px;
-    }
-
-    #url::placeholder {
-        color: darkgreen;
-    }
-
-    #url { 
-        width: 50%;
-        background-color: white;
-        color: green;
-    }
-
-    .container {
-        width: 100%;
-        text-align: center;
-    }
-    .header {
-        font-family: fantasy;
-        font-size: 4.0rem;
-        line-height: 4.0rem;
-        color: green;
-        margin: 20px 0 0 0;
-    }
-    .tagline {
-        font-size: 1.5rem;
-        margin-bottom: 20px;
-    }
-    span b {
-        color: green;
-    }
-    form {
-        margin-top: 20px;
-    }
-</style>
 </head>
 <body>
         <div class="container">
 	<h1 class="header">WABAC</h1>
         <span class="tagline"><b>W</b>eb <b>A</b>rchive <b>B</b>rowsing <b>A</b>ugmented <b>C</b>lient</span>
-	<div>
-        <form onsubmit="go(event)">
-            <input id="url" type="text" placeholder="https://..."/>
+	<div class="formdiv">
+        <form onsubmit="go(event)" action="">
+            <label for="url">URL:</label><input id="url" name="url" type="text" placeholder="https://..." /><br/>
+            <label for="timestamp">Timestamp:</label><input id="timestamp" name="timestamp" type="text" placeholder="" />
+            <br/><button type="submit">Go!</button>
         </form>
 	</div>
         </div>
