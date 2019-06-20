@@ -29,14 +29,20 @@ class RemoteArchiveCache {
 			 mode: 'cors'
 			});
 
-		let redirUrl = await this.getRedirect(request, response, prefix);
+		const redirRes = await this.getRedirect(request, response, prefix);
 
-		if (redirUrl) {
-			response = Response.redirect(redirUrl, 307);
+		let timestamp = null;
+
+		if (redirRes) {
+			response = Response.redirect(redirRes[1], 307);
 			response.noRW = true;
+			timestamp = redirRes[0];
+		} else {
+			timestamp = request.timestamp;
 		}
 
-		response.timestamp = this.getTS(new Date().toISOString());
+		response.timestamp = timestamp || this.getTS(new Date().toISOString());
+
 		return response;
 	}
 
@@ -52,11 +58,17 @@ class RemoteArchiveCache {
 			return null;
 		}
 
-		let inx = response.url.indexOf(this.replayPrefix) + this.replayPrefix.length;
+		const inx = response.url.indexOf(this.replayPrefix) + this.replayPrefix.length;
 
-		const redirUrl = response.url.slice(inx).replace(EXTRACT_TS, `$1mp_/$2`);
+		const redirOrig = response.url.slice(inx);
 
-		return prefix + redirUrl;
+		const m = redirOrig.match(EXTRACT_TS);
+
+		if (m) {
+			return [m[1], prefix + m[1] + "mp_/" + m[2]];
+		} else {
+			return [null, prefix + redirOrig];
+		}
 	}
 
 	getTS(iso) {

@@ -291,11 +291,10 @@ class Rewriter
 	    			break;
 
 	    		case "base":
-	    			this.baseUrl = this.getAttr(startTag.attrs, "href");
-	    			if (this.baseUrl.startsWith(this.prefix)) {
-	    				this.baseUrl = this.baseUrl.slice(this.prefix.length);
+	    			const newBase = this.getAttr(startTag.attrs, "href");
+	    			if (newBase && newBase.startsWith(this.prefix)) {
+	    				this.baseUrl = newBase.slice(this.prefix.length);
 	    			}
-	    			console.log("BASE: " + this.baseUrl);
 	    			break;
 
 	    		case "script":
