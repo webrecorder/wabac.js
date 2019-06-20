@@ -1,5 +1,15 @@
 <html>
 <head>
+<script>
+if (window.WB_wombat_updateLoc) {
+    window.WB_wombat_updateLoc = function() {}
+}
+
+if (window.WB_wombat_checkLocations) {
+    window.WB_wombat_checkLocations = function() {}
+}
+</script>
+
 <style>
     body { 
         background-color: white;
@@ -97,5 +107,7 @@
         </form>
 	</div>
         </div>
+<!-- for crawlers -->
+<a href="sw.js" style="display: none"></a>
 </body>
 </html>
