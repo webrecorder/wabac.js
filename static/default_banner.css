@@ -7,7 +7,7 @@
     font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
     width: 100% !important;
     font-size: 18px !important;
-    background-color: darkgreen !important;
+    background-color: #0000ee !important;
     color: white !important;
     text-align: center !important;
     z-index: 2147483643 !important;
@@ -62,12 +62,53 @@
 {
     float: left;
     position: absolute;
-    top: 12px;
+    top: 4px;
     left: 10px;
     font-style: italic;
     font-size: 14px;
+    vertical-align: middle;
 }
 
 .left-nav a {
     color: white;
+    text-decoration: none;
+    font-size: 24px;
+    font-family: fantasy;
+    line-height: 2em;
 }
+
+.caret {
+    display: inline-block;
+    vertical-align: super;
+    transform: rotateZ(90deg);
+    width: 0;
+    height: 0;
+    margin-left: 2px;
+    margin-right: 4px;
+    border-top: 6px dashed;
+    border-right: 4px solid transparent;
+    border-left: 4px solid transparent;
+}
+
+.right-nav
+{
+    float: right;
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    text-align: right;
+    font-size: 12px;
+    line-height: 1.2em;
+}
+
+.right-nav span.title {
+    font-family: 'InknutAntiqua';
+    font-size: 12px;
+}
+
+@font-face {
+    font-family: 'InknutAntiqua';
+    src: url('InknutAntiqua-Regular.woff2') format('woff2');
+}
+
+

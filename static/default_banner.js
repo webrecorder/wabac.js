@@ -130,7 +130,8 @@ This file is part of pywb, https://github.com/webrecorder/pywb
      */
     DefaultBanner.prototype.createBanner = function (bid) {
         this.banner = document.createElement("wb_div", true);
-        this.banner.innerHTML += '<span class="left-nav"><a href="' + window.home + '">&lt;&lt;&nbsp;Return to Index</a></span>';
+        this.banner.innerHTML += '<span class="left-nav"><span class="caret"></span><a href="' + window.home + '">WABAC</a></span>';
+        this.banner.innerHTML += '<span class="right-nav">Project by<br/><span class="title">Webrecorder</span></span>';
         this.banner.setAttribute("id", bid);
         this.banner.setAttribute("lang", "en");
         this.captureInfo = document.createElement('span');

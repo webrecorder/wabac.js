@@ -1,6 +1,9 @@
 class ReplayIndex
 {
     constructor() {
+        const us = new URLSearchParams(window.location.search);
+        let any = false;
+
         navigator.serviceWorker.addEventListener("message", (event) => {
             switch (event.data.msg_type) {
                 case "collAdded":
@@ -9,22 +12,13 @@ class ReplayIndex
 
                 case "listAll":
                     this.addCollections(event.data.colls);
+                    if (us.get("url")) {
+                        const redirUrl = new URL(us.get("url"), window.location.href);
+                        window.location.href = redirUrl.href;
+                    }
                     break;
             }
         });
-
-
-        const swInit = new Promise(resolve => {
-          if (navigator.serviceWorker.controller) return resolve();
-          navigator.serviceWorker.addEventListener('controllerchange', e => resolve());
-        });
-
-        swInit.then(() => { this.init() });
-    }
-
-    init() {
-        const us = new URLSearchParams(window.location.search);
-        let any = false;
 
         for (let entry of us.entries()) {
             if (entry[0].startsWith("coll_")) {
@@ -62,25 +56,48 @@ class ReplayIndex
 
     addCollections(collList) {
         document.querySelector("#colls").innerHTML = "";
+
+        if (collList.length == 0) {
+            document.querySelector("#colls").innerHTML = "<i>None Yet!</i>";
+            return;
+        }
+
         for (let coll of collList) {
             this.addCollection(coll);
         }
     }
 
     addCollection(coll) {
-        let content = `<h3>${coll.name}</h3><ul>`;
+        let content = `
+<div class="collHead"><span class="collName">/${coll.name}</span>
+<span class="sourceDisplay">Source: <span>${coll.sourceName}</span></span>
+</div>`;
 
-        for (let page of coll.pageList) {
-            let href = coll.prefix;
-            if (page.timestamp) {
-                href += page.timestamp + "/";
+        if (coll.pageList && coll.pageList.length) {
+            content += '<div class="pageList"><h3>Pages</h3><ul>';
+
+            for (let page of coll.pageList) {
+                let href = coll.prefix;
+                if (page.timestamp) {
+                    href += page.timestamp + "/";
+                }
+                href += page.url;
+                content += `<li><a href="${href}">${page.title || page.url}</a></li>`
             }
-            href += page.url;
-            content += `<li><a href="${href}">${page.title || page.url}</a></li>`
+
+            content += '</ul></div>';
         }
 
-        content += '</ul>'
+        content += `
+<form class="formSearch" data-prefix="${coll.prefix}" onsubmit="Page.goToColl(event)">
+<h3>Search Collection:</h3>
+    <input class="collUrl" id="${coll.name}_url" name="url" type="text" placeholder="URL" required />
+    <input class="collTimestamp" id="${coll.name}_timestamp" name="timestamp" type="text" placeholder="Date" />
+    <button type="submit">Go BAC!</button>
+</form>`;
+
         let collDiv = document.createElement("div");
+        collDiv.classList.add("collDiv");
         collDiv.innerHTML = content;
 
         document.querySelector("#colls").appendChild(collDiv);
@@ -88,24 +105,17 @@ class ReplayIndex
 }
 
 function initCollection(collDef, autoLoad) {
-    const swInit = new Promise(resolve => {
-        if (navigator.serviceWorker.controller) return resolve();
-        navigator.serviceWorker.addEventListener('controllerchange', e => resolve());
-    });
+    // auto-load url in the hashtag!
+    if (autoLoad && window.location.hash && window.location.hash.startsWith("#/")) {
+        navigator.serviceWorker.addEventListener("message", (event) => {
+            switch (event.data.msg_type) {
+                case "collAdded":
+                    window.location.reload();
+            }
+        });
+    }
 
-    swInit.then(() => {
-        // auto-load url in the hashtag!
-        if (autoLoad && window.location.hash && window.location.hash.startsWith("#/")) {
-            navigator.serviceWorker.addEventListener("message", (event) => {
-                switch (event.data.msg_type) {
-                    case "collAdded":
-                        window.location.reload();
-                }
-            });
-        }
-
-        navigator.serviceWorker.controller.postMessage({"msg_type": "addColl", ...collDef});
-    });
+    navigator.serviceWorker.controller.postMessage({"msg_type": "addColl", ...collDef});
 }
 
 function initSW(relUrl) {
@@ -132,7 +142,10 @@ function initSW(relUrl) {
             return navigator.serviceWorker.register(swUrl, {scope: path});
         }).then((registration) => {
             console.log('Service worker registration succeeded:', registration);
-            resolve("");
+            if (navigator.serviceWorker.controller) {
+                resolve(null);
+            }
+            navigator.serviceWorker.addEventListener('controllerchange', e => resolve(null));
         }).catch((error) => {
             console.log('Service worker registration failed:', error);
             reject(error);
@@ -140,5 +153,89 @@ function initSW(relUrl) {
     });
 }
 
+function getMountedArchive(loc) {
+    if (!window) {
+        return null;
+    }
 
-export { ReplayIndex, initCollection, initSW };
+    let m = loc.href.match(/(\/[^/]+\/)[\d]+\/https?:/);
+    if (!m) {
+        return null;
+    }
+
+    let info = {"replayPrefix": loc.href.substring(0, m.index + m[1].length), "hostname": loc.hostname};
+
+    // special cases for some known archives
+    switch (info.hostname) {
+        case "web.archive.org":
+            info.redirMod = "id_";
+            break;
+
+        case "localhost":
+            info.replayPrefix = loc.origin + "/pywb/";
+            break;
+    }
+
+    return info;
+}
+
+function goToColl(event) {
+    event.preventDefault();
+    const form = event.target;
+    let url = form.querySelector(".collUrl").value;
+    if (!url) {
+        return;
+    }
+    if (!url.startsWith("http:") && !url.startsWith("https:")) {
+        url = "http://" + url;
+    }
+    let timestamp = form.querySelector(".collTimestamp").value || "";
+    timestamp = timestamp.replace(/[^\d]+/g, '');
+
+    let newUrl = form.getAttribute("data-prefix") + timestamp;
+
+    const isHashNav = (newUrl.indexOf("#") >= 0);
+
+    if (timestamp) {
+        newUrl += isHashNav ? "|" : "/";
+    }
+
+    newUrl += url;
+
+    const loc = window["loc" + "ation"];
+    loc.href = newUrl;
+    if (isHashNav) {
+        loc.reload();   
+    }
+    return false;
+}
+
+function main() {
+    const ation = "ation";
+    const loc = window["loc" + ation];
+
+    const mountInfo = getMountedArchive(loc);
+
+    initSW("sw.js").then(function() {
+        if (mountInfo) {
+            initCollection({"name": "web", "root": true, "remote": mountInfo}, true);
+        }
+
+        const index = new Page.ReplayIndex();
+
+        document.querySelector("#file-input").addEventListener("change", function() {
+            index.processFile(this.files);
+        });
+
+    }).catch(function(error) {
+        const err = document.querySelector("#error");
+        err.innerText = error;
+        err.style.display = "";
+        console.warn(error);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", main, {"once": true});
+
+
+export { ReplayIndex, goToColl };

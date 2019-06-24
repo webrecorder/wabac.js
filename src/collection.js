@@ -6,14 +6,16 @@ import { parseHAR } from './harcache.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
-const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?\/(.+)/;
+const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?[\/|](.+)/;
 
 
 class Collection
 {
-	constructor(name, cache, prefix, rootColl) {
+	constructor(name, cache, prefix, rootColl, sourceName) {
 		this.name = name;
 		this.cache = cache;
+
+		this.sourceName = sourceName;
 
 		this.rootPrefix = prefix;
 

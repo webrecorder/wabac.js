@@ -29,6 +29,7 @@ self.addEventListener('fetch', function(event) {
 
 async function initCollection(data) {
 	let cache = null;
+	let sourceName = null;
 
 	if (data.files) {
 		// TODO: multiple files
@@ -48,9 +49,11 @@ async function initCollection(data) {
 		        const parser = new WarcParser();
 		        await parser.parse(ab, cache.index.bind(cache));
 		    }
+		    sourceName = "file://" + file.name;
 	    }
 	} else if (data.remote) {
 		cache = new RemoteArchiveCache(data.remote);
+		sourceName = data.remote.replayPrefix;
 	}
 
 	if (!cache) {
@@ -58,7 +61,7 @@ async function initCollection(data) {
 		return null;
 	}
 	
-	return new Collection(data.name, cache, self.prefix, data.root);
+	return new Collection(data.name, cache, self.prefix, data.root, sourceName);
 }
 
 function doListAll(source)
@@ -66,8 +69,9 @@ function doListAll(source)
 	let msgData = [];
 	for (let coll of Object.values(self.collections)) {
 		msgData.push({"name": coll.name,
-					  "prefix": coll.prefix,
-					  "pageList": coll.cache.pageList});
+					  "prefix": coll.appPrefix,
+					  "pageList": coll.cache.pageList,
+					  "sourceName": coll.sourceName});
 	}
 	source.postMessage({"msg_type": "listAll", "colls": msgData});
 }
