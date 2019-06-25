@@ -460,7 +460,10 @@ class Rewriter
 	    	"headers": headers || response.headers
 		};
 
-		return new Response(content, initOpt);
+		const timestamp = response.timestamp;
+		response = new Response(content, initOpt);
+		response.timestamp = timestamp;
+		return response;
 	}
 
 	//Headers

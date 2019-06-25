@@ -11,6 +11,10 @@ self.prefix = self.registration.scope;
 
 self.collections = {};
 
+self.timeRanges = {};
+
+//self.referrers = {};
+
 //importScripts("/parse5.js", "/rewrite.js", "/harcache.js", "/collection.js");
 
 self.addEventListener('install', function(event) {
@@ -23,7 +27,7 @@ self.addEventListener('activate', function(event) {
 });
 
 self.addEventListener('fetch', function(event) {
-	event.respondWith(getResponseFor(event.request));
+	event.respondWith(getResponseFor(event.request, event));
 });
 
 
@@ -88,6 +92,13 @@ self.addEventListener("message", function(event) {
 			});
 			break;
 
+		case "removeColl":
+			if (self.collections[event.data.name]) {
+				delete self.collections[event.data.name];
+				doListAll(event.source);
+			}
+			break;
+
 		case "listAll":
 			doListAll(event.source);
 			break;
@@ -95,7 +106,7 @@ self.addEventListener("message", function(event) {
 });
 
 
-async function getResponseFor(request) {
+async function getResponseFor(request, fe) {
 	let response = null;
 
 	if (request.url === self.prefix) {
@@ -108,9 +119,14 @@ async function getResponseFor(request) {
 		}).catch(function() { return fetch(request); });
 	}
 
+	if (request.url.startsWith(self.prefix + "stats.json")) {
+		return await getStats(fe);
+	}
+
 	for (let coll of Object.values(self.collections)) {
 		response = await coll.handleRequest(request);
 		if (response) {
+			updateStats(response, request, fe.clientId);
 			return response;
 		}
 	}
@@ -119,6 +135,107 @@ async function getResponseFor(request) {
 		console.log(request.url);
 		return fetch(request);
 	}
+}
+
+function updateStats(response, request, id) {
+	if (!id) {
+		return;
+	}
+
+	let timeRange = null;
+
+	if (self.timeRanges[id] === undefined) {
+		timeRange = {"count": 0, "children": []};
+		self.timeRanges[id] = timeRange;
+		if (request.referrer.indexOf("mp_/") > 0) {
+			self.clients.matchAll({"type": "window"}).then(clients => updateStatsParent(id, request.referrer, clients));
+		}
+	} else {
+		timeRange = self.timeRanges[id];
+	}
+
+	if (response.timestamp) {
+		if (!timeRange.min || (response.timestamp < timeRange.min)) {
+			timeRange.min = response.timestamp;
+		}
+
+		if (!timeRange.max || (response.timestamp > timeRange.max)) {
+			timeRange.max = response.timestamp;
+		}
+
+		timeRange.count++;
+	}
+}
+
+function updateStatsParent(id, referrer, clients) {
+	for (let client of clients) {
+		if (client.url === referrer) {
+			self.timeRanges[id].parent = client.id;
+			if (!self.timeRanges[client.id]) {
+				self.timeRanges[client.id] = {"count": 0, "children": {id: 1}};
+			} else {
+				self.timeRanges[client.id].children[id] = 1;
+			}
+			break;
+		}
+	}
+}
+
+async function getStats(fe) {
+	//const client = await self.clients.get(fe.clientId);
+
+	//const timeRange = self.timeRanges[client.url] || {};
+
+	const reqUrl = new URL(fe.request.url);
+
+	const params = new URLSearchParams(reqUrl.search);
+
+	let id = 0;
+
+	const url = params.get("url");
+
+	const clients = await self.clients.matchAll({"type": "window"});
+
+	const validIds = {};
+
+	for (let client of clients) {
+		if (client.url === url) {
+			id = client.id;
+		}
+		validIds[client.id] = 1;
+	}
+
+	const timeRange = {"count": 0};
+
+	const children = (self.timeRanges[id] && Object.keys(self.timeRanges[id].children)) || [];
+
+	for (let child of children) {
+		const childRange = self.timeRanges[child];
+
+		if (!childRange) {
+			continue;
+		}
+
+
+		if (!timeRange.min || (childRange.min < timeRange.min)) {
+			timeRange.min = childRange.min;
+		}
+
+		if (!timeRange.max || (childRange.max > timeRange.max)) {
+			timeRange.max = childRange.max;
+		}
+
+		timeRange.count += childRange.count;
+	}
+
+	// remove invalid timeranges
+	for (let id of Object.keys(self.timeRanges)) {
+		if (!validIds[id]) {
+			delete self.timeRanges[id];
+		}
+	}
+
+	return new Response(JSON.stringify(timeRange), {"headers": {"Content-Type": "application/json"}});
 }
 
 

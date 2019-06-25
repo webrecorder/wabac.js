@@ -37,6 +37,9 @@ This file is part of pywb, https://github.com/webrecorder/pywb
         this.title = "";
         this.loadingId = 'bannerLoading';
         this.onMessage = this.onMessage.bind(this);
+
+        this.updateStats = this.updateStats.bind(this);
+        this.archivedOn = "";
     }
 
     // Functions required to be exposed by all banners
@@ -56,6 +59,8 @@ This file is part of pywb, https://github.com/webrecorder/pywb
         } else {
             this.createBanner('_wb_frame_top_banner');
         }
+
+        setInterval(this.updateStats, 10000);
     };
 
     /**
@@ -131,7 +136,7 @@ This file is part of pywb, https://github.com/webrecorder/pywb
     DefaultBanner.prototype.createBanner = function (bid) {
         this.banner = document.createElement("wb_div", true);
         this.banner.innerHTML += '<span class="left-nav"><span class="caret"></span><a href="' + window.home + '">WABAC</a></span>';
-        this.banner.innerHTML += '<span class="right-nav">Project by<br/><span class="title">Webrecorder</span></span>';
+        this.banner.innerHTML += '<span class="right-nav"><a href="https://github.com/webrecorder/wabac.js" target="_blank">A project by<br/><span class="title">Webrecorder</span></a></span>';
         this.banner.setAttribute("id", bid);
         this.banner.setAttribute("lang", "en");
         this.captureInfo = document.createElement('span');
@@ -200,20 +205,43 @@ This file is part of pywb, https://github.com/webrecorder/pywb
 
         title_str = capture_str;
         capture_str = "<b id='title_or_url'>" + capture_str + "</b>";
+        capture_str += `<span id='archived_on'>${this.archivedOn}</span>`;
 
         if (is_live) {
             title_str = " WABAC Live: " + title_str;
-            capture_str += "<i>Live on&nbsp;</i>";
+            //capture_str += "<i>Live on&nbsp;</i>";
         } else {
-            title_str = " WABAC: " + title_str;
-            capture_str += "<i>Archived on&nbsp;</i>";
+            title_str = " WR WABAC: " + title_str;
+            //capture_str += "<i>Archived on&nbsp;</i>";
         }
 
         title_str += " (" + date_str + ")";
-        capture_str += date_str;
+        //capture_str += date_str;
+        //capture_str += "</span>";
         this.captureInfo.innerHTML = capture_str;
         window.document.title = title_str;
+
+        this.updateStats();
     };
+
+    DefaultBanner.prototype.updateStats = function() {
+        var iframe = document.querySelector("iframe");
+
+        window.fetch("/stats.json?url=" + encodeURIComponent(iframe.contentWindow.location.href)).then(resp => resp.json())
+        .then(json => {
+            if (!json.min) {
+                return;
+            }
+            const start = this.ts_to_date(json.min);
+            if (json.min === json.max) {
+                this.archivedOn = `<i>Archived on&nbsp;</i>${start} (${json.count} resources)`;
+            } else {
+                const end = this.ts_to_date(json.max);
+                this.archivedOn = `<i>Archived between&nbsp;</i>${start} and ${end} (${json.count} resources)`;
+            }
+            document.querySelector("#archived_on").innerHTML = this.archivedOn;
+        });
+    }
 
     // all banners will expose themselves by adding themselves as WBBanner on window
     window.WBBanner = new DefaultBanner();

@@ -25,8 +25,21 @@
     .container {
         width: 100%;
     }
-    .header {
+    #error {
+        display: none;
+        color: darkred;
+    }
+    #loading {
+        font-size: 1.2rem;
+    }
+    #loading img {
+        margin: 0px 5px 0px 10px;
+        width: 20px;
+    }
+    .wabac {
         font-family: fantasy;
+    }
+    .header {
         font-size: 4.0rem;
         line-height: 4.0rem;
         color: #0000ee;
@@ -39,6 +52,11 @@
         text-align: center;
         display: block;
     }
+    .tagline a {
+        font-size: smaller;
+        line-height: 2.5rem;
+        font-variant-caps: all-small-caps;
+    }
     .sectionhead {
         font-family: sans-serif;
         margin-top: 50px;
@@ -48,8 +66,13 @@
         border-radius: 12px;
         margin-bottom: 20px;
     }
+    .addDiv {
+        background-color: skyblue;
+        border-radius: 12px;
+        padding: 20px;
+    }
     .collDiv .collHead {
-        background-color: deepskyblue;
+        background-color: lightblue;
         border-top-left-radius: 12px;
         border-top-right-radius: 12px;
         padding: 12px;
@@ -61,11 +84,15 @@
     }
     .sourceDisplay {
         font-style: italic;
-        float: right;
+        margin-left: 20px;
     }
     .sourceDisplay span {
         font-weight: bold;
         color: darkblue;
+    }
+    .removeColl {
+        float: right;
+        text-decoration: none;
     }
     .formSearch {
         padding: 0 12px 0 12px;

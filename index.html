@@ -15,32 +15,30 @@
     </head>
     <body>
         <div class="container">
-            <h1 class="header">WABAC</h1>
-            <span class="tagline"><b>Web Archive Browsing Augmentation Client</span>
-            <div id="mountedBrowse" style="display: none" class="formdiv">
-                <h3 class="sectionhead">Embedded In Archive: <span id="mountedHost" class="host"></span></h3>
-                <form id="mountedForm">
-                    <label for="url">URL:</label><input id="url" name="url" type="text" placeholder="https://..." />
-                    <label for="timestamp">Timestamp:</label><input id="timestamp" name="timestamp" type="text" placeholder="" />
-                    <button id="go" type="submit">Go BAC!</button>
-                </form>
+            <h1 class="header wabac">WABAC</h1>
+            <span class="tagline">Web Archive Browsing Augmentation Client<br/><a href="https://github.com/webrecorder/wabac.js">View Source on GitHub</a></span>
+
+
+            <div id="error"></div>
+
+            <div class="formdiv">
+                <div id="colls"><i>No Collections Yet!</i></div>
             </div>
             <div class="formdiv">
-                <h2 class="sectionhead">Collections</h2>
-                <div id="colls"><i>None Yet!</i></div>
-            </div>
-            <div class="formdiv">
-              <h2 class="sectionhead">Add Local Collections</h2>
-                <span>
-                    Coll Name:
-                    <input id="file-input" type="file" name="file-input" style="display: none;" />
-                    <input id="coll-name" type="text" value="replay" name="coll-name"/>
-                    <button id="open" onclick="document.getElementById('file-input').click();">Open WARC / HAR File...</button>
-                </span>
+              <div class="addDiv">
+                    <span>
+                        <label for="coll-name">Add New Collection:</label>
+                        <input id="file-input" type="file" name="file-input" style="display: none;" />
+                        <input id="coll-name" type="text" value="replay" name="coll-name"/>
+                        <button id="open" onclick="document.getElementById('file-input').click();">Open WARC or HAR File...</button>
+                    </span>
+                    <span id="loading" style="display: none;"><img src="static/spinner.svg"/>Loading <b id="loadingName"></b></span>
+                    <p>The collection will be loaded and available <i>only in your browser</i>. The WARC/HAR file is not uploaded anywhere.<br/><a href="https://github.com/webrecorder/wabac.js">Learn more about how this works.</a></p>
+                </div>
             </div>
         </div>
         <footer>
-            <div>Project by</div><div class="wr">Webrecorder</div>
+            <div>Powered by <span class="wabac"><a href="https://github.com/webrecorder/wabac.js">wabac.js</a></span><br/>A project by</div><div class="wr">Webrecorder</div>
         </footer>
         <!-- for crawlers -->
         <a href="sw.js" style="display: none"></a>

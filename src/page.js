@@ -52,13 +52,17 @@ class ReplayIndex
             files.push({"name": file.name, "url": URL.createObjectURL(file)});
         }
         navigator.serviceWorker.controller.postMessage({"msg_type": "addColl", name, files});
+
+        document.querySelector("#loadingName").innerText = files[0].name;
+        document.querySelector("#loading").style.display = "";
     }
 
     addCollections(collList) {
         document.querySelector("#colls").innerHTML = "";
+        document.querySelector("#loading").style.display = "none";
 
         if (collList.length == 0) {
-            document.querySelector("#colls").innerHTML = "<i>None Yet!</i>";
+            document.querySelector("#colls").innerHTML = "<i>No Collections Yet!</i>";
             return;
         }
 
@@ -71,6 +75,7 @@ class ReplayIndex
         let content = `
 <div class="collHead"><span class="collName">/${coll.name}</span>
 <span class="sourceDisplay">Source: <span>${coll.sourceName}</span></span>
+<a href="#" data-coll="${coll.name}" onclick="Page.removeColl(event)" class="removeColl">&#x2716;&#xFE0F;</a> 
 </div>`;
 
         if (coll.pageList && coll.pageList.length) {
@@ -92,7 +97,7 @@ class ReplayIndex
 <form class="formSearch" data-prefix="${coll.prefix}" onsubmit="Page.goToColl(event)">
 <h3>Search Collection:</h3>
     <input class="collUrl" id="${coll.name}_url" name="url" type="text" placeholder="URL" required />
-    <input class="collTimestamp" id="${coll.name}_timestamp" name="timestamp" type="text" placeholder="Date" />
+    <input class="collTimestamp" id="${coll.name}_timestamp" name="timestamp" type="text" placeholder="Timestamp" />
     <button type="submit">Go BAC!</button>
 </form>`;
 
@@ -179,6 +184,17 @@ function getMountedArchive(loc) {
     return info;
 }
 
+function removeColl(event) {
+    event.preventDefault();
+
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({"msg_type": "removeColl",
+                                                        "name": event.target.getAttribute("data-coll")});
+    }
+
+    return false;
+}
+
 function goToColl(event) {
     event.preventDefault();
     const form = event.target;
@@ -197,7 +213,7 @@ function goToColl(event) {
     const isHashNav = (newUrl.indexOf("#") >= 0);
 
     if (timestamp) {
-        newUrl += isHashNav ? "|" : "/";
+        newUrl += (isHashNav ? "|" : "/");
     }
 
     newUrl += url;
@@ -238,4 +254,4 @@ function main() {
 document.addEventListener("DOMContentLoaded", main, {"once": true});
 
 
-export { ReplayIndex, goToColl };
+export { ReplayIndex, goToColl, removeColl };

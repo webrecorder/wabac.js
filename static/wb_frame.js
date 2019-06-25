@@ -125,14 +125,15 @@ ContentFrame.prototype.make_url = function (url, ts, content_url) {
 
     if (content_url) {
         mod = 'mp_';
+        if (ts || mod) {
+            mod += '/';
+        }
         prefix = this.content_prefix;
     } else {
-        mod = '';
+        if (ts || mod) {
+            mod = (this.app_hash_prefix ? "|" : "/");
+        }
         prefix = this.app_prefix;
-    }
-
-    if (ts || mod) {
-        mod += '/';
     }
 
     if (ts) {

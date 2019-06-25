@@ -120,10 +120,6 @@ class Collection
 				}
 
 				const rewriter = new Rewriter(url, this.prefix + requestTS + "mp_/", headInsert);
-				console.log(request.destination);
-				if (!request.destination) {
-					console.log("empty");
-				}
 				response = await rewriter.rewrite(response, request.destination, DEFAULT_CSP);
 			}
 
@@ -134,7 +130,6 @@ class Collection
 			}
 
 		} else {
-			console.log("dest: " + request.destination);
 			return this.makeTopFrame(url, requestTS);
 		}
 			
