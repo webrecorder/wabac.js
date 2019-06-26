@@ -126,7 +126,7 @@ async function getResponseFor(request, fe) {
 	for (let coll of Object.values(self.collections)) {
 		response = await coll.handleRequest(request);
 		if (response) {
-			updateStats(response, request, fe.clientId);
+			updateStats(response, request, fe.clientId || fe.resultingClientId);
 			return response;
 		}
 	}
@@ -139,6 +139,14 @@ async function getResponseFor(request, fe) {
 
 function updateStats(response, request, id) {
 	if (!id) {
+		return;
+	}
+
+	if (!request.url || request.url.indexOf("mp_/") < 0) {
+		return;
+	}
+
+	if (request.destination === "document" && (response.status > 300 && response.status < 400)) {
 		return;
 	}
 
@@ -170,7 +178,7 @@ function updateStats(response, request, id) {
 function updateStatsParent(id, referrer, clients) {
 	for (let client of clients) {
 		if (client.url === referrer) {
-			self.timeRanges[id].parent = client.id;
+			//self.timeRanges[id].parent = client.id;
 			if (!self.timeRanges[client.id]) {
 				self.timeRanges[client.id] = {"count": 0, "children": {id: 1}};
 			} else {
@@ -205,7 +213,10 @@ async function getStats(fe) {
 		validIds[client.id] = 1;
 	}
 
-	const timeRange = {"count": 0};
+	const timeRange = {"count": self.timeRanges[id].count || 0,
+					   "min": self.timeRanges[id].min,
+					   "max": self.timeRanges[id].max
+					  };
 
 	const children = (self.timeRanges[id] && Object.keys(self.timeRanges[id].children)) || [];
 

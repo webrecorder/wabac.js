@@ -26,7 +26,10 @@
         width: 100%;
     }
     #error {
-        display: none;
+        font-size: 1.3rem;
+        margin-bottom: 20px;
+        font-weight: bold;
+        text-align: center;
         color: darkred;
     }
     #loading {

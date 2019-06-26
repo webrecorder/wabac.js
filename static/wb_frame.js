@@ -187,7 +187,8 @@ ContentFrame.prototype.handle_message = function (event) {
  * @param {Object} state - The contents of a message rreceived from the replay iframe
  */
 ContentFrame.prototype.set_url = function (state) {
-    if (state.url && (state.url !== this.last_url || state.request_ts !== this.last_ts)) {
+    if (state.url && (state.url !== this.last_url || state.request_ts !== this.last_ts) ||
+        (this.app_hash_prefix && decodeURI(window.location.href) != window.location.href)) {
         var new_url = this.make_url(state.url, state.request_ts, false);
 
         window.history.replaceState(state, '', new_url);
@@ -262,9 +263,14 @@ ContentFrame.prototype.outer_hash_changed = function (event) {
     if (this.app_hash_prefix && window.location.hash.startsWith(this.app_hash_prefix)) {
         var url = window.location.hash.substring(this.app_hash_prefix.length);
 
-        var replay_url = this.content_prefix + url.replace(/(?:([\d]+)[^\/]*\/)?(.*)/, "$1mp_/$2");
+        var decodedUrl = decodeURI(url);
 
-        console.log(replay_url);
+        if (url != decodedUrl) {
+            window.location.hash = this.app_hash_prefix + decodedUrl;
+            return;
+        }
+
+        var replay_url = this.content_prefix + url.replace(/(?:([\d]+)[^\/|]*[\/|])?(.*)/, "$1mp_/$2");
 
         if (replay_url != this.iframe.src) {
             this.iframe.src = replay_url;

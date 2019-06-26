@@ -34,7 +34,7 @@ class Collection
 	}
 
 	async handleRequest(request) {
-		let wbUrlStr = request.url;
+		let wbUrlStr = decodeURI(request.url);
 
 		if (wbUrlStr.startsWith(this.prefix)) {
 			wbUrlStr = wbUrlStr.substring(this.prefix.length);

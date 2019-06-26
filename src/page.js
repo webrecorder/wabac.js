@@ -125,7 +125,16 @@ function initCollection(collDef, autoLoad) {
 
 function initSW(relUrl) {
     if (!navigator.serviceWorker) {
-        return Promise.reject('Service workers are not supported');
+        let msg = null;
+
+        const loc = window["loc" + "ation"];
+
+        if (loc.protocol === "http:") {
+            msg = 'Service workers only supported when loading via https://, but this site loaded from: ' + loc.origin;
+        } else {
+            msg = 'Sorry, Service workers are not supported in this browser'
+        }
+        return Promise.reject(msg);
     }
 
     // Register SW in current path scope (if not '/' use curr directory)
@@ -235,6 +244,10 @@ function main() {
     initSW("sw.js").then(function() {
         if (mountInfo) {
             initCollection({"name": "web", "root": true, "remote": mountInfo}, true);
+
+            window.addEventListener("hashchange", (event) => {
+                window.location.reload();
+            });
         }
 
         const index = new Page.ReplayIndex();
@@ -245,7 +258,7 @@ function main() {
 
     }).catch(function(error) {
         const err = document.querySelector("#error");
-        err.innerText = error;
+        err.innerText = "Error: " + error;
         err.style.display = "";
         console.warn(error);
     });
