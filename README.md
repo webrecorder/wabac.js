@@ -5,13 +5,14 @@ WABAC.js proof-of-concept web archive replay system implemented entirely via [Se
 
 It allows browsing web archives in WARC or HAR files directly in a modern browser without requiring a server component.
 
-This repository itself is hosted as a static site at: https://wab.ac/ and provides all functionality.
-
 ## Usage
 
-Simple go to https://wab.ac/ and choose a WARC or HAR file from your machine.
+This repository itself is hosted as a static site at: https://wab.ac/ and provides all functionality.
 
-The file will not be uploaded anywhere but you should be able to browse the contents directly.
+To run locally, a simple http server, eg. `python -m http.server 9990` should suffice, however, some browsers may not support
+service workers from localhost.
+
+To use, select a WARC or HAR file to be loaded into WABAC. The files loaded will not be uploaded anywhere and will be parsed in the browser.
 
 To create a WARC file, you can use https://webrecorder.io/ and download the resulting file.
 

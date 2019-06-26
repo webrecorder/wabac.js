@@ -40,7 +40,7 @@
         width: 20px;
     }
     .wabac {
-        font-family: fantasy;
+        /*font-family: fantasy;*/
     }
     .header {
         font-size: 4.0rem;
@@ -135,6 +135,7 @@
     footer .wr {
         font-family: 'InknutAntiqua';
         line-height: 1.5em;
+        letter-spacing: -0.03rem;
     }
 
     @font-face {

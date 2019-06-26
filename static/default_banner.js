@@ -241,10 +241,13 @@ This file is part of pywb, https://github.com/webrecorder/pywb
             }
             const start = this.ts_to_date(json.min);
             if (json.min === json.max) {
-                this.archivedOn = `<i>Archived on&nbsp;</i>${start} (${json.count} resources)`;
+                this.archivedOn = `<i>Archived on&nbsp;</i>${start} - ${json.count} resource`;
             } else {
                 const end = this.ts_to_date(json.max);
-                this.archivedOn = `<i>Archived between&nbsp;</i>${start} and ${end} (${json.count} resources)`;
+                this.archivedOn = `<i>Archived between&nbsp;</i>${start} and ${end} - ${json.count} resource`;
+            }
+            if (json.count > 1) {
+                this.archivedOn += 's';
             }
             document.querySelector("#archived_on").innerHTML = this.archivedOn;
         });
