@@ -213,9 +213,11 @@ async function getStats(fe) {
 		validIds[client.id] = 1;
 	}
 
-	const timeRange = {"count": self.timeRanges[id].count || 0,
-					   "min": self.timeRanges[id].min,
-					   "max": self.timeRanges[id].max
+	const srcRange = self.timeRanges[id] || {};
+
+	const timeRange = {"count": srcRange.count || 0,
+					   "min": srcRange.min,
+					   "max": srcRange.max
 					  };
 
 	const children = (self.timeRanges[id] && Object.keys(self.timeRanges[id].children)) || [];

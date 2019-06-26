@@ -85,6 +85,11 @@ class Collection
 			url = wbUrl[3];
 		}
 
+		// force timestamp for root coll
+		if (!requestTS && this.isRoot) {
+			requestTS = "2";
+		}
+
 		if (mod) {
 			const hash = url.indexOf("#");
 			if (hash > 0) {

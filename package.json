@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "flatpickr": "^4.6.1",
     "fs": "^0.0.1-security",
     "fs-extra": "^8.0.1",
     "idb": "^4.0.3",

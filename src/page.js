@@ -1,3 +1,5 @@
+import flatpickr from "flatpickr";
+
 class ReplayIndex
 {
     constructor() {
@@ -106,6 +108,17 @@ class ReplayIndex
         collDiv.innerHTML = content;
 
         document.querySelector("#colls").appendChild(collDiv);
+
+        const date = new Date();
+        date.setFullYear(date.getFullYear() - 10);
+
+        flatpickr("#" + coll.name + "_timestamp", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i:S",
+            enableSeconds: true,
+            allowInput: true,
+            defaultDate: date,
+        });
     }
 }
 
