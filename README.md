@@ -12,7 +12,7 @@ This repository itself is hosted as a static site at: https://wab.ac/ and provid
 To run locally, a simple http server, eg. `python -m http.server 9990` should suffice, however, some browsers may not support
 service workers from localhost.
 
-To use, select a WARC or HAR file to be loaded into WABAC. The files loaded will not be uploaded anywhere and will be parsed in the browser.
+To use, select a WARC or HAR file to be loaded into WABAC. The file will not be uploaded anywhere and will be parsed in the browser.
 
 To create a WARC file, you can use https://webrecorder.io/ and download the resulting file.
 
@@ -40,6 +40,18 @@ It's also possible to automatically redirect to a url for replay:
 
 The above link should load the collection and then redirect to one of the pages. If all goes well,
 you should be browsing an archive of IIPC's twitter page, entirely from github!
+
+## Mounted Archive API
+
+WABAC.js also supports loading web archive data from an existing source, such as another archive. By embedding WABAC into
+an archive, WABAC.js can be used to improve its replay fidelity from inside. In this way, WABAC can blur the lines
+between a browser-based archive and an archived page
+
+For example, WABAC.js running inside the Internet Archive web.archive.org can be accessed at:
+
+**https://web.archive.org/web/https://wab.ac/**
+
+This should provide an alternate web archive replay mechanism from inside an existing archive.
 
 ## How it Works
 
@@ -70,3 +82,8 @@ It has the following limitations:
 - Brotli decompression is not yet supported.
 - Collection data is not persisted beyond the life of the service worker.
 
+### Previous Work 
+
+The [ipwb](https://github.com/oduwsdl/ipwb) from @ibnesayeed and @machawk1 was the first project to use service workers for replay, focusing on retrieval from IPFS.
+
+The [Reconstructive](https://github.com/oduwsdl/Reconstructive) project, separated out from ipwb, focuses on composite memento reconstruction from an existing web archive or memento aggregator and provides support for the memento protocol.
