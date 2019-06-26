@@ -3,9 +3,9 @@
 
 WABAC.js proof-of-concept web archive replay system implemented entirely via [Service Workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers)
 
-It allows browsing web archives in WARC or HAR files directly in a modern browser without requiring a server.
+It allows browsing web archives in WARC or HAR files directly in a modern browser without requiring a server component.
 
-This repository itself is hosted as a static site at: https://wab.ac/ and provides all that is needed.
+This repository itself is hosted as a static site at: https://wab.ac/ and provides all functionality.
 
 ## Usage
 
@@ -63,10 +63,9 @@ for parsing.
 
 This repo is still an early prototype and should be used with caution.
 It has the following limitations:
-- The system must load an entire file for indexing, which limits the size of WARC/HAR files which can be supported.
+- The system must load an entire file for indexing, which limits the size of WARC/HAR files which can be handled.
 - Loading existing indexes (eg. CDXJ) is not yet supported.
 - Replay fidelity is incomplete and only exact matching is possible. Fuzzy matching not yet supported.
 - Brotli decompression is not yet supported.
 - Collection data is not persisted beyond the life of the service worker.
-- Brotli decompression is not yet supported.
 
