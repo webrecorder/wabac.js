@@ -192,7 +192,9 @@ function getMountedArchive(loc) {
         return null;
     }
 
-    let m = loc.pathname.match(/(\/[^/]+\/)[\d]+\/https?:/);
+    const hrefNoQuery = loc.href.split("?", 1)[0];
+
+    let m = hrefNoQuery.match(/(\/[^/]+\/)[\d]+\/https?:/);
     if (!m) {
         return null;
     }
