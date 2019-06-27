@@ -16,13 +16,15 @@ class ReplayIndex
                     this.addCollections(event.data.colls);
                     if (us.get("url")) {
                         const redirUrl = new URL(us.get("url"), window.location.href);
-                        window.location.href = redirUrl.href;
+                        setTimeout(() => { window.location.href = redirUrl.href; }, 100);
                     }
                     break;
             }
         });
 
+
         for (let entry of us.entries()) {
+
             if (entry[0].startsWith("coll_")) {
                 any = true;
 
@@ -30,7 +32,12 @@ class ReplayIndex
                 const source = entry[1];
 
                 const files = [{"name": source, "url": source}];
+
                 navigator.serviceWorker.controller.postMessage({"msg_type": "addColl", name, files});
+
+                // todo: support multiple collections loading
+                document.querySelector("#loadingName").innerText = source;
+                document.querySelector("#loading").style.display = "";
             }
         }
 
@@ -185,7 +192,7 @@ function getMountedArchive(loc) {
         return null;
     }
 
-    let m = loc.href.match(/(\/[^/]+\/)[\d]+\/https?:/);
+    let m = loc.pathname.match(/(\/[^/]+\/)[\d]+\/https?:/);
     if (!m) {
         return null;
     }
