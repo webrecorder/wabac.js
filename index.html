@@ -1,23 +1,27 @@
 <html>
     <head>
-        <script>
-            if (window.WB_wombat_updateLoc) {
-                window.WB_wombat_updateLoc = function() {}
-            }
-
-            if (window.WB_wombat_checkLocations) {
-                window.WB_wombat_checkLocations = function() {}
-            }
-        </script>
         <link href="static/style.css" rel="stylesheet"/>
         <link href="static/flatpickr.min.css" rel="stylesheet"/>
-
         <script src="page.js"></script>
+
+        <!-- preloads to help with link discovery for crawlers -->
+        <link href="sw.js" as="script" rel="preload"/>
+        <link href="static/default_banner.js" as="script" rel="preload"/>
+        <link href="static/default_banner.css" as="style" rel="preload"/>
+        <link href="static/wb_frame.js" as="script" rel="preload"/>
+        <link href="static/wombat.js" as="script" rel="preload"/>
+        <link href="static/spinner.svg" as="image" rel="preload"/>
+
+        <link href="static/HKGrotesk-LightItalic.woff2" as="font" rel="preload" crossorigin/>
+        <link href="static/HKGrotesk-Bold.woff2" as="font" rel="preload" crossorigin/>
+        <link href="static/HKGrotesk-BoldItalic.woff2" as="font" rel="preload" crossorigin/>
+        <link href="static/HKGrotesk-Regular.woff2" as="font" rel="preload" crossorigin/>
+        <link href="static/InknutAntiqua-Regular.woff2" as="font" rel="preload" crossorigin/>
     </head>
     <body>
         <div class="container">
             <h1 class="header wabac">WABAC</h1>
-            <span class="tagline">Web Archive Browsing Augmentation Client<br/><a href="https://github.com/webrecorder/wabac.js">View Source on GitHub</a></span>
+            <span class="tagline">Web Archive Browsing Advanced Client<br/><a href="https://github.com/webrecorder/wabac.js">View Source on GitHub</a></span>
 
 
             <div id="error" style="display: none"></div>
@@ -41,7 +45,5 @@
         <footer>
             <div><p>Powered by <span class="wabac"><a href="https://github.com/webrecorder/wabac.js">wabac.js</a></span></p>A project by</div><div class="wr">Webrecorder</div>
         </footer>
-        <!-- for crawlers -->
-        <a href="sw.js" style="display: none"></a>
     </body>
 </html>

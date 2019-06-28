@@ -1,5 +1,5 @@
 # WABAC.js 
-### Web Archive Browsing Augmentation Client :watch: :rewind: :repeat: :rocket:
+### Web Archive Browsing Advanced Client :watch: :rewind: :repeat: :rocket:
 
 WABAC.js proof-of-concept web archive replay system implemented entirely via [Service Workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers)
 
