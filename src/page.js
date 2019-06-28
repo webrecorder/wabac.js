@@ -206,10 +206,11 @@ function getMountedArchive(loc) {
         case "web.archive.org":
             info.redirMod = "id_";
             break;
+    }
 
-        case "localhost":
-            info.replayPrefix = loc.origin + "/pywb/";
-            break;
+    // debug: for local testing in pywb on port 8090!
+    if (info.replayPrefix === "http://localhost:8090/static/") {
+        info.replayPrefix = loc.origin + "/pywb/";
     }
 
     return info;
