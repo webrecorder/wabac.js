@@ -1,9 +1,12 @@
 import flatpickr from "flatpickr";
 
+const ation = "ation";
+const loc = window["loc" + ation];
+
 class ReplayIndex
 {
     constructor() {
-        const us = new URLSearchParams(window.location.search);
+        const us = new URLSearchParams(loc.search);
         let any = false;
 
         navigator.serviceWorker.addEventListener("message", (event) => {
@@ -15,8 +18,8 @@ class ReplayIndex
                 case "listAll":
                     this.addCollections(event.data.colls);
                     if (us.get("url")) {
-                        const redirUrl = new URL(us.get("url"), window.location.href);
-                        setTimeout(() => { window.location.href = redirUrl.href; }, 100);
+                        const redirUrl = new URL(us.get("url"), loc.href);
+                        setTimeout(() => { loc.href = redirUrl.href; }, 100);
                     }
                     break;
             }
@@ -131,11 +134,11 @@ class ReplayIndex
 
 function initCollection(collDef, autoLoad) {
     // auto-load url in the hashtag!
-    if (autoLoad && window.location.hash && window.location.hash.startsWith("#/")) {
+    if (autoLoad && loc.hash && loc.hash.startsWith("#/")) {
         navigator.serviceWorker.addEventListener("message", (event) => {
             switch (event.data.msg_type) {
                 case "collAdded":
-                    window.location.reload();
+                    loc.reload();
             }
         });
     }
@@ -147,8 +150,6 @@ function initSW(relUrl) {
     if (!navigator.serviceWorker) {
         let msg = null;
 
-        const loc = window["loc" + "ation"];
-
         if (loc.protocol === "http:") {
             msg = 'Service workers only supported when loading via https://, but this site loaded from: ' + loc.origin;
         } else {
@@ -158,7 +159,7 @@ function initSW(relUrl) {
     }
 
     // Register SW in current path scope (if not '/' use curr directory)
-    let path = window.location.origin + window.location.pathname;
+    let path = loc.origin + loc.pathname;
 
     if (!path.endsWith("/")) {
         path = path.slice(0, path.lastIndexOf("/") + 1);
@@ -250,7 +251,6 @@ function goToColl(event) {
 
     newUrl += url;
 
-    const loc = window["loc" + "ation"];
     loc.href = newUrl;
     if (isHashNav) {
         loc.reload();   
@@ -259,9 +259,6 @@ function goToColl(event) {
 }
 
 function main() {
-    const ation = "ation";
-    const loc = window["loc" + ation];
-
     const mountInfo = getMountedArchive(loc);
 
     initSW("sw.js").then(function() {
@@ -269,7 +266,7 @@ function main() {
             initCollection({"name": "web", "root": true, "remote": mountInfo}, true);
 
             window.addEventListener("hashchange", (event) => {
-                window.location.reload();
+                loc.reload();
             });
         }
 
