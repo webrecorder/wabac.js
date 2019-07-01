@@ -59,7 +59,7 @@ class ReplayIndex
 
         //const coll = new Collection(document.querySelector("#coll-name").value, har);
         const name = document.querySelector("#coll-name").value;
-                
+
         for (let file of localFiles) {
             files.push({"name": file.name, "url": URL.createObjectURL(file)});
         }
@@ -85,10 +85,12 @@ class ReplayIndex
 
     addCollection(coll) {
         let content = `
-<div class="collHead"><span class="collName">/${coll.name}</span>
+<div class="collHead">
+<a href="#" data-coll="${coll.name}" onclick="Page.removeColl(event)" class="removeColl">&#x2716;&#xFE0F;</a>
+<span class="collName">/${coll.name}/</span><br>
 <span class="sourceDisplay">Source: <span>${coll.sourceName}</span></span>
-<a href="#" data-coll="${coll.name}" onclick="Page.removeColl(event)" class="removeColl">&#x2716;&#xFE0F;</a> 
-</div>`;
+</div>
+`;
 
         if (coll.pageList && coll.pageList.length) {
             content += '<div class="pageList"><h3>Pages</h3><ul>';
@@ -253,7 +255,7 @@ function goToColl(event) {
 
     loc.href = newUrl;
     if (isHashNav) {
-        loc.reload();   
+        loc.reload();
     }
     return false;
 }

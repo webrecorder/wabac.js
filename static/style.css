@@ -1,21 +1,42 @@
-    body { 
+    body {
         background-color: white;
         color: black;
         font-family: 'HKGrotesk';
         /*font-family: sans-serif;*/
     }
+    a, a:visited {
+      color: #3E3E3E;
+    }
 
     input {
         font-size: 1.2rem;
         margin-bottom: 4px;
+        border-radius: 4px;
+        padding: 6px 15px;
+        margin-right: 10px;
+        border: 1px solid #CECECE;
+    }
+    ::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+        color: #CECECE;
+        font-style: italic;
+        opacity: 1; /* Firefox */
+    }
+    :-ms-input-placeholder { /* Internet Explorer 10-11 */
+        color: #CECECE;
+        font-style: italic;
+    }
+    ::-ms-input-placeholder { /* Microsoft Edge */
+        color: #CECECE;
+        font-style: italic;
     }
 
     button {
         font-size: 1rem;
         color: #fff;
         background-color: #0000ee;
-        border-radius: 8px;
-        padding: 6px 12px 6px 12px;
+        border-radius: 24px;
+        padding: 6px 27px;
+        border: 0;
     }
 
     #open {
@@ -56,28 +77,33 @@
         display: block;
     }
     .tagline a {
-        font-size: smaller;
+        font-size: 0.9rem;
         line-height: 2.5rem;
-        font-variant-caps: all-small-caps;
     }
     .sectionhead {
         font-family: sans-serif;
         margin-top: 50px;
     }
     .collDiv {
-        background-color: aliceblue;
+        background-color: white;
         border-radius: 12px;
         margin-bottom: 20px;
+        border: 1px solid #CECECE;
     }
     .addDiv {
-        background-color: skyblue;
+        background-color: white;
         border-radius: 12px;
         padding: 20px;
+        border: 1px solid #CECECE;
+    }
+    .addDiv h2 {
+      margin-top: 0;
     }
     .collDiv .collHead {
-        background-color: lightblue;
+        background-color: #EEEEEE;
         border-top-left-radius: 12px;
         border-top-right-radius: 12px;
+        border-bottom: 1px solid #CECECE;
         padding: 12px;
         font-weight: normal;
         font-size: 1.2rem;
@@ -86,12 +112,13 @@
         font-weight: bold;
     }
     .sourceDisplay {
+        font-size: 1rem;
         font-style: italic;
-        margin-left: 20px;
     }
     .sourceDisplay span {
-        font-weight: bold;
-        color: darkblue;
+        font-style: normal;
+        font-weight: 300;
+        color: #1022A1;
     }
     .removeColl {
         float: right;
@@ -136,6 +163,9 @@
         font-family: 'InknutAntiqua';
         line-height: 1.5em;
         letter-spacing: -0.03rem;
+    }
+    footer .wr a, footer .wr a:visited, footer .wr a:hover, footer .wr a:active {
+        text-decoration: none;
     }
 
     @font-face {

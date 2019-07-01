@@ -4,14 +4,14 @@
     display: block !important;
     top: 0px !important;
     left: 0px !important;
-    font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+    font-family: 'HKGrotesk', "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
     width: 100% !important;
-    font-size: 18px !important;
+    font-size: 0.9rem !important;
     background-color: #0000ee !important;
     color: white !important;
     text-align: center !important;
     z-index: 2147483643 !important;
-    line-height: normal !important;
+    line-height: 1.3rem !important;
 }
 
 #title_or_url {
@@ -19,6 +19,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   padding-right: 4px;
+  padding-top: 2px;
   display: block;
 }
 
@@ -53,7 +54,7 @@
 {
     width: 100%;
     height: 100%;
-    border: 2px solid #545454;
+    border: 2px solid #fff;
     padding: 0px 0px 0px 0px;
     overflow: scroll;
 }
@@ -66,6 +67,7 @@
     left: 10px;
     font-size: 14px;
     vertical-align: middle;
+    font-weight: 600;
 }
 
 .left-nav a {
@@ -114,5 +116,3 @@
     font-family: 'InknutAntiqua';
     src: url('InknutAntiqua-Regular.woff2') format('woff2');
 }
-
-

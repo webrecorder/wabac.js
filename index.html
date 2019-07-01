@@ -31,19 +31,22 @@
             </div>
             <div class="formdiv">
               <div class="addDiv">
+                    <h2>Add a New Collection</h2>
                     <span>
-                        <label for="coll-name">Add New Collection:</label>
+                        <label for="coll-name">Collection Name</label>
                         <input id="file-input" type="file" name="file-input" style="display: none;" />
-                        <input id="coll-name" type="text" value="replay" name="coll-name"/>
-                        <button id="open" onclick="document.getElementById('file-input').click();">Open WARC or HAR File...</button>
+                        <input id="coll-name" type="text" value="Demo Collection" placeholder="Collection Name" name="coll-name"/>
+                        <br>
+                        <button id="open" onclick="document.getElementById('file-input').click();">Load WARC or HAR File...</button>
                     </span>
+                    <br>
                     <span id="loading" style="display: none;"><img src="static/spinner.svg"/>Loading <b id="loadingName"></b></span>
                     <p>The collection will be loaded and available <i>only in your browser</i>. The WARC/HAR file is not uploaded anywhere.<br/><a href="https://github.com/webrecorder/wabac.js">Learn more about how this works.</a></p>
                 </div>
             </div>
         </div>
         <footer>
-            <div><p>Powered by <span class="wabac"><a href="https://github.com/webrecorder/wabac.js">wabac.js</a></span></p>A project by</div><div class="wr">Webrecorder</div>
+            <div><p>Powered by <span class="wabac"><a href="https://github.com/webrecorder/wabac.js">wabac.js</a></span></p>A project by</div><div class="wr"><a href="https://webrecorder.io/" target="_blank">Webrecorder</a></div>
         </footer>
     </body>
 </html>
