@@ -225,655 +225,6 @@ eval("var toString = {}.toString;\n\nmodule.exports = Array.isArray || function 
 
 /***/ }),
 
-/***/ "./node_modules/lodash/_DataView.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_DataView.js ***!
-  \******************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var getNative = __webpack_require__(/*! ./_getNative */ \"./node_modules/lodash/_getNative.js\"),\n    root = __webpack_require__(/*! ./_root */ \"./node_modules/lodash/_root.js\");\n\n/* Built-in method references that are verified to be native. */\nvar DataView = getNative(root, 'DataView');\n\nmodule.exports = DataView;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_DataView.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_Map.js":
-/*!*************************************!*\
-  !*** ./node_modules/lodash/_Map.js ***!
-  \*************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var getNative = __webpack_require__(/*! ./_getNative */ \"./node_modules/lodash/_getNative.js\"),\n    root = __webpack_require__(/*! ./_root */ \"./node_modules/lodash/_root.js\");\n\n/* Built-in method references that are verified to be native. */\nvar Map = getNative(root, 'Map');\n\nmodule.exports = Map;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_Map.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_Promise.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_Promise.js ***!
-  \*****************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var getNative = __webpack_require__(/*! ./_getNative */ \"./node_modules/lodash/_getNative.js\"),\n    root = __webpack_require__(/*! ./_root */ \"./node_modules/lodash/_root.js\");\n\n/* Built-in method references that are verified to be native. */\nvar Promise = getNative(root, 'Promise');\n\nmodule.exports = Promise;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_Promise.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_Set.js":
-/*!*************************************!*\
-  !*** ./node_modules/lodash/_Set.js ***!
-  \*************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var getNative = __webpack_require__(/*! ./_getNative */ \"./node_modules/lodash/_getNative.js\"),\n    root = __webpack_require__(/*! ./_root */ \"./node_modules/lodash/_root.js\");\n\n/* Built-in method references that are verified to be native. */\nvar Set = getNative(root, 'Set');\n\nmodule.exports = Set;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_Set.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_Symbol.js":
-/*!****************************************!*\
-  !*** ./node_modules/lodash/_Symbol.js ***!
-  \****************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var root = __webpack_require__(/*! ./_root */ \"./node_modules/lodash/_root.js\");\n\n/** Built-in value references. */\nvar Symbol = root.Symbol;\n\nmodule.exports = Symbol;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_Symbol.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_WeakMap.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_WeakMap.js ***!
-  \*****************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var getNative = __webpack_require__(/*! ./_getNative */ \"./node_modules/lodash/_getNative.js\"),\n    root = __webpack_require__(/*! ./_root */ \"./node_modules/lodash/_root.js\");\n\n/* Built-in method references that are verified to be native. */\nvar WeakMap = getNative(root, 'WeakMap');\n\nmodule.exports = WeakMap;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_WeakMap.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_arrayMap.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_arrayMap.js ***!
-  \******************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/**\n * A specialized version of `_.map` for arrays without support for iteratee\n * shorthands.\n *\n * @private\n * @param {Array} [array] The array to iterate over.\n * @param {Function} iteratee The function invoked per iteration.\n * @returns {Array} Returns the new mapped array.\n */\nfunction arrayMap(array, iteratee) {\n  var index = -1,\n      length = array == null ? 0 : array.length,\n      result = Array(length);\n\n  while (++index < length) {\n    result[index] = iteratee(array[index], index, array);\n  }\n  return result;\n}\n\nmodule.exports = arrayMap;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_arrayMap.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_arrayReduce.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_arrayReduce.js ***!
-  \*********************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/**\n * A specialized version of `_.reduce` for arrays without support for\n * iteratee shorthands.\n *\n * @private\n * @param {Array} [array] The array to iterate over.\n * @param {Function} iteratee The function invoked per iteration.\n * @param {*} [accumulator] The initial value.\n * @param {boolean} [initAccum] Specify using the first element of `array` as\n *  the initial value.\n * @returns {*} Returns the accumulated value.\n */\nfunction arrayReduce(array, iteratee, accumulator, initAccum) {\n  var index = -1,\n      length = array == null ? 0 : array.length;\n\n  if (initAccum && length) {\n    accumulator = array[++index];\n  }\n  while (++index < length) {\n    accumulator = iteratee(accumulator, array[index], index, array);\n  }\n  return accumulator;\n}\n\nmodule.exports = arrayReduce;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_arrayReduce.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_asciiToArray.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_asciiToArray.js ***!
-  \**********************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/**\n * Converts an ASCII `string` to an array.\n *\n * @private\n * @param {string} string The string to convert.\n * @returns {Array} Returns the converted array.\n */\nfunction asciiToArray(string) {\n  return string.split('');\n}\n\nmodule.exports = asciiToArray;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_asciiToArray.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_asciiWords.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_asciiWords.js ***!
-  \********************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/** Used to match words composed of alphanumeric characters. */\nvar reAsciiWord = /[^\\x00-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7f]+/g;\n\n/**\n * Splits an ASCII `string` into an array of its words.\n *\n * @private\n * @param {string} The string to inspect.\n * @returns {Array} Returns the words of `string`.\n */\nfunction asciiWords(string) {\n  return string.match(reAsciiWord) || [];\n}\n\nmodule.exports = asciiWords;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_asciiWords.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_baseGetTag.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_baseGetTag.js ***!
-  \********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var Symbol = __webpack_require__(/*! ./_Symbol */ \"./node_modules/lodash/_Symbol.js\"),\n    getRawTag = __webpack_require__(/*! ./_getRawTag */ \"./node_modules/lodash/_getRawTag.js\"),\n    objectToString = __webpack_require__(/*! ./_objectToString */ \"./node_modules/lodash/_objectToString.js\");\n\n/** `Object#toString` result references. */\nvar nullTag = '[object Null]',\n    undefinedTag = '[object Undefined]';\n\n/** Built-in value references. */\nvar symToStringTag = Symbol ? Symbol.toStringTag : undefined;\n\n/**\n * The base implementation of `getTag` without fallbacks for buggy environments.\n *\n * @private\n * @param {*} value The value to query.\n * @returns {string} Returns the `toStringTag`.\n */\nfunction baseGetTag(value) {\n  if (value == null) {\n    return value === undefined ? undefinedTag : nullTag;\n  }\n  return (symToStringTag && symToStringTag in Object(value))\n    ? getRawTag(value)\n    : objectToString(value);\n}\n\nmodule.exports = baseGetTag;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_baseGetTag.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_baseIsArguments.js":
-/*!*************************************************!*\
-  !*** ./node_modules/lodash/_baseIsArguments.js ***!
-  \*************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ \"./node_modules/lodash/_baseGetTag.js\"),\n    isObjectLike = __webpack_require__(/*! ./isObjectLike */ \"./node_modules/lodash/isObjectLike.js\");\n\n/** `Object#toString` result references. */\nvar argsTag = '[object Arguments]';\n\n/**\n * The base implementation of `_.isArguments`.\n *\n * @private\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is an `arguments` object,\n */\nfunction baseIsArguments(value) {\n  return isObjectLike(value) && baseGetTag(value) == argsTag;\n}\n\nmodule.exports = baseIsArguments;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_baseIsArguments.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_baseIsNative.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_baseIsNative.js ***!
-  \**********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var isFunction = __webpack_require__(/*! ./isFunction */ \"./node_modules/lodash/isFunction.js\"),\n    isMasked = __webpack_require__(/*! ./_isMasked */ \"./node_modules/lodash/_isMasked.js\"),\n    isObject = __webpack_require__(/*! ./isObject */ \"./node_modules/lodash/isObject.js\"),\n    toSource = __webpack_require__(/*! ./_toSource */ \"./node_modules/lodash/_toSource.js\");\n\n/**\n * Used to match `RegExp`\n * [syntax characters](http://ecma-international.org/ecma-262/7.0/#sec-patterns).\n */\nvar reRegExpChar = /[\\\\^$.*+?()[\\]{}|]/g;\n\n/** Used to detect host constructors (Safari). */\nvar reIsHostCtor = /^\\[object .+?Constructor\\]$/;\n\n/** Used for built-in method references. */\nvar funcProto = Function.prototype,\n    objectProto = Object.prototype;\n\n/** Used to resolve the decompiled source of functions. */\nvar funcToString = funcProto.toString;\n\n/** Used to check objects for own properties. */\nvar hasOwnProperty = objectProto.hasOwnProperty;\n\n/** Used to detect if a method is native. */\nvar reIsNative = RegExp('^' +\n  funcToString.call(hasOwnProperty).replace(reRegExpChar, '\\\\$&')\n  .replace(/hasOwnProperty|(function).*?(?=\\\\\\()| for .+?(?=\\\\\\])/g, '$1.*?') + '$'\n);\n\n/**\n * The base implementation of `_.isNative` without bad shim checks.\n *\n * @private\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a native function,\n *  else `false`.\n */\nfunction baseIsNative(value) {\n  if (!isObject(value) || isMasked(value)) {\n    return false;\n  }\n  var pattern = isFunction(value) ? reIsNative : reIsHostCtor;\n  return pattern.test(toSource(value));\n}\n\nmodule.exports = baseIsNative;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_baseIsNative.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_baseIsTypedArray.js":
-/*!**************************************************!*\
-  !*** ./node_modules/lodash/_baseIsTypedArray.js ***!
-  \**************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ \"./node_modules/lodash/_baseGetTag.js\"),\n    isLength = __webpack_require__(/*! ./isLength */ \"./node_modules/lodash/isLength.js\"),\n    isObjectLike = __webpack_require__(/*! ./isObjectLike */ \"./node_modules/lodash/isObjectLike.js\");\n\n/** `Object#toString` result references. */\nvar argsTag = '[object Arguments]',\n    arrayTag = '[object Array]',\n    boolTag = '[object Boolean]',\n    dateTag = '[object Date]',\n    errorTag = '[object Error]',\n    funcTag = '[object Function]',\n    mapTag = '[object Map]',\n    numberTag = '[object Number]',\n    objectTag = '[object Object]',\n    regexpTag = '[object RegExp]',\n    setTag = '[object Set]',\n    stringTag = '[object String]',\n    weakMapTag = '[object WeakMap]';\n\nvar arrayBufferTag = '[object ArrayBuffer]',\n    dataViewTag = '[object DataView]',\n    float32Tag = '[object Float32Array]',\n    float64Tag = '[object Float64Array]',\n    int8Tag = '[object Int8Array]',\n    int16Tag = '[object Int16Array]',\n    int32Tag = '[object Int32Array]',\n    uint8Tag = '[object Uint8Array]',\n    uint8ClampedTag = '[object Uint8ClampedArray]',\n    uint16Tag = '[object Uint16Array]',\n    uint32Tag = '[object Uint32Array]';\n\n/** Used to identify `toStringTag` values of typed arrays. */\nvar typedArrayTags = {};\ntypedArrayTags[float32Tag] = typedArrayTags[float64Tag] =\ntypedArrayTags[int8Tag] = typedArrayTags[int16Tag] =\ntypedArrayTags[int32Tag] = typedArrayTags[uint8Tag] =\ntypedArrayTags[uint8ClampedTag] = typedArrayTags[uint16Tag] =\ntypedArrayTags[uint32Tag] = true;\ntypedArrayTags[argsTag] = typedArrayTags[arrayTag] =\ntypedArrayTags[arrayBufferTag] = typedArrayTags[boolTag] =\ntypedArrayTags[dataViewTag] = typedArrayTags[dateTag] =\ntypedArrayTags[errorTag] = typedArrayTags[funcTag] =\ntypedArrayTags[mapTag] = typedArrayTags[numberTag] =\ntypedArrayTags[objectTag] = typedArrayTags[regexpTag] =\ntypedArrayTags[setTag] = typedArrayTags[stringTag] =\ntypedArrayTags[weakMapTag] = false;\n\n/**\n * The base implementation of `_.isTypedArray` without Node.js optimizations.\n *\n * @private\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a typed array, else `false`.\n */\nfunction baseIsTypedArray(value) {\n  return isObjectLike(value) &&\n    isLength(value.length) && !!typedArrayTags[baseGetTag(value)];\n}\n\nmodule.exports = baseIsTypedArray;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_baseIsTypedArray.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_baseKeys.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_baseKeys.js ***!
-  \******************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var isPrototype = __webpack_require__(/*! ./_isPrototype */ \"./node_modules/lodash/_isPrototype.js\"),\n    nativeKeys = __webpack_require__(/*! ./_nativeKeys */ \"./node_modules/lodash/_nativeKeys.js\");\n\n/** Used for built-in method references. */\nvar objectProto = Object.prototype;\n\n/** Used to check objects for own properties. */\nvar hasOwnProperty = objectProto.hasOwnProperty;\n\n/**\n * The base implementation of `_.keys` which doesn't treat sparse arrays as dense.\n *\n * @private\n * @param {Object} object The object to query.\n * @returns {Array} Returns the array of property names.\n */\nfunction baseKeys(object) {\n  if (!isPrototype(object)) {\n    return nativeKeys(object);\n  }\n  var result = [];\n  for (var key in Object(object)) {\n    if (hasOwnProperty.call(object, key) && key != 'constructor') {\n      result.push(key);\n    }\n  }\n  return result;\n}\n\nmodule.exports = baseKeys;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_baseKeys.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_basePropertyOf.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_basePropertyOf.js ***!
-  \************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/**\n * The base implementation of `_.propertyOf` without support for deep paths.\n *\n * @private\n * @param {Object} object The object to query.\n * @returns {Function} Returns the new accessor function.\n */\nfunction basePropertyOf(object) {\n  return function(key) {\n    return object == null ? undefined : object[key];\n  };\n}\n\nmodule.exports = basePropertyOf;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_basePropertyOf.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_baseSlice.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_baseSlice.js ***!
-  \*******************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/**\n * The base implementation of `_.slice` without an iteratee call guard.\n *\n * @private\n * @param {Array} array The array to slice.\n * @param {number} [start=0] The start position.\n * @param {number} [end=array.length] The end position.\n * @returns {Array} Returns the slice of `array`.\n */\nfunction baseSlice(array, start, end) {\n  var index = -1,\n      length = array.length;\n\n  if (start < 0) {\n    start = -start > length ? 0 : (length + start);\n  }\n  end = end > length ? length : end;\n  if (end < 0) {\n    end += length;\n  }\n  length = start > end ? 0 : ((end - start) >>> 0);\n  start >>>= 0;\n\n  var result = Array(length);\n  while (++index < length) {\n    result[index] = array[index + start];\n  }\n  return result;\n}\n\nmodule.exports = baseSlice;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_baseSlice.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_baseToString.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_baseToString.js ***!
-  \**********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var Symbol = __webpack_require__(/*! ./_Symbol */ \"./node_modules/lodash/_Symbol.js\"),\n    arrayMap = __webpack_require__(/*! ./_arrayMap */ \"./node_modules/lodash/_arrayMap.js\"),\n    isArray = __webpack_require__(/*! ./isArray */ \"./node_modules/lodash/isArray.js\"),\n    isSymbol = __webpack_require__(/*! ./isSymbol */ \"./node_modules/lodash/isSymbol.js\");\n\n/** Used as references for various `Number` constants. */\nvar INFINITY = 1 / 0;\n\n/** Used to convert symbols to primitives and strings. */\nvar symbolProto = Symbol ? Symbol.prototype : undefined,\n    symbolToString = symbolProto ? symbolProto.toString : undefined;\n\n/**\n * The base implementation of `_.toString` which doesn't convert nullish\n * values to empty strings.\n *\n * @private\n * @param {*} value The value to process.\n * @returns {string} Returns the string.\n */\nfunction baseToString(value) {\n  // Exit early for strings to avoid a performance hit in some environments.\n  if (typeof value == 'string') {\n    return value;\n  }\n  if (isArray(value)) {\n    // Recursively convert values (susceptible to call stack limits).\n    return arrayMap(value, baseToString) + '';\n  }\n  if (isSymbol(value)) {\n    return symbolToString ? symbolToString.call(value) : '';\n  }\n  var result = (value + '');\n  return (result == '0' && (1 / value) == -INFINITY) ? '-0' : result;\n}\n\nmodule.exports = baseToString;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_baseToString.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_baseUnary.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_baseUnary.js ***!
-  \*******************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/**\n * The base implementation of `_.unary` without support for storing metadata.\n *\n * @private\n * @param {Function} func The function to cap arguments for.\n * @returns {Function} Returns the new capped function.\n */\nfunction baseUnary(func) {\n  return function(value) {\n    return func(value);\n  };\n}\n\nmodule.exports = baseUnary;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_baseUnary.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_castSlice.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_castSlice.js ***!
-  \*******************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var baseSlice = __webpack_require__(/*! ./_baseSlice */ \"./node_modules/lodash/_baseSlice.js\");\n\n/**\n * Casts `array` to a slice if it's needed.\n *\n * @private\n * @param {Array} array The array to inspect.\n * @param {number} start The start position.\n * @param {number} [end=array.length] The end position.\n * @returns {Array} Returns the cast slice.\n */\nfunction castSlice(array, start, end) {\n  var length = array.length;\n  end = end === undefined ? length : end;\n  return (!start && end >= length) ? array : baseSlice(array, start, end);\n}\n\nmodule.exports = castSlice;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_castSlice.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_coreJsData.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_coreJsData.js ***!
-  \********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var root = __webpack_require__(/*! ./_root */ \"./node_modules/lodash/_root.js\");\n\n/** Used to detect overreaching core-js shims. */\nvar coreJsData = root['__core-js_shared__'];\n\nmodule.exports = coreJsData;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_coreJsData.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_createCaseFirst.js":
-/*!*************************************************!*\
-  !*** ./node_modules/lodash/_createCaseFirst.js ***!
-  \*************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var castSlice = __webpack_require__(/*! ./_castSlice */ \"./node_modules/lodash/_castSlice.js\"),\n    hasUnicode = __webpack_require__(/*! ./_hasUnicode */ \"./node_modules/lodash/_hasUnicode.js\"),\n    stringToArray = __webpack_require__(/*! ./_stringToArray */ \"./node_modules/lodash/_stringToArray.js\"),\n    toString = __webpack_require__(/*! ./toString */ \"./node_modules/lodash/toString.js\");\n\n/**\n * Creates a function like `_.lowerFirst`.\n *\n * @private\n * @param {string} methodName The name of the `String` case method to use.\n * @returns {Function} Returns the new case function.\n */\nfunction createCaseFirst(methodName) {\n  return function(string) {\n    string = toString(string);\n\n    var strSymbols = hasUnicode(string)\n      ? stringToArray(string)\n      : undefined;\n\n    var chr = strSymbols\n      ? strSymbols[0]\n      : string.charAt(0);\n\n    var trailing = strSymbols\n      ? castSlice(strSymbols, 1).join('')\n      : string.slice(1);\n\n    return chr[methodName]() + trailing;\n  };\n}\n\nmodule.exports = createCaseFirst;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_createCaseFirst.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_createCompounder.js":
-/*!**************************************************!*\
-  !*** ./node_modules/lodash/_createCompounder.js ***!
-  \**************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var arrayReduce = __webpack_require__(/*! ./_arrayReduce */ \"./node_modules/lodash/_arrayReduce.js\"),\n    deburr = __webpack_require__(/*! ./deburr */ \"./node_modules/lodash/deburr.js\"),\n    words = __webpack_require__(/*! ./words */ \"./node_modules/lodash/words.js\");\n\n/** Used to compose unicode capture groups. */\nvar rsApos = \"['\\u2019]\";\n\n/** Used to match apostrophes. */\nvar reApos = RegExp(rsApos, 'g');\n\n/**\n * Creates a function like `_.camelCase`.\n *\n * @private\n * @param {Function} callback The function to combine each word.\n * @returns {Function} Returns the new compounder function.\n */\nfunction createCompounder(callback) {\n  return function(string) {\n    return arrayReduce(words(deburr(string).replace(reApos, '')), callback, '');\n  };\n}\n\nmodule.exports = createCompounder;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_createCompounder.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_deburrLetter.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_deburrLetter.js ***!
-  \**********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var basePropertyOf = __webpack_require__(/*! ./_basePropertyOf */ \"./node_modules/lodash/_basePropertyOf.js\");\n\n/** Used to map Latin Unicode letters to basic Latin letters. */\nvar deburredLetters = {\n  // Latin-1 Supplement block.\n  '\\xc0': 'A',  '\\xc1': 'A', '\\xc2': 'A', '\\xc3': 'A', '\\xc4': 'A', '\\xc5': 'A',\n  '\\xe0': 'a',  '\\xe1': 'a', '\\xe2': 'a', '\\xe3': 'a', '\\xe4': 'a', '\\xe5': 'a',\n  '\\xc7': 'C',  '\\xe7': 'c',\n  '\\xd0': 'D',  '\\xf0': 'd',\n  '\\xc8': 'E',  '\\xc9': 'E', '\\xca': 'E', '\\xcb': 'E',\n  '\\xe8': 'e',  '\\xe9': 'e', '\\xea': 'e', '\\xeb': 'e',\n  '\\xcc': 'I',  '\\xcd': 'I', '\\xce': 'I', '\\xcf': 'I',\n  '\\xec': 'i',  '\\xed': 'i', '\\xee': 'i', '\\xef': 'i',\n  '\\xd1': 'N',  '\\xf1': 'n',\n  '\\xd2': 'O',  '\\xd3': 'O', '\\xd4': 'O', '\\xd5': 'O', '\\xd6': 'O', '\\xd8': 'O',\n  '\\xf2': 'o',  '\\xf3': 'o', '\\xf4': 'o', '\\xf5': 'o', '\\xf6': 'o', '\\xf8': 'o',\n  '\\xd9': 'U',  '\\xda': 'U', '\\xdb': 'U', '\\xdc': 'U',\n  '\\xf9': 'u',  '\\xfa': 'u', '\\xfb': 'u', '\\xfc': 'u',\n  '\\xdd': 'Y',  '\\xfd': 'y', '\\xff': 'y',\n  '\\xc6': 'Ae', '\\xe6': 'ae',\n  '\\xde': 'Th', '\\xfe': 'th',\n  '\\xdf': 'ss',\n  // Latin Extended-A block.\n  '\\u0100': 'A',  '\\u0102': 'A', '\\u0104': 'A',\n  '\\u0101': 'a',  '\\u0103': 'a', '\\u0105': 'a',\n  '\\u0106': 'C',  '\\u0108': 'C', '\\u010a': 'C', '\\u010c': 'C',\n  '\\u0107': 'c',  '\\u0109': 'c', '\\u010b': 'c', '\\u010d': 'c',\n  '\\u010e': 'D',  '\\u0110': 'D', '\\u010f': 'd', '\\u0111': 'd',\n  '\\u0112': 'E',  '\\u0114': 'E', '\\u0116': 'E', '\\u0118': 'E', '\\u011a': 'E',\n  '\\u0113': 'e',  '\\u0115': 'e', '\\u0117': 'e', '\\u0119': 'e', '\\u011b': 'e',\n  '\\u011c': 'G',  '\\u011e': 'G', '\\u0120': 'G', '\\u0122': 'G',\n  '\\u011d': 'g',  '\\u011f': 'g', '\\u0121': 'g', '\\u0123': 'g',\n  '\\u0124': 'H',  '\\u0126': 'H', '\\u0125': 'h', '\\u0127': 'h',\n  '\\u0128': 'I',  '\\u012a': 'I', '\\u012c': 'I', '\\u012e': 'I', '\\u0130': 'I',\n  '\\u0129': 'i',  '\\u012b': 'i', '\\u012d': 'i', '\\u012f': 'i', '\\u0131': 'i',\n  '\\u0134': 'J',  '\\u0135': 'j',\n  '\\u0136': 'K',  '\\u0137': 'k', '\\u0138': 'k',\n  '\\u0139': 'L',  '\\u013b': 'L', '\\u013d': 'L', '\\u013f': 'L', '\\u0141': 'L',\n  '\\u013a': 'l',  '\\u013c': 'l', '\\u013e': 'l', '\\u0140': 'l', '\\u0142': 'l',\n  '\\u0143': 'N',  '\\u0145': 'N', '\\u0147': 'N', '\\u014a': 'N',\n  '\\u0144': 'n',  '\\u0146': 'n', '\\u0148': 'n', '\\u014b': 'n',\n  '\\u014c': 'O',  '\\u014e': 'O', '\\u0150': 'O',\n  '\\u014d': 'o',  '\\u014f': 'o', '\\u0151': 'o',\n  '\\u0154': 'R',  '\\u0156': 'R', '\\u0158': 'R',\n  '\\u0155': 'r',  '\\u0157': 'r', '\\u0159': 'r',\n  '\\u015a': 'S',  '\\u015c': 'S', '\\u015e': 'S', '\\u0160': 'S',\n  '\\u015b': 's',  '\\u015d': 's', '\\u015f': 's', '\\u0161': 's',\n  '\\u0162': 'T',  '\\u0164': 'T', '\\u0166': 'T',\n  '\\u0163': 't',  '\\u0165': 't', '\\u0167': 't',\n  '\\u0168': 'U',  '\\u016a': 'U', '\\u016c': 'U', '\\u016e': 'U', '\\u0170': 'U', '\\u0172': 'U',\n  '\\u0169': 'u',  '\\u016b': 'u', '\\u016d': 'u', '\\u016f': 'u', '\\u0171': 'u', '\\u0173': 'u',\n  '\\u0174': 'W',  '\\u0175': 'w',\n  '\\u0176': 'Y',  '\\u0177': 'y', '\\u0178': 'Y',\n  '\\u0179': 'Z',  '\\u017b': 'Z', '\\u017d': 'Z',\n  '\\u017a': 'z',  '\\u017c': 'z', '\\u017e': 'z',\n  '\\u0132': 'IJ', '\\u0133': 'ij',\n  '\\u0152': 'Oe', '\\u0153': 'oe',\n  '\\u0149': \"'n\", '\\u017f': 's'\n};\n\n/**\n * Used by `_.deburr` to convert Latin-1 Supplement and Latin Extended-A\n * letters to basic Latin letters.\n *\n * @private\n * @param {string} letter The matched letter to deburr.\n * @returns {string} Returns the deburred letter.\n */\nvar deburrLetter = basePropertyOf(deburredLetters);\n\nmodule.exports = deburrLetter;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_deburrLetter.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_freeGlobal.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_freeGlobal.js ***!
-  \********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("/* WEBPACK VAR INJECTION */(function(global) {/** Detect free variable `global` from Node.js. */\nvar freeGlobal = typeof global == 'object' && global && global.Object === Object && global;\n\nmodule.exports = freeGlobal;\n\n/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../webpack/buildin/global.js */ \"./node_modules/webpack/buildin/global.js\")))\n\n//# sourceURL=webpack:///./node_modules/lodash/_freeGlobal.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_getNative.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_getNative.js ***!
-  \*******************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var baseIsNative = __webpack_require__(/*! ./_baseIsNative */ \"./node_modules/lodash/_baseIsNative.js\"),\n    getValue = __webpack_require__(/*! ./_getValue */ \"./node_modules/lodash/_getValue.js\");\n\n/**\n * Gets the native function at `key` of `object`.\n *\n * @private\n * @param {Object} object The object to query.\n * @param {string} key The key of the method to get.\n * @returns {*} Returns the function if it's native, else `undefined`.\n */\nfunction getNative(object, key) {\n  var value = getValue(object, key);\n  return baseIsNative(value) ? value : undefined;\n}\n\nmodule.exports = getNative;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_getNative.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_getRawTag.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/_getRawTag.js ***!
-  \*******************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var Symbol = __webpack_require__(/*! ./_Symbol */ \"./node_modules/lodash/_Symbol.js\");\n\n/** Used for built-in method references. */\nvar objectProto = Object.prototype;\n\n/** Used to check objects for own properties. */\nvar hasOwnProperty = objectProto.hasOwnProperty;\n\n/**\n * Used to resolve the\n * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)\n * of values.\n */\nvar nativeObjectToString = objectProto.toString;\n\n/** Built-in value references. */\nvar symToStringTag = Symbol ? Symbol.toStringTag : undefined;\n\n/**\n * A specialized version of `baseGetTag` which ignores `Symbol.toStringTag` values.\n *\n * @private\n * @param {*} value The value to query.\n * @returns {string} Returns the raw `toStringTag`.\n */\nfunction getRawTag(value) {\n  var isOwn = hasOwnProperty.call(value, symToStringTag),\n      tag = value[symToStringTag];\n\n  try {\n    value[symToStringTag] = undefined;\n    var unmasked = true;\n  } catch (e) {}\n\n  var result = nativeObjectToString.call(value);\n  if (unmasked) {\n    if (isOwn) {\n      value[symToStringTag] = tag;\n    } else {\n      delete value[symToStringTag];\n    }\n  }\n  return result;\n}\n\nmodule.exports = getRawTag;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_getRawTag.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_getTag.js":
-/*!****************************************!*\
-  !*** ./node_modules/lodash/_getTag.js ***!
-  \****************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var DataView = __webpack_require__(/*! ./_DataView */ \"./node_modules/lodash/_DataView.js\"),\n    Map = __webpack_require__(/*! ./_Map */ \"./node_modules/lodash/_Map.js\"),\n    Promise = __webpack_require__(/*! ./_Promise */ \"./node_modules/lodash/_Promise.js\"),\n    Set = __webpack_require__(/*! ./_Set */ \"./node_modules/lodash/_Set.js\"),\n    WeakMap = __webpack_require__(/*! ./_WeakMap */ \"./node_modules/lodash/_WeakMap.js\"),\n    baseGetTag = __webpack_require__(/*! ./_baseGetTag */ \"./node_modules/lodash/_baseGetTag.js\"),\n    toSource = __webpack_require__(/*! ./_toSource */ \"./node_modules/lodash/_toSource.js\");\n\n/** `Object#toString` result references. */\nvar mapTag = '[object Map]',\n    objectTag = '[object Object]',\n    promiseTag = '[object Promise]',\n    setTag = '[object Set]',\n    weakMapTag = '[object WeakMap]';\n\nvar dataViewTag = '[object DataView]';\n\n/** Used to detect maps, sets, and weakmaps. */\nvar dataViewCtorString = toSource(DataView),\n    mapCtorString = toSource(Map),\n    promiseCtorString = toSource(Promise),\n    setCtorString = toSource(Set),\n    weakMapCtorString = toSource(WeakMap);\n\n/**\n * Gets the `toStringTag` of `value`.\n *\n * @private\n * @param {*} value The value to query.\n * @returns {string} Returns the `toStringTag`.\n */\nvar getTag = baseGetTag;\n\n// Fallback for data views, maps, sets, and weak maps in IE 11 and promises in Node.js < 6.\nif ((DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag) ||\n    (Map && getTag(new Map) != mapTag) ||\n    (Promise && getTag(Promise.resolve()) != promiseTag) ||\n    (Set && getTag(new Set) != setTag) ||\n    (WeakMap && getTag(new WeakMap) != weakMapTag)) {\n  getTag = function(value) {\n    var result = baseGetTag(value),\n        Ctor = result == objectTag ? value.constructor : undefined,\n        ctorString = Ctor ? toSource(Ctor) : '';\n\n    if (ctorString) {\n      switch (ctorString) {\n        case dataViewCtorString: return dataViewTag;\n        case mapCtorString: return mapTag;\n        case promiseCtorString: return promiseTag;\n        case setCtorString: return setTag;\n        case weakMapCtorString: return weakMapTag;\n      }\n    }\n    return result;\n  };\n}\n\nmodule.exports = getTag;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_getTag.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_getValue.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_getValue.js ***!
-  \******************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/**\n * Gets the value at `key` of `object`.\n *\n * @private\n * @param {Object} [object] The object to query.\n * @param {string} key The key of the property to get.\n * @returns {*} Returns the property value.\n */\nfunction getValue(object, key) {\n  return object == null ? undefined : object[key];\n}\n\nmodule.exports = getValue;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_getValue.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_hasUnicode.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_hasUnicode.js ***!
-  \********************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/** Used to compose unicode character classes. */\nvar rsAstralRange = '\\\\ud800-\\\\udfff',\n    rsComboMarksRange = '\\\\u0300-\\\\u036f',\n    reComboHalfMarksRange = '\\\\ufe20-\\\\ufe2f',\n    rsComboSymbolsRange = '\\\\u20d0-\\\\u20ff',\n    rsComboRange = rsComboMarksRange + reComboHalfMarksRange + rsComboSymbolsRange,\n    rsVarRange = '\\\\ufe0e\\\\ufe0f';\n\n/** Used to compose unicode capture groups. */\nvar rsZWJ = '\\\\u200d';\n\n/** Used to detect strings with [zero-width joiners or code points from the astral planes](http://eev.ee/blog/2015/09/12/dark-corners-of-unicode/). */\nvar reHasUnicode = RegExp('[' + rsZWJ + rsAstralRange  + rsComboRange + rsVarRange + ']');\n\n/**\n * Checks if `string` contains Unicode symbols.\n *\n * @private\n * @param {string} string The string to inspect.\n * @returns {boolean} Returns `true` if a symbol is found, else `false`.\n */\nfunction hasUnicode(string) {\n  return reHasUnicode.test(string);\n}\n\nmodule.exports = hasUnicode;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_hasUnicode.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_hasUnicodeWord.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_hasUnicodeWord.js ***!
-  \************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/** Used to detect strings that need a more robust regexp to match words. */\nvar reHasUnicodeWord = /[a-z][A-Z]|[A-Z]{2}[a-z]|[0-9][a-zA-Z]|[a-zA-Z][0-9]|[^a-zA-Z0-9 ]/;\n\n/**\n * Checks if `string` contains a word composed of Unicode symbols.\n *\n * @private\n * @param {string} string The string to inspect.\n * @returns {boolean} Returns `true` if a word is found, else `false`.\n */\nfunction hasUnicodeWord(string) {\n  return reHasUnicodeWord.test(string);\n}\n\nmodule.exports = hasUnicodeWord;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_hasUnicodeWord.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_isMasked.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_isMasked.js ***!
-  \******************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var coreJsData = __webpack_require__(/*! ./_coreJsData */ \"./node_modules/lodash/_coreJsData.js\");\n\n/** Used to detect methods masquerading as native. */\nvar maskSrcKey = (function() {\n  var uid = /[^.]+$/.exec(coreJsData && coreJsData.keys && coreJsData.keys.IE_PROTO || '');\n  return uid ? ('Symbol(src)_1.' + uid) : '';\n}());\n\n/**\n * Checks if `func` has its source masked.\n *\n * @private\n * @param {Function} func The function to check.\n * @returns {boolean} Returns `true` if `func` is masked, else `false`.\n */\nfunction isMasked(func) {\n  return !!maskSrcKey && (maskSrcKey in func);\n}\n\nmodule.exports = isMasked;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_isMasked.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_isPrototype.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/_isPrototype.js ***!
-  \*********************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/** Used for built-in method references. */\nvar objectProto = Object.prototype;\n\n/**\n * Checks if `value` is likely a prototype object.\n *\n * @private\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a prototype, else `false`.\n */\nfunction isPrototype(value) {\n  var Ctor = value && value.constructor,\n      proto = (typeof Ctor == 'function' && Ctor.prototype) || objectProto;\n\n  return value === proto;\n}\n\nmodule.exports = isPrototype;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_isPrototype.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_nativeKeys.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/_nativeKeys.js ***!
-  \********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var overArg = __webpack_require__(/*! ./_overArg */ \"./node_modules/lodash/_overArg.js\");\n\n/* Built-in method references for those with the same name as other `lodash` methods. */\nvar nativeKeys = overArg(Object.keys, Object);\n\nmodule.exports = nativeKeys;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_nativeKeys.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_nodeUtil.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_nodeUtil.js ***!
-  \******************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("/* WEBPACK VAR INJECTION */(function(module) {var freeGlobal = __webpack_require__(/*! ./_freeGlobal */ \"./node_modules/lodash/_freeGlobal.js\");\n\n/** Detect free variable `exports`. */\nvar freeExports =  true && exports && !exports.nodeType && exports;\n\n/** Detect free variable `module`. */\nvar freeModule = freeExports && typeof module == 'object' && module && !module.nodeType && module;\n\n/** Detect the popular CommonJS extension `module.exports`. */\nvar moduleExports = freeModule && freeModule.exports === freeExports;\n\n/** Detect free variable `process` from Node.js. */\nvar freeProcess = moduleExports && freeGlobal.process;\n\n/** Used to access faster Node.js helpers. */\nvar nodeUtil = (function() {\n  try {\n    // Use `util.types` for Node.js 10+.\n    var types = freeModule && freeModule.require && freeModule.require('util').types;\n\n    if (types) {\n      return types;\n    }\n\n    // Legacy `process.binding('util')` for Node.js < 10.\n    return freeProcess && freeProcess.binding && freeProcess.binding('util');\n  } catch (e) {}\n}());\n\nmodule.exports = nodeUtil;\n\n/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../webpack/buildin/module.js */ \"./node_modules/webpack/buildin/module.js\")(module)))\n\n//# sourceURL=webpack:///./node_modules/lodash/_nodeUtil.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_objectToString.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_objectToString.js ***!
-  \************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/** Used for built-in method references. */\nvar objectProto = Object.prototype;\n\n/**\n * Used to resolve the\n * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)\n * of values.\n */\nvar nativeObjectToString = objectProto.toString;\n\n/**\n * Converts `value` to a string using `Object.prototype.toString`.\n *\n * @private\n * @param {*} value The value to convert.\n * @returns {string} Returns the converted string.\n */\nfunction objectToString(value) {\n  return nativeObjectToString.call(value);\n}\n\nmodule.exports = objectToString;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_objectToString.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_overArg.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/_overArg.js ***!
-  \*****************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/**\n * Creates a unary function that invokes `func` with its argument transformed.\n *\n * @private\n * @param {Function} func The function to wrap.\n * @param {Function} transform The argument transform.\n * @returns {Function} Returns the new function.\n */\nfunction overArg(func, transform) {\n  return function(arg) {\n    return func(transform(arg));\n  };\n}\n\nmodule.exports = overArg;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_overArg.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_root.js":
-/*!**************************************!*\
-  !*** ./node_modules/lodash/_root.js ***!
-  \**************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var freeGlobal = __webpack_require__(/*! ./_freeGlobal */ \"./node_modules/lodash/_freeGlobal.js\");\n\n/** Detect free variable `self`. */\nvar freeSelf = typeof self == 'object' && self && self.Object === Object && self;\n\n/** Used as a reference to the global object. */\nvar root = freeGlobal || freeSelf || Function('return this')();\n\nmodule.exports = root;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_root.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_stringToArray.js":
-/*!***********************************************!*\
-  !*** ./node_modules/lodash/_stringToArray.js ***!
-  \***********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var asciiToArray = __webpack_require__(/*! ./_asciiToArray */ \"./node_modules/lodash/_asciiToArray.js\"),\n    hasUnicode = __webpack_require__(/*! ./_hasUnicode */ \"./node_modules/lodash/_hasUnicode.js\"),\n    unicodeToArray = __webpack_require__(/*! ./_unicodeToArray */ \"./node_modules/lodash/_unicodeToArray.js\");\n\n/**\n * Converts `string` to an array.\n *\n * @private\n * @param {string} string The string to convert.\n * @returns {Array} Returns the converted array.\n */\nfunction stringToArray(string) {\n  return hasUnicode(string)\n    ? unicodeToArray(string)\n    : asciiToArray(string);\n}\n\nmodule.exports = stringToArray;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_stringToArray.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_toSource.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/_toSource.js ***!
-  \******************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/** Used for built-in method references. */\nvar funcProto = Function.prototype;\n\n/** Used to resolve the decompiled source of functions. */\nvar funcToString = funcProto.toString;\n\n/**\n * Converts `func` to its source code.\n *\n * @private\n * @param {Function} func The function to convert.\n * @returns {string} Returns the source code.\n */\nfunction toSource(func) {\n  if (func != null) {\n    try {\n      return funcToString.call(func);\n    } catch (e) {}\n    try {\n      return (func + '');\n    } catch (e) {}\n  }\n  return '';\n}\n\nmodule.exports = toSource;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_toSource.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_unicodeToArray.js":
-/*!************************************************!*\
-  !*** ./node_modules/lodash/_unicodeToArray.js ***!
-  \************************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/** Used to compose unicode character classes. */\nvar rsAstralRange = '\\\\ud800-\\\\udfff',\n    rsComboMarksRange = '\\\\u0300-\\\\u036f',\n    reComboHalfMarksRange = '\\\\ufe20-\\\\ufe2f',\n    rsComboSymbolsRange = '\\\\u20d0-\\\\u20ff',\n    rsComboRange = rsComboMarksRange + reComboHalfMarksRange + rsComboSymbolsRange,\n    rsVarRange = '\\\\ufe0e\\\\ufe0f';\n\n/** Used to compose unicode capture groups. */\nvar rsAstral = '[' + rsAstralRange + ']',\n    rsCombo = '[' + rsComboRange + ']',\n    rsFitz = '\\\\ud83c[\\\\udffb-\\\\udfff]',\n    rsModifier = '(?:' + rsCombo + '|' + rsFitz + ')',\n    rsNonAstral = '[^' + rsAstralRange + ']',\n    rsRegional = '(?:\\\\ud83c[\\\\udde6-\\\\uddff]){2}',\n    rsSurrPair = '[\\\\ud800-\\\\udbff][\\\\udc00-\\\\udfff]',\n    rsZWJ = '\\\\u200d';\n\n/** Used to compose unicode regexes. */\nvar reOptMod = rsModifier + '?',\n    rsOptVar = '[' + rsVarRange + ']?',\n    rsOptJoin = '(?:' + rsZWJ + '(?:' + [rsNonAstral, rsRegional, rsSurrPair].join('|') + ')' + rsOptVar + reOptMod + ')*',\n    rsSeq = rsOptVar + reOptMod + rsOptJoin,\n    rsSymbol = '(?:' + [rsNonAstral + rsCombo + '?', rsCombo, rsRegional, rsSurrPair, rsAstral].join('|') + ')';\n\n/** Used to match [string symbols](https://mathiasbynens.be/notes/javascript-unicode). */\nvar reUnicode = RegExp(rsFitz + '(?=' + rsFitz + ')|' + rsSymbol + rsSeq, 'g');\n\n/**\n * Converts a Unicode `string` to an array.\n *\n * @private\n * @param {string} string The string to convert.\n * @returns {Array} Returns the converted array.\n */\nfunction unicodeToArray(string) {\n  return string.match(reUnicode) || [];\n}\n\nmodule.exports = unicodeToArray;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_unicodeToArray.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/_unicodeWords.js":
-/*!**********************************************!*\
-  !*** ./node_modules/lodash/_unicodeWords.js ***!
-  \**********************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/** Used to compose unicode character classes. */\nvar rsAstralRange = '\\\\ud800-\\\\udfff',\n    rsComboMarksRange = '\\\\u0300-\\\\u036f',\n    reComboHalfMarksRange = '\\\\ufe20-\\\\ufe2f',\n    rsComboSymbolsRange = '\\\\u20d0-\\\\u20ff',\n    rsComboRange = rsComboMarksRange + reComboHalfMarksRange + rsComboSymbolsRange,\n    rsDingbatRange = '\\\\u2700-\\\\u27bf',\n    rsLowerRange = 'a-z\\\\xdf-\\\\xf6\\\\xf8-\\\\xff',\n    rsMathOpRange = '\\\\xac\\\\xb1\\\\xd7\\\\xf7',\n    rsNonCharRange = '\\\\x00-\\\\x2f\\\\x3a-\\\\x40\\\\x5b-\\\\x60\\\\x7b-\\\\xbf',\n    rsPunctuationRange = '\\\\u2000-\\\\u206f',\n    rsSpaceRange = ' \\\\t\\\\x0b\\\\f\\\\xa0\\\\ufeff\\\\n\\\\r\\\\u2028\\\\u2029\\\\u1680\\\\u180e\\\\u2000\\\\u2001\\\\u2002\\\\u2003\\\\u2004\\\\u2005\\\\u2006\\\\u2007\\\\u2008\\\\u2009\\\\u200a\\\\u202f\\\\u205f\\\\u3000',\n    rsUpperRange = 'A-Z\\\\xc0-\\\\xd6\\\\xd8-\\\\xde',\n    rsVarRange = '\\\\ufe0e\\\\ufe0f',\n    rsBreakRange = rsMathOpRange + rsNonCharRange + rsPunctuationRange + rsSpaceRange;\n\n/** Used to compose unicode capture groups. */\nvar rsApos = \"['\\u2019]\",\n    rsBreak = '[' + rsBreakRange + ']',\n    rsCombo = '[' + rsComboRange + ']',\n    rsDigits = '\\\\d+',\n    rsDingbat = '[' + rsDingbatRange + ']',\n    rsLower = '[' + rsLowerRange + ']',\n    rsMisc = '[^' + rsAstralRange + rsBreakRange + rsDigits + rsDingbatRange + rsLowerRange + rsUpperRange + ']',\n    rsFitz = '\\\\ud83c[\\\\udffb-\\\\udfff]',\n    rsModifier = '(?:' + rsCombo + '|' + rsFitz + ')',\n    rsNonAstral = '[^' + rsAstralRange + ']',\n    rsRegional = '(?:\\\\ud83c[\\\\udde6-\\\\uddff]){2}',\n    rsSurrPair = '[\\\\ud800-\\\\udbff][\\\\udc00-\\\\udfff]',\n    rsUpper = '[' + rsUpperRange + ']',\n    rsZWJ = '\\\\u200d';\n\n/** Used to compose unicode regexes. */\nvar rsMiscLower = '(?:' + rsLower + '|' + rsMisc + ')',\n    rsMiscUpper = '(?:' + rsUpper + '|' + rsMisc + ')',\n    rsOptContrLower = '(?:' + rsApos + '(?:d|ll|m|re|s|t|ve))?',\n    rsOptContrUpper = '(?:' + rsApos + '(?:D|LL|M|RE|S|T|VE))?',\n    reOptMod = rsModifier + '?',\n    rsOptVar = '[' + rsVarRange + ']?',\n    rsOptJoin = '(?:' + rsZWJ + '(?:' + [rsNonAstral, rsRegional, rsSurrPair].join('|') + ')' + rsOptVar + reOptMod + ')*',\n    rsOrdLower = '\\\\d*(?:1st|2nd|3rd|(?![123])\\\\dth)(?=\\\\b|[A-Z_])',\n    rsOrdUpper = '\\\\d*(?:1ST|2ND|3RD|(?![123])\\\\dTH)(?=\\\\b|[a-z_])',\n    rsSeq = rsOptVar + reOptMod + rsOptJoin,\n    rsEmoji = '(?:' + [rsDingbat, rsRegional, rsSurrPair].join('|') + ')' + rsSeq;\n\n/** Used to match complex or compound words. */\nvar reUnicodeWord = RegExp([\n  rsUpper + '?' + rsLower + '+' + rsOptContrLower + '(?=' + [rsBreak, rsUpper, '$'].join('|') + ')',\n  rsMiscUpper + '+' + rsOptContrUpper + '(?=' + [rsBreak, rsUpper + rsMiscLower, '$'].join('|') + ')',\n  rsUpper + '?' + rsMiscLower + '+' + rsOptContrLower,\n  rsUpper + '+' + rsOptContrUpper,\n  rsOrdUpper,\n  rsOrdLower,\n  rsDigits,\n  rsEmoji\n].join('|'), 'g');\n\n/**\n * Splits a Unicode `string` into an array of its words.\n *\n * @private\n * @param {string} The string to inspect.\n * @returns {Array} Returns the words of `string`.\n */\nfunction unicodeWords(string) {\n  return string.match(reUnicodeWord) || [];\n}\n\nmodule.exports = unicodeWords;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/_unicodeWords.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/deburr.js":
-/*!***************************************!*\
-  !*** ./node_modules/lodash/deburr.js ***!
-  \***************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var deburrLetter = __webpack_require__(/*! ./_deburrLetter */ \"./node_modules/lodash/_deburrLetter.js\"),\n    toString = __webpack_require__(/*! ./toString */ \"./node_modules/lodash/toString.js\");\n\n/** Used to match Latin Unicode letters (excluding mathematical operators). */\nvar reLatin = /[\\xc0-\\xd6\\xd8-\\xf6\\xf8-\\xff\\u0100-\\u017f]/g;\n\n/** Used to compose unicode character classes. */\nvar rsComboMarksRange = '\\\\u0300-\\\\u036f',\n    reComboHalfMarksRange = '\\\\ufe20-\\\\ufe2f',\n    rsComboSymbolsRange = '\\\\u20d0-\\\\u20ff',\n    rsComboRange = rsComboMarksRange + reComboHalfMarksRange + rsComboSymbolsRange;\n\n/** Used to compose unicode capture groups. */\nvar rsCombo = '[' + rsComboRange + ']';\n\n/**\n * Used to match [combining diacritical marks](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks) and\n * [combining diacritical marks for symbols](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks_for_Symbols).\n */\nvar reComboMark = RegExp(rsCombo, 'g');\n\n/**\n * Deburrs `string` by converting\n * [Latin-1 Supplement](https://en.wikipedia.org/wiki/Latin-1_Supplement_(Unicode_block)#Character_table)\n * and [Latin Extended-A](https://en.wikipedia.org/wiki/Latin_Extended-A)\n * letters to basic Latin letters and removing\n * [combining diacritical marks](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks).\n *\n * @static\n * @memberOf _\n * @since 3.0.0\n * @category String\n * @param {string} [string=''] The string to deburr.\n * @returns {string} Returns the deburred string.\n * @example\n *\n * _.deburr('déjà vu');\n * // => 'deja vu'\n */\nfunction deburr(string) {\n  string = toString(string);\n  return string && string.replace(reLatin, deburrLetter).replace(reComboMark, '');\n}\n\nmodule.exports = deburr;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/deburr.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/isArguments.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/isArguments.js ***!
-  \********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var baseIsArguments = __webpack_require__(/*! ./_baseIsArguments */ \"./node_modules/lodash/_baseIsArguments.js\"),\n    isObjectLike = __webpack_require__(/*! ./isObjectLike */ \"./node_modules/lodash/isObjectLike.js\");\n\n/** Used for built-in method references. */\nvar objectProto = Object.prototype;\n\n/** Used to check objects for own properties. */\nvar hasOwnProperty = objectProto.hasOwnProperty;\n\n/** Built-in value references. */\nvar propertyIsEnumerable = objectProto.propertyIsEnumerable;\n\n/**\n * Checks if `value` is likely an `arguments` object.\n *\n * @static\n * @memberOf _\n * @since 0.1.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is an `arguments` object,\n *  else `false`.\n * @example\n *\n * _.isArguments(function() { return arguments; }());\n * // => true\n *\n * _.isArguments([1, 2, 3]);\n * // => false\n */\nvar isArguments = baseIsArguments(function() { return arguments; }()) ? baseIsArguments : function(value) {\n  return isObjectLike(value) && hasOwnProperty.call(value, 'callee') &&\n    !propertyIsEnumerable.call(value, 'callee');\n};\n\nmodule.exports = isArguments;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/isArguments.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/isArray.js":
-/*!****************************************!*\
-  !*** ./node_modules/lodash/isArray.js ***!
-  \****************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/**\n * Checks if `value` is classified as an `Array` object.\n *\n * @static\n * @memberOf _\n * @since 0.1.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is an array, else `false`.\n * @example\n *\n * _.isArray([1, 2, 3]);\n * // => true\n *\n * _.isArray(document.body.children);\n * // => false\n *\n * _.isArray('abc');\n * // => false\n *\n * _.isArray(_.noop);\n * // => false\n */\nvar isArray = Array.isArray;\n\nmodule.exports = isArray;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/isArray.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/isArrayLike.js":
-/*!********************************************!*\
-  !*** ./node_modules/lodash/isArrayLike.js ***!
-  \********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var isFunction = __webpack_require__(/*! ./isFunction */ \"./node_modules/lodash/isFunction.js\"),\n    isLength = __webpack_require__(/*! ./isLength */ \"./node_modules/lodash/isLength.js\");\n\n/**\n * Checks if `value` is array-like. A value is considered array-like if it's\n * not a function and has a `value.length` that's an integer greater than or\n * equal to `0` and less than or equal to `Number.MAX_SAFE_INTEGER`.\n *\n * @static\n * @memberOf _\n * @since 4.0.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is array-like, else `false`.\n * @example\n *\n * _.isArrayLike([1, 2, 3]);\n * // => true\n *\n * _.isArrayLike(document.body.children);\n * // => true\n *\n * _.isArrayLike('abc');\n * // => true\n *\n * _.isArrayLike(_.noop);\n * // => false\n */\nfunction isArrayLike(value) {\n  return value != null && isLength(value.length) && !isFunction(value);\n}\n\nmodule.exports = isArrayLike;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/isArrayLike.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/isBuffer.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/isBuffer.js ***!
-  \*****************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("/* WEBPACK VAR INJECTION */(function(module) {var root = __webpack_require__(/*! ./_root */ \"./node_modules/lodash/_root.js\"),\n    stubFalse = __webpack_require__(/*! ./stubFalse */ \"./node_modules/lodash/stubFalse.js\");\n\n/** Detect free variable `exports`. */\nvar freeExports =  true && exports && !exports.nodeType && exports;\n\n/** Detect free variable `module`. */\nvar freeModule = freeExports && typeof module == 'object' && module && !module.nodeType && module;\n\n/** Detect the popular CommonJS extension `module.exports`. */\nvar moduleExports = freeModule && freeModule.exports === freeExports;\n\n/** Built-in value references. */\nvar Buffer = moduleExports ? root.Buffer : undefined;\n\n/* Built-in method references for those with the same name as other `lodash` methods. */\nvar nativeIsBuffer = Buffer ? Buffer.isBuffer : undefined;\n\n/**\n * Checks if `value` is a buffer.\n *\n * @static\n * @memberOf _\n * @since 4.3.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a buffer, else `false`.\n * @example\n *\n * _.isBuffer(new Buffer(2));\n * // => true\n *\n * _.isBuffer(new Uint8Array(2));\n * // => false\n */\nvar isBuffer = nativeIsBuffer || stubFalse;\n\nmodule.exports = isBuffer;\n\n/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../webpack/buildin/module.js */ \"./node_modules/webpack/buildin/module.js\")(module)))\n\n//# sourceURL=webpack:///./node_modules/lodash/isBuffer.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/isEmpty.js":
-/*!****************************************!*\
-  !*** ./node_modules/lodash/isEmpty.js ***!
-  \****************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var baseKeys = __webpack_require__(/*! ./_baseKeys */ \"./node_modules/lodash/_baseKeys.js\"),\n    getTag = __webpack_require__(/*! ./_getTag */ \"./node_modules/lodash/_getTag.js\"),\n    isArguments = __webpack_require__(/*! ./isArguments */ \"./node_modules/lodash/isArguments.js\"),\n    isArray = __webpack_require__(/*! ./isArray */ \"./node_modules/lodash/isArray.js\"),\n    isArrayLike = __webpack_require__(/*! ./isArrayLike */ \"./node_modules/lodash/isArrayLike.js\"),\n    isBuffer = __webpack_require__(/*! ./isBuffer */ \"./node_modules/lodash/isBuffer.js\"),\n    isPrototype = __webpack_require__(/*! ./_isPrototype */ \"./node_modules/lodash/_isPrototype.js\"),\n    isTypedArray = __webpack_require__(/*! ./isTypedArray */ \"./node_modules/lodash/isTypedArray.js\");\n\n/** `Object#toString` result references. */\nvar mapTag = '[object Map]',\n    setTag = '[object Set]';\n\n/** Used for built-in method references. */\nvar objectProto = Object.prototype;\n\n/** Used to check objects for own properties. */\nvar hasOwnProperty = objectProto.hasOwnProperty;\n\n/**\n * Checks if `value` is an empty object, collection, map, or set.\n *\n * Objects are considered empty if they have no own enumerable string keyed\n * properties.\n *\n * Array-like values such as `arguments` objects, arrays, buffers, strings, or\n * jQuery-like collections are considered empty if they have a `length` of `0`.\n * Similarly, maps and sets are considered empty if they have a `size` of `0`.\n *\n * @static\n * @memberOf _\n * @since 0.1.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is empty, else `false`.\n * @example\n *\n * _.isEmpty(null);\n * // => true\n *\n * _.isEmpty(true);\n * // => true\n *\n * _.isEmpty(1);\n * // => true\n *\n * _.isEmpty([1, 2, 3]);\n * // => false\n *\n * _.isEmpty({ 'a': 1 });\n * // => false\n */\nfunction isEmpty(value) {\n  if (value == null) {\n    return true;\n  }\n  if (isArrayLike(value) &&\n      (isArray(value) || typeof value == 'string' || typeof value.splice == 'function' ||\n        isBuffer(value) || isTypedArray(value) || isArguments(value))) {\n    return !value.length;\n  }\n  var tag = getTag(value);\n  if (tag == mapTag || tag == setTag) {\n    return !value.size;\n  }\n  if (isPrototype(value)) {\n    return !baseKeys(value).length;\n  }\n  for (var key in value) {\n    if (hasOwnProperty.call(value, key)) {\n      return false;\n    }\n  }\n  return true;\n}\n\nmodule.exports = isEmpty;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/isEmpty.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/isFunction.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/isFunction.js ***!
-  \*******************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ \"./node_modules/lodash/_baseGetTag.js\"),\n    isObject = __webpack_require__(/*! ./isObject */ \"./node_modules/lodash/isObject.js\");\n\n/** `Object#toString` result references. */\nvar asyncTag = '[object AsyncFunction]',\n    funcTag = '[object Function]',\n    genTag = '[object GeneratorFunction]',\n    proxyTag = '[object Proxy]';\n\n/**\n * Checks if `value` is classified as a `Function` object.\n *\n * @static\n * @memberOf _\n * @since 0.1.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a function, else `false`.\n * @example\n *\n * _.isFunction(_);\n * // => true\n *\n * _.isFunction(/abc/);\n * // => false\n */\nfunction isFunction(value) {\n  if (!isObject(value)) {\n    return false;\n  }\n  // The use of `Object#toString` avoids issues with the `typeof` operator\n  // in Safari 9 which returns 'object' for typed arrays and other constructors.\n  var tag = baseGetTag(value);\n  return tag == funcTag || tag == genTag || tag == asyncTag || tag == proxyTag;\n}\n\nmodule.exports = isFunction;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/isFunction.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/isLength.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/isLength.js ***!
-  \*****************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/** Used as references for various `Number` constants. */\nvar MAX_SAFE_INTEGER = 9007199254740991;\n\n/**\n * Checks if `value` is a valid array-like length.\n *\n * **Note:** This method is loosely based on\n * [`ToLength`](http://ecma-international.org/ecma-262/7.0/#sec-tolength).\n *\n * @static\n * @memberOf _\n * @since 4.0.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a valid length, else `false`.\n * @example\n *\n * _.isLength(3);\n * // => true\n *\n * _.isLength(Number.MIN_VALUE);\n * // => false\n *\n * _.isLength(Infinity);\n * // => false\n *\n * _.isLength('3');\n * // => false\n */\nfunction isLength(value) {\n  return typeof value == 'number' &&\n    value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;\n}\n\nmodule.exports = isLength;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/isLength.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/isObject.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/isObject.js ***!
-  \*****************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/**\n * Checks if `value` is the\n * [language type](http://www.ecma-international.org/ecma-262/7.0/#sec-ecmascript-language-types)\n * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)\n *\n * @static\n * @memberOf _\n * @since 0.1.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is an object, else `false`.\n * @example\n *\n * _.isObject({});\n * // => true\n *\n * _.isObject([1, 2, 3]);\n * // => true\n *\n * _.isObject(_.noop);\n * // => true\n *\n * _.isObject(null);\n * // => false\n */\nfunction isObject(value) {\n  var type = typeof value;\n  return value != null && (type == 'object' || type == 'function');\n}\n\nmodule.exports = isObject;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/isObject.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/isObjectLike.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/isObjectLike.js ***!
-  \*********************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/**\n * Checks if `value` is object-like. A value is object-like if it's not `null`\n * and has a `typeof` result of \"object\".\n *\n * @static\n * @memberOf _\n * @since 4.0.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is object-like, else `false`.\n * @example\n *\n * _.isObjectLike({});\n * // => true\n *\n * _.isObjectLike([1, 2, 3]);\n * // => true\n *\n * _.isObjectLike(_.noop);\n * // => false\n *\n * _.isObjectLike(null);\n * // => false\n */\nfunction isObjectLike(value) {\n  return value != null && typeof value == 'object';\n}\n\nmodule.exports = isObjectLike;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/isObjectLike.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/isSymbol.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/isSymbol.js ***!
-  \*****************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ \"./node_modules/lodash/_baseGetTag.js\"),\n    isObjectLike = __webpack_require__(/*! ./isObjectLike */ \"./node_modules/lodash/isObjectLike.js\");\n\n/** `Object#toString` result references. */\nvar symbolTag = '[object Symbol]';\n\n/**\n * Checks if `value` is classified as a `Symbol` primitive or object.\n *\n * @static\n * @memberOf _\n * @since 4.0.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a symbol, else `false`.\n * @example\n *\n * _.isSymbol(Symbol.iterator);\n * // => true\n *\n * _.isSymbol('abc');\n * // => false\n */\nfunction isSymbol(value) {\n  return typeof value == 'symbol' ||\n    (isObjectLike(value) && baseGetTag(value) == symbolTag);\n}\n\nmodule.exports = isSymbol;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/isSymbol.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/isTypedArray.js":
-/*!*********************************************!*\
-  !*** ./node_modules/lodash/isTypedArray.js ***!
-  \*********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var baseIsTypedArray = __webpack_require__(/*! ./_baseIsTypedArray */ \"./node_modules/lodash/_baseIsTypedArray.js\"),\n    baseUnary = __webpack_require__(/*! ./_baseUnary */ \"./node_modules/lodash/_baseUnary.js\"),\n    nodeUtil = __webpack_require__(/*! ./_nodeUtil */ \"./node_modules/lodash/_nodeUtil.js\");\n\n/* Node.js helper references. */\nvar nodeIsTypedArray = nodeUtil && nodeUtil.isTypedArray;\n\n/**\n * Checks if `value` is classified as a typed array.\n *\n * @static\n * @memberOf _\n * @since 3.0.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a typed array, else `false`.\n * @example\n *\n * _.isTypedArray(new Uint8Array);\n * // => true\n *\n * _.isTypedArray([]);\n * // => false\n */\nvar isTypedArray = nodeIsTypedArray ? baseUnary(nodeIsTypedArray) : baseIsTypedArray;\n\nmodule.exports = isTypedArray;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/isTypedArray.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/startCase.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/startCase.js ***!
-  \******************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var createCompounder = __webpack_require__(/*! ./_createCompounder */ \"./node_modules/lodash/_createCompounder.js\"),\n    upperFirst = __webpack_require__(/*! ./upperFirst */ \"./node_modules/lodash/upperFirst.js\");\n\n/**\n * Converts `string` to\n * [start case](https://en.wikipedia.org/wiki/Letter_case#Stylistic_or_specialised_usage).\n *\n * @static\n * @memberOf _\n * @since 3.1.0\n * @category String\n * @param {string} [string=''] The string to convert.\n * @returns {string} Returns the start cased string.\n * @example\n *\n * _.startCase('--foo-bar--');\n * // => 'Foo Bar'\n *\n * _.startCase('fooBar');\n * // => 'Foo Bar'\n *\n * _.startCase('__FOO_BAR__');\n * // => 'FOO BAR'\n */\nvar startCase = createCompounder(function(result, word, index) {\n  return result + (index ? ' ' : '') + upperFirst(word);\n});\n\nmodule.exports = startCase;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/startCase.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/stubFalse.js":
-/*!******************************************!*\
-  !*** ./node_modules/lodash/stubFalse.js ***!
-  \******************************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-eval("/**\n * This method returns `false`.\n *\n * @static\n * @memberOf _\n * @since 4.13.0\n * @category Util\n * @returns {boolean} Returns `false`.\n * @example\n *\n * _.times(2, _.stubFalse);\n * // => [false, false]\n */\nfunction stubFalse() {\n  return false;\n}\n\nmodule.exports = stubFalse;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/stubFalse.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/toString.js":
-/*!*****************************************!*\
-  !*** ./node_modules/lodash/toString.js ***!
-  \*****************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var baseToString = __webpack_require__(/*! ./_baseToString */ \"./node_modules/lodash/_baseToString.js\");\n\n/**\n * Converts `value` to a string. An empty string is returned for `null`\n * and `undefined` values. The sign of `-0` is preserved.\n *\n * @static\n * @memberOf _\n * @since 4.0.0\n * @category Lang\n * @param {*} value The value to convert.\n * @returns {string} Returns the converted string.\n * @example\n *\n * _.toString(null);\n * // => ''\n *\n * _.toString(-0);\n * // => '-0'\n *\n * _.toString([1, 2, 3]);\n * // => '1,2,3'\n */\nfunction toString(value) {\n  return value == null ? '' : baseToString(value);\n}\n\nmodule.exports = toString;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/toString.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/upperFirst.js":
-/*!*******************************************!*\
-  !*** ./node_modules/lodash/upperFirst.js ***!
-  \*******************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var createCaseFirst = __webpack_require__(/*! ./_createCaseFirst */ \"./node_modules/lodash/_createCaseFirst.js\");\n\n/**\n * Converts the first character of `string` to upper case.\n *\n * @static\n * @memberOf _\n * @since 4.0.0\n * @category String\n * @param {string} [string=''] The string to convert.\n * @returns {string} Returns the converted string.\n * @example\n *\n * _.upperFirst('fred');\n * // => 'Fred'\n *\n * _.upperFirst('FRED');\n * // => 'FRED'\n */\nvar upperFirst = createCaseFirst('toUpperCase');\n\nmodule.exports = upperFirst;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/upperFirst.js?");
-
-/***/ }),
-
-/***/ "./node_modules/lodash/words.js":
-/*!**************************************!*\
-  !*** ./node_modules/lodash/words.js ***!
-  \**************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-eval("var asciiWords = __webpack_require__(/*! ./_asciiWords */ \"./node_modules/lodash/_asciiWords.js\"),\n    hasUnicodeWord = __webpack_require__(/*! ./_hasUnicodeWord */ \"./node_modules/lodash/_hasUnicodeWord.js\"),\n    toString = __webpack_require__(/*! ./toString */ \"./node_modules/lodash/toString.js\"),\n    unicodeWords = __webpack_require__(/*! ./_unicodeWords */ \"./node_modules/lodash/_unicodeWords.js\");\n\n/**\n * Splits `string` into an array of its words.\n *\n * @static\n * @memberOf _\n * @since 3.0.0\n * @category String\n * @param {string} [string=''] The string to inspect.\n * @param {RegExp|string} [pattern] The pattern to match words.\n * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.\n * @returns {Array} Returns the words of `string`.\n * @example\n *\n * _.words('fred, barney, & pebbles');\n * // => ['fred', 'barney', 'pebbles']\n *\n * _.words('fred, barney, & pebbles', /[^, ]+/g);\n * // => ['fred', 'barney', '&', 'pebbles']\n */\nfunction words(string, pattern, guard) {\n  string = toString(string);\n  pattern = guard ? undefined : pattern;\n\n  if (pattern === undefined) {\n    return hasUnicodeWord(string) ? unicodeWords(string) : asciiWords(string);\n  }\n  return string.match(pattern) || [];\n}\n\nmodule.exports = words;\n\n\n//# sourceURL=webpack:///./node_modules/lodash/words.js?");
-
-/***/ }),
-
 /***/ "./node_modules/node-warc/index.js":
 /*!*****************************************!*\
   !*** ./node_modules/node-warc/index.js ***!
@@ -1093,7 +444,7 @@ eval("/**\n * @type {Set<string>}\n */\nconst canReplayProtocols = new Set([\n  
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-eval("const isEmpty = __webpack_require__(/*! lodash/isEmpty */ \"./node_modules/lodash/isEmpty.js\")\n\n/**\n * @desc Electron requires the use of the debugger to retrieve the requests response body\n * @param {string} requestId - the request to fetch the response body for\n * @param {Object} wcDebugger - the Electron debugger to use to get the response body\n * @see https://electron.atom.io/docs/api/debugger/\n * @return {Promise<?Buffer>} body - the response body as a node buffer\n */\nfunction getResBody (requestId, wcDebugger) {\n  return new Promise((resolve) => {\n    wcDebugger.sendCommand(\n      'Network.getResponseBody',\n      { requestId },\n      (error, body) => {\n        resolve(!isEmpty(error) ? null : body)\n      }\n    )\n  })\n}\n\n/**\n * @desc Electron requires the use of the debugger to retrieve the requests post data\n * @param {string} requestId - the request to fetch the post data for\n * @param {Object} wcDebugger - the Electron debugger to use to get the post data\n * @see https://electron.atom.io/docs/api/debugger/\n * @return {Promise<?Buffer>} body - the response body as a node buffer\n */\nfunction getPostData (requestId, wcDebugger) {\n  return new Promise((resolve) => {\n    wcDebugger.sendCommand(\n      'Network.getRequestPostData',\n      { requestId },\n      (error, body) => {\n        resolve(!isEmpty(error) ? null : body)\n      }\n    )\n  })\n}\n\nmodule.exports = {\n  /**\n   * @type {function(string, Object): Promise<?Buffer>}\n   */\n  getResBody,\n  /**\n   * @type {function(string, Object): Promise<?Buffer>}\n   */\n  getPostData\n}\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/lib/utils/electron.js?");
+eval("const isEmpty = __webpack_require__(/*! lodash/isEmpty */ \"./node_modules/node-warc/node_modules/lodash/isEmpty.js\")\n\n/**\n * @desc Electron requires the use of the debugger to retrieve the requests response body\n * @param {string} requestId - the request to fetch the response body for\n * @param {Object} wcDebugger - the Electron debugger to use to get the response body\n * @see https://electron.atom.io/docs/api/debugger/\n * @return {Promise<?Buffer>} body - the response body as a node buffer\n */\nfunction getResBody (requestId, wcDebugger) {\n  return new Promise((resolve) => {\n    wcDebugger.sendCommand(\n      'Network.getResponseBody',\n      { requestId },\n      (error, body) => {\n        resolve(!isEmpty(error) ? null : body)\n      }\n    )\n  })\n}\n\n/**\n * @desc Electron requires the use of the debugger to retrieve the requests post data\n * @param {string} requestId - the request to fetch the post data for\n * @param {Object} wcDebugger - the Electron debugger to use to get the post data\n * @see https://electron.atom.io/docs/api/debugger/\n * @return {Promise<?Buffer>} body - the response body as a node buffer\n */\nfunction getPostData (requestId, wcDebugger) {\n  return new Promise((resolve) => {\n    wcDebugger.sendCommand(\n      'Network.getRequestPostData',\n      { requestId },\n      (error, body) => {\n        resolve(!isEmpty(error) ? null : body)\n      }\n    )\n  })\n}\n\nmodule.exports = {\n  /**\n   * @type {function(string, Object): Promise<?Buffer>}\n   */\n  getResBody,\n  /**\n   * @type {function(string, Object): Promise<?Buffer>}\n   */\n  getPostData\n}\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/lib/utils/electron.js?");
 
 /***/ }),
 
@@ -1127,7 +478,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) *
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-eval("const startCase = __webpack_require__(/*! lodash/startCase */ \"./node_modules/lodash/startCase.js\")\nconst { DASH } = __webpack_require__(/*! ../utils/constants */ \"./node_modules/node-warc/lib/utils/constants.js\")\nconst { CRLF } = __webpack_require__(/*! ../writers/warcFields */ \"./node_modules/node-warc/lib/writers/warcFields.js\")\n\n/**\n * @type {RegExp}\n */\nconst SPACERe = /\\s/g\n\n/**\n * @param {string} headerKey\n * @return {string}\n */\nfunction ensureHTTP2Headers (headerKey) {\n  if (headerKey[0] === ':') return headerKey\n  return startCase(headerKey).replace(SPACERe, DASH)\n}\n\n/**\n * @desc Converts an HTTP headers object into its string representation\n * @param {Object} headers - The HTTP header object to be stringified\n * @returns {string}\n */\nexports.stringifyHeaders = function stringifyHeaders (headers) {\n  let headerKey\n  let outString = []\n  for (headerKey in headers) {\n    outString.push(`${ensureHTTP2Headers(headerKey)}: ${headers[headerKey]}${CRLF}`)\n  }\n  // join used to fix memory issue caused by concatenation: https://bugs.chromium.org/p/v8/issues/detail?id=3175#c4\n  // affects node\n  return outString.join('')\n}\n\n/**\n * @desc Converts an HTTP request headers object into its string representation\n * @param {Object} headers - The HTTP headers object for the request\n * @param {string} host - The host for the request to be used if the HTTP headers object does not contain the Host field\n * @returns {string}\n */\nexports.stringifyRequestHeaders = function stringifyRequestHeaders (headers, host) {\n  let hasHost = false\n  let headerKey\n  let outString = []\n  for (headerKey in headers) {\n    if (headerKey === 'host' || headerKey === 'Host') {\n      hasHost = true\n    }\n    outString.push(`${ensureHTTP2Headers(headerKey)}: ${headers[headerKey]}${CRLF}`)\n  }\n  if (!hasHost) {\n    outString.push(`Host: ${host}${CRLF}`)\n  }\n  // join used to fix memory issue caused by concatenation: https://bugs.chromium.org/p/v8/issues/detail?id=3175#c4\n  // affects node\n  return outString.join('')\n}\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/lib/utils/headerSerializers.js?");
+eval("const startCase = __webpack_require__(/*! lodash/startCase */ \"./node_modules/node-warc/node_modules/lodash/startCase.js\")\nconst { DASH } = __webpack_require__(/*! ../utils/constants */ \"./node_modules/node-warc/lib/utils/constants.js\")\nconst { CRLF } = __webpack_require__(/*! ../writers/warcFields */ \"./node_modules/node-warc/lib/writers/warcFields.js\")\n\n/**\n * @type {RegExp}\n */\nconst SPACERe = /\\s/g\n\n/**\n * @param {string} headerKey\n * @return {string}\n */\nfunction ensureHTTP2Headers (headerKey) {\n  if (headerKey[0] === ':') return headerKey\n  return startCase(headerKey).replace(SPACERe, DASH)\n}\n\n/**\n * @desc Converts an HTTP headers object into its string representation\n * @param {Object} headers - The HTTP header object to be stringified\n * @returns {string}\n */\nexports.stringifyHeaders = function stringifyHeaders (headers) {\n  let headerKey\n  let outString = []\n  for (headerKey in headers) {\n    outString.push(`${ensureHTTP2Headers(headerKey)}: ${headers[headerKey]}${CRLF}`)\n  }\n  // join used to fix memory issue caused by concatenation: https://bugs.chromium.org/p/v8/issues/detail?id=3175#c4\n  // affects node\n  return outString.join('')\n}\n\n/**\n * @desc Converts an HTTP request headers object into its string representation\n * @param {Object} headers - The HTTP headers object for the request\n * @param {string} host - The host for the request to be used if the HTTP headers object does not contain the Host field\n * @returns {string}\n */\nexports.stringifyRequestHeaders = function stringifyRequestHeaders (headers, host) {\n  let hasHost = false\n  let headerKey\n  let outString = []\n  for (headerKey in headers) {\n    if (headerKey === 'host' || headerKey === 'Host') {\n      hasHost = true\n    }\n    outString.push(`${ensureHTTP2Headers(headerKey)}: ${headers[headerKey]}${CRLF}`)\n  }\n  if (!hasHost) {\n    outString.push(`Host: ${host}${CRLF}`)\n  }\n  // join used to fix memory issue caused by concatenation: https://bugs.chromium.org/p/v8/issues/detail?id=3175#c4\n  // affects node\n  return outString.join('')\n}\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/lib/utils/headerSerializers.js?");
 
 /***/ }),
 
@@ -1298,6 +649,655 @@ eval("/**\n * @type {string}\n */\nconst CRLF = '\\r\\n'\n\n/**\n * @type {strin
 /***/ (function(module, exports, __webpack_require__) {
 
 eval("/* WEBPACK VAR INJECTION */(function(Buffer, process) {const fs = __webpack_require__(/*! ../utils/getStream */ \"./node_modules/node-warc/lib/utils/getStream.js\").fs;\nconst zlib = __webpack_require__(/*! zlib */ \"./node_modules/browserify-zlib/lib/index.js\")\nconst Path = __webpack_require__(/*! path */ \"./node_modules/path-browserify/index.js\")\nconst uuid = __webpack_require__(/*! uuid/v1 */ \"./node_modules/uuid/v1.js\")\nconst EventEmitter = __webpack_require__(/*! eventemitter3 */ \"./node_modules/eventemitter3/index.js\")\nconst {\n  warcInfoHeader,\n  warcInfoContent,\n  warcRequestHeader,\n  warcResponseHeader,\n  warcMetadataHeader,\n  recordSeparator,\n  CRLF,\n  CRLF2x\n} = __webpack_require__(/*! ./warcFields */ \"./node_modules/node-warc/lib/writers/warcFields.js\")\nconst ensureWARCFileName = __webpack_require__(/*! ../utils/ensureWARCFilename */ \"./node_modules/node-warc/lib/utils/ensureWARCFilename.js\")\n\n/**\n * @type {Buffer}\n */\nconst recordSeparatorBuffer = Buffer.from(recordSeparator, 'utf8')\n\n/**\n * @type {Buffer}\n */\nconst CRLFBuffer = Buffer.from(CRLF, 'utf8')\n\n/**\n * @type {number}\n */\nconst WARCSepTSize = recordSeparatorBuffer.length + CRLFBuffer.length\n\n/**\n *\n * @param {string} string\n * @param {?Buffer|?string} maybeBuffer\n * @return {Buffer}\n */\nfunction makeContentBuffer (string, maybeBuffer) {\n  if (maybeBuffer != null) {\n    // ensure that the string buffer contains CRLF 2x since we have a body\n    const strBuff = string.endsWith(CRLF2x)\n      ? Buffer.from(string, 'utf8')\n      : Buffer.from(`${string}${CRLF}`, 'utf8')\n    const cntBuffer = Buffer.isBuffer(maybeBuffer)\n      ? maybeBuffer\n      : Buffer.from(maybeBuffer, 'utf8')\n    return Buffer.concat(\n      [strBuff, cntBuffer],\n      strBuff.length + cntBuffer.length\n    )\n  }\n  return Buffer.from(string, 'utf8')\n}\n\n/**\n * @desc Default options that control how WARC writting is done\n * @param {WARCFileOpts} [opts]\n * @return {WARCFileOpts}\n */\nfunction ensureOptions (opts) {\n  if (opts == null) {\n    opts = {}\n  }\n  return {\n    appending: opts.appending || false,\n    gzip: opts.gzip || process.env.NODEWARC_WRITE_GZIPPED != null\n  }\n}\n\n/**\n * @extends {EventEmitter}\n * @desc Base class used for writing to the WARC\n */\nclass WARCWriterBase extends EventEmitter {\n  /**\n   * @desc Create a new WARCWriter\n   * @param {?WARCFileOpts} [defaultOpts] - Optional default WARC file options\n   */\n  constructor (defaultOpts) {\n    super()\n    /**\n     * @type {?WriteStream}\n     * @private\n     */\n    this._warcOutStream = null\n    /**\n     * @type {?Error}\n     * @private\n     */\n    this._lastError = null\n    /**\n     * @type {?string}\n     * @private\n     */\n    this._now = null\n    /**\n     * @type {?string}\n     * @private\n     */\n    this._fileName = null\n    /**\n     * @type {?string}\n     * @private\n     */\n    this._warcInfoId = null\n\n    /**\n     * @type {?WARCFileOpts}\n     */\n    this.opts = null\n\n    /**\n     * @type {WARCFileOpts}\n     */\n    this.defaultOpts = ensureOptions(defaultOpts)\n\n    /**\n     * @type {string}\n     * @private\n     */\n    this._version = __webpack_require__(/*! ../../package.json */ \"./node_modules/node-warc/package.json\").version\n    this._onFinish = this._onFinish.bind(this)\n    this._onError = this._onError.bind(this)\n  }\n\n  /**\n   * @desc Set the default WARC creation options\n   * @param {WARCFileOpts} defaultOpts - The new default options\n   */\n  setDefaultOpts (defaultOpts) {\n    this.defaultOpts = ensureOptions(defaultOpts)\n  }\n\n  /**\n   * @desc Initialize the writer. The options object is optional and defaults to `appending = false` and `gzip = process.env.NODEWARC_WRITE_GZIPPED != null`.\n   * Writing gzipped records is also controllable by setting `NODEWARC_WRITE_GZIPPED` environment variable.\n   * Options supplied to this method override the default options.\n   * @param {string} warcPath - the path for the WARC file to be written\n   * @param {?WARCFileOpts} [options] - write options controlling how the WARC should be written\n   */\n  initWARC (warcPath, options) {\n    this.opts = Object.assign({}, this.defaultOpts, options || {})\n    const wfp = ensureWARCFileName(warcPath, this.opts.gzip)\n\n    if (!fs) {\n      this._warcOutStream = warcPath\n    } else if (this.opts.appending) {\n      this._warcOutStream = fs.createWriteStream(wfp, {\n        flags: 'a',\n        encoding: 'utf8'\n      })\n    } else {\n      this._warcOutStream = fs.createWriteStream(wfp, { encoding: 'utf8' })\n    }\n    this._warcOutStream.on('finish', this._onFinish)\n    this._warcOutStream.on('error', this._onError)\n    let now = new Date().toISOString()\n    this._now = now.substr(0, now.indexOf('.')) + 'Z'\n    this._fileName = Path.basename(wfp)\n  }\n\n  /**\n   * @param {string} targetURI - The target URI for the request response record pairs\n   * @param {{headers: string, data?: Buffer|string}} reqData - The request data\n   * @param {{headers: string, data?: Buffer|string}} resData - The response data\n   * @return {Promise<void>}\n   */\n  async writeRequestResponseRecords (targetURI, reqData, resData) {\n    const resRecId = uuid()\n    await this._writeRequestRecord(\n      targetURI,\n      resRecId,\n      reqData.headers,\n      reqData.data\n    )\n    return this._writeResponseRecord(\n      targetURI,\n      resRecId,\n      resData.headers,\n      resData.data\n    )\n  }\n\n  /**\n   * @desc Write arbitrary number of items to the WARC\n   * @param {Buffer[]} recordParts - Array of buffers to be writtern\n   * @return {Promise<void>}\n   */\n  async writeRecordChunks (...recordParts) {\n    for (let chunk of recordParts) {\n      await this.writeRecordBlock(chunk)\n    }\n  }\n\n  /**\n   * @desc Write out the WARC-Type: info records.\n   * If the contents for the info record is an object then the objects properties (property, property value pairs)\n   * are written otherwise (when Buffer or string) the content is written as is\n   * @param {Object|Buffer|string} winfo - The contents for the WARC info record\n   * @return {Promise<void>}\n   */\n  writeWarcInfoRecord (winfo) {\n    if (Buffer.isBuffer(winfo) || typeof winfo === 'string') {\n      return this.writeWarcRawInfoRecord(winfo)\n    }\n    if (winfo.software == null) {\n      winfo.software = `node-warc/${this._version}`\n    }\n    return this.writeWarcRawInfoRecord(\n      Buffer.from(warcInfoContent(winfo), 'utf8')\n    )\n  }\n\n  /**\n   * @desc Write warc-info record\n   * @param {string|Buffer} warcInfoContent - The contents of the warc-info record\n   * @return {Promise<void>}\n   */\n  writeWarcRawInfoRecord (warcInfoContent) {\n    let recID\n    if (this._warcInfoId) {\n      recID = uuid()\n    } else {\n      this._warcInfoId = recID = uuid()\n    }\n    const whct = Buffer.isBuffer(warcInfoContent)\n      ? warcInfoContent\n      : Buffer.from(warcInfoContent, 'utf8')\n    const wh = Buffer.from(\n      warcInfoHeader({\n        date: this._now,\n        fileName: this._fileName,\n        len: whct.length,\n        rid: recID\n      }),\n      'utf8'\n    )\n    const totalLength = wh.length + whct.length + WARCSepTSize\n    return this.writeRecordBlock(\n      Buffer.concat([wh, CRLFBuffer, whct, recordSeparatorBuffer], totalLength)\n    )\n  }\n\n  /**\n   * @desc Writes a WARC Info record containing Webrecorder/Webrecorder Player bookmark (page list)\n   * @param {string|Array<string>} pages - The URL of the page this WARC contains or an Array of URLs for the pages\n   * this WARC contains\n   * @return {Promise<void>}\n   */\n  writeWebrecorderBookmarksInfoRecord (pages) {\n    let recID\n    if (this._warcInfoId) {\n      recID = uuid()\n    } else {\n      this._warcInfoId = recID = uuid()\n    }\n    const winfoContent = {\n      software: `node-warc/${this._version}`,\n      'json-metadata': JSON.stringify({\n        desc: '',\n        auto_title: true,\n        type: 'recording',\n        pages: Array.isArray(pages)\n          ? pages.map(page => ({ timestamp: this._now, url: page }))\n          : [{ timestamp: this._now, url: pages }]\n      })\n    }\n    const whct = Buffer.from(warcInfoContent(winfoContent), 'utf8')\n    const wh = Buffer.from(\n      warcInfoHeader({\n        date: this._now,\n        fileName: this._fileName,\n        len: whct.length,\n        rid: recID\n      }),\n      'utf8'\n    )\n    const totalLength = wh.length + whct.length + WARCSepTSize\n    return this.writeRecordBlock(\n      Buffer.concat([wh, CRLFBuffer, whct, recordSeparatorBuffer], totalLength)\n    )\n  }\n\n  /**\n   * @desc Write WARC-Type: metadata for outlinks\n   * @param {string} targetURI - The target URI for the metadata record\n   * @param {string} outlinks - A string containing outlink metadata\n   * @return {Promise<void>}\n   */\n  writeWarcMetadataOutlinks (targetURI, outlinks) {\n    return this.writeWarcMetadata(targetURI, outlinks)\n  }\n\n  /**\n   * @desc Write WARC-Type: metadata record\n   * @param {string} targetURI - The URL of the page the this metadata record is for\n   * @param {string|Buffer} metaData - A string or buffer containing metadata information to be used as this records content\n   * @return {Promise<void>}\n   */\n  writeWarcMetadata (targetURI, metaData) {\n    const wmhc = Buffer.isBuffer(metaData)\n      ? metaData\n      : Buffer.from(metaData, 'utf8')\n    const wmh = Buffer.from(\n      warcMetadataHeader({\n        targetURI,\n        now: this._now,\n        len: wmhc.length,\n        concurrentTo: this._warcInfoId,\n        rid: uuid()\n      }),\n      'utf8'\n    )\n    const totalLength = wmhc.length + wmh.length + WARCSepTSize\n    return this.writeRecordBlock(\n      Buffer.concat([wmh, CRLFBuffer, wmhc, recordSeparatorBuffer], totalLength)\n    )\n  }\n\n  /**\n   * @desc Write A Request Record\n   * @param {string} targetURI - The URL of the response\n   * @param {string} httpHeaderString - Stringified HTTP headers\n   * @param {string|Buffer} [requestData] - Body of the request if any\n   * @return {Promise<void>}\n   */\n  writeRequestRecord (targetURI, httpHeaderString, requestData) {\n    return this._writeRequestRecord(\n      targetURI,\n      null,\n      httpHeaderString,\n      requestData\n    )\n  }\n\n  /**\n   * @desc Write A Response Record\n   * @param {string} targetURI - The URL of the response\n   * @param {string} httpHeaderString - Stringified HTTP headers\n   * @param {string|Buffer} [responseData] - The response body if it exists\n   * @return {Promise<void>}\n   */\n  writeResponseRecord (targetURI, httpHeaderString, responseData) {\n    return this._writeResponseRecord(\n      targetURI,\n      uuid(),\n      httpHeaderString,\n      responseData\n    )\n  }\n\n  /**\n   * @desc Write an record block to the WARC\n   * @param {Buffer} recordBuffer\n   * @return {Promise<void>}\n   */\n  writeRecordBlock (recordBuffer) {\n    return new Promise((resolve, reject) => {\n      if (this.opts.gzip) {\n        // we're in gzipped mode - GZip the buffer\n        recordBuffer = zlib.gzipSync(recordBuffer)\n      }\n\n      if (!this._warcOutStream.write(recordBuffer, 'utf8')) {\n        this._warcOutStream.once('drain', resolve)\n      } else {\n        resolve()\n      }\n    })\n  }\n\n  /**\n   * @desc Close  the underlying filestream to the WARC currently being written.\n   * The `finished` event will not be emitted until this method has been called\n   */\n  end () {\n    if (this._warcOutStream != null) {\n      this._warcOutStream.end()\n    }\n  }\n\n  /**\n   * @desc Write A Request Record\n   * @param {string} targetURI - The URL of the response\n   * @param {?string} resId - The id of the record this request recorrd is concurrent to, typically its response\n   * @param {string} httpHeaderString - Stringified HTTP headers\n   * @param {string|Buffer} [requestData] - Body of the request if any\n   * @return {Promise<void>}\n   */\n  _writeRequestRecord (targetURI, resId, httpHeaderString, requestData) {\n    const reqHeadContentBuffer = makeContentBuffer(\n      httpHeaderString,\n      requestData\n    )\n    const reqWHeader = Buffer.from(\n      warcRequestHeader({\n        targetURI,\n        concurrentTo: resId,\n        now: this._now,\n        rid: uuid(),\n        wid: this._warcInfoId,\n        len: reqHeadContentBuffer.length\n      }),\n      'utf8'\n    )\n    const totalLength =\n      reqWHeader.length + reqHeadContentBuffer.length + WARCSepTSize\n    return this.writeRecordBlock(\n      Buffer.concat(\n        [reqWHeader, CRLFBuffer, reqHeadContentBuffer, recordSeparatorBuffer],\n        totalLength\n      )\n    )\n  }\n\n  /**\n   * @desc Write A Response Record\n   * @param {string} targetURI - The URL of the response\n   * @param {string} resId - The id to be used for the response record\n   * @param {string} httpHeaderString - Stringified HTTP headers\n   * @param {string|Buffer} [responseData] - The response body if it exists\n   * @return {Promise<void>}\n   */\n  _writeResponseRecord (targetURI, resId, httpHeaderString, responseData) {\n    const resHeaderContentBuffer = makeContentBuffer(\n      httpHeaderString,\n      responseData\n    )\n    const respWHeader = Buffer.from(\n      warcResponseHeader({\n        targetURI,\n        now: this._now,\n        rid: resId,\n        wid: this._warcInfoId,\n        len: resHeaderContentBuffer.length\n      }),\n      'utf8'\n    )\n    const totalLength =\n      respWHeader.length + resHeaderContentBuffer.length + WARCSepTSize\n    return this.writeRecordBlock(\n      Buffer.concat(\n        [\n          respWHeader,\n          CRLFBuffer,\n          resHeaderContentBuffer,\n          recordSeparatorBuffer\n        ],\n        totalLength\n      )\n    )\n  }\n\n  /**\n   * @desc Called when the WARC generation is finished\n   * @emits {finished} emitted when WARC generation is complete\n   * @private\n   */\n  _onFinish () {\n    let le = this._lastError\n    this._lastError = null\n    this._warcOutStream.removeAllListeners()\n    this._warcOutStream.destroy()\n    this._warcOutStream = null\n    this._now = null\n    this._fileName = null\n    this._warcInfoId = null\n    if (le) {\n      this.emit('finished', le)\n    } else {\n      this.emit('finished')\n    }\n  }\n\n  /**\n   * @desc Emits an error if one occurs\n   * @param {Error} err\n   * @emits {error} The error that occurred\n   * @private\n   */\n  _onError (err) {\n    this._lastError = err\n    this.emit('error', err)\n  }\n}\n\n/**\n * @type {WARCWriterBase}\n */\nmodule.exports = WARCWriterBase\n\n/**\n * @typedef {Object} WARCFileOpts\n * @property {boolean} [appending] - Should the WARC writer append to an existing warc?\n * @property {boolean} [gzip] - Should the WARC writer generate gziped records?\n */\n\n/**\n * @typedef {Object} WARCInitOpts\n * @property {string} warcPath - Path the warc file to be written to\n * @property {boolean} [appending] - Should the WARC writer append to an existing warc?\n * @property {boolean} [gzip] - Should the WARC writer generate gziped records?\n */\n\n/**\n * @typedef {Object} Metadata\n * @property {string} targetURI - The target URI for the metadata record\n * @property {?string|Buffer} [content] - The contents of the metadata record\n */\n\n/**\n * @typedef {Object} WARCGenOpts\n * @property {string|Array<string>} pages - The URL of the page this WARC contains or an Array of\n * URLs for the pages this WARC contains. Used to write a WARC Info record containing\n * Webrecorder Player compatible bookmark list\n * @property {WARCInitOpts} warcOpts - Options for the writing of the WARC file\n * @property {Object|Buffer|string} [winfo] - Optional contents for the WARC info record\n * @property {Metadata} [metadata] - Optional metadata contents\n */\n\n/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../buffer/index.js */ \"./node_modules/buffer/index.js\").Buffer, __webpack_require__(/*! ./../../../process/browser.js */ \"./node_modules/process/browser.js\")))\n\n//# sourceURL=webpack:///./node_modules/node-warc/lib/writers/warcWriterBase.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_DataView.js":
+/*!*****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_DataView.js ***!
+  \*****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var getNative = __webpack_require__(/*! ./_getNative */ \"./node_modules/node-warc/node_modules/lodash/_getNative.js\"),\n    root = __webpack_require__(/*! ./_root */ \"./node_modules/node-warc/node_modules/lodash/_root.js\");\n\n/* Built-in method references that are verified to be native. */\nvar DataView = getNative(root, 'DataView');\n\nmodule.exports = DataView;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_DataView.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_Map.js":
+/*!************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_Map.js ***!
+  \************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var getNative = __webpack_require__(/*! ./_getNative */ \"./node_modules/node-warc/node_modules/lodash/_getNative.js\"),\n    root = __webpack_require__(/*! ./_root */ \"./node_modules/node-warc/node_modules/lodash/_root.js\");\n\n/* Built-in method references that are verified to be native. */\nvar Map = getNative(root, 'Map');\n\nmodule.exports = Map;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_Map.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_Promise.js":
+/*!****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_Promise.js ***!
+  \****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var getNative = __webpack_require__(/*! ./_getNative */ \"./node_modules/node-warc/node_modules/lodash/_getNative.js\"),\n    root = __webpack_require__(/*! ./_root */ \"./node_modules/node-warc/node_modules/lodash/_root.js\");\n\n/* Built-in method references that are verified to be native. */\nvar Promise = getNative(root, 'Promise');\n\nmodule.exports = Promise;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_Promise.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_Set.js":
+/*!************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_Set.js ***!
+  \************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var getNative = __webpack_require__(/*! ./_getNative */ \"./node_modules/node-warc/node_modules/lodash/_getNative.js\"),\n    root = __webpack_require__(/*! ./_root */ \"./node_modules/node-warc/node_modules/lodash/_root.js\");\n\n/* Built-in method references that are verified to be native. */\nvar Set = getNative(root, 'Set');\n\nmodule.exports = Set;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_Set.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_Symbol.js":
+/*!***************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_Symbol.js ***!
+  \***************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var root = __webpack_require__(/*! ./_root */ \"./node_modules/node-warc/node_modules/lodash/_root.js\");\n\n/** Built-in value references. */\nvar Symbol = root.Symbol;\n\nmodule.exports = Symbol;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_Symbol.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_WeakMap.js":
+/*!****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_WeakMap.js ***!
+  \****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var getNative = __webpack_require__(/*! ./_getNative */ \"./node_modules/node-warc/node_modules/lodash/_getNative.js\"),\n    root = __webpack_require__(/*! ./_root */ \"./node_modules/node-warc/node_modules/lodash/_root.js\");\n\n/* Built-in method references that are verified to be native. */\nvar WeakMap = getNative(root, 'WeakMap');\n\nmodule.exports = WeakMap;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_WeakMap.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_arrayMap.js":
+/*!*****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_arrayMap.js ***!
+  \*****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/**\n * A specialized version of `_.map` for arrays without support for iteratee\n * shorthands.\n *\n * @private\n * @param {Array} [array] The array to iterate over.\n * @param {Function} iteratee The function invoked per iteration.\n * @returns {Array} Returns the new mapped array.\n */\nfunction arrayMap(array, iteratee) {\n  var index = -1,\n      length = array == null ? 0 : array.length,\n      result = Array(length);\n\n  while (++index < length) {\n    result[index] = iteratee(array[index], index, array);\n  }\n  return result;\n}\n\nmodule.exports = arrayMap;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_arrayMap.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_arrayReduce.js":
+/*!********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_arrayReduce.js ***!
+  \********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/**\n * A specialized version of `_.reduce` for arrays without support for\n * iteratee shorthands.\n *\n * @private\n * @param {Array} [array] The array to iterate over.\n * @param {Function} iteratee The function invoked per iteration.\n * @param {*} [accumulator] The initial value.\n * @param {boolean} [initAccum] Specify using the first element of `array` as\n *  the initial value.\n * @returns {*} Returns the accumulated value.\n */\nfunction arrayReduce(array, iteratee, accumulator, initAccum) {\n  var index = -1,\n      length = array == null ? 0 : array.length;\n\n  if (initAccum && length) {\n    accumulator = array[++index];\n  }\n  while (++index < length) {\n    accumulator = iteratee(accumulator, array[index], index, array);\n  }\n  return accumulator;\n}\n\nmodule.exports = arrayReduce;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_arrayReduce.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_asciiToArray.js":
+/*!*********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_asciiToArray.js ***!
+  \*********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/**\n * Converts an ASCII `string` to an array.\n *\n * @private\n * @param {string} string The string to convert.\n * @returns {Array} Returns the converted array.\n */\nfunction asciiToArray(string) {\n  return string.split('');\n}\n\nmodule.exports = asciiToArray;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_asciiToArray.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_asciiWords.js":
+/*!*******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_asciiWords.js ***!
+  \*******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/** Used to match words composed of alphanumeric characters. */\nvar reAsciiWord = /[^\\x00-\\x2f\\x3a-\\x40\\x5b-\\x60\\x7b-\\x7f]+/g;\n\n/**\n * Splits an ASCII `string` into an array of its words.\n *\n * @private\n * @param {string} The string to inspect.\n * @returns {Array} Returns the words of `string`.\n */\nfunction asciiWords(string) {\n  return string.match(reAsciiWord) || [];\n}\n\nmodule.exports = asciiWords;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_asciiWords.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_baseGetTag.js":
+/*!*******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_baseGetTag.js ***!
+  \*******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var Symbol = __webpack_require__(/*! ./_Symbol */ \"./node_modules/node-warc/node_modules/lodash/_Symbol.js\"),\n    getRawTag = __webpack_require__(/*! ./_getRawTag */ \"./node_modules/node-warc/node_modules/lodash/_getRawTag.js\"),\n    objectToString = __webpack_require__(/*! ./_objectToString */ \"./node_modules/node-warc/node_modules/lodash/_objectToString.js\");\n\n/** `Object#toString` result references. */\nvar nullTag = '[object Null]',\n    undefinedTag = '[object Undefined]';\n\n/** Built-in value references. */\nvar symToStringTag = Symbol ? Symbol.toStringTag : undefined;\n\n/**\n * The base implementation of `getTag` without fallbacks for buggy environments.\n *\n * @private\n * @param {*} value The value to query.\n * @returns {string} Returns the `toStringTag`.\n */\nfunction baseGetTag(value) {\n  if (value == null) {\n    return value === undefined ? undefinedTag : nullTag;\n  }\n  return (symToStringTag && symToStringTag in Object(value))\n    ? getRawTag(value)\n    : objectToString(value);\n}\n\nmodule.exports = baseGetTag;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_baseGetTag.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_baseIsArguments.js":
+/*!************************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_baseIsArguments.js ***!
+  \************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ \"./node_modules/node-warc/node_modules/lodash/_baseGetTag.js\"),\n    isObjectLike = __webpack_require__(/*! ./isObjectLike */ \"./node_modules/node-warc/node_modules/lodash/isObjectLike.js\");\n\n/** `Object#toString` result references. */\nvar argsTag = '[object Arguments]';\n\n/**\n * The base implementation of `_.isArguments`.\n *\n * @private\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is an `arguments` object,\n */\nfunction baseIsArguments(value) {\n  return isObjectLike(value) && baseGetTag(value) == argsTag;\n}\n\nmodule.exports = baseIsArguments;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_baseIsArguments.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_baseIsNative.js":
+/*!*********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_baseIsNative.js ***!
+  \*********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var isFunction = __webpack_require__(/*! ./isFunction */ \"./node_modules/node-warc/node_modules/lodash/isFunction.js\"),\n    isMasked = __webpack_require__(/*! ./_isMasked */ \"./node_modules/node-warc/node_modules/lodash/_isMasked.js\"),\n    isObject = __webpack_require__(/*! ./isObject */ \"./node_modules/node-warc/node_modules/lodash/isObject.js\"),\n    toSource = __webpack_require__(/*! ./_toSource */ \"./node_modules/node-warc/node_modules/lodash/_toSource.js\");\n\n/**\n * Used to match `RegExp`\n * [syntax characters](http://ecma-international.org/ecma-262/7.0/#sec-patterns).\n */\nvar reRegExpChar = /[\\\\^$.*+?()[\\]{}|]/g;\n\n/** Used to detect host constructors (Safari). */\nvar reIsHostCtor = /^\\[object .+?Constructor\\]$/;\n\n/** Used for built-in method references. */\nvar funcProto = Function.prototype,\n    objectProto = Object.prototype;\n\n/** Used to resolve the decompiled source of functions. */\nvar funcToString = funcProto.toString;\n\n/** Used to check objects for own properties. */\nvar hasOwnProperty = objectProto.hasOwnProperty;\n\n/** Used to detect if a method is native. */\nvar reIsNative = RegExp('^' +\n  funcToString.call(hasOwnProperty).replace(reRegExpChar, '\\\\$&')\n  .replace(/hasOwnProperty|(function).*?(?=\\\\\\()| for .+?(?=\\\\\\])/g, '$1.*?') + '$'\n);\n\n/**\n * The base implementation of `_.isNative` without bad shim checks.\n *\n * @private\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a native function,\n *  else `false`.\n */\nfunction baseIsNative(value) {\n  if (!isObject(value) || isMasked(value)) {\n    return false;\n  }\n  var pattern = isFunction(value) ? reIsNative : reIsHostCtor;\n  return pattern.test(toSource(value));\n}\n\nmodule.exports = baseIsNative;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_baseIsNative.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_baseIsTypedArray.js":
+/*!*************************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_baseIsTypedArray.js ***!
+  \*************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ \"./node_modules/node-warc/node_modules/lodash/_baseGetTag.js\"),\n    isLength = __webpack_require__(/*! ./isLength */ \"./node_modules/node-warc/node_modules/lodash/isLength.js\"),\n    isObjectLike = __webpack_require__(/*! ./isObjectLike */ \"./node_modules/node-warc/node_modules/lodash/isObjectLike.js\");\n\n/** `Object#toString` result references. */\nvar argsTag = '[object Arguments]',\n    arrayTag = '[object Array]',\n    boolTag = '[object Boolean]',\n    dateTag = '[object Date]',\n    errorTag = '[object Error]',\n    funcTag = '[object Function]',\n    mapTag = '[object Map]',\n    numberTag = '[object Number]',\n    objectTag = '[object Object]',\n    regexpTag = '[object RegExp]',\n    setTag = '[object Set]',\n    stringTag = '[object String]',\n    weakMapTag = '[object WeakMap]';\n\nvar arrayBufferTag = '[object ArrayBuffer]',\n    dataViewTag = '[object DataView]',\n    float32Tag = '[object Float32Array]',\n    float64Tag = '[object Float64Array]',\n    int8Tag = '[object Int8Array]',\n    int16Tag = '[object Int16Array]',\n    int32Tag = '[object Int32Array]',\n    uint8Tag = '[object Uint8Array]',\n    uint8ClampedTag = '[object Uint8ClampedArray]',\n    uint16Tag = '[object Uint16Array]',\n    uint32Tag = '[object Uint32Array]';\n\n/** Used to identify `toStringTag` values of typed arrays. */\nvar typedArrayTags = {};\ntypedArrayTags[float32Tag] = typedArrayTags[float64Tag] =\ntypedArrayTags[int8Tag] = typedArrayTags[int16Tag] =\ntypedArrayTags[int32Tag] = typedArrayTags[uint8Tag] =\ntypedArrayTags[uint8ClampedTag] = typedArrayTags[uint16Tag] =\ntypedArrayTags[uint32Tag] = true;\ntypedArrayTags[argsTag] = typedArrayTags[arrayTag] =\ntypedArrayTags[arrayBufferTag] = typedArrayTags[boolTag] =\ntypedArrayTags[dataViewTag] = typedArrayTags[dateTag] =\ntypedArrayTags[errorTag] = typedArrayTags[funcTag] =\ntypedArrayTags[mapTag] = typedArrayTags[numberTag] =\ntypedArrayTags[objectTag] = typedArrayTags[regexpTag] =\ntypedArrayTags[setTag] = typedArrayTags[stringTag] =\ntypedArrayTags[weakMapTag] = false;\n\n/**\n * The base implementation of `_.isTypedArray` without Node.js optimizations.\n *\n * @private\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a typed array, else `false`.\n */\nfunction baseIsTypedArray(value) {\n  return isObjectLike(value) &&\n    isLength(value.length) && !!typedArrayTags[baseGetTag(value)];\n}\n\nmodule.exports = baseIsTypedArray;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_baseIsTypedArray.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_baseKeys.js":
+/*!*****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_baseKeys.js ***!
+  \*****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var isPrototype = __webpack_require__(/*! ./_isPrototype */ \"./node_modules/node-warc/node_modules/lodash/_isPrototype.js\"),\n    nativeKeys = __webpack_require__(/*! ./_nativeKeys */ \"./node_modules/node-warc/node_modules/lodash/_nativeKeys.js\");\n\n/** Used for built-in method references. */\nvar objectProto = Object.prototype;\n\n/** Used to check objects for own properties. */\nvar hasOwnProperty = objectProto.hasOwnProperty;\n\n/**\n * The base implementation of `_.keys` which doesn't treat sparse arrays as dense.\n *\n * @private\n * @param {Object} object The object to query.\n * @returns {Array} Returns the array of property names.\n */\nfunction baseKeys(object) {\n  if (!isPrototype(object)) {\n    return nativeKeys(object);\n  }\n  var result = [];\n  for (var key in Object(object)) {\n    if (hasOwnProperty.call(object, key) && key != 'constructor') {\n      result.push(key);\n    }\n  }\n  return result;\n}\n\nmodule.exports = baseKeys;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_baseKeys.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_basePropertyOf.js":
+/*!***********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_basePropertyOf.js ***!
+  \***********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/**\n * The base implementation of `_.propertyOf` without support for deep paths.\n *\n * @private\n * @param {Object} object The object to query.\n * @returns {Function} Returns the new accessor function.\n */\nfunction basePropertyOf(object) {\n  return function(key) {\n    return object == null ? undefined : object[key];\n  };\n}\n\nmodule.exports = basePropertyOf;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_basePropertyOf.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_baseSlice.js":
+/*!******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_baseSlice.js ***!
+  \******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/**\n * The base implementation of `_.slice` without an iteratee call guard.\n *\n * @private\n * @param {Array} array The array to slice.\n * @param {number} [start=0] The start position.\n * @param {number} [end=array.length] The end position.\n * @returns {Array} Returns the slice of `array`.\n */\nfunction baseSlice(array, start, end) {\n  var index = -1,\n      length = array.length;\n\n  if (start < 0) {\n    start = -start > length ? 0 : (length + start);\n  }\n  end = end > length ? length : end;\n  if (end < 0) {\n    end += length;\n  }\n  length = start > end ? 0 : ((end - start) >>> 0);\n  start >>>= 0;\n\n  var result = Array(length);\n  while (++index < length) {\n    result[index] = array[index + start];\n  }\n  return result;\n}\n\nmodule.exports = baseSlice;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_baseSlice.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_baseToString.js":
+/*!*********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_baseToString.js ***!
+  \*********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var Symbol = __webpack_require__(/*! ./_Symbol */ \"./node_modules/node-warc/node_modules/lodash/_Symbol.js\"),\n    arrayMap = __webpack_require__(/*! ./_arrayMap */ \"./node_modules/node-warc/node_modules/lodash/_arrayMap.js\"),\n    isArray = __webpack_require__(/*! ./isArray */ \"./node_modules/node-warc/node_modules/lodash/isArray.js\"),\n    isSymbol = __webpack_require__(/*! ./isSymbol */ \"./node_modules/node-warc/node_modules/lodash/isSymbol.js\");\n\n/** Used as references for various `Number` constants. */\nvar INFINITY = 1 / 0;\n\n/** Used to convert symbols to primitives and strings. */\nvar symbolProto = Symbol ? Symbol.prototype : undefined,\n    symbolToString = symbolProto ? symbolProto.toString : undefined;\n\n/**\n * The base implementation of `_.toString` which doesn't convert nullish\n * values to empty strings.\n *\n * @private\n * @param {*} value The value to process.\n * @returns {string} Returns the string.\n */\nfunction baseToString(value) {\n  // Exit early for strings to avoid a performance hit in some environments.\n  if (typeof value == 'string') {\n    return value;\n  }\n  if (isArray(value)) {\n    // Recursively convert values (susceptible to call stack limits).\n    return arrayMap(value, baseToString) + '';\n  }\n  if (isSymbol(value)) {\n    return symbolToString ? symbolToString.call(value) : '';\n  }\n  var result = (value + '');\n  return (result == '0' && (1 / value) == -INFINITY) ? '-0' : result;\n}\n\nmodule.exports = baseToString;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_baseToString.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_baseUnary.js":
+/*!******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_baseUnary.js ***!
+  \******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/**\n * The base implementation of `_.unary` without support for storing metadata.\n *\n * @private\n * @param {Function} func The function to cap arguments for.\n * @returns {Function} Returns the new capped function.\n */\nfunction baseUnary(func) {\n  return function(value) {\n    return func(value);\n  };\n}\n\nmodule.exports = baseUnary;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_baseUnary.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_castSlice.js":
+/*!******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_castSlice.js ***!
+  \******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var baseSlice = __webpack_require__(/*! ./_baseSlice */ \"./node_modules/node-warc/node_modules/lodash/_baseSlice.js\");\n\n/**\n * Casts `array` to a slice if it's needed.\n *\n * @private\n * @param {Array} array The array to inspect.\n * @param {number} start The start position.\n * @param {number} [end=array.length] The end position.\n * @returns {Array} Returns the cast slice.\n */\nfunction castSlice(array, start, end) {\n  var length = array.length;\n  end = end === undefined ? length : end;\n  return (!start && end >= length) ? array : baseSlice(array, start, end);\n}\n\nmodule.exports = castSlice;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_castSlice.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_coreJsData.js":
+/*!*******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_coreJsData.js ***!
+  \*******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var root = __webpack_require__(/*! ./_root */ \"./node_modules/node-warc/node_modules/lodash/_root.js\");\n\n/** Used to detect overreaching core-js shims. */\nvar coreJsData = root['__core-js_shared__'];\n\nmodule.exports = coreJsData;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_coreJsData.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_createCaseFirst.js":
+/*!************************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_createCaseFirst.js ***!
+  \************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var castSlice = __webpack_require__(/*! ./_castSlice */ \"./node_modules/node-warc/node_modules/lodash/_castSlice.js\"),\n    hasUnicode = __webpack_require__(/*! ./_hasUnicode */ \"./node_modules/node-warc/node_modules/lodash/_hasUnicode.js\"),\n    stringToArray = __webpack_require__(/*! ./_stringToArray */ \"./node_modules/node-warc/node_modules/lodash/_stringToArray.js\"),\n    toString = __webpack_require__(/*! ./toString */ \"./node_modules/node-warc/node_modules/lodash/toString.js\");\n\n/**\n * Creates a function like `_.lowerFirst`.\n *\n * @private\n * @param {string} methodName The name of the `String` case method to use.\n * @returns {Function} Returns the new case function.\n */\nfunction createCaseFirst(methodName) {\n  return function(string) {\n    string = toString(string);\n\n    var strSymbols = hasUnicode(string)\n      ? stringToArray(string)\n      : undefined;\n\n    var chr = strSymbols\n      ? strSymbols[0]\n      : string.charAt(0);\n\n    var trailing = strSymbols\n      ? castSlice(strSymbols, 1).join('')\n      : string.slice(1);\n\n    return chr[methodName]() + trailing;\n  };\n}\n\nmodule.exports = createCaseFirst;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_createCaseFirst.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_createCompounder.js":
+/*!*************************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_createCompounder.js ***!
+  \*************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var arrayReduce = __webpack_require__(/*! ./_arrayReduce */ \"./node_modules/node-warc/node_modules/lodash/_arrayReduce.js\"),\n    deburr = __webpack_require__(/*! ./deburr */ \"./node_modules/node-warc/node_modules/lodash/deburr.js\"),\n    words = __webpack_require__(/*! ./words */ \"./node_modules/node-warc/node_modules/lodash/words.js\");\n\n/** Used to compose unicode capture groups. */\nvar rsApos = \"['\\u2019]\";\n\n/** Used to match apostrophes. */\nvar reApos = RegExp(rsApos, 'g');\n\n/**\n * Creates a function like `_.camelCase`.\n *\n * @private\n * @param {Function} callback The function to combine each word.\n * @returns {Function} Returns the new compounder function.\n */\nfunction createCompounder(callback) {\n  return function(string) {\n    return arrayReduce(words(deburr(string).replace(reApos, '')), callback, '');\n  };\n}\n\nmodule.exports = createCompounder;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_createCompounder.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_deburrLetter.js":
+/*!*********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_deburrLetter.js ***!
+  \*********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var basePropertyOf = __webpack_require__(/*! ./_basePropertyOf */ \"./node_modules/node-warc/node_modules/lodash/_basePropertyOf.js\");\n\n/** Used to map Latin Unicode letters to basic Latin letters. */\nvar deburredLetters = {\n  // Latin-1 Supplement block.\n  '\\xc0': 'A',  '\\xc1': 'A', '\\xc2': 'A', '\\xc3': 'A', '\\xc4': 'A', '\\xc5': 'A',\n  '\\xe0': 'a',  '\\xe1': 'a', '\\xe2': 'a', '\\xe3': 'a', '\\xe4': 'a', '\\xe5': 'a',\n  '\\xc7': 'C',  '\\xe7': 'c',\n  '\\xd0': 'D',  '\\xf0': 'd',\n  '\\xc8': 'E',  '\\xc9': 'E', '\\xca': 'E', '\\xcb': 'E',\n  '\\xe8': 'e',  '\\xe9': 'e', '\\xea': 'e', '\\xeb': 'e',\n  '\\xcc': 'I',  '\\xcd': 'I', '\\xce': 'I', '\\xcf': 'I',\n  '\\xec': 'i',  '\\xed': 'i', '\\xee': 'i', '\\xef': 'i',\n  '\\xd1': 'N',  '\\xf1': 'n',\n  '\\xd2': 'O',  '\\xd3': 'O', '\\xd4': 'O', '\\xd5': 'O', '\\xd6': 'O', '\\xd8': 'O',\n  '\\xf2': 'o',  '\\xf3': 'o', '\\xf4': 'o', '\\xf5': 'o', '\\xf6': 'o', '\\xf8': 'o',\n  '\\xd9': 'U',  '\\xda': 'U', '\\xdb': 'U', '\\xdc': 'U',\n  '\\xf9': 'u',  '\\xfa': 'u', '\\xfb': 'u', '\\xfc': 'u',\n  '\\xdd': 'Y',  '\\xfd': 'y', '\\xff': 'y',\n  '\\xc6': 'Ae', '\\xe6': 'ae',\n  '\\xde': 'Th', '\\xfe': 'th',\n  '\\xdf': 'ss',\n  // Latin Extended-A block.\n  '\\u0100': 'A',  '\\u0102': 'A', '\\u0104': 'A',\n  '\\u0101': 'a',  '\\u0103': 'a', '\\u0105': 'a',\n  '\\u0106': 'C',  '\\u0108': 'C', '\\u010a': 'C', '\\u010c': 'C',\n  '\\u0107': 'c',  '\\u0109': 'c', '\\u010b': 'c', '\\u010d': 'c',\n  '\\u010e': 'D',  '\\u0110': 'D', '\\u010f': 'd', '\\u0111': 'd',\n  '\\u0112': 'E',  '\\u0114': 'E', '\\u0116': 'E', '\\u0118': 'E', '\\u011a': 'E',\n  '\\u0113': 'e',  '\\u0115': 'e', '\\u0117': 'e', '\\u0119': 'e', '\\u011b': 'e',\n  '\\u011c': 'G',  '\\u011e': 'G', '\\u0120': 'G', '\\u0122': 'G',\n  '\\u011d': 'g',  '\\u011f': 'g', '\\u0121': 'g', '\\u0123': 'g',\n  '\\u0124': 'H',  '\\u0126': 'H', '\\u0125': 'h', '\\u0127': 'h',\n  '\\u0128': 'I',  '\\u012a': 'I', '\\u012c': 'I', '\\u012e': 'I', '\\u0130': 'I',\n  '\\u0129': 'i',  '\\u012b': 'i', '\\u012d': 'i', '\\u012f': 'i', '\\u0131': 'i',\n  '\\u0134': 'J',  '\\u0135': 'j',\n  '\\u0136': 'K',  '\\u0137': 'k', '\\u0138': 'k',\n  '\\u0139': 'L',  '\\u013b': 'L', '\\u013d': 'L', '\\u013f': 'L', '\\u0141': 'L',\n  '\\u013a': 'l',  '\\u013c': 'l', '\\u013e': 'l', '\\u0140': 'l', '\\u0142': 'l',\n  '\\u0143': 'N',  '\\u0145': 'N', '\\u0147': 'N', '\\u014a': 'N',\n  '\\u0144': 'n',  '\\u0146': 'n', '\\u0148': 'n', '\\u014b': 'n',\n  '\\u014c': 'O',  '\\u014e': 'O', '\\u0150': 'O',\n  '\\u014d': 'o',  '\\u014f': 'o', '\\u0151': 'o',\n  '\\u0154': 'R',  '\\u0156': 'R', '\\u0158': 'R',\n  '\\u0155': 'r',  '\\u0157': 'r', '\\u0159': 'r',\n  '\\u015a': 'S',  '\\u015c': 'S', '\\u015e': 'S', '\\u0160': 'S',\n  '\\u015b': 's',  '\\u015d': 's', '\\u015f': 's', '\\u0161': 's',\n  '\\u0162': 'T',  '\\u0164': 'T', '\\u0166': 'T',\n  '\\u0163': 't',  '\\u0165': 't', '\\u0167': 't',\n  '\\u0168': 'U',  '\\u016a': 'U', '\\u016c': 'U', '\\u016e': 'U', '\\u0170': 'U', '\\u0172': 'U',\n  '\\u0169': 'u',  '\\u016b': 'u', '\\u016d': 'u', '\\u016f': 'u', '\\u0171': 'u', '\\u0173': 'u',\n  '\\u0174': 'W',  '\\u0175': 'w',\n  '\\u0176': 'Y',  '\\u0177': 'y', '\\u0178': 'Y',\n  '\\u0179': 'Z',  '\\u017b': 'Z', '\\u017d': 'Z',\n  '\\u017a': 'z',  '\\u017c': 'z', '\\u017e': 'z',\n  '\\u0132': 'IJ', '\\u0133': 'ij',\n  '\\u0152': 'Oe', '\\u0153': 'oe',\n  '\\u0149': \"'n\", '\\u017f': 's'\n};\n\n/**\n * Used by `_.deburr` to convert Latin-1 Supplement and Latin Extended-A\n * letters to basic Latin letters.\n *\n * @private\n * @param {string} letter The matched letter to deburr.\n * @returns {string} Returns the deburred letter.\n */\nvar deburrLetter = basePropertyOf(deburredLetters);\n\nmodule.exports = deburrLetter;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_deburrLetter.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_freeGlobal.js":
+/*!*******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_freeGlobal.js ***!
+  \*******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("/* WEBPACK VAR INJECTION */(function(global) {/** Detect free variable `global` from Node.js. */\nvar freeGlobal = typeof global == 'object' && global && global.Object === Object && global;\n\nmodule.exports = freeGlobal;\n\n/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/global.js */ \"./node_modules/webpack/buildin/global.js\")))\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_freeGlobal.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_getNative.js":
+/*!******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_getNative.js ***!
+  \******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var baseIsNative = __webpack_require__(/*! ./_baseIsNative */ \"./node_modules/node-warc/node_modules/lodash/_baseIsNative.js\"),\n    getValue = __webpack_require__(/*! ./_getValue */ \"./node_modules/node-warc/node_modules/lodash/_getValue.js\");\n\n/**\n * Gets the native function at `key` of `object`.\n *\n * @private\n * @param {Object} object The object to query.\n * @param {string} key The key of the method to get.\n * @returns {*} Returns the function if it's native, else `undefined`.\n */\nfunction getNative(object, key) {\n  var value = getValue(object, key);\n  return baseIsNative(value) ? value : undefined;\n}\n\nmodule.exports = getNative;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_getNative.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_getRawTag.js":
+/*!******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_getRawTag.js ***!
+  \******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var Symbol = __webpack_require__(/*! ./_Symbol */ \"./node_modules/node-warc/node_modules/lodash/_Symbol.js\");\n\n/** Used for built-in method references. */\nvar objectProto = Object.prototype;\n\n/** Used to check objects for own properties. */\nvar hasOwnProperty = objectProto.hasOwnProperty;\n\n/**\n * Used to resolve the\n * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)\n * of values.\n */\nvar nativeObjectToString = objectProto.toString;\n\n/** Built-in value references. */\nvar symToStringTag = Symbol ? Symbol.toStringTag : undefined;\n\n/**\n * A specialized version of `baseGetTag` which ignores `Symbol.toStringTag` values.\n *\n * @private\n * @param {*} value The value to query.\n * @returns {string} Returns the raw `toStringTag`.\n */\nfunction getRawTag(value) {\n  var isOwn = hasOwnProperty.call(value, symToStringTag),\n      tag = value[symToStringTag];\n\n  try {\n    value[symToStringTag] = undefined;\n    var unmasked = true;\n  } catch (e) {}\n\n  var result = nativeObjectToString.call(value);\n  if (unmasked) {\n    if (isOwn) {\n      value[symToStringTag] = tag;\n    } else {\n      delete value[symToStringTag];\n    }\n  }\n  return result;\n}\n\nmodule.exports = getRawTag;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_getRawTag.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_getTag.js":
+/*!***************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_getTag.js ***!
+  \***************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var DataView = __webpack_require__(/*! ./_DataView */ \"./node_modules/node-warc/node_modules/lodash/_DataView.js\"),\n    Map = __webpack_require__(/*! ./_Map */ \"./node_modules/node-warc/node_modules/lodash/_Map.js\"),\n    Promise = __webpack_require__(/*! ./_Promise */ \"./node_modules/node-warc/node_modules/lodash/_Promise.js\"),\n    Set = __webpack_require__(/*! ./_Set */ \"./node_modules/node-warc/node_modules/lodash/_Set.js\"),\n    WeakMap = __webpack_require__(/*! ./_WeakMap */ \"./node_modules/node-warc/node_modules/lodash/_WeakMap.js\"),\n    baseGetTag = __webpack_require__(/*! ./_baseGetTag */ \"./node_modules/node-warc/node_modules/lodash/_baseGetTag.js\"),\n    toSource = __webpack_require__(/*! ./_toSource */ \"./node_modules/node-warc/node_modules/lodash/_toSource.js\");\n\n/** `Object#toString` result references. */\nvar mapTag = '[object Map]',\n    objectTag = '[object Object]',\n    promiseTag = '[object Promise]',\n    setTag = '[object Set]',\n    weakMapTag = '[object WeakMap]';\n\nvar dataViewTag = '[object DataView]';\n\n/** Used to detect maps, sets, and weakmaps. */\nvar dataViewCtorString = toSource(DataView),\n    mapCtorString = toSource(Map),\n    promiseCtorString = toSource(Promise),\n    setCtorString = toSource(Set),\n    weakMapCtorString = toSource(WeakMap);\n\n/**\n * Gets the `toStringTag` of `value`.\n *\n * @private\n * @param {*} value The value to query.\n * @returns {string} Returns the `toStringTag`.\n */\nvar getTag = baseGetTag;\n\n// Fallback for data views, maps, sets, and weak maps in IE 11 and promises in Node.js < 6.\nif ((DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag) ||\n    (Map && getTag(new Map) != mapTag) ||\n    (Promise && getTag(Promise.resolve()) != promiseTag) ||\n    (Set && getTag(new Set) != setTag) ||\n    (WeakMap && getTag(new WeakMap) != weakMapTag)) {\n  getTag = function(value) {\n    var result = baseGetTag(value),\n        Ctor = result == objectTag ? value.constructor : undefined,\n        ctorString = Ctor ? toSource(Ctor) : '';\n\n    if (ctorString) {\n      switch (ctorString) {\n        case dataViewCtorString: return dataViewTag;\n        case mapCtorString: return mapTag;\n        case promiseCtorString: return promiseTag;\n        case setCtorString: return setTag;\n        case weakMapCtorString: return weakMapTag;\n      }\n    }\n    return result;\n  };\n}\n\nmodule.exports = getTag;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_getTag.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_getValue.js":
+/*!*****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_getValue.js ***!
+  \*****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/**\n * Gets the value at `key` of `object`.\n *\n * @private\n * @param {Object} [object] The object to query.\n * @param {string} key The key of the property to get.\n * @returns {*} Returns the property value.\n */\nfunction getValue(object, key) {\n  return object == null ? undefined : object[key];\n}\n\nmodule.exports = getValue;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_getValue.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_hasUnicode.js":
+/*!*******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_hasUnicode.js ***!
+  \*******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/** Used to compose unicode character classes. */\nvar rsAstralRange = '\\\\ud800-\\\\udfff',\n    rsComboMarksRange = '\\\\u0300-\\\\u036f',\n    reComboHalfMarksRange = '\\\\ufe20-\\\\ufe2f',\n    rsComboSymbolsRange = '\\\\u20d0-\\\\u20ff',\n    rsComboRange = rsComboMarksRange + reComboHalfMarksRange + rsComboSymbolsRange,\n    rsVarRange = '\\\\ufe0e\\\\ufe0f';\n\n/** Used to compose unicode capture groups. */\nvar rsZWJ = '\\\\u200d';\n\n/** Used to detect strings with [zero-width joiners or code points from the astral planes](http://eev.ee/blog/2015/09/12/dark-corners-of-unicode/). */\nvar reHasUnicode = RegExp('[' + rsZWJ + rsAstralRange  + rsComboRange + rsVarRange + ']');\n\n/**\n * Checks if `string` contains Unicode symbols.\n *\n * @private\n * @param {string} string The string to inspect.\n * @returns {boolean} Returns `true` if a symbol is found, else `false`.\n */\nfunction hasUnicode(string) {\n  return reHasUnicode.test(string);\n}\n\nmodule.exports = hasUnicode;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_hasUnicode.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_hasUnicodeWord.js":
+/*!***********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_hasUnicodeWord.js ***!
+  \***********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/** Used to detect strings that need a more robust regexp to match words. */\nvar reHasUnicodeWord = /[a-z][A-Z]|[A-Z]{2}[a-z]|[0-9][a-zA-Z]|[a-zA-Z][0-9]|[^a-zA-Z0-9 ]/;\n\n/**\n * Checks if `string` contains a word composed of Unicode symbols.\n *\n * @private\n * @param {string} string The string to inspect.\n * @returns {boolean} Returns `true` if a word is found, else `false`.\n */\nfunction hasUnicodeWord(string) {\n  return reHasUnicodeWord.test(string);\n}\n\nmodule.exports = hasUnicodeWord;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_hasUnicodeWord.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_isMasked.js":
+/*!*****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_isMasked.js ***!
+  \*****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var coreJsData = __webpack_require__(/*! ./_coreJsData */ \"./node_modules/node-warc/node_modules/lodash/_coreJsData.js\");\n\n/** Used to detect methods masquerading as native. */\nvar maskSrcKey = (function() {\n  var uid = /[^.]+$/.exec(coreJsData && coreJsData.keys && coreJsData.keys.IE_PROTO || '');\n  return uid ? ('Symbol(src)_1.' + uid) : '';\n}());\n\n/**\n * Checks if `func` has its source masked.\n *\n * @private\n * @param {Function} func The function to check.\n * @returns {boolean} Returns `true` if `func` is masked, else `false`.\n */\nfunction isMasked(func) {\n  return !!maskSrcKey && (maskSrcKey in func);\n}\n\nmodule.exports = isMasked;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_isMasked.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_isPrototype.js":
+/*!********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_isPrototype.js ***!
+  \********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/** Used for built-in method references. */\nvar objectProto = Object.prototype;\n\n/**\n * Checks if `value` is likely a prototype object.\n *\n * @private\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a prototype, else `false`.\n */\nfunction isPrototype(value) {\n  var Ctor = value && value.constructor,\n      proto = (typeof Ctor == 'function' && Ctor.prototype) || objectProto;\n\n  return value === proto;\n}\n\nmodule.exports = isPrototype;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_isPrototype.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_nativeKeys.js":
+/*!*******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_nativeKeys.js ***!
+  \*******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var overArg = __webpack_require__(/*! ./_overArg */ \"./node_modules/node-warc/node_modules/lodash/_overArg.js\");\n\n/* Built-in method references for those with the same name as other `lodash` methods. */\nvar nativeKeys = overArg(Object.keys, Object);\n\nmodule.exports = nativeKeys;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_nativeKeys.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_nodeUtil.js":
+/*!*****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_nodeUtil.js ***!
+  \*****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("/* WEBPACK VAR INJECTION */(function(module) {var freeGlobal = __webpack_require__(/*! ./_freeGlobal */ \"./node_modules/node-warc/node_modules/lodash/_freeGlobal.js\");\n\n/** Detect free variable `exports`. */\nvar freeExports =  true && exports && !exports.nodeType && exports;\n\n/** Detect free variable `module`. */\nvar freeModule = freeExports && typeof module == 'object' && module && !module.nodeType && module;\n\n/** Detect the popular CommonJS extension `module.exports`. */\nvar moduleExports = freeModule && freeModule.exports === freeExports;\n\n/** Detect free variable `process` from Node.js. */\nvar freeProcess = moduleExports && freeGlobal.process;\n\n/** Used to access faster Node.js helpers. */\nvar nodeUtil = (function() {\n  try {\n    // Use `util.types` for Node.js 10+.\n    var types = freeModule && freeModule.require && freeModule.require('util').types;\n\n    if (types) {\n      return types;\n    }\n\n    // Legacy `process.binding('util')` for Node.js < 10.\n    return freeProcess && freeProcess.binding && freeProcess.binding('util');\n  } catch (e) {}\n}());\n\nmodule.exports = nodeUtil;\n\n/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/module.js */ \"./node_modules/webpack/buildin/module.js\")(module)))\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_nodeUtil.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_objectToString.js":
+/*!***********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_objectToString.js ***!
+  \***********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/** Used for built-in method references. */\nvar objectProto = Object.prototype;\n\n/**\n * Used to resolve the\n * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)\n * of values.\n */\nvar nativeObjectToString = objectProto.toString;\n\n/**\n * Converts `value` to a string using `Object.prototype.toString`.\n *\n * @private\n * @param {*} value The value to convert.\n * @returns {string} Returns the converted string.\n */\nfunction objectToString(value) {\n  return nativeObjectToString.call(value);\n}\n\nmodule.exports = objectToString;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_objectToString.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_overArg.js":
+/*!****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_overArg.js ***!
+  \****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/**\n * Creates a unary function that invokes `func` with its argument transformed.\n *\n * @private\n * @param {Function} func The function to wrap.\n * @param {Function} transform The argument transform.\n * @returns {Function} Returns the new function.\n */\nfunction overArg(func, transform) {\n  return function(arg) {\n    return func(transform(arg));\n  };\n}\n\nmodule.exports = overArg;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_overArg.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_root.js":
+/*!*************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_root.js ***!
+  \*************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var freeGlobal = __webpack_require__(/*! ./_freeGlobal */ \"./node_modules/node-warc/node_modules/lodash/_freeGlobal.js\");\n\n/** Detect free variable `self`. */\nvar freeSelf = typeof self == 'object' && self && self.Object === Object && self;\n\n/** Used as a reference to the global object. */\nvar root = freeGlobal || freeSelf || Function('return this')();\n\nmodule.exports = root;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_root.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_stringToArray.js":
+/*!**********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_stringToArray.js ***!
+  \**********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var asciiToArray = __webpack_require__(/*! ./_asciiToArray */ \"./node_modules/node-warc/node_modules/lodash/_asciiToArray.js\"),\n    hasUnicode = __webpack_require__(/*! ./_hasUnicode */ \"./node_modules/node-warc/node_modules/lodash/_hasUnicode.js\"),\n    unicodeToArray = __webpack_require__(/*! ./_unicodeToArray */ \"./node_modules/node-warc/node_modules/lodash/_unicodeToArray.js\");\n\n/**\n * Converts `string` to an array.\n *\n * @private\n * @param {string} string The string to convert.\n * @returns {Array} Returns the converted array.\n */\nfunction stringToArray(string) {\n  return hasUnicode(string)\n    ? unicodeToArray(string)\n    : asciiToArray(string);\n}\n\nmodule.exports = stringToArray;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_stringToArray.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_toSource.js":
+/*!*****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_toSource.js ***!
+  \*****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/** Used for built-in method references. */\nvar funcProto = Function.prototype;\n\n/** Used to resolve the decompiled source of functions. */\nvar funcToString = funcProto.toString;\n\n/**\n * Converts `func` to its source code.\n *\n * @private\n * @param {Function} func The function to convert.\n * @returns {string} Returns the source code.\n */\nfunction toSource(func) {\n  if (func != null) {\n    try {\n      return funcToString.call(func);\n    } catch (e) {}\n    try {\n      return (func + '');\n    } catch (e) {}\n  }\n  return '';\n}\n\nmodule.exports = toSource;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_toSource.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_unicodeToArray.js":
+/*!***********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_unicodeToArray.js ***!
+  \***********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/** Used to compose unicode character classes. */\nvar rsAstralRange = '\\\\ud800-\\\\udfff',\n    rsComboMarksRange = '\\\\u0300-\\\\u036f',\n    reComboHalfMarksRange = '\\\\ufe20-\\\\ufe2f',\n    rsComboSymbolsRange = '\\\\u20d0-\\\\u20ff',\n    rsComboRange = rsComboMarksRange + reComboHalfMarksRange + rsComboSymbolsRange,\n    rsVarRange = '\\\\ufe0e\\\\ufe0f';\n\n/** Used to compose unicode capture groups. */\nvar rsAstral = '[' + rsAstralRange + ']',\n    rsCombo = '[' + rsComboRange + ']',\n    rsFitz = '\\\\ud83c[\\\\udffb-\\\\udfff]',\n    rsModifier = '(?:' + rsCombo + '|' + rsFitz + ')',\n    rsNonAstral = '[^' + rsAstralRange + ']',\n    rsRegional = '(?:\\\\ud83c[\\\\udde6-\\\\uddff]){2}',\n    rsSurrPair = '[\\\\ud800-\\\\udbff][\\\\udc00-\\\\udfff]',\n    rsZWJ = '\\\\u200d';\n\n/** Used to compose unicode regexes. */\nvar reOptMod = rsModifier + '?',\n    rsOptVar = '[' + rsVarRange + ']?',\n    rsOptJoin = '(?:' + rsZWJ + '(?:' + [rsNonAstral, rsRegional, rsSurrPair].join('|') + ')' + rsOptVar + reOptMod + ')*',\n    rsSeq = rsOptVar + reOptMod + rsOptJoin,\n    rsSymbol = '(?:' + [rsNonAstral + rsCombo + '?', rsCombo, rsRegional, rsSurrPair, rsAstral].join('|') + ')';\n\n/** Used to match [string symbols](https://mathiasbynens.be/notes/javascript-unicode). */\nvar reUnicode = RegExp(rsFitz + '(?=' + rsFitz + ')|' + rsSymbol + rsSeq, 'g');\n\n/**\n * Converts a Unicode `string` to an array.\n *\n * @private\n * @param {string} string The string to convert.\n * @returns {Array} Returns the converted array.\n */\nfunction unicodeToArray(string) {\n  return string.match(reUnicode) || [];\n}\n\nmodule.exports = unicodeToArray;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_unicodeToArray.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/_unicodeWords.js":
+/*!*********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/_unicodeWords.js ***!
+  \*********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/** Used to compose unicode character classes. */\nvar rsAstralRange = '\\\\ud800-\\\\udfff',\n    rsComboMarksRange = '\\\\u0300-\\\\u036f',\n    reComboHalfMarksRange = '\\\\ufe20-\\\\ufe2f',\n    rsComboSymbolsRange = '\\\\u20d0-\\\\u20ff',\n    rsComboRange = rsComboMarksRange + reComboHalfMarksRange + rsComboSymbolsRange,\n    rsDingbatRange = '\\\\u2700-\\\\u27bf',\n    rsLowerRange = 'a-z\\\\xdf-\\\\xf6\\\\xf8-\\\\xff',\n    rsMathOpRange = '\\\\xac\\\\xb1\\\\xd7\\\\xf7',\n    rsNonCharRange = '\\\\x00-\\\\x2f\\\\x3a-\\\\x40\\\\x5b-\\\\x60\\\\x7b-\\\\xbf',\n    rsPunctuationRange = '\\\\u2000-\\\\u206f',\n    rsSpaceRange = ' \\\\t\\\\x0b\\\\f\\\\xa0\\\\ufeff\\\\n\\\\r\\\\u2028\\\\u2029\\\\u1680\\\\u180e\\\\u2000\\\\u2001\\\\u2002\\\\u2003\\\\u2004\\\\u2005\\\\u2006\\\\u2007\\\\u2008\\\\u2009\\\\u200a\\\\u202f\\\\u205f\\\\u3000',\n    rsUpperRange = 'A-Z\\\\xc0-\\\\xd6\\\\xd8-\\\\xde',\n    rsVarRange = '\\\\ufe0e\\\\ufe0f',\n    rsBreakRange = rsMathOpRange + rsNonCharRange + rsPunctuationRange + rsSpaceRange;\n\n/** Used to compose unicode capture groups. */\nvar rsApos = \"['\\u2019]\",\n    rsBreak = '[' + rsBreakRange + ']',\n    rsCombo = '[' + rsComboRange + ']',\n    rsDigits = '\\\\d+',\n    rsDingbat = '[' + rsDingbatRange + ']',\n    rsLower = '[' + rsLowerRange + ']',\n    rsMisc = '[^' + rsAstralRange + rsBreakRange + rsDigits + rsDingbatRange + rsLowerRange + rsUpperRange + ']',\n    rsFitz = '\\\\ud83c[\\\\udffb-\\\\udfff]',\n    rsModifier = '(?:' + rsCombo + '|' + rsFitz + ')',\n    rsNonAstral = '[^' + rsAstralRange + ']',\n    rsRegional = '(?:\\\\ud83c[\\\\udde6-\\\\uddff]){2}',\n    rsSurrPair = '[\\\\ud800-\\\\udbff][\\\\udc00-\\\\udfff]',\n    rsUpper = '[' + rsUpperRange + ']',\n    rsZWJ = '\\\\u200d';\n\n/** Used to compose unicode regexes. */\nvar rsMiscLower = '(?:' + rsLower + '|' + rsMisc + ')',\n    rsMiscUpper = '(?:' + rsUpper + '|' + rsMisc + ')',\n    rsOptContrLower = '(?:' + rsApos + '(?:d|ll|m|re|s|t|ve))?',\n    rsOptContrUpper = '(?:' + rsApos + '(?:D|LL|M|RE|S|T|VE))?',\n    reOptMod = rsModifier + '?',\n    rsOptVar = '[' + rsVarRange + ']?',\n    rsOptJoin = '(?:' + rsZWJ + '(?:' + [rsNonAstral, rsRegional, rsSurrPair].join('|') + ')' + rsOptVar + reOptMod + ')*',\n    rsOrdLower = '\\\\d*(?:1st|2nd|3rd|(?![123])\\\\dth)(?=\\\\b|[A-Z_])',\n    rsOrdUpper = '\\\\d*(?:1ST|2ND|3RD|(?![123])\\\\dTH)(?=\\\\b|[a-z_])',\n    rsSeq = rsOptVar + reOptMod + rsOptJoin,\n    rsEmoji = '(?:' + [rsDingbat, rsRegional, rsSurrPair].join('|') + ')' + rsSeq;\n\n/** Used to match complex or compound words. */\nvar reUnicodeWord = RegExp([\n  rsUpper + '?' + rsLower + '+' + rsOptContrLower + '(?=' + [rsBreak, rsUpper, '$'].join('|') + ')',\n  rsMiscUpper + '+' + rsOptContrUpper + '(?=' + [rsBreak, rsUpper + rsMiscLower, '$'].join('|') + ')',\n  rsUpper + '?' + rsMiscLower + '+' + rsOptContrLower,\n  rsUpper + '+' + rsOptContrUpper,\n  rsOrdUpper,\n  rsOrdLower,\n  rsDigits,\n  rsEmoji\n].join('|'), 'g');\n\n/**\n * Splits a Unicode `string` into an array of its words.\n *\n * @private\n * @param {string} The string to inspect.\n * @returns {Array} Returns the words of `string`.\n */\nfunction unicodeWords(string) {\n  return string.match(reUnicodeWord) || [];\n}\n\nmodule.exports = unicodeWords;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/_unicodeWords.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/deburr.js":
+/*!**************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/deburr.js ***!
+  \**************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var deburrLetter = __webpack_require__(/*! ./_deburrLetter */ \"./node_modules/node-warc/node_modules/lodash/_deburrLetter.js\"),\n    toString = __webpack_require__(/*! ./toString */ \"./node_modules/node-warc/node_modules/lodash/toString.js\");\n\n/** Used to match Latin Unicode letters (excluding mathematical operators). */\nvar reLatin = /[\\xc0-\\xd6\\xd8-\\xf6\\xf8-\\xff\\u0100-\\u017f]/g;\n\n/** Used to compose unicode character classes. */\nvar rsComboMarksRange = '\\\\u0300-\\\\u036f',\n    reComboHalfMarksRange = '\\\\ufe20-\\\\ufe2f',\n    rsComboSymbolsRange = '\\\\u20d0-\\\\u20ff',\n    rsComboRange = rsComboMarksRange + reComboHalfMarksRange + rsComboSymbolsRange;\n\n/** Used to compose unicode capture groups. */\nvar rsCombo = '[' + rsComboRange + ']';\n\n/**\n * Used to match [combining diacritical marks](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks) and\n * [combining diacritical marks for symbols](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks_for_Symbols).\n */\nvar reComboMark = RegExp(rsCombo, 'g');\n\n/**\n * Deburrs `string` by converting\n * [Latin-1 Supplement](https://en.wikipedia.org/wiki/Latin-1_Supplement_(Unicode_block)#Character_table)\n * and [Latin Extended-A](https://en.wikipedia.org/wiki/Latin_Extended-A)\n * letters to basic Latin letters and removing\n * [combining diacritical marks](https://en.wikipedia.org/wiki/Combining_Diacritical_Marks).\n *\n * @static\n * @memberOf _\n * @since 3.0.0\n * @category String\n * @param {string} [string=''] The string to deburr.\n * @returns {string} Returns the deburred string.\n * @example\n *\n * _.deburr('déjà vu');\n * // => 'deja vu'\n */\nfunction deburr(string) {\n  string = toString(string);\n  return string && string.replace(reLatin, deburrLetter).replace(reComboMark, '');\n}\n\nmodule.exports = deburr;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/deburr.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/isArguments.js":
+/*!*******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/isArguments.js ***!
+  \*******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var baseIsArguments = __webpack_require__(/*! ./_baseIsArguments */ \"./node_modules/node-warc/node_modules/lodash/_baseIsArguments.js\"),\n    isObjectLike = __webpack_require__(/*! ./isObjectLike */ \"./node_modules/node-warc/node_modules/lodash/isObjectLike.js\");\n\n/** Used for built-in method references. */\nvar objectProto = Object.prototype;\n\n/** Used to check objects for own properties. */\nvar hasOwnProperty = objectProto.hasOwnProperty;\n\n/** Built-in value references. */\nvar propertyIsEnumerable = objectProto.propertyIsEnumerable;\n\n/**\n * Checks if `value` is likely an `arguments` object.\n *\n * @static\n * @memberOf _\n * @since 0.1.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is an `arguments` object,\n *  else `false`.\n * @example\n *\n * _.isArguments(function() { return arguments; }());\n * // => true\n *\n * _.isArguments([1, 2, 3]);\n * // => false\n */\nvar isArguments = baseIsArguments(function() { return arguments; }()) ? baseIsArguments : function(value) {\n  return isObjectLike(value) && hasOwnProperty.call(value, 'callee') &&\n    !propertyIsEnumerable.call(value, 'callee');\n};\n\nmodule.exports = isArguments;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/isArguments.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/isArray.js":
+/*!***************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/isArray.js ***!
+  \***************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/**\n * Checks if `value` is classified as an `Array` object.\n *\n * @static\n * @memberOf _\n * @since 0.1.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is an array, else `false`.\n * @example\n *\n * _.isArray([1, 2, 3]);\n * // => true\n *\n * _.isArray(document.body.children);\n * // => false\n *\n * _.isArray('abc');\n * // => false\n *\n * _.isArray(_.noop);\n * // => false\n */\nvar isArray = Array.isArray;\n\nmodule.exports = isArray;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/isArray.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/isArrayLike.js":
+/*!*******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/isArrayLike.js ***!
+  \*******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var isFunction = __webpack_require__(/*! ./isFunction */ \"./node_modules/node-warc/node_modules/lodash/isFunction.js\"),\n    isLength = __webpack_require__(/*! ./isLength */ \"./node_modules/node-warc/node_modules/lodash/isLength.js\");\n\n/**\n * Checks if `value` is array-like. A value is considered array-like if it's\n * not a function and has a `value.length` that's an integer greater than or\n * equal to `0` and less than or equal to `Number.MAX_SAFE_INTEGER`.\n *\n * @static\n * @memberOf _\n * @since 4.0.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is array-like, else `false`.\n * @example\n *\n * _.isArrayLike([1, 2, 3]);\n * // => true\n *\n * _.isArrayLike(document.body.children);\n * // => true\n *\n * _.isArrayLike('abc');\n * // => true\n *\n * _.isArrayLike(_.noop);\n * // => false\n */\nfunction isArrayLike(value) {\n  return value != null && isLength(value.length) && !isFunction(value);\n}\n\nmodule.exports = isArrayLike;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/isArrayLike.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/isBuffer.js":
+/*!****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/isBuffer.js ***!
+  \****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("/* WEBPACK VAR INJECTION */(function(module) {var root = __webpack_require__(/*! ./_root */ \"./node_modules/node-warc/node_modules/lodash/_root.js\"),\n    stubFalse = __webpack_require__(/*! ./stubFalse */ \"./node_modules/node-warc/node_modules/lodash/stubFalse.js\");\n\n/** Detect free variable `exports`. */\nvar freeExports =  true && exports && !exports.nodeType && exports;\n\n/** Detect free variable `module`. */\nvar freeModule = freeExports && typeof module == 'object' && module && !module.nodeType && module;\n\n/** Detect the popular CommonJS extension `module.exports`. */\nvar moduleExports = freeModule && freeModule.exports === freeExports;\n\n/** Built-in value references. */\nvar Buffer = moduleExports ? root.Buffer : undefined;\n\n/* Built-in method references for those with the same name as other `lodash` methods. */\nvar nativeIsBuffer = Buffer ? Buffer.isBuffer : undefined;\n\n/**\n * Checks if `value` is a buffer.\n *\n * @static\n * @memberOf _\n * @since 4.3.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a buffer, else `false`.\n * @example\n *\n * _.isBuffer(new Buffer(2));\n * // => true\n *\n * _.isBuffer(new Uint8Array(2));\n * // => false\n */\nvar isBuffer = nativeIsBuffer || stubFalse;\n\nmodule.exports = isBuffer;\n\n/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../../../webpack/buildin/module.js */ \"./node_modules/webpack/buildin/module.js\")(module)))\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/isBuffer.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/isEmpty.js":
+/*!***************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/isEmpty.js ***!
+  \***************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var baseKeys = __webpack_require__(/*! ./_baseKeys */ \"./node_modules/node-warc/node_modules/lodash/_baseKeys.js\"),\n    getTag = __webpack_require__(/*! ./_getTag */ \"./node_modules/node-warc/node_modules/lodash/_getTag.js\"),\n    isArguments = __webpack_require__(/*! ./isArguments */ \"./node_modules/node-warc/node_modules/lodash/isArguments.js\"),\n    isArray = __webpack_require__(/*! ./isArray */ \"./node_modules/node-warc/node_modules/lodash/isArray.js\"),\n    isArrayLike = __webpack_require__(/*! ./isArrayLike */ \"./node_modules/node-warc/node_modules/lodash/isArrayLike.js\"),\n    isBuffer = __webpack_require__(/*! ./isBuffer */ \"./node_modules/node-warc/node_modules/lodash/isBuffer.js\"),\n    isPrototype = __webpack_require__(/*! ./_isPrototype */ \"./node_modules/node-warc/node_modules/lodash/_isPrototype.js\"),\n    isTypedArray = __webpack_require__(/*! ./isTypedArray */ \"./node_modules/node-warc/node_modules/lodash/isTypedArray.js\");\n\n/** `Object#toString` result references. */\nvar mapTag = '[object Map]',\n    setTag = '[object Set]';\n\n/** Used for built-in method references. */\nvar objectProto = Object.prototype;\n\n/** Used to check objects for own properties. */\nvar hasOwnProperty = objectProto.hasOwnProperty;\n\n/**\n * Checks if `value` is an empty object, collection, map, or set.\n *\n * Objects are considered empty if they have no own enumerable string keyed\n * properties.\n *\n * Array-like values such as `arguments` objects, arrays, buffers, strings, or\n * jQuery-like collections are considered empty if they have a `length` of `0`.\n * Similarly, maps and sets are considered empty if they have a `size` of `0`.\n *\n * @static\n * @memberOf _\n * @since 0.1.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is empty, else `false`.\n * @example\n *\n * _.isEmpty(null);\n * // => true\n *\n * _.isEmpty(true);\n * // => true\n *\n * _.isEmpty(1);\n * // => true\n *\n * _.isEmpty([1, 2, 3]);\n * // => false\n *\n * _.isEmpty({ 'a': 1 });\n * // => false\n */\nfunction isEmpty(value) {\n  if (value == null) {\n    return true;\n  }\n  if (isArrayLike(value) &&\n      (isArray(value) || typeof value == 'string' || typeof value.splice == 'function' ||\n        isBuffer(value) || isTypedArray(value) || isArguments(value))) {\n    return !value.length;\n  }\n  var tag = getTag(value);\n  if (tag == mapTag || tag == setTag) {\n    return !value.size;\n  }\n  if (isPrototype(value)) {\n    return !baseKeys(value).length;\n  }\n  for (var key in value) {\n    if (hasOwnProperty.call(value, key)) {\n      return false;\n    }\n  }\n  return true;\n}\n\nmodule.exports = isEmpty;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/isEmpty.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/isFunction.js":
+/*!******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/isFunction.js ***!
+  \******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ \"./node_modules/node-warc/node_modules/lodash/_baseGetTag.js\"),\n    isObject = __webpack_require__(/*! ./isObject */ \"./node_modules/node-warc/node_modules/lodash/isObject.js\");\n\n/** `Object#toString` result references. */\nvar asyncTag = '[object AsyncFunction]',\n    funcTag = '[object Function]',\n    genTag = '[object GeneratorFunction]',\n    proxyTag = '[object Proxy]';\n\n/**\n * Checks if `value` is classified as a `Function` object.\n *\n * @static\n * @memberOf _\n * @since 0.1.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a function, else `false`.\n * @example\n *\n * _.isFunction(_);\n * // => true\n *\n * _.isFunction(/abc/);\n * // => false\n */\nfunction isFunction(value) {\n  if (!isObject(value)) {\n    return false;\n  }\n  // The use of `Object#toString` avoids issues with the `typeof` operator\n  // in Safari 9 which returns 'object' for typed arrays and other constructors.\n  var tag = baseGetTag(value);\n  return tag == funcTag || tag == genTag || tag == asyncTag || tag == proxyTag;\n}\n\nmodule.exports = isFunction;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/isFunction.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/isLength.js":
+/*!****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/isLength.js ***!
+  \****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/** Used as references for various `Number` constants. */\nvar MAX_SAFE_INTEGER = 9007199254740991;\n\n/**\n * Checks if `value` is a valid array-like length.\n *\n * **Note:** This method is loosely based on\n * [`ToLength`](http://ecma-international.org/ecma-262/7.0/#sec-tolength).\n *\n * @static\n * @memberOf _\n * @since 4.0.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a valid length, else `false`.\n * @example\n *\n * _.isLength(3);\n * // => true\n *\n * _.isLength(Number.MIN_VALUE);\n * // => false\n *\n * _.isLength(Infinity);\n * // => false\n *\n * _.isLength('3');\n * // => false\n */\nfunction isLength(value) {\n  return typeof value == 'number' &&\n    value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;\n}\n\nmodule.exports = isLength;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/isLength.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/isObject.js":
+/*!****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/isObject.js ***!
+  \****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/**\n * Checks if `value` is the\n * [language type](http://www.ecma-international.org/ecma-262/7.0/#sec-ecmascript-language-types)\n * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)\n *\n * @static\n * @memberOf _\n * @since 0.1.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is an object, else `false`.\n * @example\n *\n * _.isObject({});\n * // => true\n *\n * _.isObject([1, 2, 3]);\n * // => true\n *\n * _.isObject(_.noop);\n * // => true\n *\n * _.isObject(null);\n * // => false\n */\nfunction isObject(value) {\n  var type = typeof value;\n  return value != null && (type == 'object' || type == 'function');\n}\n\nmodule.exports = isObject;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/isObject.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/isObjectLike.js":
+/*!********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/isObjectLike.js ***!
+  \********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/**\n * Checks if `value` is object-like. A value is object-like if it's not `null`\n * and has a `typeof` result of \"object\".\n *\n * @static\n * @memberOf _\n * @since 4.0.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is object-like, else `false`.\n * @example\n *\n * _.isObjectLike({});\n * // => true\n *\n * _.isObjectLike([1, 2, 3]);\n * // => true\n *\n * _.isObjectLike(_.noop);\n * // => false\n *\n * _.isObjectLike(null);\n * // => false\n */\nfunction isObjectLike(value) {\n  return value != null && typeof value == 'object';\n}\n\nmodule.exports = isObjectLike;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/isObjectLike.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/isSymbol.js":
+/*!****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/isSymbol.js ***!
+  \****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var baseGetTag = __webpack_require__(/*! ./_baseGetTag */ \"./node_modules/node-warc/node_modules/lodash/_baseGetTag.js\"),\n    isObjectLike = __webpack_require__(/*! ./isObjectLike */ \"./node_modules/node-warc/node_modules/lodash/isObjectLike.js\");\n\n/** `Object#toString` result references. */\nvar symbolTag = '[object Symbol]';\n\n/**\n * Checks if `value` is classified as a `Symbol` primitive or object.\n *\n * @static\n * @memberOf _\n * @since 4.0.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a symbol, else `false`.\n * @example\n *\n * _.isSymbol(Symbol.iterator);\n * // => true\n *\n * _.isSymbol('abc');\n * // => false\n */\nfunction isSymbol(value) {\n  return typeof value == 'symbol' ||\n    (isObjectLike(value) && baseGetTag(value) == symbolTag);\n}\n\nmodule.exports = isSymbol;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/isSymbol.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/isTypedArray.js":
+/*!********************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/isTypedArray.js ***!
+  \********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var baseIsTypedArray = __webpack_require__(/*! ./_baseIsTypedArray */ \"./node_modules/node-warc/node_modules/lodash/_baseIsTypedArray.js\"),\n    baseUnary = __webpack_require__(/*! ./_baseUnary */ \"./node_modules/node-warc/node_modules/lodash/_baseUnary.js\"),\n    nodeUtil = __webpack_require__(/*! ./_nodeUtil */ \"./node_modules/node-warc/node_modules/lodash/_nodeUtil.js\");\n\n/* Node.js helper references. */\nvar nodeIsTypedArray = nodeUtil && nodeUtil.isTypedArray;\n\n/**\n * Checks if `value` is classified as a typed array.\n *\n * @static\n * @memberOf _\n * @since 3.0.0\n * @category Lang\n * @param {*} value The value to check.\n * @returns {boolean} Returns `true` if `value` is a typed array, else `false`.\n * @example\n *\n * _.isTypedArray(new Uint8Array);\n * // => true\n *\n * _.isTypedArray([]);\n * // => false\n */\nvar isTypedArray = nodeIsTypedArray ? baseUnary(nodeIsTypedArray) : baseIsTypedArray;\n\nmodule.exports = isTypedArray;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/isTypedArray.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/startCase.js":
+/*!*****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/startCase.js ***!
+  \*****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var createCompounder = __webpack_require__(/*! ./_createCompounder */ \"./node_modules/node-warc/node_modules/lodash/_createCompounder.js\"),\n    upperFirst = __webpack_require__(/*! ./upperFirst */ \"./node_modules/node-warc/node_modules/lodash/upperFirst.js\");\n\n/**\n * Converts `string` to\n * [start case](https://en.wikipedia.org/wiki/Letter_case#Stylistic_or_specialised_usage).\n *\n * @static\n * @memberOf _\n * @since 3.1.0\n * @category String\n * @param {string} [string=''] The string to convert.\n * @returns {string} Returns the start cased string.\n * @example\n *\n * _.startCase('--foo-bar--');\n * // => 'Foo Bar'\n *\n * _.startCase('fooBar');\n * // => 'Foo Bar'\n *\n * _.startCase('__FOO_BAR__');\n * // => 'FOO BAR'\n */\nvar startCase = createCompounder(function(result, word, index) {\n  return result + (index ? ' ' : '') + upperFirst(word);\n});\n\nmodule.exports = startCase;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/startCase.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/stubFalse.js":
+/*!*****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/stubFalse.js ***!
+  \*****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("/**\n * This method returns `false`.\n *\n * @static\n * @memberOf _\n * @since 4.13.0\n * @category Util\n * @returns {boolean} Returns `false`.\n * @example\n *\n * _.times(2, _.stubFalse);\n * // => [false, false]\n */\nfunction stubFalse() {\n  return false;\n}\n\nmodule.exports = stubFalse;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/stubFalse.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/toString.js":
+/*!****************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/toString.js ***!
+  \****************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var baseToString = __webpack_require__(/*! ./_baseToString */ \"./node_modules/node-warc/node_modules/lodash/_baseToString.js\");\n\n/**\n * Converts `value` to a string. An empty string is returned for `null`\n * and `undefined` values. The sign of `-0` is preserved.\n *\n * @static\n * @memberOf _\n * @since 4.0.0\n * @category Lang\n * @param {*} value The value to convert.\n * @returns {string} Returns the converted string.\n * @example\n *\n * _.toString(null);\n * // => ''\n *\n * _.toString(-0);\n * // => '-0'\n *\n * _.toString([1, 2, 3]);\n * // => '1,2,3'\n */\nfunction toString(value) {\n  return value == null ? '' : baseToString(value);\n}\n\nmodule.exports = toString;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/toString.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/upperFirst.js":
+/*!******************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/upperFirst.js ***!
+  \******************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var createCaseFirst = __webpack_require__(/*! ./_createCaseFirst */ \"./node_modules/node-warc/node_modules/lodash/_createCaseFirst.js\");\n\n/**\n * Converts the first character of `string` to upper case.\n *\n * @static\n * @memberOf _\n * @since 4.0.0\n * @category String\n * @param {string} [string=''] The string to convert.\n * @returns {string} Returns the converted string.\n * @example\n *\n * _.upperFirst('fred');\n * // => 'Fred'\n *\n * _.upperFirst('FRED');\n * // => 'FRED'\n */\nvar upperFirst = createCaseFirst('toUpperCase');\n\nmodule.exports = upperFirst;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/upperFirst.js?");
+
+/***/ }),
+
+/***/ "./node_modules/node-warc/node_modules/lodash/words.js":
+/*!*************************************************************!*\
+  !*** ./node_modules/node-warc/node_modules/lodash/words.js ***!
+  \*************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("var asciiWords = __webpack_require__(/*! ./_asciiWords */ \"./node_modules/node-warc/node_modules/lodash/_asciiWords.js\"),\n    hasUnicodeWord = __webpack_require__(/*! ./_hasUnicodeWord */ \"./node_modules/node-warc/node_modules/lodash/_hasUnicodeWord.js\"),\n    toString = __webpack_require__(/*! ./toString */ \"./node_modules/node-warc/node_modules/lodash/toString.js\"),\n    unicodeWords = __webpack_require__(/*! ./_unicodeWords */ \"./node_modules/node-warc/node_modules/lodash/_unicodeWords.js\");\n\n/**\n * Splits `string` into an array of its words.\n *\n * @static\n * @memberOf _\n * @since 3.0.0\n * @category String\n * @param {string} [string=''] The string to inspect.\n * @param {RegExp|string} [pattern] The pattern to match words.\n * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.\n * @returns {Array} Returns the words of `string`.\n * @example\n *\n * _.words('fred, barney, & pebbles');\n * // => ['fred', 'barney', 'pebbles']\n *\n * _.words('fred, barney, & pebbles', /[^, ]+/g);\n * // => ['fred', 'barney', '&', 'pebbles']\n */\nfunction words(string, pattern, guard) {\n  string = toString(string);\n  pattern = guard ? undefined : pattern;\n\n  if (pattern === undefined) {\n    return hasUnicodeWord(string) ? unicodeWords(string) : asciiWords(string);\n  }\n  return string.match(pattern) || [];\n}\n\nmodule.exports = words;\n\n\n//# sourceURL=webpack:///./node_modules/node-warc/node_modules/lodash/words.js?");
 
 /***/ }),
 
@@ -2337,7 +2337,7 @@ eval("module.exports = extend\n\nvar hasOwnProperty = Object.prototype.hasOwnPro
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"Collection\", function() { return Collection; });\n/* harmony import */ var _rewrite_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./rewrite.js */ \"./src/rewrite.js\");\n/* harmony import */ var _rewrite_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_rewrite_js__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var _harcache_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./harcache.js */ \"./src/harcache.js\");\n\n\n\n\n\n\nconst DEFAULT_CSP = \"default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'\";\n\nconst REPLAY_REGEX = /^(\\d*)([a-z]+_|[$][a-z0-9:.-]+)?[\\/|](.+)/;\n\n\nclass Collection\n{\n\tconstructor(name, cache, prefix, rootColl, sourceName) {\n\t\tthis.name = name;\n\t\tthis.cache = cache;\n\n\t\tthis.sourceName = sourceName;\n\n\t\tthis.rootPrefix = prefix;\n\n\t\tthis.prefix = prefix + this.name + \"/\";\n\n\t\t// support root collection hashtag nav\n\t\tif (rootColl) {\n\t\t\tthis.appPrefix = prefix + \"#/\";\n\t\t\tthis.isRoot = true;\n\t\t} else {\n\t\t\tthis.appPrefix = this.prefix;\n\t\t\tthis.isRoot = false;\n\t\t}\n\n\t\tthis.staticPrefix = prefix + \"static\";\n\t}\n\n\tasync handleRequest(request) {\n\t\tlet wbUrlStr = decodeURI(request.url);\n\n\t\tif (wbUrlStr.startsWith(this.prefix)) {\n\t\t\twbUrlStr = wbUrlStr.substring(this.prefix.length);\n\t\t} else if (this.isRoot && wbUrlStr.startsWith(this.appPrefix)) {\n\t\t\twbUrlStr = wbUrlStr.substring(this.appPrefix.length);\n\t\t} else {\n\t\t\treturn null;\n\t\t}\n\n\t\tlet responseData = {\"status\": 200,\n\t\t\t\t\t\t\t \"statusText\": \"OK\",\n\t\t\t\t\t\t     \"headers\": {\"Content-Type\": \"text/html\"}\n\t\t\t\t\t\t\t};\n\n\t\tlet content = null;\n\n\t\t// pageList\n\t\tif (wbUrlStr == \"\") {\n\n\t\t\tcontent = '<html><body><h2>Available Pages</h2><ul>'\n\n\t\t\tfor (let page of this.cache.pageList) {\n\t\t\t\tlet href = this.appPrefix;\n\t\t\t\tif (page.ts) {\n\t\t\t\t\thref += page.ts + \"/\";\n\t\t\t\t}\n\t\t\t\thref += page.url;\n\t\t\t\tcontent += `<li><a href=\"${href}\">${page.url}</a></li>`\n\t\t\t}\n\n\t\t\tcontent += '</ul></body></html>'\n\n\t\t\treturn new Response(content, responseData);\n\t\t}\n\n\t\tconst wbUrl = REPLAY_REGEX.exec(wbUrlStr);\n\t\tlet requestTS = '';\n\t\tlet url = '';\n\t\tlet mod = '';\n\n\t\tif (!wbUrl && (wbUrlStr.startsWith(\"https:\") || wbUrlStr.startsWith(\"http:\"))) {\n\t\t\turl = wbUrlStr;\n\t\t} else if (!wbUrl) {\n\t\t\treturn this.notFound();\n\t\t} else {\n\t\t\trequestTS = wbUrl[1];\n\t\t\tmod = wbUrl[2];\n\t\t\turl = wbUrl[3];\n\t\t}\n\n\t\t// force timestamp for root coll\n\t\tif (!requestTS && this.isRoot) {\n\t\t\trequestTS = \"2\";\n\t\t}\n\n\t\tif (mod) {\n\t\t\tconst hash = url.indexOf(\"#\");\n\t\t\tif (hash > 0) {\n\t\t\t\turl = url.substring(0, hash);\n\t\t\t}\n\n\t\t\tlet referrer = request.referrer;\n\n\t\t\tlet response = null;\n\n\t\t\tconst rwPrefix = this.prefix;// + requestTS + mod + \"/\";\n\n\t\t\tif (url.startsWith(\"//\")) {\n\t\t\t\tresponse = await this.cache.match({\"url\": \"https:\" + url, \"timestamp\": requestTS}, rwPrefix);\n\n\t\t\t\tif (!response) {\n\t\t\t\t\tresponse = await this.cache.match({\"url\": \"http:\" + url, \"timestamp\": requestTS}, rwPrefix);\n\t\t\t\t\tif (response) {\n\t\t\t\t\t\turl = \"http:\" + url;\n\t\t\t\t\t}\n\t\t\t\t} else {\n\t\t\t\t\turl = \"https:\" + url;\n\t\t\t\t}\n\t\t\t} else {\n\t\t\t\tresponse = await this.cache.match({\"url\": url, \"timestamp\": requestTS}, rwPrefix);\n\t\t\t}\n\n\t\t\tif (response && !response.noRW && mod != \"id_\") {\n\t\t\t\tlet headInsert = \"\";\n\n\t\t\t\tif (request.destination === \"\" || request.destination === \"document\") {\n\t\t\t\t\theadInsert = this.makeHeadInsert(url, response.timestamp, request.url, requestTS);\n\t\t\t\t}\n\n\t\t\t\tconst rewriter = new _rewrite_js__WEBPACK_IMPORTED_MODULE_0___default.a(url, this.prefix + requestTS + \"mp_/\", headInsert);\n\t\t\t\tresponse = await rewriter.rewrite(response, request.destination, DEFAULT_CSP);\n\t\t\t}\n\n\t\t\tif (response) {\n\t\t\t\treturn response;\n\t\t\t} else {\n\t\t\t\treturn this.notFound();\n\t\t\t}\n\n\t\t} else {\n\t\t\treturn this.makeTopFrame(url, requestTS);\n\t\t}\n\t\t\t\n\t}\n\n\tnotFound() {\n\t\tlet responseData = {\"status\": 404,\n\t\t\t\t\t\t   \t \"statusText\": \"Not Found\",\n\t\t\t\t\t\t\t \"headers\": {\"Content-Type\": \"text/html\"}\n\t\t\t\t\t\t\t};\n\n\t\treturn new Response('404 Not Found', responseData);\n\t}\n\n\tmakeTopFrame(url, requestTS) {\n\t\tconst content = `\n<!DOCTYPE html>\n<html>\n<head>\n<style>\nhtml, body\n{\n  height: 100%;\n  margin: 0px;\n  padding: 0px;\n  border: 0px;\n  overflow: hidden;\n}\n\n</style>\n<script src='${this.staticPrefix}/wb_frame.js'> </script>\n\n<script>\nwindow.home = \"${this.rootPrefix}\";\n</script>\n\n<script src='${this.staticPrefix}/default_banner.js'> </script>\n<link rel='stylesheet' href='${this.staticPrefix}/default_banner.css'/>\n\n</head>\n<body style=\"margin: 0px; padding: 0px;\">\n<div id=\"wb_iframe_div\">\n<iframe id=\"replay_iframe\" frameborder=\"0\" seamless=\"seamless\" scrolling=\"yes\" class=\"wb_iframe\"></iframe>\n</div>\n<script>\n  var cframe = new ContentFrame({\"url\": \"${url}\",\n                                 \"app_prefix\": \"${this.appPrefix}\",\n                                 \"content_prefix\": \"${this.prefix}\",\n                                 \"request_ts\": \"${requestTS}\",\n                                 \"iframe\": \"#replay_iframe\"});\n\n</script>\n</body>\n</html>\n`\n\t\tlet responseData = {\"status\": 200,\n\t\t\t\t\t\t\t \"statusText\": \"OK\",\n\t\t\t\t\t\t\t \"headers\": {\"Content-Type\": \"text/html\", \"Content-Security-Policy\": DEFAULT_CSP}\n\t\t\t\t\t\t\t};\n\n\t\treturn new Response(content, responseData);\n\t}\n\n\tmakeHeadInsert(url, timestamp, requestUrl, requestTS) {\n\n\t\tconst topUrl = this.appPrefix + requestTS + (requestTS ? \"/\" : \"\") + url;\n\t\tconst prefix = this.prefix;\n\t\tconst coll = this.name;\n\n\t\tconst urlParsed = new URL(url);\n\t\treturn `\n<!-- WB Insert -->\n<script>\n  wbinfo = {};\n  wbinfo.top_url = \"${topUrl}\";\n  // Fast Top-Frame Redirect\n  if (window == window.top && wbinfo.top_url) {\n    var loc = window.location.href.replace(window.location.hash, \"\");\n    loc = decodeURI(loc);\n \n    if (loc != decodeURI(wbinfo.top_url)) {\n        window.location.href = wbinfo.top_url + window.location.hash;\n    }\n  }\n  wbinfo.url = \"${url}\";\n  wbinfo.timestamp = \"${timestamp}\";\n  wbinfo.request_ts = \"${requestTS}\";\n  wbinfo.prefix = decodeURI(\"${prefix}\");\n  wbinfo.mod = \"mp_\";\n  wbinfo.is_framed = true;\n  wbinfo.is_live = false;\n  wbinfo.coll = \"${coll}\";\n  wbinfo.proxy_magic = \"\";\n  wbinfo.static_prefix = \"${this.staticPrefix}/\";\n  wbinfo.enable_auto_fetch = true;\n</script>\n<script src='${this.staticPrefix}/wombat.js'> </script>\n<script>\n  wbinfo.wombat_ts = \"${timestamp}\";\n  wbinfo.wombat_sec = \"\";\n  wbinfo.wombat_scheme = \"${urlParsed.protocol.slice(0, -1)}\";\n  wbinfo.wombat_host = \"${urlParsed.host}\";\n\n  wbinfo.wombat_opts = {};\n\n  if (window && window._WBWombatInit) {\n    window._WBWombatInit(wbinfo);\n  }\n</script>\n  `\n\t}\n}\n\n\n\n\n\n//# sourceURL=webpack:///./src/collection.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"Collection\", function() { return Collection; });\n/* harmony import */ var _rewrite_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./rewrite.js */ \"./src/rewrite.js\");\n/* harmony import */ var _rewrite_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_rewrite_js__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var _harcache_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./harcache.js */ \"./src/harcache.js\");\n/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./utils.js */ \"./src/utils.js\");\n\n\n\n\n\n\n\n\nconst DEFAULT_CSP = \"default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'\";\n\nconst REPLAY_REGEX = /^(\\d*)([a-z]+_|[$][a-z0-9:.-]+)?[\\/|](.+)/;\n\n\nclass Collection\n{\n\tconstructor(name, cache, prefix, rootColl, sourceName) {\n\t\tthis.name = name;\n\t\tthis.cache = cache;\n\n\t\tthis.sourceName = sourceName;\n\n\t\tthis.rootPrefix = prefix;\n\n\t\tthis.prefix = prefix + this.name + \"/\";\n\n\t\t// support root collection hashtag nav\n\t\tif (rootColl) {\n\t\t\tthis.appPrefix = prefix + \"#/\";\n\t\t\tthis.isRoot = true;\n\t\t} else {\n\t\t\tthis.appPrefix = this.prefix;\n\t\t\tthis.isRoot = false;\n\t\t}\n\n\t\tthis.staticPrefix = prefix + \"static\";\n\t}\n\n\tasync handleRequest(request) {\n\t\tlet wbUrlStr = request.url;\n\n\t\tif (wbUrlStr.startsWith(this.prefix)) {\n\t\t\twbUrlStr = wbUrlStr.substring(this.prefix.length);\n\t\t} else if (this.isRoot && wbUrlStr.startsWith(this.appPrefix)) {\n\t\t\twbUrlStr = wbUrlStr.substring(this.appPrefix.length);\n\t\t} else {\n\t\t\treturn null;\n\t\t}\n\n\t\tlet responseData = {\"status\": 200,\n\t\t\t\t\t\t\t \"statusText\": \"OK\",\n\t\t\t\t\t\t     \"headers\": {\"Content-Type\": \"text/html\"}\n\t\t\t\t\t\t\t};\n\n\t\tlet content = null;\n\n\t\t// pageList\n\t\tif (wbUrlStr == \"\") {\n\n\t\t\tcontent = '<html><body><h2>Available Pages</h2><ul>'\n\n\t\t\tfor (let page of this.cache.pageList) {\n\t\t\t\tlet href = this.appPrefix;\n\t\t\t\tif (page.ts) {\n\t\t\t\t\thref += page.ts + \"/\";\n\t\t\t\t}\n\t\t\t\thref += page.url;\n\t\t\t\tcontent += `<li><a href=\"${href}\">${page.url}</a></li>`\n\t\t\t}\n\n\t\t\tcontent += '</ul></body></html>'\n\n\t\t\treturn new Response(content, responseData);\n\t\t}\n\n\t\tconst wbUrl = REPLAY_REGEX.exec(wbUrlStr);\n\t\tlet requestTS = '';\n\t\tlet url = '';\n\t\tlet mod = '';\n\n\t\tif (!wbUrl && (wbUrlStr.startsWith(\"https:\") || wbUrlStr.startsWith(\"http:\"))) {\n\t\t\turl = wbUrlStr;\n\t\t} else if (!wbUrl) {\n\t\t\treturn this.notFound(wbUrlStr);\n\t\t} else {\n\t\t\trequestTS = wbUrl[1];\n\t\t\tmod = wbUrl[2];\n\t\t\turl = wbUrl[3];\n\t\t}\n\n\t\t// force timestamp for root coll\n\t\tif (!requestTS && this.isRoot) {\n\t\t\trequestTS = \"2\";\n\t\t}\n\n\t\tif (mod) {\n\t\t\tconst hash = url.indexOf(\"#\");\n\t\t\tif (hash > 0) {\n\t\t\t\turl = url.substring(0, hash);\n\t\t\t}\n\n\t\t\tlet referrer = request.referrer;\n\n\t\t\tlet response = null;\n\n\t\t\tconst rwPrefix = this.prefix;// + requestTS + mod + \"/\";\n\n\t\t\tif (url.startsWith(\"//\")) {\n\t\t\t\tresponse = await this.cache.match({\"url\": \"https:\" + url, \"timestamp\": requestTS}, rwPrefix);\n\n\t\t\t\tif (!response) {\n\t\t\t\t\tresponse = await this.cache.match({\"url\": \"http:\" + url, \"timestamp\": requestTS}, rwPrefix);\n\t\t\t\t\tif (response) {\n\t\t\t\t\t\turl = \"http:\" + url;\n\t\t\t\t\t}\n\t\t\t\t} else {\n\t\t\t\t\turl = \"https:\" + url;\n\t\t\t\t}\n\t\t\t} else {\n\t\t\t\tresponse = await this.cache.match({\"url\": url, \"timestamp\": requestTS}, rwPrefix);\n\t\t\t}\n\n\t\t\tif (response && !response.noRW && mod != \"id_\") {\n\t\t\t\tlet headInsert = \"\";\n\n\t\t\t\tif (request.destination === \"\" || request.destination === \"document\") {\n\t\t\t\t\theadInsert = this.makeHeadInsert(url, response.timestamp, request.url, requestTS, response.date);\n\t\t\t\t}\n\n\t\t\t\tconst rewriter = new _rewrite_js__WEBPACK_IMPORTED_MODULE_0___default.a(url, this.prefix + requestTS + \"mp_/\", headInsert);\n\t\t\t\tresponse = await rewriter.rewrite(response, request.destination, DEFAULT_CSP);\n\t\t\t}\n\n\t\t\tif (response) {\n\t\t\t\treturn response;\n\t\t\t} else {\n\t\t\t\treturn this.notFound(wbUrlStr);\n\t\t\t}\n\n\t\t} else {\n\t\t\treturn this.makeTopFrame(url, requestTS);\n\t\t}\n\t\t\t\n\t}\n\n\tnotFound(url) {\n\t\tlet responseData = {\"status\": 404,\n\t\t\t\t\t\t   \t \"statusText\": \"Not Found\",\n\t\t\t\t\t\t\t \"headers\": {\"Content-Type\": \"text/html\"}\n\t\t\t\t\t\t\t};\n\n\t\treturn new Response('404 Not Found', responseData);\n\t}\n\n\tmakeTopFrame(url, requestTS) {\n\t\tconst content = `\n<!DOCTYPE html>\n<html>\n<head>\n<style>\nhtml, body\n{\n  height: 100%;\n  margin: 0px;\n  padding: 0px;\n  border: 0px;\n  overflow: hidden;\n}\n\n</style>\n<script src='${this.staticPrefix}/wb_frame.js'> </script>\n\n<script>\nwindow.home = \"${this.rootPrefix}\";\n</script>\n\n<script src='${this.staticPrefix}/default_banner.js'> </script>\n<link rel='stylesheet' href='${this.staticPrefix}/default_banner.css'/>\n\n</head>\n<body style=\"margin: 0px; padding: 0px;\">\n<div id=\"wb_iframe_div\">\n<iframe id=\"replay_iframe\" frameborder=\"0\" seamless=\"seamless\" scrolling=\"yes\" class=\"wb_iframe\"></iframe>\n</div>\n<script>\n  var cframe = new ContentFrame({\"url\": \"${url}\",\n                                 \"app_prefix\": \"${this.appPrefix}\",\n                                 \"content_prefix\": \"${this.prefix}\",\n                                 \"request_ts\": \"${requestTS}\",\n                                 \"iframe\": \"#replay_iframe\"});\n\n</script>\n</body>\n</html>\n`\n\t\tlet responseData = {\"status\": 200,\n\t\t\t\t\t\t\t \"statusText\": \"OK\",\n\t\t\t\t\t\t\t \"headers\": {\"Content-Type\": \"text/html\", \"Content-Security-Policy\": DEFAULT_CSP}\n\t\t\t\t\t\t\t};\n\n\t\treturn new Response(content, responseData);\n\t}\n\n\tmakeHeadInsert(url, timestamp, requestUrl, requestTS, date) {\n\n\t\tconst topUrl = this.appPrefix + requestTS + (requestTS ? \"/\" : \"\") + url;\n\t\tconst prefix = this.prefix;\n\t\tconst coll = this.name;\n\n\t\tconst seconds = Object(_utils_js__WEBPACK_IMPORTED_MODULE_2__[\"getSecondsStr\"])(date);\n\n\t\tconst urlParsed = new URL(url);\n\t\treturn `\n<!-- WB Insert -->\n<script>\n  wbinfo = {};\n  wbinfo.top_url = \"${topUrl}\";\n  // Fast Top-Frame Redirect\n  if (window == window.top && wbinfo.top_url) {\n    var loc = window.location.href.replace(window.location.hash, \"\");\n    loc = decodeURI(loc);\n \n    if (loc != decodeURI(wbinfo.top_url)) {\n        window.location.href = wbinfo.top_url + window.location.hash;\n    }\n  }\n  wbinfo.url = \"${url}\";\n  wbinfo.timestamp = \"${timestamp}\";\n  wbinfo.request_ts = \"${requestTS}\";\n  wbinfo.prefix = decodeURI(\"${prefix}\");\n  wbinfo.mod = \"mp_\";\n  wbinfo.is_framed = true;\n  wbinfo.is_live = false;\n  wbinfo.coll = \"${coll}\";\n  wbinfo.proxy_magic = \"\";\n  wbinfo.static_prefix = \"${this.staticPrefix}/\";\n  wbinfo.enable_auto_fetch = true;\n</script>\n<script src='${this.staticPrefix}/wombat.js'> </script>\n<script>\n  wbinfo.wombat_ts = \"${timestamp}\";\n  wbinfo.wombat_sec = \"${seconds}\";\n  wbinfo.wombat_scheme = \"${urlParsed.protocol.slice(0, -1)}\";\n  wbinfo.wombat_host = \"${urlParsed.host}\";\n\n  wbinfo.wombat_opts = {};\n\n  if (window && window._WBWombatInit) {\n    window._WBWombatInit(wbinfo);\n  }\n</script>\n  `\n\t}\n}\n\n\n\n\n\n//# sourceURL=webpack:///./src/collection.js?");
 
 /***/ }),
 
@@ -2349,7 +2349,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) *
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"HARCache\", function() { return HARCache; });\n\n\nclass HARCache {\n\tconstructor(string_or_har) {\n\t\tlet har = string_or_har;\n\n\t\tif (typeof har === \"string\") {\n\t\t\thar = JSON.parse(har);\n\t\t}\n\n\t\tthis.parseEntries(har);\n\n\t\tthis.parsePages(har);\n\t}\n\n\tparsePages(har) {\n\t\tthis.pageList = [];\n\n\t\tfor (let page of har.log.pages) {\n\t\t\tif (!page.pageTimings || !page.pageTimings.onLoad) {\n\t\t\t\tcontinue;\n\t\t\t}\n\t\t\tthis.pageList.push({\"timestamp\": this.getTS(page.startedDateTime), \"title\": page.title, \"url\": page.title});\n\t\t}\n\t}\n\n\tparseEntries(har) {\n\t\tthis.urlMap = {}\n\n\t\tfor (let entry of har.log.entries) {\n\t\t\tif (!entry.response.content || !entry.response.content.text) {\n\t\t\t\tcontinue;\n\t\t\t}\n\t\t\tthis.urlMap[entry.request.url] = {\n\t\t\t\t\t\t\t\t\t\t\t  \"request\": entry.request,\n\t\t\t\t\t\t\t\t\t\t\t  \"response\": entry.response,\n\t\t\t\t\t\t\t\t\t\t\t  \"timestamp\": this.getTS(entry.startedDateTime),\n\t\t\t\t\t\t\t\t\t\t\t };\n\t\t}\n\t}\n\n\tgetTS(iso) {\n\t\treturn iso.replace(/[-:T]/g, '').slice(0, 14);\n\t}\n\n\tasync match(request) {\n\t\tconst entry = this.urlMap[request.url];\n\t\tif (!entry) {\n\t\t\treturn null;\n\t\t}\n\n\t\tconst headers = {}\n\n\t\tfor (let header of entry.response.headers) {\n\t\t\tif (header.name.toLowerCase() === \"content-encoding\") {\n\t\t\t\tcontinue;\n\t\t\t}\n\t\t\theaders[header.name] = header.value;\n\t\t}\n\n\t\tconst init = {\"status\": entry.response.status,\n\t\t\t\t\t  \"statusText\": entry.response.statusText,\n\t\t\t\t\t  \"headers\": headers\n\t\t\t\t\t }\n\n\t\tlet content = null;\n\n\n\t\ttry {\n\t\t\t//content = atob(entry.response.content.text);\n\t\t\tcontent = Uint8Array.from(atob(entry.response.content.text), c => c.charCodeAt(0));\n\t\t} catch(e) {\n\t\t\tcontent = entry.response.content.text;\n\t\t}\n\n\t\tconst resp = new Response(content, init);\n\t\tresp.timestamp = entry.timestamp;\n\t\treturn resp;\n\t}\n}\n\n\n\n\n\n//# sourceURL=webpack:///./src/harcache.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"HARCache\", function() { return HARCache; });\n/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./utils.js */ \"./src/utils.js\");\n\n\nclass HARCache {\n\tconstructor(string_or_har) {\n\t\tlet har = string_or_har;\n\n\t\tif (typeof har === \"string\") {\n\t\t\thar = JSON.parse(har);\n\t\t}\n\n\t\tthis.parseEntries(har);\n\n\t\tthis.parsePages(har);\n\t}\n\n\tparsePages(har) {\n\t\tthis.pageList = [];\n\n\t\tfor (let page of har.log.pages) {\n\t\t\tif (!page.pageTimings || !page.pageTimings.onLoad) {\n\t\t\t\tcontinue;\n\t\t\t}\n\t\t\tthis.pageList.push({\"timestamp\": Object(_utils_js__WEBPACK_IMPORTED_MODULE_0__[\"getTS\"])(page.startedDateTime), \"title\": page.title, \"url\": page.title});\n\t\t}\n\t}\n\n\tparseEntries(har) {\n\t\tthis.urlMap = {}\n\n\t\tfor (let entry of har.log.entries) {\n\t\t\tif (!entry.response.content || !entry.response.content.text) {\n\t\t\t\tcontinue;\n\t\t\t}\n\t\t\tthis.urlMap[entry.request.url] = {\n\t\t\t\t\t\t\t\t\t\t\t  \"request\": entry.request,\n\t\t\t\t\t\t\t\t\t\t\t  \"response\": entry.response,\n\t\t\t\t\t\t\t\t\t\t\t  \"timestamp\": Object(_utils_js__WEBPACK_IMPORTED_MODULE_0__[\"getTS\"])(entry.startedDateTime),\n\t\t\t\t\t\t\t\t\t\t\t  \"datetime\": entry.startedDateTime,\n\t\t\t\t\t\t\t\t\t\t\t };\n\t\t}\n\t}\n\n\tasync match(request) {\n\t\tconst entry = this.urlMap[request.url];\n\t\tif (!entry) {\n\t\t\treturn null;\n\t\t}\n\n\t\tconst headers = {}\n\n\t\tfor (let header of entry.response.headers) {\n\t\t\tif (header.name.toLowerCase() === \"content-encoding\") {\n\t\t\t\tcontinue;\n\t\t\t}\n\t\t\theaders[header.name] = header.value;\n\t\t}\n\n\t\tconst init = {\"status\": entry.response.status,\n\t\t\t\t\t  \"statusText\": entry.response.statusText,\n\t\t\t\t\t  \"headers\": headers\n\t\t\t\t\t }\n\n\t\tlet content = null;\n\n\n\t\ttry {\n\t\t\t//content = atob(entry.response.content.text);\n\t\t\tcontent = Uint8Array.from(atob(entry.response.content.text), c => c.charCodeAt(0));\n\t\t} catch(e) {\n\t\t\tcontent = entry.response.content.text;\n\t\t}\n\n\t\tconst resp = new Response(content, init);\n\t\tresp.timestamp = entry.timestamp;\n\t\tresp.date = new Date(entry.startedDateTime);\n\t\treturn resp;\n\t}\n}\n\n\n\n\n\n//# sourceURL=webpack:///./src/harcache.js?");
 
 /***/ }),
 
@@ -2361,7 +2361,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) *
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"RemoteArchiveCache\", function() { return RemoteArchiveCache; });\nlet EXTRACT_TS = /(?:([\\d]+)[^\\/]*\\/)?(http.*)/;\n\n\nclass RemoteArchiveCache {\n\t\n\tconstructor(remoteInfo) {\n\t\tthis.replayPrefix = remoteInfo.replayPrefix;\n\t\tthis.idMod = (remoteInfo.idMod !== undefined ? remoteInfo.idMod : \"id_\");\n\t\tthis.redirMod = (remoteInfo.redirMod !== undefined ? remoteInfo.redirMod : \"mp_\");\n\n\t\tthis.redirectMode = (this.idMod === this.redirMod) ? \"follow\" : \"manual\";\n\n\t\tthis.urlMap = {}\n\t\tthis.pageList = [];\n\t}\n\n\tgetUrl(request, mod) {\n\t\tlet url = this.replayPrefix;\n\t\tif (mod || request.timestamp) {\n\t\t\turl += request.timestamp + mod + \"/\";\n\t\t}\n\t\treturn url + request.url;\n\t}\n\n\tasync match(request, prefix) {\n\t\tlet response = await fetch(this.getUrl(request, this.idMod),\n\t\t\t{credentials: 'same-origin',\n\t\t\t redirect: this.redirectMode,\n\t\t\t mode: 'cors'\n\t\t\t});\n\n\t\tconst redirRes = await this.getRedirect(request, response, prefix);\n\n\t\tlet timestamp = null;\n\n\t\tif (redirRes) {\n\t\t\tresponse = Response.redirect(redirRes[1], 307);\n\t\t\tresponse.noRW = true;\n\t\t\ttimestamp = redirRes[0];\n\t\t} else {\n\t\t\ttimestamp = request.timestamp;\n\t\t}\n\n\t\tresponse.timestamp = timestamp || this.getTS(new Date().toISOString());\n\n\t\treturn response;\n\t}\n\n\tasync getRedirect(request, response, prefix) {\n\t\t// handle redirects by following\n\t\tif (response.type === \"opaqueredirect\") {\n\t\t\tresponse = await fetch(this.getUrl(request, this.redirMod),\n\t\t\t\t{credentials: 'same-origin',\n\t\t\t\t redirect: 'follow',\n\t\t\t\t mode: 'cors'\n\t\t\t\t});\n\t\t} else if (!response.redirected) {\n\t\t\treturn null;\n\t\t}\n\n\t\tconst inx = response.url.indexOf(this.replayPrefix) + this.replayPrefix.length;\n\n\t\tconst redirOrig = response.url.slice(inx);\n\n\t\tconst m = redirOrig.match(EXTRACT_TS);\n\n\t\tif (m) {\n\t\t\treturn [m[1], prefix + m[1] + \"mp_/\" + m[2]];\n\t\t} else {\n\t\t\treturn [null, prefix + redirOrig];\n\t\t}\n\t}\n\n\tgetTS(iso) {\n\t\treturn iso.replace(/[-:T]/g, '').slice(0, 14);\n\t}\n}\n\n\n\n\n//# sourceURL=webpack:///./src/remotearchive.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"RemoteArchiveCache\", function() { return RemoteArchiveCache; });\n/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./utils.js */ \"./src/utils.js\");\n\n\n\nconst EXTRACT_TS = /(?:([\\d]+)[^\\/]*\\/)?(http.*)/;\n\n\nclass RemoteArchiveCache {\n\t\n\tconstructor(remoteInfo) {\n\t\tthis.replayPrefix = remoteInfo.replayPrefix;\n\t\tthis.idMod = (remoteInfo.idMod !== undefined ? remoteInfo.idMod : \"id_\");\n\t\tthis.redirMod = (remoteInfo.redirMod !== undefined ? remoteInfo.redirMod : \"mp_\");\n\n\t\tthis.redirectMode = (this.idMod === this.redirMod) ? \"follow\" : \"manual\";\n\n\t\tthis.urlMap = {}\n\t\tthis.pageList = [];\n\t}\n\n\tgetUrl(request, mod) {\n\t\tlet url = this.replayPrefix;\n\t\tif (mod || request.timestamp) {\n\t\t\turl += request.timestamp + mod + \"/\";\n\t\t}\n\t\treturn url + request.url;\n\t}\n\n\tasync match(request, prefix) {\n\t\tlet response = await fetch(this.getUrl(request, this.idMod),\n\t\t\t{credentials: 'same-origin',\n\t\t\t redirect: this.redirectMode,\n\t\t\t mode: 'cors'\n\t\t\t});\n\n\t\tconst redirRes = await this.getRedirect(request, response, prefix);\n\n\t\tlet timestamp = null;\n\n\t\tif (redirRes) {\n\t\t\tresponse = Response.redirect(redirRes[1], 307);\n\t\t\tresponse.noRW = true;\n\t\t\ttimestamp = redirRes[0];\n\t\t} else {\n\t\t\ttimestamp = request.timestamp;\n\t\t}\n\n\t\tif (!timestamp) {\n\t\t\tconst date = new Date().toISOString();\n\t\t\tresponse.date = date;\n\t\t\tresponse.timestamp = Object(_utils_js__WEBPACK_IMPORTED_MODULE_0__[\"getTS\"])(date);\n\t\t} else {\n\t\t\tresponse.timestamp = timestamp;\n\t\t\tresponse.date = Object(_utils_js__WEBPACK_IMPORTED_MODULE_0__[\"tsToDate\"])(timestamp);\n\t\t}\n\n\t\treturn response;\n\t}\n\n\tasync getRedirect(request, response, prefix) {\n\t\t// handle redirects by following\n\t\tif (response.type === \"opaqueredirect\") {\n\t\t\tresponse = await fetch(this.getUrl(request, this.redirMod),\n\t\t\t\t{credentials: 'same-origin',\n\t\t\t\t redirect: 'follow',\n\t\t\t\t mode: 'cors'\n\t\t\t\t});\n\t\t} else if (!response.redirected) {\n\t\t\treturn null;\n\t\t}\n\n\t\tconst inx = response.url.indexOf(this.replayPrefix) + this.replayPrefix.length;\n\n\t\tconst redirOrig = response.url.slice(inx);\n\n\t\tconst m = redirOrig.match(EXTRACT_TS);\n\n\t\tif (m) {\n\t\t\treturn [m[1], prefix + m[1] + \"mp_/\" + m[2]];\n\t\t} else {\n\t\t\treturn [null, prefix + redirOrig];\n\t\t}\n\t}\n}\n\n\n\n\n//# sourceURL=webpack:///./src/remotearchive.js?");
 
 /***/ }),
 
@@ -2372,7 +2372,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) *
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-eval("\n\nconst STYLE_REGEX = /(url\\s*\\(\\s*[\\\\\"']*)([^)'\"]+)([\\\\\"']*\\s*\\))/gi;\n\nconst IMPORT_REGEX = /(@import\\s*[\\\\\"']*)([^)'\";]+)([\\\\\"']*\\s*;?)/gi;\n\nconst NO_WOMBAT_REGEX = /WB_wombat_/g;\n\nconst DOT_POST_MSG_REGEX = /(.postMessage\\s*\\()/;\n\nfunction startsWithAny(value, iter) {\n\tfor (let str of iter) {\n\t\tif (value.startsWith(str)) {\n\t\t\treturn true;\n\t\t}\n\t}\n\n\treturn false;\n}\n\nconst DATA_RW_PROTOCOLS = [\"http://\", \"https://\", \"//\"];\n\n\nclass Rewriter\n{\n\tconstructor(baseUrl, prefix, headInsert) {\n\t\tthis.baseUrl = baseUrl;\n\t\tthis.prefix = prefix || \"\";\n\t\tthis.headInsert = headInsert || \"\";\n\t}\n\n\tasync decodeResponse(response, encoding) {\n\t\tif (!encoding) {\n\t\t\treturn response;\n\t\t}\n\n\t\tconst ab = await response.arrayBuffer();\n\n\t\tconst inflator = new pako.Inflate();\n\n        inflator.push(ab, true);\n\n        // if error occurs (eg. not gzip), use original arraybuffer\n        const content = (inflator.result && !inflator.err) ? inflator.result : ab;\n\n\t\treturn this.makeResponse(content, response);\n\t}\n\n\tgetRewriteMode(requestType, contentType) {\n\t\tswitch (requestType) {\n\t\t\tcase \"style\":\n\t\t\t\treturn \"css\";\n\n\t\t\tcase \"script\":\n\t\t\t\treturn \"js\";\n\t\t}\n\n\t\tswitch (contentType) {\n\t\t\tcase \"text/html\":\n\t\t\t\treturn \"html\";\n\n\t\t\tcase \"text/javascript\":\n\t\t\tcase \"application/javascript\":\n\t\t\tcase \"application/x-javascript\":\n\t\t\t\treturn \"js\";\n\n\n\t\t\tcase \"text/css\":\n\t\t\t\treturn \"css\";\n\n\t\t\tcase \"application/json\":\n\t\t\t\treturn \"json\";\n\t\t}\n\n\t\treturn null;\n\t}\n\n\tasync rewrite(response, requestType, csp) {\n\t\tlet contentType = response.headers.get(\"Content-Type\") || \"\";\n\t\tcontentType = contentType.split(\";\", 1)[0];\n\n\n\t\tconst rewriteMode = this.getRewriteMode(requestType, contentType);\n\n\t\tconst encoding = response.headers.get(\"content-encoding\");\n\n\t\tconst headers = this.rewriteHeaders(response.headers, true, rewriteMode !== null);\n\n\t\tif (csp) {\n\t\t\theaders.append(\"Content-Security-Policy\", csp);\n\t\t}\n\n\t\tif (rewriteMode) {\n\t\t\tresponse = await this.decodeResponse(response, encoding);\n\t\t}\n\n\t\tswitch (rewriteMode) {\n\t\t\tcase \"css\":\n\t\t\t\treturn this.rewriteCSS(response, headers);\n\n\t\t\tcase \"js\":\n\t\t\t\treturn this.rewriteJS(response, headers);\n\n\t\t\tcase \"html\":\n\t\t\t\treturn this.rewriteHtml(response, headers);\n\t\t}\n\n\t\treturn this.makeResponse(response.body, response, headers);\n\t}\n\n\t// URL\n\trewriteUrl(url) {\n\t\tvar origUrl = url;\n\n\t\turl = url.trim();\n\n\t\tif (!url) {\n\t\t\treturn origUrl;\n\t\t}\n\n\t\tif (url.startsWith(\"data:\") ||  url.startsWith(\"blob:\") || url.startsWith(\"about:\")) {\n\t\t\treturn origUrl;\n\t\t}\n\n\t\tif (url.startsWith(\"http:\") || url.startsWith(\"https:\") || url.startsWith(\"//\")) {\n\t\t\treturn this.prefix + url;\n\t\t}\n\n\t\tif (url.startsWith(\"/\") || url.startsWith(\".\")) {\n\t\t\turl = new URL(url, this.baseUrl).href;\n\t\t\treturn this.prefix + url;\n\t\t} else {\n\t\t\treturn origUrl;\n\t\t}\n\n    \t//console.log(`RW ${origUrl} -> ${this.prefix + url}`);\n\n    }\n\n    // HTML\n    rewriteMetaContent(attrs, attr) {\n    \tconst equiv = this.getAttr(attrs, \"http-equiv\");\n\n    \tif (equiv === \"content-security-policy\") {\n    \t\tattr.name = \"_\" + attr.name;\n    \t} else if (equiv === \"refresh\") {\n    \t\t//todo: refresh\n    \t} else if (this.getAttr(attrs, \"name\") === \"referrer\") {\n    \t\treturn \"no-referrer-when-downgrade\";\n    \t} else if (startsWithAny(attr.value, DATA_RW_PROTOCOLS)) {\n    \t\treturn this.rewriteUrl(attr.value);\n    \t}\n\n    \treturn attr.value;\n    }\n\n    rewriteSrcSet(value) {\n    \tconst SRCSET_REGEX = /\\s*(\\S*\\s+[\\d\\.]+[wx]),|(?:\\s*,(?:\\s+|(?=https?:)))/;\n\n    \tlet rv = [];\n\n    \tfor (let v of value.split(SRCSET_REGEX)) {\n    \t\tif (v) {\n    \t\t\trv.push(this.rewriteUrl(v.trim()));\n    \t\t}\n    \t}\n\n    \treturn rv.join(\", \");\n    }\n\n\n    rewriteAttrs(tag, attrRules) {\n    \tconst isUrl = (val) => { return startsWithAny(val, DATA_RW_PROTOCOLS); }\n\n    \tfor (let attr of tag.attrs) {\n    \t\tconst name = attr.name;\n    \t\tconst value = attr.value;\n\n    \t\t// js attrs\n    \t\tif (name.startsWith(\"on\") && value.startsWith(\"javascript:\") && name.slice(2, 3) != \"-\") {\n    \t\t\tattr.value = \"javascript:\" + this.rewriteJSProxy(value.slice(\"javascript:\".length));\n    \t\t}\n    \t\t// css attrs\n    \t\telse if (name === \"style\") {\n    \t\t\tattr.value = this.rewriteCSSText(attr.value);\n    \t\t}\n\n    \t\t// background attr\n    \t\telse if (name === \"background\") {\n    \t\t\tattr.value = this.rewriteUrl(value);\n    \t\t}\n\n    \t\telse if (name === \"srcset\") {\n    \t\t\tattr.value = this.rewriteSrcSet(value);\n    \t\t}\n\n    \t\telse if (name === \"crossorigin\" || name === \"integrity\") {\n    \t\t\tattr.name = \"_\" + attr.name;\n    \t\t}\n\n    \t\telse if (tag.tagName === \"meta\" && name === \"content\") {\n    \t\t\tattr.value = this.rewriteMetaContent(tag.attrs, attr);\n    \t\t}\n\n    \t\telse if (tag.tagName === \"param\" && isUrl(value)) {\n    \t\t\tattr.value = this.rewriteUrl(attr.value);\n    \t\t} \n\n    \t\telse if (name.startsWith(\"data-\") && isUrl(value)) {\n    \t\t\tattr.value = this.rewriteUrl(attr.value);\n    \t\t}\n\n    \t\telse if (name === \"href\" || name === \"src\") {\n    \t\t\tattr.value = this.rewriteUrl(attr.value);\n    \t\t}\n\n    \t\telse {\n    \t\t\tif (attrRules[attr.name]) {\n    \t\t\t\tattr.value = this.rewriteUrl(attr.value);\n    \t\t\t}\n    \t\t}\n    \t}\n    }\n\n    getAttr(attrs, name) {\n    \tfor (let attr of attrs) {\n    \t \tif (attr.name === name) {\n    \t\t\treturn attr.value;\n    \t\t}\n    \t}\n\n    \treturn null;\n    }\n\n    rewriteHtml(response, headers) {\n    \tconst defmod = \"mp_\";\n\n    \tconst rewriteTags = {\n    \t\t'a':       {'href': defmod},\n    \t\t'base':    {'href': defmod}, \n    \t\t'applet':  {'codebase': 'oe_',\n    \t\t'archive': 'oe_'},\n    \t\t'area':    {'href': defmod},\n    \t\t'audio':   {'src': 'oe_'},\n    \t\t'base':    {'href': defmod},\n    \t\t'blockquote': {'cite': defmod},\n    \t\t'body':    {'background': 'im_'},\n    \t\t'button':  {'formaction': defmod},\n    \t\t'command': {'icon': 'im_'},\n    \t\t'del':     {'cite': defmod},\n    \t\t'embed':   {'src': 'oe_'},\n    \t\t'iframe':  {'src': 'if_'},\n    \t\t'image':   {'src': 'im_', 'xlink:href': 'im_', 'href': 'im_'},\n    \t\t'img':     {'src': 'im_',\n    \t\t'srcset': 'im_'},\n    \t\t'ins':     {'cite': defmod},\n    \t\t'input':   {'src': 'im_',\n    \t\t'formaction': defmod},\n    \t\t'form':    {'action': defmod},\n    \t\t'frame':   {'src': 'fr_'},\n    \t\t'link':    {'href': 'oe_'},\n    \t\t'meta':    {'content': defmod},\n    \t\t'object':  {'codebase': 'oe_',\n    \t\t'data': 'oe_'},\n    \t\t'param':   {'value': 'oe_'},\n    \t\t'q':       {'cite': defmod},\n    \t\t'ref':     {'href': 'oe_'},\n    \t\t'script':  {'src': 'js_', 'xlink:href': 'js_'},\n    \t\t'source':  {'src': 'oe_', 'srcset': 'oe_'},\n    \t\t'video':   {'src': 'oe_',\n    \t\t'poster': 'im_'},\n    \t}\n\n    \tconst rwStream = new RewritingStream();\n\n    \tlet insertAdded = false;\n\n    \tlet context = \"\";\n\n\t    // Replace divs with spans\n\t    rwStream.on('startTag', startTag => {\n\n\t    \tconst tagRules = rewriteTags[startTag.tagName];\n\n\t    \tthis.rewriteAttrs(startTag, tagRules || {});\n\n\t    \tswitch (startTag.tagName) {\n\t    \t\tcase \"head\":\n\t    \t\t\trwStream.emitRaw(this.headInsert);\n\t    \t\t\tinsertAdded = true;\n\t    \t\t\tbreak;\n\n\t    \t\tcase \"base\":\n\t    \t\t\tconst newBase = this.getAttr(startTag.attrs, \"href\");\n\t    \t\t\tif (newBase && newBase.startsWith(this.prefix)) {\n\t    \t\t\t\tthis.baseUrl = newBase.slice(this.prefix.length);\n\t    \t\t\t}\n\t    \t\t\tbreak;\n\n\t    \t\tcase \"script\":\n\t    \t\tcase \"style\":\n\t    \t\t\tif (!startTag.selfClosing) {\n\t    \t\t\t\tcontext = startTag.tagName;\n\t    \t\t\t}\n\t    \t\t\tbreak;\n\n\t    \t}\n\n\t    \trwStream.emitStartTag(startTag);\n\t    });\n\n\t    rwStream.on('endTag', endTag => {\n\t    \tif (endTag.tagName == context) {\n\t    \t\tcontext = \"\";\n\t    \t}\n\t    \trwStream.emitEndTag(endTag);\n\t    });\n\n\t    rwStream.on('text', (textToken, raw) => {\n\t    \tif (context === \"script\") {\n\t    \t\t//textToken.text = this.rewriteJSProxy(textToken.text);\n\t    \t\t//console.log(raw);\n\t    \t\t//console.log(textToken.text);\n\t    \t\trwStream.emitRaw(this.rewriteJSProxy(textToken.text));\n\t    \t} else if (context === \"style\") {\n\t    \t\t//textToken.text = this.rewriteCSSText(textToken.text);\n\t    \t\trwStream.emitRaw(this.rewriteCSSText(textToken.text));\n\t    \t} else {\n\t    \t\trwStream.emitText(textToken);\n\t    \t}\n\t    });\n\n\t    const buff = new stream.Readable({encoding: 'utf-8'});\n\t    buff._read = () => {};\n\t    buff.pipe(rwStream);\n\n\t    const reader = response.body.getReader();\n\n\t    function pump() {\n\t    \treturn reader.read().then(({ done, value }) => {\n\t          // When no more data needs to be consumed, close the stream\n\n\t          if (done) {\n\t          \t//rewriter.close();\n\t          \tbuff.push(null);\n\t          \treturn;\n\t          }\n\t          //console.log(value);\n\n\t          // Enqueue the next data chunk into our target stream\n\t          //rewriter.write(value, 'utf-8');\n\t          buff.push(value);\n\t          return pump();\n\t      });\n\t    }\n\n\t    var encoder = new TextEncoder(\"utf-8\");\n\n\t    var rs = new ReadableStream({\n\t    \tstart(controller) {\n\t    \t\trwStream.on(\"data\", function (chunk) {\n\t    \t\t\tcontroller.enqueue(encoder.encode(chunk));\n\t    \t\t});\n\n\t    \t\trwStream.on(\"end\", function () {\n\t    \t\t\tcontroller.close();\n\t    \t\t});\n\n\t    \t\tpump();\n\t    \t}\n\t    });\n\n\t    return this.makeResponse(rs, response, headers);\n\t}\n\n\t// CSS\n\tcssStyleReplacer(match, n1, n2, n3, offset, string) {\n\t\treturn n1 + this.rewriteUrl(n2) + n3;\n\t};\n\n\trewriteCSSText(text) {\n\t\treturn text\n\t\t\t.replace(STYLE_REGEX, this.cssStyleReplacer.bind(this))\n\t\t\t.replace(IMPORT_REGEX, this.cssStyleReplacer.bind(this))\n\t\t\t.replace(NO_WOMBAT_REGEX, '');\n\t}\n\n\trewriteCSS(response, headers) {\n\t\treturn response.text().then((text) => {\n\t\t\treturn this.rewriteCSSText(text);\n\n\t\t}).then((text) => {\n\n\t\t\treturn this.makeResponse(text, response, headers);\n\t\t});\n\t}\n\n\t// JS\n\trewriteJSProxy(text) {\n\t\tif (!text ||\n\t\t\ttext.indexOf('_____WB$wombat$assign$function_____') >= 0 ||\n\t\t\ttext.indexOf('<') === 0\n\t\t\t) {\n\t\t\treturn text;\n\t}\n\n\tconst overrideProps = [\n\t'window',\n\t'self',\n\t'document',\n\t'location',\n\t'top',\n\t'parent',\n\t'frames',\n\t'opener'\n\t];\n\n\tlet containsProps = false;\n\n\tfor (let prop of overrideProps) {\n\t\tif (text.indexOf(prop) >= 0) {\n\t\t\tcontainsProps = true;\n\t\t\tbreak;\n\t\t}\n\t}\n\n\tif (!containsProps) return text;\n\n\n\ttext = text.replace(DOT_POST_MSG_REGEX, '.__WB_pmw(self.window)$1');\n\n\treturn (\n\t\t'var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && ' +\n\t\t'self._wb_wombat.local_init &&self._wb_wombat.local_init(name)) || self[name]; };\\n' +\n\t\t'if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { return obj; } }\\n{\\n' +\n\t\t'let window = _____WB$wombat$assign$function_____(\"window\");\\n' +\n\t\t'let self = _____WB$wombat$assign$function_____(\"self\");\\n' +\n\t\t'let document = _____WB$wombat$assign$function_____(\"document\");\\n' +\n\t\t'let location = _____WB$wombat$assign$function_____(\"location\");\\n' +\n\t\t'let top = _____WB$wombat$assign$function_____(\"top\");\\n' +\n\t\t'let parent = _____WB$wombat$assign$function_____(\"parent\");\\n' +\n\t\t'let frames = _____WB$wombat$assign$function_____(\"frames\");\\n' +\n\t\t'let opener = _____WB$wombat$assign$function_____(\"opener\");\\n' +\n\t\ttext +\n\t\t'\\n\\n}'\n\t\t);\n\t}\n\n\trewriteJS(response, headers) {\n\t\treturn response.text().then((text) => {\n\n\t\t\treturn this.makeResponse(this.rewriteJSProxy(text), response, headers);\n\t\t});\n\t}\n\n\tmakeResponse(content, response, headers)  {\n\t\tconst initOpt = {\n\t    \t\"status\": response.status,\n\t    \t\"statusText\": response.statusText,\n\t    \t\"headers\": headers || response.headers\n\t\t};\n\n\t\tconst timestamp = response.timestamp;\n\t\tresponse = new Response(content, initOpt);\n\t\tresponse.timestamp = timestamp;\n\t\treturn response;\n\t}\n\n\t//Headers\n\trewriteHeaders(headers, urlRewrite, contentRewrite) {\n\t\tconst headerRules = {\n\t\t\t'access-control-allow-origin': 'prefix-if-url-rewrite',\n\t\t\t'access-control-allow-credentials': 'prefix-if-url-rewrite',\n\t\t\t'access-control-expose-headers': 'prefix-if-url-rewrite',\n\t\t\t'access-control-max-age': 'prefix-if-url-rewrite',\n\t\t\t'access-control-allow-methods': 'prefix-if-url-rewrite',\n\t\t\t'access-control-allow-headers': 'prefix-if-url-rewrite',\n\n\t\t\t'accept-patch': 'keep',\n\t\t\t'accept-ranges': 'keep',\n\n\t\t\t'age': 'prefix',\n\n\t\t\t'allow': 'keep',\n\n\t\t\t'alt-svc': 'prefix',\n\t\t\t'cache-control': 'prefix',\n\n\t\t\t'connection': 'prefix',\n\n\t\t\t'content-base': 'url-rewrite',\n\t\t\t'content-disposition': 'keep',\n\t\t\t'content-encoding': 'prefix-if-content-rewrite',\n\t\t\t'content-language': 'keep',\n\t\t\t'content-length': 'content-length',\n\t\t\t'content-location': 'url-rewrite',\n\t\t\t'content-md5': 'prefix',\n\t\t\t'content-range': 'keep',\n\t\t\t'content-security-policy': 'prefix',\n\t\t\t'content-security-policy-report-only': 'prefix',\n\t\t\t'content-type': 'keep',\n\n\t\t\t'date': 'keep',\n\n\t\t\t'etag': 'prefix',\n\t\t\t'expires': 'prefix',\n\n\t\t\t'last-modified': 'prefix',\n\t\t\t'link': 'keep',\n\t\t\t'location': 'url-rewrite',\n\n\t\t\t'p3p': 'prefix',\n\t\t\t'pragma': 'prefix',\n\n\t\t\t'proxy-authenticate': 'keep',\n\n\t\t\t'public-key-pins': 'prefix',\n\t\t\t'retry-after': 'prefix',\n\t\t\t'server': 'prefix',\n\n\t\t\t'set-cookie': 'cookie',\n\n\t\t\t'status': 'prefix',\n\n\t\t\t'strict-transport-security': 'prefix',\n\n\t\t\t'trailer': 'prefix',\n\t\t\t'transfer-encoding': 'transfer-encoding',\n\t\t\t'tk': 'prefix',\n\n\t\t\t'upgrade': 'prefix',\n\t\t\t'upgrade-insecure-requests': 'prefix',\n\n\t\t\t'vary': 'prefix',\n\n\t\t\t'via': 'prefix',\n\n\t\t\t'warning': 'prefix',\n\n\t\t\t'www-authenticate': 'keep',\n\n\t\t\t'x-frame-options': 'prefix',\n\t\t\t'x-xss-protection': 'prefix',\n\t\t}\n\n\t\tconst headerPrefix = 'X-Archive-Orig-';\n\n\t\tlet new_headers = new Headers();\n\n\t\tfor (let header of headers.entries()) {\n\t\t\tconst rule = headerRules[header[0]];\n\n\t\t\tswitch (rule) {\n\t\t\t\tcase \"keep\":\n\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"url-rewrite\":\n\t\t\t\t\tif (urlRewrite) {\n\t\t\t\t\t\tnew_headers.append(header[0], this.rewriteUrl(header[1]));\n\t\t\t\t\t} else {\n\t\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\t}\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"prefix-if-content-rewrite\":\n\t\t\t\t\tif (contentRewrite) {\n\t\t\t\t\t\tnew_headers.append(headerPrefix + header[0], header[1]);\n\t\t\t\t\t} else {\n\t\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\t}\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"prefix-if-url-rewrite\":\n\t\t\t\t\tif (urlRewrite) {\n\t\t\t\t\t\tnew_headers.append(headerPrefix + header[0], header[1]);\n\t\t\t\t\t} else {\n\t\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\t}\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"content-length\":\n\t\t\t\t\tif (header[1] == '0') {\n\t\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\t\tcontinue;\n\t\t\t\t\t}\n\n\t\t\t\t\tif (contentRewrite) {\n\t\t\t\t\t\ttry {\n\t\t\t\t\t\t\tif (parseInt(header[1]) >=0 ) {\n\t\t\t\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\t\t\t\tcontinue;\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t} catch(e) {}\n\t\t\t\t\t}\n\n\t\t\t\t\tnew_headers.append(headerPrefix + header[0], header[1]);\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"transfer-encoding\":\n\t\t\t\t\t//todo: mark as needing decoding?\n\t\t\t\t\tnew_headers.append(headerPrefix + header[0], header[1]);\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"prefix\":\n\t\t\t\t\tnew_headers.append(headerPrefix + header[0], header[1]);\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"cookie\":\n\t\t\t\t\t//todo\n\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\tbreak;\n\n\t\t\t\tdefault:\n\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t}\n\t\t}\n\n\t\treturn new_headers;\n\t}\n}\n\n\nmodule.exports = Rewriter;\n\n\n\n//# sourceURL=webpack:///./src/rewrite.js?");
+eval("\nconst STYLE_REGEX = /(url\\s*\\(\\s*[\\\\\"']*)([^)'\"]+)([\\\\\"']*\\s*\\))/gi;\n\nconst IMPORT_REGEX = /(@import\\s*[\\\\\"']*)([^)'\";]+)([\\\\\"']*\\s*;?)/gi;\n\nconst NO_WOMBAT_REGEX = /WB_wombat_/g;\n\nconst DOT_POST_MSG_REGEX = /(.postMessage\\s*\\()/;\n\nfunction startsWithAny(value, iter) {\n\tfor (let str of iter) {\n\t\tif (value.startsWith(str)) {\n\t\t\treturn true;\n\t\t}\n\t}\n\n\treturn false;\n}\n\nconst DATA_RW_PROTOCOLS = [\"http://\", \"https://\", \"//\"];\n\n\nclass Rewriter\n{\n\tconstructor(baseUrl, prefix, headInsert) {\n\t\tthis.baseUrl = baseUrl;\n\t\tthis.prefix = prefix || \"\";\n\t\tthis.relPrefix = new URL(this.prefix).pathname;\n\t\tthis.headInsert = headInsert || \"\";\n\t}\n\n\tasync decodeResponse(response, encoding) {\n\t\tif (!encoding) {\n\t\t\treturn response;\n\t\t}\n\n\t\tconst ab = await response.arrayBuffer();\n\n\t\tlet content = ab;\n\n\t\tif (encoding == \"br\") {\n\t\t\tcontent = brotliDecode(new Uint8Array(ab));\n\n\t\t} else {\n\t\t\tconst inflator = new pako.Inflate();\n\n\t        inflator.push(ab, true);\n\n\t        // if error occurs (eg. not gzip), use original arraybuffer\n\t        content = (inflator.result && !inflator.err) ? inflator.result : ab;\n\t    }\n\n\t    response.headers.set(\"Content-Length\", content.byteLength);\n\n\t\treturn this.makeResponse(content, response);\n\t}\n\n\tgetRewriteMode(requestType, contentType) {\n\t\tswitch (requestType) {\n\t\t\tcase \"style\":\n\t\t\t\treturn \"css\";\n\n\t\t\tcase \"script\":\n\t\t\t\treturn \"js\";\n\t\t}\n\n\t\tswitch (contentType) {\n\t\t\tcase \"text/html\":\n\t\t\t\treturn \"html\";\n\n\t\t\tcase \"text/javascript\":\n\t\t\tcase \"application/javascript\":\n\t\t\tcase \"application/x-javascript\":\n\t\t\t\treturn \"js\";\n\n\t\t\tcase \"text/css\":\n\t\t\t\treturn \"css\";\n\t\t}\n\n\t\treturn null;\n\t}\n\n\tasync rewrite(response, requestType, csp) {\n\t\tlet contentType = response.headers.get(\"Content-Type\") || \"\";\n\t\tcontentType = contentType.split(\";\", 1)[0];\n\n\n\t\tconst rewriteMode = this.getRewriteMode(requestType, contentType);\n\n\t\tconst encoding = response.headers.get(\"content-encoding\");\n\n\t\tconst headers = this.rewriteHeaders(response.headers, true, rewriteMode !== null);\n\n\t\tif (csp) {\n\t\t\theaders.append(\"Content-Security-Policy\", csp);\n\t\t}\n\n\t\tif (rewriteMode || encoding) {\n\t\t\tresponse = await this.decodeResponse(response, encoding);\n\t\t}\n\n\t\tswitch (rewriteMode) {\n\t\t\tcase \"css\":\n\t\t\t\treturn this.rewriteCSS(response, headers);\n\n\t\t\tcase \"js\":\n\t\t\t\treturn this.rewriteScript(response, headers);\n\n\t\t\tcase \"html\":\n\t\t\t\treturn this.rewriteHtml(response, headers);\n\t\t}\n\n\t\treturn this.makeResponse(response.body, response, headers);\n\t}\n\n\t// URL\n\trewriteUrl(url) {\n\t\tvar origUrl = url;\n\n\t\turl = url.trim();\n\n\t\tif (!url) {\n\t\t\treturn origUrl;\n\t\t}\n\n\t\tif (url.startsWith(\"data:\") ||  url.startsWith(\"blob:\") || url.startsWith(\"about:\")) {\n\t\t\treturn origUrl;\n\t\t}\n\n\t\tif (url.startsWith(\"http:\") || url.startsWith(\"https:\") || url.startsWith(\"//\")) {\n\t\t\treturn this.prefix + url;\n\t\t}\n\n\t\tif (url.startsWith(\"/\")) {\n\t\t\turl = new URL(url, this.baseUrl).href;\n\t\t\treturn this.relPrefix + url;\n\t\t} else if (url.startsWith(\".\")) {\n\t\t\turl = new URL(url, this.baseUrl).href;\n\t\t\treturn this.prefix + url;\n\t\t} else {\n\t\t\treturn origUrl;\n\t\t}\n\n    \t//console.log(`RW ${origUrl} -> ${this.prefix + url}`);\n\n    }\n\n    // HTML\n    rewriteMetaContent(attrs, attr) {\n    \tconst equiv = this.getAttr(attrs, \"http-equiv\");\n\n    \tif (equiv === \"content-security-policy\") {\n    \t\tattr.name = \"_\" + attr.name;\n    \t} else if (equiv === \"refresh\") {\n    \t\t//todo: refresh\n    \t} else if (this.getAttr(attrs, \"name\") === \"referrer\") {\n    \t\treturn \"no-referrer-when-downgrade\";\n    \t} else if (startsWithAny(attr.value, DATA_RW_PROTOCOLS)) {\n    \t\treturn this.rewriteUrl(attr.value);\n    \t}\n\n    \treturn attr.value;\n    }\n\n    rewriteSrcSet(value) {\n    \tconst SRCSET_REGEX = /\\s*(\\S*\\s+[\\d\\.]+[wx]),|(?:\\s*,(?:\\s+|(?=https?:)))/;\n\n    \tlet rv = [];\n\n    \tfor (let v of value.split(SRCSET_REGEX)) {\n    \t\tif (v) {\n    \t\t\trv.push(this.rewriteUrl(v.trim()));\n    \t\t}\n    \t}\n\n    \treturn rv.join(\", \");\n    }\n\n\n    rewriteAttrs(tag, attrRules) {\n    \tconst isUrl = (val) => { return startsWithAny(val, DATA_RW_PROTOCOLS); }\n\n    \tfor (let attr of tag.attrs) {\n    \t\tconst name = attr.name;\n    \t\tconst value = attr.value;\n\n    \t\t// js attrs\n    \t\tif (name.startsWith(\"on\") && value.startsWith(\"javascript:\") && name.slice(2, 3) != \"-\") {\n    \t\t\tattr.value = \"javascript:\" + this.rewriteJS(value.slice(\"javascript:\".length), true);\n    \t\t}\n    \t\t// css attrs\n    \t\telse if (name === \"style\") {\n    \t\t\tattr.value = this.rewriteCSSText(attr.value);\n    \t\t}\n\n    \t\t// background attr\n    \t\telse if (name === \"background\") {\n    \t\t\tattr.value = this.rewriteUrl(value);\n    \t\t}\n\n    \t\telse if (name === \"srcset\") {\n    \t\t\tattr.value = this.rewriteSrcSet(value);\n    \t\t}\n\n    \t\telse if (name === \"crossorigin\" || name === \"integrity\") {\n    \t\t\tattr.name = \"_\" + attr.name;\n    \t\t}\n\n    \t\telse if (tag.tagName === \"meta\" && name === \"content\") {\n    \t\t\tattr.value = this.rewriteMetaContent(tag.attrs, attr);\n    \t\t}\n\n    \t\telse if (tag.tagName === \"param\" && isUrl(value)) {\n    \t\t\tattr.value = this.rewriteUrl(attr.value);\n    \t\t} \n\n    \t\telse if (name.startsWith(\"data-\") && isUrl(value)) {\n    \t\t\tattr.value = this.rewriteUrl(attr.value);\n    \t\t}\n\n    \t\telse if (name === \"href\" || name === \"src\") {\n    \t\t\tattr.value = this.rewriteUrl(attr.value);\n    \t\t}\n\n    \t\telse {\n    \t\t\tif (attrRules[attr.name]) {\n    \t\t\t\tattr.value = this.rewriteUrl(attr.value);\n    \t\t\t}\n    \t\t}\n    \t}\n    }\n\n    getAttr(attrs, name) {\n    \tfor (let attr of attrs) {\n    \t \tif (attr.name === name) {\n    \t\t\treturn attr.value;\n    \t\t}\n    \t}\n\n    \treturn null;\n    }\n\n    rewriteHtml(response, headers) {\n    \tconst defmod = \"mp_\";\n\n    \tconst rewriteTags = {\n    \t\t'a':       {'href': defmod},\n    \t\t'base':    {'href': defmod}, \n    \t\t'applet':  {'codebase': 'oe_',\n    \t\t'archive': 'oe_'},\n    \t\t'area':    {'href': defmod},\n    \t\t'audio':   {'src': 'oe_'},\n    \t\t'base':    {'href': defmod},\n    \t\t'blockquote': {'cite': defmod},\n    \t\t'body':    {'background': 'im_'},\n    \t\t'button':  {'formaction': defmod},\n    \t\t'command': {'icon': 'im_'},\n    \t\t'del':     {'cite': defmod},\n    \t\t'embed':   {'src': 'oe_'},\n    \t\t'iframe':  {'src': 'if_'},\n    \t\t'image':   {'src': 'im_', 'xlink:href': 'im_', 'href': 'im_'},\n    \t\t'img':     {'src': 'im_',\n    \t\t'srcset': 'im_'},\n    \t\t'ins':     {'cite': defmod},\n    \t\t'input':   {'src': 'im_',\n    \t\t'formaction': defmod},\n    \t\t'form':    {'action': defmod},\n    \t\t'frame':   {'src': 'fr_'},\n    \t\t'link':    {'href': 'oe_'},\n    \t\t'meta':    {'content': defmod},\n    \t\t'object':  {'codebase': 'oe_',\n    \t\t'data': 'oe_'},\n    \t\t'param':   {'value': 'oe_'},\n    \t\t'q':       {'cite': defmod},\n    \t\t'ref':     {'href': 'oe_'},\n    \t\t'script':  {'src': 'js_', 'xlink:href': 'js_'},\n    \t\t'source':  {'src': 'oe_', 'srcset': 'oe_'},\n    \t\t'video':   {'src': 'oe_',\n    \t\t'poster': 'im_'},\n    \t}\n\n    \tconst rwStream = new RewritingStream();\n\n    \tlet insertAdded = false;\n\n    \tlet context = \"\";\n\n\t    // Replace divs with spans\n\t    rwStream.on('startTag', startTag => {\n\n\t    \tconst tagRules = rewriteTags[startTag.tagName];\n\n\t    \tthis.rewriteAttrs(startTag, tagRules || {});\n\n\t    \trwStream.emitStartTag(startTag);\n\n\t    \tswitch (startTag.tagName) {\n\t    \t\tcase \"head\":\n\t    \t\t\trwStream.emitRaw(this.headInsert);\n\t    \t\t\tinsertAdded = true;\n\t    \t\t\tbreak;\n\n\t    \t\tcase \"base\":\n\t    \t\t\tconst newBase = this.getAttr(startTag.attrs, \"href\");\n\t    \t\t\tif (newBase && newBase.startsWith(this.prefix)) {\n\t    \t\t\t\tthis.baseUrl = newBase.slice(this.prefix.length);\n\t    \t\t\t}\n\t    \t\t\tbreak;\n\n\t    \t\tcase \"script\":\n\t    \t\t\tif (startTag.selfClosing) {\n\t    \t\t\t\tbreak;\n\t    \t\t\t}\n\n\t    \t\t\tconst scriptType = this.getAttr(startTag.attrs, \"type\");\n\n\t    \t\t\tif (!scriptType || scriptType.indexOf(\"javascript\") >= 0 || scriptType.indexOf(\"ecmascript\") >= 0) {\n\t    \t\t\t\tcontext = startTag.tagName;\n\t    \t\t\t}\n\t    \t\t\tbreak;\n\n\t    \t\tcase \"style\":\n\t    \t\t\tif (!startTag.selfClosing) {\n\t    \t\t\t\tcontext = startTag.tagName;\n\t    \t\t\t}\n\t    \t\t\tbreak;\n\n\t    \t}\n\t    });\n\n\t    rwStream.on('endTag', endTag => {\n\t    \tif (endTag.tagName == context) {\n\t    \t\tcontext = \"\";\n\t    \t}\n\t    \trwStream.emitEndTag(endTag);\n\t    });\n\n\t    rwStream.on('text', (textToken, raw) => {\n\t    \tif (context === \"script\") {\n\t    \t\t//textToken.text = this.rewriteJSProxy(textToken.text);\n\t    \t\t//console.log(raw);\n\t    \t\t//console.log(textToken.text);\n\t    \t\trwStream.emitRaw(this.rewriteJS(textToken.text));\n\t    \t} else if (context === \"style\") {\n\t    \t\t//textToken.text = this.rewriteCSSText(textToken.text);\n\t    \t\trwStream.emitRaw(this.rewriteCSSText(textToken.text));\n\t    \t} else {\n\t    \t\trwStream.emitText(textToken);\n\t    \t}\n\t    });\n\n\t    const buff = new stream.Readable({encoding: 'utf-8'});\n\t    buff._read = () => {};\n\t    buff.pipe(rwStream);\n\n\t    const reader = response.body.getReader();\n\n\t    function pump() {\n\t    \treturn reader.read().then(({ done, value }) => {\n\t          // When no more data needs to be consumed, close the stream\n\n\t          if (done) {\n\t          \t//rewriter.close();\n\t          \tbuff.push(null);\n\t          \treturn;\n\t          }\n\t          //console.log(value);\n\n\t          // Enqueue the next data chunk into our target stream\n\t          //rewriter.write(value, 'utf-8');\n\t          buff.push(value);\n\t          return pump();\n\t      });\n\t    }\n\n\t    var encoder = new TextEncoder(\"utf-8\");\n\n\t    var rs = new ReadableStream({\n\t    \tstart(controller) {\n\t    \t\trwStream.on(\"data\", function (chunk) {\n\t    \t\t\tcontroller.enqueue(encoder.encode(chunk));\n\t    \t\t});\n\n\t    \t\trwStream.on(\"end\", function () {\n\t    \t\t\tcontroller.close();\n\t    \t\t});\n\n\t    \t\tpump();\n\t    \t}\n\t    });\n\n\t    return this.makeResponse(rs, response, headers);\n\t}\n\n\t// CSS\n\tcssStyleReplacer(match, n1, n2, n3, offset, string) {\n\t\treturn n1 + this.rewriteUrl(n2) + n3;\n\t};\n\n\trewriteCSSText(text) {\n\t\treturn text\n\t\t\t.replace(STYLE_REGEX, this.cssStyleReplacer.bind(this))\n\t\t\t.replace(IMPORT_REGEX, this.cssStyleReplacer.bind(this))\n\t\t\t.replace(NO_WOMBAT_REGEX, '');\n\t}\n\n\trewriteCSS(response, headers) {\n\t\treturn response.text().then((text) => {\n\t\t\treturn this.rewriteCSSText(text);\n\n\t\t}).then((text) => {\n\n\t\t\treturn this.makeResponse(text, response, headers);\n\t\t});\n\t}\n\n\t// JS\n\trewriteJS(text, inline) {\n\t\tconst overrideProps = [\n\t\t\t'window',\n\t\t\t'self',\n\t\t\t'document',\n\t\t\t'location',\n\t\t\t'top',\n\t\t\t'parent',\n\t\t\t'frames',\n\t\t\t'opener',\n\t\t\t'this',\n\t\t\t'eval',\n\t\t\t'postMessage'\n\t\t];\n\n\t\tlet containsProps = false;\n\n\t\tfor (let prop of overrideProps) {\n\t\t\tif (text.indexOf(prop) >= 0) {\n\t\t\t\tcontainsProps = true;\n\t\t\t\tbreak;\n\t\t\t}\n\t\t}\n\n\t\tif (!containsProps) {\n\t\t\treturn text;\n\t\t}\n\n\t\treturn jsRules.rewrite(text, inline);\n\t}\n\n\trewriteScript(response, headers) {\n\t\treturn response.text().then((text) => {\n\n\t\t\treturn this.makeResponse(this.rewriteJS(text), response, headers);\n\t\t});\n\t}\n\n\tmakeResponse(content, response, headers)  {\n\t\tconst initOpt = {\n\t    \t\"status\": response.status,\n\t    \t\"statusText\": response.statusText,\n\t    \t\"headers\": headers || response.headers\n\t\t};\n\n\t\tconst timestamp = response.timestamp;\n\t\tresponse = new Response(content, initOpt);\n\t\tresponse.timestamp = timestamp;\n\t\treturn response;\n\t}\n\n\t//Headers\n\trewriteHeaders(headers, urlRewrite, contentRewrite) {\n\t\tconst headerRules = {\n\t\t\t'access-control-allow-origin': 'prefix-if-url-rewrite',\n\t\t\t'access-control-allow-credentials': 'prefix-if-url-rewrite',\n\t\t\t'access-control-expose-headers': 'prefix-if-url-rewrite',\n\t\t\t'access-control-max-age': 'prefix-if-url-rewrite',\n\t\t\t'access-control-allow-methods': 'prefix-if-url-rewrite',\n\t\t\t'access-control-allow-headers': 'prefix-if-url-rewrite',\n\n\t\t\t'accept-patch': 'keep',\n\t\t\t'accept-ranges': 'keep',\n\n\t\t\t'age': 'prefix',\n\n\t\t\t'allow': 'keep',\n\n\t\t\t'alt-svc': 'prefix',\n\t\t\t'cache-control': 'prefix',\n\n\t\t\t'connection': 'prefix',\n\n\t\t\t'content-base': 'url-rewrite',\n\t\t\t'content-disposition': 'keep',\n\t\t\t'content-encoding': 'prefix-if-content-rewrite',\n\t\t\t'content-language': 'keep',\n\t\t\t'content-length': 'content-length',\n\t\t\t'content-location': 'url-rewrite',\n\t\t\t'content-md5': 'prefix',\n\t\t\t'content-range': 'keep',\n\t\t\t'content-security-policy': 'prefix',\n\t\t\t'content-security-policy-report-only': 'prefix',\n\t\t\t'content-type': 'keep',\n\n\t\t\t'date': 'keep',\n\n\t\t\t'etag': 'prefix',\n\t\t\t'expires': 'prefix',\n\n\t\t\t'last-modified': 'prefix',\n\t\t\t'link': 'keep',\n\t\t\t'location': 'url-rewrite',\n\n\t\t\t'p3p': 'prefix',\n\t\t\t'pragma': 'prefix',\n\n\t\t\t'proxy-authenticate': 'keep',\n\n\t\t\t'public-key-pins': 'prefix',\n\t\t\t'retry-after': 'prefix',\n\t\t\t'server': 'prefix',\n\n\t\t\t'set-cookie': 'cookie',\n\n\t\t\t'status': 'prefix',\n\n\t\t\t'strict-transport-security': 'prefix',\n\n\t\t\t'trailer': 'prefix',\n\t\t\t'transfer-encoding': 'transfer-encoding',\n\t\t\t'tk': 'prefix',\n\n\t\t\t'upgrade': 'prefix',\n\t\t\t'upgrade-insecure-requests': 'prefix',\n\n\t\t\t'vary': 'prefix',\n\n\t\t\t'via': 'prefix',\n\n\t\t\t'warning': 'prefix',\n\n\t\t\t'www-authenticate': 'keep',\n\n\t\t\t'x-frame-options': 'prefix',\n\t\t\t'x-xss-protection': 'prefix',\n\t\t}\n\n\t\tconst headerPrefix = 'X-Archive-Orig-';\n\n\t\tlet new_headers = new Headers();\n\n\t\tfor (let header of headers.entries()) {\n\t\t\tconst rule = headerRules[header[0]];\n\n\t\t\tswitch (rule) {\n\t\t\t\tcase \"keep\":\n\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"url-rewrite\":\n\t\t\t\t\tif (urlRewrite) {\n\t\t\t\t\t\tnew_headers.append(header[0], this.rewriteUrl(header[1]));\n\t\t\t\t\t} else {\n\t\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\t}\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"prefix-if-content-rewrite\":\n\t\t\t\t\tif (contentRewrite) {\n\t\t\t\t\t\tnew_headers.append(headerPrefix + header[0], header[1]);\n\t\t\t\t\t} else {\n\t\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\t}\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"prefix-if-url-rewrite\":\n\t\t\t\t\tif (urlRewrite) {\n\t\t\t\t\t\tnew_headers.append(headerPrefix + header[0], header[1]);\n\t\t\t\t\t} else {\n\t\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\t}\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"content-length\":\n\t\t\t\t\tif (header[1] == '0') {\n\t\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\t\tcontinue;\n\t\t\t\t\t}\n\n\t\t\t\t\tif (contentRewrite) {\n\t\t\t\t\t\ttry {\n\t\t\t\t\t\t\tif (parseInt(header[1]) >=0 ) {\n\t\t\t\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\t\t\t\tcontinue;\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t} catch(e) {}\n\t\t\t\t\t}\n\n\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"transfer-encoding\":\n\t\t\t\t\t//todo: mark as needing decoding?\n\t\t\t\t\tnew_headers.append(headerPrefix + header[0], header[1]);\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"prefix\":\n\t\t\t\t\tnew_headers.append(headerPrefix + header[0], header[1]);\n\t\t\t\t\tbreak;\n\n\t\t\t\tcase \"cookie\":\n\t\t\t\t\t//todo\n\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t\t\tbreak;\n\n\t\t\t\tdefault:\n\t\t\t\t\tnew_headers.append(header[0], header[1]);\n\t\t\t}\n\t\t}\n\n\t\treturn new_headers;\n\t}\n}\n\nclass JSRewriterRules {\n\tconstructor() {\n        this.thisRw = '_____WB$wombat$check$this$function_____(this)';\n\n        const checkLoc = '((self.__WB_check_loc && self.__WB_check_loc(location)) || {}).href = ';\n\n        const localObjs = [\n            'window',\n            'self',\n            'document',\n            'location',\n            'top',\n            'parent',\n            'frames',\n            'opener'\n        ];\n\n        const propStr = localObjs.join('|');\n\n        const evalStr = 'WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).';\n\n\n        this.rules = [\n            // rewriting 'eval(....)' - invocation\n            [/\\beval\\s*\\(/, this.addPrefix(evalStr)],\n            \n            // rewriting 'x = eval' - no invocation\n            [/\\beval\\b/, this.addPrefix('WB_wombat_')],\n\n            // rewriting .postMessage -> __WB_pmw(self).postMessage\n            [/\\.postMessage\\b\\(/, this.addPrefix('.__WB_pmw(self)')],\n\n            // rewriting 'location = ' to custom expression '(...).href =' assignment\n            [/\\s*\\blocation\\b\\s*[=]\\s*(?![=])/, this.addSuffix(checkLoc)],\n\n            // rewriting 'return this'\n            [/\\breturn\\s+this\\b\\s*(?![.$])/, this.replaceThis()],\n\n            // rewriting 'this.' special properties access on new line, with ; prepended\n            // if prev char is '\\n', or if prev is not '.' or '$', no semi\n            [new RegExp(`\\\\s*\\\\bthis\\\\b(?=(?:\\\\.(?:${propStr})\\\\b))`), this.replaceThisProp()],\n            \n            // rewrite '= this' or ', this'\n            [/[=,]\\s*\\bthis\\b\\s*(?![.$])/, this.replaceThis()],\n            \n            // rewrite '})(this)'\n            [/\\}(?:\\s*\\))?\\s*\\(this\\)/, this.replaceThis()],\n\n            // rewrite this in && or || expr?\n            [/[^|&][|&]{2}\\s*this\\b\\s*(?![|&.$]([^|&]|$))/, this.replaceThis()],\n        ];\n\n        this.compileRules();\n\n        this.firstBuff = this.initLocalDecl(localObjs);\n        this.lastBuff = '\\n\\n}';\n\t}\n\n\tcompileRules() {\n\t\tlet rxBuff = '';\n\n\t\tfor (let rule of this.rules) {\n\t\t\tif (rxBuff) {\n\t\t\t\trxBuff += \"|\";\n\t\t\t}\n\t\t\trxBuff += `(${rule[0].source})`;\n\t\t}\n\n\t\tconst rxString = `(?:${rxBuff})`;\n\n\t\tconsole.log(rxString);\n\n\t\tthis.rx = new RegExp(rxString, 'gm');\n\t}\n\n\tdoReplace(params) {\n\t\tconst offset = params[params.length - 2];\n\t\tconst string = params[params.length - 1];\n\n\t\tfor (let i = 0; i < this.rules.length; i++) {\n\t\t\tconst curr = params[i];\n\t\t\tif (!curr) {\n\t\t\t\tcontinue;\n\t\t\t}\n\n\t\t\t// if (this.rules[i].length == 3) {\n\t\t\t// \tconst lookbehind = this.rules[i][2];\n\t\t\t// \tconst offset = params[params.length - 2];\n\t\t\t// \tconst string = params[params.length - 1];\n\n\t\t\t// \tconst len = lookbehind.len || 1;\n\t\t\t// \tconst behind = string.slice(offset - len, offset);\n\n\t\t\t// \t// if lookbehind check does not pass, don't replace!\n\t\t\t// \tif (!behind.match(lookbehind.rx) !== (lookbehind.neg || false)) {\n\t\t\t// \t\treturn curr;\n\t\t\t// \t}\n\t\t\t// }\n\n\t\t\tconst result = this.rules[i][1].call(this, curr, offset, string);\n\t\t\tif (result) {\n\t\t\t\treturn result;\n\t\t\t}\n\t\t}\n\t}\n\n\taddPrefix(prefix) {\n\t\treturn x => prefix + x;\n\t}\n\n\taddSuffix(suffix) {\n\t\treturn (x, offset, string) => {\n\t\t\tif (offset > 0) {\n\t\t\t\tconst prev = string[offset - 1];\n\t\t\t\tif (prev === '.' || prev === '$') {\n\t\t\t\t\treturn x;\n\t\t\t\t}\n\t\t\t}\n\t\t\treturn x + suffix;\n\t\t}\n\t}\n\n\treplaceThis() {\n\t\treturn x => x.replace('this', this.thisRw);\n\t}\n\n\treplaceThisProp() {\n\t\treturn (x, offset, string) => {\n\t\t\tconst prev = (offset > 0 ? string[offset - 1] : \"\");\n\t\t\tif (prev === '\\n') {\n\t\t\t\treturn x.replace('this', ';' + this.thisRw);\n\t\t\t} else if (prev !== '.' && prev !== '$') {\n\t\t\t\treturn x.replace('this', this.thisRw);\n\t\t\t} else {\n\t\t\t\treturn x;\n\t\t\t}\n\t\t};\n\t}\n\n\tinitLocalDecl(localDecls) {\n\t\tconst checkThisFunc = '_____WB$wombat$check$this$function_____';\n\n\t\tconst assignFunc = '_____WB$wombat$assign$function_____';\n\n\t\tlet buffer = `\\\nvar ${checkThisFunc} = function (thisObj) { if (thisObj && thisObj._WB_wombat_obj_proxy) return thisObj._WB_wombat_obj_proxy; return thisObj; };\nvar ${assignFunc} = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };\nif (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }\n{\n`\n\t\tfor (let decl of localDecls) {\n\t\t\tbuffer += `let ${decl} = ${assignFunc}(\"${decl}\");\\n`;\n\t\t}\n\n\t\treturn buffer + '\\n';\n\t}\n\n\n\trewrite(text, inline) {\n\t\tlet newText = text.replace(this.rx, (match, ...params) => this.doReplace(params));\n\t\tnewText = this.firstBuff + newText + this.lastBuff;\n\t\treturn inline ? newText.replace(/\\n/g, \" \") : newText;\n\t}\n}\n\nconst jsRules = new JSRewriterRules();\n\n\nmodule.exports = Rewriter;\n\n\n\n//# sourceURL=webpack:///./src/rewrite.js?");
 
 /***/ }),
 
@@ -2384,7 +2384,19 @@ eval("\n\nconst STYLE_REGEX = /(url\\s*\\(\\s*[\\\\\"']*)([^)'\"]+)([\\\\\"']*\\
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _collection_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./collection.js */ \"./src/collection.js\");\n/* harmony import */ var _harcache_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./harcache.js */ \"./src/harcache.js\");\n/* harmony import */ var _remotearchive_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./remotearchive.js */ \"./src/remotearchive.js\");\n/* harmony import */ var _warccache_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./warccache.js */ \"./src/warccache.js\");\n/* harmony import */ var _warcparse_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./warcparse.js */ \"./src/warcparse.js\");\n\n\n\n\n\n\n\n\n\nself.prefix = self.registration.scope;\n\nself.collections = {};\n\nself.timeRanges = {};\n\n//self.referrers = {};\n\n//importScripts(\"/parse5.js\", \"/rewrite.js\", \"/harcache.js\", \"/collection.js\");\n\nself.addEventListener('install', function(event) {\n    event.waitUntil(self.skipWaiting());\n});\n\nself.addEventListener('activate', function(event) {\n    event.waitUntil(self.clients.claim());\n    console.log(\"Activate!\");\n});\n\nself.addEventListener('fetch', function(event) {\n\tevent.respondWith(getResponseFor(event.request, event));\n});\n\n\nasync function initCollection(data) {\n\tlet cache = null;\n\tlet sourceName = null;\n\n\tif (data.files) {\n\t\t// TODO: multiple files\n\t\tlet file = data.files[0];\n\n\t\tif (file.url) {\n\t\t\tconst resp = await fetch(file.url);\n\n\t\t\tif (file.name.endsWith(\".har\")) {\n\t\t\t\tconst har = await resp.json();\n\t\t\t\tcache = new _harcache_js__WEBPACK_IMPORTED_MODULE_1__[\"HARCache\"](har);\n\n\t\t\t} else if (file.name.endsWith(\".warc\") || file.name.endsWith(\".warc.gz\")) {\n\t\t        const ab = await resp.arrayBuffer();\n\t\t        cache = new _warccache_js__WEBPACK_IMPORTED_MODULE_3__[\"WARCCache\"]();\n\n\t\t        const parser = new _warcparse_js__WEBPACK_IMPORTED_MODULE_4__[\"WarcParser\"]();\n\t\t        await parser.parse(ab, cache.index.bind(cache));\n\t\t    }\n\t\t    sourceName = \"file://\" + file.name;\n\t    }\n\t} else if (data.remote) {\n\t\tcache = new _remotearchive_js__WEBPACK_IMPORTED_MODULE_2__[\"RemoteArchiveCache\"](data.remote);\n\t\tsourceName = data.remote.replayPrefix;\n\t}\n\n\tif (!cache) {\n\t\tconsole.log(\"No Valid Cache!\");\n\t\treturn null;\n\t}\n\t\n\treturn new _collection_js__WEBPACK_IMPORTED_MODULE_0__[\"Collection\"](data.name, cache, self.prefix, data.root, sourceName);\n}\n\nfunction doListAll(source)\n{\n\tlet msgData = [];\n\tfor (let coll of Object.values(self.collections)) {\n\t\tmsgData.push({\"name\": coll.name,\n\t\t\t\t\t  \"prefix\": coll.appPrefix,\n\t\t\t\t\t  \"pageList\": coll.cache.pageList,\n\t\t\t\t\t  \"sourceName\": coll.sourceName});\n\t}\n\tsource.postMessage({\"msg_type\": \"listAll\", \"colls\": msgData});\n}\n\nself.addEventListener(\"message\", function(event) {\n\tswitch (event.data.msg_type) {\n\t\tcase \"addColl\":\n\t\t\tinitCollection(event.data).then(function(coll) {\n\t\t\t\tself.collections[event.data.name] = coll;\n\t\t\t\tevent.source.postMessage({\"msg_type\": \"collAdded\",\n\t\t\t\t\t\t\t\t\t\t  \"prefix\": coll.prefix});\n\n\t\t\t\tdoListAll(event.source);\n\t\t\t});\n\t\t\tbreak;\n\n\t\tcase \"removeColl\":\n\t\t\tif (self.collections[event.data.name]) {\n\t\t\t\tdelete self.collections[event.data.name];\n\t\t\t\tdoListAll(event.source);\n\t\t\t}\n\t\t\tbreak;\n\n\t\tcase \"listAll\":\n\t\t\tdoListAll(event.source);\n\t\t\tbreak;\n\t}\n});\n\n\nasync function getResponseFor(request, fe) {\n\tlet response = null;\n\n\tif (request.url === self.prefix) {\n\t\treturn caches.match(request).then(function(resp) {\n\t\t\tif (resp) {\n\t\t\t\treturn resp;\n\t\t\t}\n\n\t\t\treturn fetch(request);\n\t\t}).catch(function() { return fetch(request); });\n\t}\n\n\tif (request.url.startsWith(self.prefix + \"stats.json\")) {\n\t\treturn await getStats(fe);\n\t}\n\n\tfor (let coll of Object.values(self.collections)) {\n\t\tresponse = await coll.handleRequest(request);\n\t\tif (response) {\n\t\t\tupdateStats(response, request, fe.clientId || fe.resultingClientId);\n\t\t\treturn response;\n\t\t}\n\t}\n\n\tif (!response) {\n\t\tconsole.log(request.url);\n\t\treturn fetch(request);\n\t}\n}\n\nfunction updateStats(response, request, id) {\n\tif (!id) {\n\t\treturn;\n\t}\n\n\tif (!request.url || request.url.indexOf(\"mp_/\") < 0) {\n\t\treturn;\n\t}\n\n\tif (request.destination === \"document\" && (response.status > 300 && response.status < 400)) {\n\t\treturn;\n\t}\n\n\tlet timeRange = null;\n\n\tif (self.timeRanges[id] === undefined) {\n\t\ttimeRange = {\"count\": 0, \"children\": []};\n\t\tself.timeRanges[id] = timeRange;\n\t\tif (request.referrer.indexOf(\"mp_/\") > 0) {\n\t\t\tself.clients.matchAll({\"type\": \"window\"}).then(clients => updateStatsParent(id, request.referrer, clients));\n\t\t}\n\t} else {\n\t\ttimeRange = self.timeRanges[id];\n\t}\n\n\tif (response.timestamp) {\n\t\tif (!timeRange.min || (response.timestamp < timeRange.min)) {\n\t\t\ttimeRange.min = response.timestamp;\n\t\t}\n\n\t\tif (!timeRange.max || (response.timestamp > timeRange.max)) {\n\t\t\ttimeRange.max = response.timestamp;\n\t\t}\n\n\t\ttimeRange.count++;\n\t}\n}\n\nfunction updateStatsParent(id, referrer, clients) {\n\tfor (let client of clients) {\n\t\tif (client.url === referrer) {\n\t\t\t//self.timeRanges[id].parent = client.id;\n\t\t\tif (!self.timeRanges[client.id]) {\n\t\t\t\tself.timeRanges[client.id] = {\"count\": 0, \"children\": {id: 1}};\n\t\t\t} else {\n\t\t\t\tself.timeRanges[client.id].children[id] = 1;\n\t\t\t}\n\t\t\tbreak;\n\t\t}\n\t}\n}\n\nasync function getStats(fe) {\n\t//const client = await self.clients.get(fe.clientId);\n\n\t//const timeRange = self.timeRanges[client.url] || {};\n\n\tconst reqUrl = new URL(fe.request.url);\n\n\tconst params = new URLSearchParams(reqUrl.search);\n\n\tlet id = 0;\n\n\tconst url = params.get(\"url\");\n\n\tconst clients = await self.clients.matchAll({\"type\": \"window\"});\n\n\tconst validIds = {};\n\n\tfor (let client of clients) {\n\t\tif (client.url === url) {\n\t\t\tid = client.id;\n\t\t}\n\t\tvalidIds[client.id] = 1;\n\t}\n\n\tconst srcRange = self.timeRanges[id] || {};\n\n\tconst timeRange = {\"count\": srcRange.count || 0,\n\t\t\t\t\t   \"min\": srcRange.min,\n\t\t\t\t\t   \"max\": srcRange.max\n\t\t\t\t\t  };\n\n\tconst children = (self.timeRanges[id] && Object.keys(self.timeRanges[id].children)) || [];\n\n\tfor (let child of children) {\n\t\tconst childRange = self.timeRanges[child];\n\n\t\tif (!childRange) {\n\t\t\tcontinue;\n\t\t}\n\n\n\t\tif (!timeRange.min || (childRange.min < timeRange.min)) {\n\t\t\ttimeRange.min = childRange.min;\n\t\t}\n\n\t\tif (!timeRange.max || (childRange.max > timeRange.max)) {\n\t\t\ttimeRange.max = childRange.max;\n\t\t}\n\n\t\ttimeRange.count += childRange.count;\n\t}\n\n\t// remove invalid timeranges\n\tfor (let id of Object.keys(self.timeRanges)) {\n\t\tif (!validIds[id]) {\n\t\t\tdelete self.timeRanges[id];\n\t\t}\n\t}\n\n\treturn new Response(JSON.stringify(timeRange), {\"headers\": {\"Content-Type\": \"application/json\"}});\n}\n\n\n\n\n//# sourceURL=webpack:///./src/swmain.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _collection_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./collection.js */ \"./src/collection.js\");\n/* harmony import */ var _harcache_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./harcache.js */ \"./src/harcache.js\");\n/* harmony import */ var _remotearchive_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./remotearchive.js */ \"./src/remotearchive.js\");\n/* harmony import */ var _warccache_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./warccache.js */ \"./src/warccache.js\");\n/* harmony import */ var _warcparse_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./warcparse.js */ \"./src/warcparse.js\");\n\n\n\n\n\n\n\n\n\nself.prefix = self.registration ? self.registration.scope : '';\n\nself.collections = {};\n\nself.timeRanges = {};\n\n\nimportScripts(\"static/brotliDecode.js\");\n\nself.addEventListener('install', function(event) {\n    event.waitUntil(self.skipWaiting());\n});\n\nself.addEventListener('activate', function(event) {\n    event.waitUntil(self.clients.claim());\n    console.log(\"Activate!\");\n});\n\nself.addEventListener('fetch', function(event) {\n\tevent.respondWith(getResponseFor(event.request, event));\n});\n\n\nasync function initCollection(data) {\n\tlet cache = null;\n\tlet sourceName = null;\n\n\tif (data.files) {\n\t\t// TODO: multiple files\n\t\tlet file = data.files[0];\n\n\t\tif (file.url) {\n\t\t\tconst resp = await fetch(file.url);\n\n\t\t\tif (file.name.endsWith(\".har\")) {\n\t\t\t\tconst har = await resp.json();\n\t\t\t\tcache = new _harcache_js__WEBPACK_IMPORTED_MODULE_1__[\"HARCache\"](har);\n\n\t\t\t} else if (file.name.endsWith(\".warc\") || file.name.endsWith(\".warc.gz\")) {\n\t\t        const ab = await resp.arrayBuffer();\n\t\t        cache = new _warccache_js__WEBPACK_IMPORTED_MODULE_3__[\"WARCCache\"]();\n\n\t\t        const parser = new _warcparse_js__WEBPACK_IMPORTED_MODULE_4__[\"WarcParser\"]();\n\t\t        await parser.parse(ab, cache.index.bind(cache));\n\t\t    }\n\t\t    sourceName = \"file://\" + file.name;\n\t    }\n\t} else if (data.remote) {\n\t\tcache = new _remotearchive_js__WEBPACK_IMPORTED_MODULE_2__[\"RemoteArchiveCache\"](data.remote);\n\t\tsourceName = data.remote.replayPrefix;\n\t}\n\n\tif (!cache) {\n\t\tconsole.log(\"No Valid Cache!\");\n\t\treturn null;\n\t}\n\t\n\treturn new _collection_js__WEBPACK_IMPORTED_MODULE_0__[\"Collection\"](data.name, cache, self.prefix, data.root, sourceName);\n}\n\nfunction doListAll(source)\n{\n\tlet msgData = [];\n\tfor (let coll of Object.values(self.collections)) {\n\t\tmsgData.push({\"name\": coll.name,\n\t\t\t\t\t  \"prefix\": coll.appPrefix,\n\t\t\t\t\t  \"pageList\": coll.cache.pageList,\n\t\t\t\t\t  \"sourceName\": coll.sourceName});\n\t}\n\tsource.postMessage({\"msg_type\": \"listAll\", \"colls\": msgData});\n}\n\nself.addEventListener(\"message\", function(event) {\n\tswitch (event.data.msg_type) {\n\t\tcase \"addColl\":\n\t\t\tinitCollection(event.data).then(function(coll) {\n\t\t\t\tself.collections[event.data.name] = coll;\n\t\t\t\tevent.source.postMessage({\"msg_type\": \"collAdded\",\n\t\t\t\t\t\t\t\t\t\t  \"prefix\": coll.prefix});\n\n\t\t\t\tdoListAll(event.source);\n\t\t\t});\n\t\t\tbreak;\n\n\t\tcase \"removeColl\":\n\t\t\tif (self.collections[event.data.name]) {\n\t\t\t\tdelete self.collections[event.data.name];\n\t\t\t\tdoListAll(event.source);\n\t\t\t}\n\t\t\tbreak;\n\n\t\tcase \"listAll\":\n\t\t\tdoListAll(event.source);\n\t\t\tbreak;\n\t}\n});\n\n\nasync function getResponseFor(request, fe) {\n\tlet response = null;\n\n\tif (request.url === self.prefix) {\n\t\treturn caches.match(request).then(function(resp) {\n\t\t\tif (resp) {\n\t\t\t\treturn resp;\n\t\t\t}\n\n\t\t\treturn fetch(request);\n\t\t}).catch(function() { return fetch(request); });\n\t}\n\n\tif (request.url.startsWith(self.prefix + \"stats.json\")) {\n\t\treturn await getStats(fe);\n\t}\n\n\tfor (let coll of Object.values(self.collections)) {\n\t\tresponse = await coll.handleRequest(request);\n\t\tif (response) {\n\t\t\tupdateStats(response, request, fe.clientId || fe.resultingClientId);\n\t\t\treturn response;\n\t\t}\n\t}\n\n\tif (!response) {\n\t\tconsole.log(request.url);\n\t\treturn fetch(request);\n\t}\n}\n\nfunction updateStats(response, request, id) {\n\tif (!id) {\n\t\treturn;\n\t}\n\n\tif (!request.url || request.url.indexOf(\"mp_/\") < 0) {\n\t\treturn;\n\t}\n\n\tif (request.destination === \"document\" && (response.status > 300 && response.status < 400)) {\n\t\treturn;\n\t}\n\n\tlet timeRange = null;\n\n\tif (self.timeRanges[id] === undefined) {\n\t\ttimeRange = {\"count\": 0, \"children\": []};\n\t\tself.timeRanges[id] = timeRange;\n\t\tif (request.referrer.indexOf(\"mp_/\") > 0) {\n\t\t\tself.clients.matchAll({\"type\": \"window\"}).then(clients => updateStatsParent(id, request.referrer, clients));\n\t\t}\n\t} else {\n\t\ttimeRange = self.timeRanges[id];\n\t}\n\n\tif (response.timestamp) {\n\t\tif (!timeRange.min || (response.timestamp < timeRange.min)) {\n\t\t\ttimeRange.min = response.timestamp;\n\t\t}\n\n\t\tif (!timeRange.max || (response.timestamp > timeRange.max)) {\n\t\t\ttimeRange.max = response.timestamp;\n\t\t}\n\n\t\ttimeRange.count++;\n\t}\n}\n\nfunction updateStatsParent(id, referrer, clients) {\n\tfor (let client of clients) {\n\t\tif (client.url === referrer) {\n\t\t\t//self.timeRanges[id].parent = client.id;\n\t\t\tif (!self.timeRanges[client.id]) {\n\t\t\t\tself.timeRanges[client.id] = {\"count\": 0, \"children\": {id: 1}};\n\t\t\t} else {\n\t\t\t\tself.timeRanges[client.id].children[id] = 1;\n\t\t\t}\n\t\t\tbreak;\n\t\t}\n\t}\n}\n\nasync function getStats(fe) {\n\t//const client = await self.clients.get(fe.clientId);\n\n\t//const timeRange = self.timeRanges[client.url] || {};\n\n\tconst reqUrl = new URL(fe.request.url);\n\n\tconst params = new URLSearchParams(reqUrl.search);\n\n\tlet id = 0;\n\n\tconst url = params.get(\"url\");\n\n\tconst clients = await self.clients.matchAll({\"type\": \"window\"});\n\n\tconst validIds = {};\n\n\tfor (let client of clients) {\n\t\tif (client.url === url) {\n\t\t\tid = client.id;\n\t\t}\n\t\tvalidIds[client.id] = 1;\n\t}\n\n\tconst srcRange = self.timeRanges[id] || {};\n\n\tconst timeRange = {\"count\": srcRange.count || 0,\n\t\t\t\t\t   \"min\": srcRange.min,\n\t\t\t\t\t   \"max\": srcRange.max\n\t\t\t\t\t  };\n\n\tconst children = (self.timeRanges[id] && Object.keys(self.timeRanges[id].children)) || [];\n\n\tfor (let child of children) {\n\t\tconst childRange = self.timeRanges[child];\n\n\t\tif (!childRange) {\n\t\t\tcontinue;\n\t\t}\n\n\n\t\tif (!timeRange.min || (childRange.min < timeRange.min)) {\n\t\t\ttimeRange.min = childRange.min;\n\t\t}\n\n\t\tif (!timeRange.max || (childRange.max > timeRange.max)) {\n\t\t\ttimeRange.max = childRange.max;\n\t\t}\n\n\t\ttimeRange.count += childRange.count;\n\t}\n\n\t// remove invalid timeranges\n\tfor (let id of Object.keys(self.timeRanges)) {\n\t\tif (!validIds[id]) {\n\t\t\tdelete self.timeRanges[id];\n\t\t}\n\t}\n\n\treturn new Response(JSON.stringify(timeRange), {\"headers\": {\"Content-Type\": \"application/json\"}});\n}\n\n\n\n\n//# sourceURL=webpack:///./src/swmain.js?");
+
+/***/ }),
+
+/***/ "./src/utils.js":
+/*!**********************!*\
+  !*** ./src/utils.js ***!
+  \**********************/
+/*! exports provided: getTS, tsToDate, getSecondsStr */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"getTS\", function() { return getTS; });\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"tsToDate\", function() { return tsToDate; });\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"getSecondsStr\", function() { return getSecondsStr; });\n\n\nfunction getTS(iso) {\n\treturn iso.replace(/[-:T]/g, '').slice(0, 14);\n}\n\nfunction tsToDate(ts) {\n    if (!ts) {\n        return \"\";\n    }\n\n    if (ts.length < 14) {\n        ts += \"00000000000000\".substr(ts.length);\n    }\n\n    const datestr = (ts.substring(0, 4) + \"-\" +\n        ts.substring(4, 6) + \"-\" +\n        ts.substring(6, 8) + \"T\" +\n        ts.substring(8, 10) + \":\" +\n        ts.substring(10, 12) + \":\" +\n        ts.substring(12, 14) + \"-00:00\");\n\n    return new Date(datestr);\n};\n\nfunction getSecondsStr(date) {\n\tif (!date) {\n\t\treturn \"\";\n\t}\n\n\ttry {\n\t\treturn \"\" + parseInt(date.getTime() / 1000);\n\t} catch (e) {\n\t\treturn \"\";\n\t}\n}\n\n\n\n//# sourceURL=webpack:///./src/utils.js?");
 
 /***/ }),
 
@@ -2396,7 +2408,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _col
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"WARCCache\", function() { return WARCCache; });\nclass WARCCache {\n\tconstructor() {\n\t\tthis.urlMap = {}\n\t\tthis.pageList = [];\n\t}\n\n\tgetTS(iso) {\n\t\treturn iso.replace(/[-:T]/g, '').slice(0, 14);\n\t}\n\n\tparseWarcInfo(record) {\n\t\tvar dec = new TextDecoder(\"utf-8\");\n\t\tconst text = dec.decode(record.content);\n\n\t\tfor (let line of text.split(\"\\n\")) {\n\t\t\tif (line.startsWith(\"json-metadata:\")) {\n\t\t\t\ttry {\n\t\t\t\t\tconst json = JSON.parse(line.slice(\"json-metadata:\".length));\n\n\t\t\t\t\tconst pages = json.pages || [];\n\n\t\t\t\t\tfor (let page of pages) {\n\t\t\t\t\t\tthis.pageList.push(page);\n\t\t\t\t\t}\n\n\t\t\t\t} catch (e) { }\n\t\t\t}\n\t\t}\n\t}\n\n\tasync index(record, cdx) {\n\t\tif (record.warcType === \"warcinfo\") {\n\t\t\tthis.parseWarcInfo(record);\n\t\t\treturn;\n\t\t}\n\n\t\tif (record.warcType !== \"response\" && record.warcType !== \"resource\") {\n\t\t\treturn;\n\t\t}\n\n\t\tlet url = record.warcTargetURI;\n\t\tlet timestamp = this.getTS(record.warcDate);\n\t\tlet initInfo = null;\n\n\t\tif (record.httpInfo) {\n\t\t\tlet status;\n\n\t\t\ttry {\n\t\t\t\tstatus = parseInt(record.httpInfo.statusCode);\n\t\t\t} catch (e) {\n\t\t\t\tstatus = 200;\n\t\t\t}\n\n\t\t\tconst statusText = record.httpInfo.statusReason;\n\n\t\t\tconst headers = new Headers(record.httpInfo.headers);\n\n\t\t\tinitInfo = { status, statusText, headers };\n\n            // if no pages found, start detection if hasn't started already\n            if (this.detectPages === undefined) {\n                this.detectPages = (this.pageList === []);\n            }\n\n            if (this.detectPages) {\n                if (this.isPage(url, status, headers)) {\n                    this.pageList.push({\"url\": url,\n                    \t\t\t\t\t\"timestamp\": timestamp,\n                    \t\t\t\t\t\"title\": url\n                    \t\t\t\t\t});\n                }\n            }\n\t\t}\n\n        // needed due to bug in node-warc in including trailing \\r\\n in record\n\t\tconst content = record.content.slice(0, record.content.byteLength - 2);\n\n\t\tthis.urlMap[url] = {timestamp, initInfo, content};\n\t}\n\n    isPage(url, status, headers) {\n        if (status != 200) {\n            return false;\n        }\n\n        if (!url.startsWith(\"http:\") && !url.startsWith(\"https:\")) {\n            return false;\n        }\n\n        if (url.endsWith(\"/robots.txt\")) {\n            return false;\n        }\n\n        // skip urls with long query\n        const parts = url.split(\"?\", 2);\n\n        if (parts.length === 2 && parts[1].length > parts[0].length) {\n            return false;\n        }\n\n        // skip 'files' starting with '.' from being listed as pages\n        if (parts[0].substring(parts[0].lastIndexOf(\"/\") + 1).startsWith(\".\")) {\n            return false;\n        }\n\n        let contentType = headers.get(\"Content-Type\") || \"\";\n\t\tcontentType = contentType.split(\";\", 1)[0];\n        if (contentType !== \"text/html\" && contentType !== \"text/plain\") {\n            return false;\n        }\n\n        return true;\n    }\n\n\tasync match(request) {\n\t\tconst entry = this.urlMap[request.url];\n\t\tif (!entry) {\n\t\t\tconsole.log(request.url);\n\t\t\treturn null;\n\t\t}\n\n\t\tconst resp = new Response(entry.content, entry.initInfo);\n\t\tresp.timestamp = entry.timestamp;\n\t\treturn resp;\n\t}\n}\n\n\n\n\n//# sourceURL=webpack:///./src/warccache.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"WARCCache\", function() { return WARCCache; });\n/* harmony import */ var _utils_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./utils.js */ \"./src/utils.js\");\n\n\nclass WARCCache {\n\tconstructor() {\n\t\tthis.urlMap = {}\n\t\tthis.pageList = [];\n\t}\n\n\tparseWarcInfo(record) {\n\t\tvar dec = new TextDecoder(\"utf-8\");\n\t\tconst text = dec.decode(record.content);\n\n\t\tfor (let line of text.split(\"\\n\")) {\n\t\t\tif (line.startsWith(\"json-metadata:\")) {\n\t\t\t\ttry {\n\t\t\t\t\tconst json = JSON.parse(line.slice(\"json-metadata:\".length));\n\n\t\t\t\t\tconst pages = json.pages || [];\n\n\t\t\t\t\tfor (let page of pages) {\n\t\t\t\t\t\tthis.pageList.push(page);\n\t\t\t\t\t}\n\n\t\t\t\t} catch (e) { }\n\t\t\t}\n\t\t}\n\t}\n\n\tasync index(record, cdx) {\n\t\tif (record.warcType === \"warcinfo\") {\n\t\t\tthis.parseWarcInfo(record);\n\t\t\treturn;\n\t\t}\n\n\t\tif (record.warcType !== \"response\" && record.warcType !== \"resource\") {\n\t\t\treturn;\n\t\t}\n\n\t\tlet url = record.warcTargetURI;\n\t\tlet initInfo = null;\n\n\t\tconst date = record.warcDate;\n\t\tconst timestamp = Object(_utils_js__WEBPACK_IMPORTED_MODULE_0__[\"getTS\"])(date);\n\n\t\t// needed due to bug in node-warc in including trailing \\r\\n in record\n\t\tlet content = record.content;\n\t\tif (content.byteLength > 0) {\n\t\t\tcontent = record.content.slice(0, record.content.byteLength - 2);\n\t\t}\n\n\t\tif (record.httpInfo) {\n\t\t\tlet status;\n\n\t\t\ttry {\n\t\t\t\tstatus = parseInt(record.httpInfo.statusCode);\n\t\t\t} catch (e) {\n\t\t\t\tstatus = 200;\n\t\t\t}\n\n\t\t\tconst statusText = record.httpInfo.statusReason;\n\n\t\t\tconst headers = new Headers(record.httpInfo.headers);\n\n\t\t\tinitInfo = { status, statusText, headers };\n\n\t\t\tconst cl = headers.get('content-length');\n\n\t\t\tif (cl && content.byteLength != cl) {\n\t\t\t\tconsole.log(`CL mismatch for ${url}: expected: ${cl}, found: ${record.content.byteLength - 2}`);\n\t\t\t}\n\n            // if no pages found, start detection if hasn't started already\n            if (this.detectPages === undefined) {\n                this.detectPages = (this.pageList === []);\n            }\n\n            if (this.detectPages) {\n                if (this.isPage(url, status, headers)) {\n                    this.pageList.push({\"url\": url,\n                    \t\t\t\t\t\"timestamp\": timestamp,\n                    \t\t\t\t\t\"title\": url\n                    \t\t\t\t\t});\n                }\n            }\n\t\t}\n\n\t\tthis.urlMap[url] = {timestamp, date, initInfo, content};\n\t}\n\n    isPage(url, status, headers) {\n        if (status != 200) {\n            return false;\n        }\n\n        if (!url.startsWith(\"http:\") && !url.startsWith(\"https:\")) {\n            return false;\n        }\n\n        if (url.endsWith(\"/robots.txt\")) {\n            return false;\n        }\n\n        // skip urls with long query\n        const parts = url.split(\"?\", 2);\n\n        if (parts.length === 2 && parts[1].length > parts[0].length) {\n            return false;\n        }\n\n        // skip 'files' starting with '.' from being listed as pages\n        if (parts[0].substring(parts[0].lastIndexOf(\"/\") + 1).startsWith(\".\")) {\n            return false;\n        }\n\n        let contentType = headers.get(\"Content-Type\") || \"\";\n\t\tcontentType = contentType.split(\";\", 1)[0];\n        if (contentType !== \"text/html\" && contentType !== \"text/plain\") {\n            return false;\n        }\n\n        return true;\n    }\n\n\tasync match(request) {\n\t\tconst entry = this.urlMap[request.url];\n\t\tif (!entry) {\n\t\t\tconsole.log(request.url);\n\t\t\treturn null;\n\t\t}\n\n\t\tconst resp = new Response(entry.content, entry.initInfo);\n\t\tresp.timestamp = entry.timestamp;\n\t\tresp.date = new Date(entry.date);\n\t\treturn resp;\n\t}\n}\n\n\n\n\n//# sourceURL=webpack:///./src/warccache.js?");
 
 /***/ }),
 
@@ -2420,7 +2432,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) *
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"parse5\", function() { return parse5; });\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"SerializerStream\", function() { return SerializerStream; });\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"RewritingStream\", function() { return RewritingStream; });\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"stream\", function() { return stream; });\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"pako\", function() { return pako; });\nlet parse5 = __webpack_require__(/*! parse5 */ \"./node_modules/parse5/lib/index.js\");\n\nlet SerializerStream = __webpack_require__(/*! parse5-serializer-stream */ \"./node_modules/parse5-serializer-stream/lib/index.js\");\n\nlet RewritingStream = __webpack_require__(/*! parse5-html-rewriting-stream */ \"./node_modules/parse5-html-rewriting-stream/lib/index.js\");\n\nlet stream = __webpack_require__(/*! stream */ \"./node_modules/stream-browserify/index.js\");\n\nlet pako = __webpack_require__(/*! pako */ \"./node_modules/pako/index.js\");\n\n//export let Collection = require('./src/collection.js');\n\n//export let HARCache = require('./src/harcache.js');\n\n//export let Rewrite = require('./src/rewrite.js');\n\nlet sw = __webpack_require__(/*! ./src/swmain.js */ \"./src/swmain.js\");\n\n\n\n//# sourceURL=webpack:///./sw-build.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"parse5\", function() { return parse5; });\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"SerializerStream\", function() { return SerializerStream; });\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"RewritingStream\", function() { return RewritingStream; });\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"stream\", function() { return stream; });\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"pako\", function() { return pako; });\nlet parse5 = __webpack_require__(/*! parse5 */ \"./node_modules/parse5/lib/index.js\");\n\nlet SerializerStream = __webpack_require__(/*! parse5-serializer-stream */ \"./node_modules/parse5-serializer-stream/lib/index.js\");\n\nlet RewritingStream = __webpack_require__(/*! parse5-html-rewriting-stream */ \"./node_modules/parse5-html-rewriting-stream/lib/index.js\");\n\nlet stream = __webpack_require__(/*! stream */ \"./node_modules/stream-browserify/index.js\");\n\nlet pako = __webpack_require__(/*! pako */ \"./node_modules/pako/index.js\");\n\nlet sw = __webpack_require__(/*! ./src/swmain.js */ \"./src/swmain.js\");\n\n\n\n//# sourceURL=webpack:///./sw-build.js?");
 
 /***/ }),
 

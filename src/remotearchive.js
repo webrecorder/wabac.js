@@ -1,4 +1,7 @@
-let EXTRACT_TS = /(?:([\d]+)[^\/]*\/)?(http.*)/;
+import { getTS, tsToDate } from './utils.js';
+
+
+const EXTRACT_TS = /(?:([\d]+)[^\/]*\/)?(http.*)/;
 
 
 class RemoteArchiveCache {
@@ -41,7 +44,14 @@ class RemoteArchiveCache {
 			timestamp = request.timestamp;
 		}
 
-		response.timestamp = timestamp || this.getTS(new Date().toISOString());
+		if (!timestamp) {
+			const date = new Date().toISOString();
+			response.date = date;
+			response.timestamp = getTS(date);
+		} else {
+			response.timestamp = timestamp;
+			response.date = tsToDate(timestamp);
+		}
 
 		return response;
 	}
@@ -69,10 +79,6 @@ class RemoteArchiveCache {
 		} else {
 			return [null, prefix + redirOrig];
 		}
-	}
-
-	getTS(iso) {
-		return iso.replace(/[-:T]/g, '').slice(0, 14);
 	}
 }
 

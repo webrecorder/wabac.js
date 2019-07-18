@@ -7,15 +7,14 @@ import { WARCCache } from './warccache.js';
 import { WarcParser } from './warcparse.js';
 
 
-self.prefix = self.registration.scope;
+self.prefix = self.registration ? self.registration.scope : '';
 
 self.collections = {};
 
 self.timeRanges = {};
 
-//self.referrers = {};
 
-//importScripts("/parse5.js", "/rewrite.js", "/harcache.js", "/collection.js");
+importScripts("static/brotliDecode.js");
 
 self.addEventListener('install', function(event) {
     event.waitUntil(self.skipWaiting());

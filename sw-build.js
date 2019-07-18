@@ -8,11 +8,5 @@ export let stream = require('stream');
 
 export let pako = require('pako');
 
-//export let Collection = require('./src/collection.js');
-
-//export let HARCache = require('./src/harcache.js');
-
-//export let Rewrite = require('./src/rewrite.js');
-
 let sw = require('./src/swmain.js');
 

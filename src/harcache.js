@@ -1,4 +1,4 @@
-"use strict";
+import { getTS } from './utils.js';
 
 class HARCache {
 	constructor(string_or_har) {
@@ -20,7 +20,7 @@ class HARCache {
 			if (!page.pageTimings || !page.pageTimings.onLoad) {
 				continue;
 			}
-			this.pageList.push({"timestamp": this.getTS(page.startedDateTime), "title": page.title, "url": page.title});
+			this.pageList.push({"timestamp": getTS(page.startedDateTime), "title": page.title, "url": page.title});
 		}
 	}
 
@@ -34,13 +34,10 @@ class HARCache {
 			this.urlMap[entry.request.url] = {
 											  "request": entry.request,
 											  "response": entry.response,
-											  "timestamp": this.getTS(entry.startedDateTime),
+											  "timestamp": getTS(entry.startedDateTime),
+											  "datetime": entry.startedDateTime,
 											 };
 		}
-	}
-
-	getTS(iso) {
-		return iso.replace(/[-:T]/g, '').slice(0, 14);
 	}
 
 	async match(request) {
@@ -75,6 +72,7 @@ class HARCache {
 
 		const resp = new Response(content, init);
 		resp.timestamp = entry.timestamp;
+		resp.date = new Date(entry.startedDateTime);
 		return resp;
 	}
 }

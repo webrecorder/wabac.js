@@ -4,6 +4,8 @@ import Rewriter from './rewrite.js';
 
 import { parseHAR } from './harcache.js';
 
+import { getSecondsStr } from './utils.js';
+
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?[\/|](.+)/;
@@ -34,7 +36,7 @@ class Collection
 	}
 
 	async handleRequest(request) {
-		let wbUrlStr = decodeURI(request.url);
+		let wbUrlStr = request.url;
 
 		if (wbUrlStr.startsWith(this.prefix)) {
 			wbUrlStr = wbUrlStr.substring(this.prefix.length);
@@ -78,7 +80,7 @@ class Collection
 		if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:"))) {
 			url = wbUrlStr;
 		} else if (!wbUrl) {
-			return this.notFound();
+			return this.notFound(wbUrlStr);
 		} else {
 			requestTS = wbUrl[1];
 			mod = wbUrl[2];
@@ -121,7 +123,7 @@ class Collection
 				let headInsert = "";
 
 				if (request.destination === "" || request.destination === "document") {
-					headInsert = this.makeHeadInsert(url, response.timestamp, request.url, requestTS);
+					headInsert = this.makeHeadInsert(url, response.timestamp, request.url, requestTS, response.date);
 				}
 
 				const rewriter = new Rewriter(url, this.prefix + requestTS + "mp_/", headInsert);
@@ -131,7 +133,7 @@ class Collection
 			if (response) {
 				return response;
 			} else {
-				return this.notFound();
+				return this.notFound(wbUrlStr);
 			}
 
 		} else {
@@ -140,7 +142,7 @@ class Collection
 			
 	}
 
-	notFound() {
+	notFound(url) {
 		let responseData = {"status": 404,
 						   	 "statusText": "Not Found",
 							 "headers": {"Content-Type": "text/html"}
@@ -198,11 +200,13 @@ window.home = "${this.rootPrefix}";
 		return new Response(content, responseData);
 	}
 
-	makeHeadInsert(url, timestamp, requestUrl, requestTS) {
+	makeHeadInsert(url, timestamp, requestUrl, requestTS, date) {
 
 		const topUrl = this.appPrefix + requestTS + (requestTS ? "/" : "") + url;
 		const prefix = this.prefix;
 		const coll = this.name;
+
+		const seconds = getSecondsStr(date);
 
 		const urlParsed = new URL(url);
 		return `
@@ -234,7 +238,7 @@ window.home = "${this.rootPrefix}";
 <script src='${this.staticPrefix}/wombat.js'> </script>
 <script>
   wbinfo.wombat_ts = "${timestamp}";
-  wbinfo.wombat_sec = "";
+  wbinfo.wombat_sec = "${seconds}";
   wbinfo.wombat_scheme = "${urlParsed.protocol.slice(0, -1)}";
   wbinfo.wombat_host = "${urlParsed.host}";
 

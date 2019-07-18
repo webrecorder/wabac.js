@@ -25,7 +25,7 @@ This file is part of pywb, https://github.com/webrecorder/pywb
         return;
     }
 
-    window.addEventListener("popstate", function() {
+    window.addEventListener("popstate2", function() {
         if (window.location.href === window.home) {
             console.log(window.location.href);
             window.location.reload();
@@ -67,7 +67,7 @@ This file is part of pywb, https://github.com/webrecorder/pywb
             this.createBanner('_wb_frame_top_banner');
         }
 
-        setInterval(this.updateStats, 10000);
+        //setInterval(this.updateStats, 10000);
     };
 
     /**

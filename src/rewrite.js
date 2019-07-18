@@ -1,5 +1,4 @@
 
-
 const STYLE_REGEX = /(url\s*\(\s*[\\"']*)([^)'"]+)([\\"']*\s*\))/gi;
 
 const IMPORT_REGEX = /(@import\s*[\\"']*)([^)'";]+)([\\"']*\s*;?)/gi;
@@ -26,6 +25,7 @@ class Rewriter
 	constructor(baseUrl, prefix, headInsert) {
 		this.baseUrl = baseUrl;
 		this.prefix = prefix || "";
+		this.relPrefix = new URL(this.prefix).pathname;
 		this.headInsert = headInsert || "";
 	}
 
@@ -36,12 +36,21 @@ class Rewriter
 
 		const ab = await response.arrayBuffer();
 
-		const inflator = new pako.Inflate();
+		let content = ab;
 
-        inflator.push(ab, true);
+		if (encoding == "br") {
+			content = brotliDecode(new Uint8Array(ab));
 
-        // if error occurs (eg. not gzip), use original arraybuffer
-        const content = (inflator.result && !inflator.err) ? inflator.result : ab;
+		} else {
+			const inflator = new pako.Inflate();
+
+	        inflator.push(ab, true);
+
+	        // if error occurs (eg. not gzip), use original arraybuffer
+	        content = (inflator.result && !inflator.err) ? inflator.result : ab;
+	    }
+
+	    response.headers.set("Content-Length", content.byteLength);
 
 		return this.makeResponse(content, response);
 	}
@@ -64,12 +73,8 @@ class Rewriter
 			case "application/x-javascript":
 				return "js";
 
-
 			case "text/css":
 				return "css";
-
-			case "application/json":
-				return "json";
 		}
 
 		return null;
@@ -90,7 +95,7 @@ class Rewriter
 			headers.append("Content-Security-Policy", csp);
 		}
 
-		if (rewriteMode) {
+		if (rewriteMode || encoding) {
 			response = await this.decodeResponse(response, encoding);
 		}
 
@@ -99,7 +104,7 @@ class Rewriter
 				return this.rewriteCSS(response, headers);
 
 			case "js":
-				return this.rewriteJS(response, headers);
+				return this.rewriteScript(response, headers);
 
 			case "html":
 				return this.rewriteHtml(response, headers);
@@ -126,7 +131,10 @@ class Rewriter
 			return this.prefix + url;
 		}
 
-		if (url.startsWith("/") || url.startsWith(".")) {
+		if (url.startsWith("/")) {
+			url = new URL(url, this.baseUrl).href;
+			return this.relPrefix + url;
+		} else if (url.startsWith(".")) {
 			url = new URL(url, this.baseUrl).href;
 			return this.prefix + url;
 		} else {
@@ -178,7 +186,7 @@ class Rewriter
 
     		// js attrs
     		if (name.startsWith("on") && value.startsWith("javascript:") && name.slice(2, 3) != "-") {
-    			attr.value = "javascript:" + this.rewriteJSProxy(value.slice("javascript:".length));
+    			attr.value = "javascript:" + this.rewriteJS(value.slice("javascript:".length), true);
     		}
     		// css attrs
     		else if (name === "style") {
@@ -284,6 +292,8 @@ class Rewriter
 
 	    	this.rewriteAttrs(startTag, tagRules || {});
 
+            rwStream.emitStartTag(startTag);
+
 	    	switch (startTag.tagName) {
 	    		case "head":
 	    			rwStream.emitRaw(this.headInsert);
@@ -297,7 +307,18 @@ class Rewriter
 	    			}
 	    			break;
 
-	    		case "script":
+                case "script":
+                    if (startTag.selfClosing) {
+                        break;
+                    }
+
+                    const scriptType = this.getAttr(startTag.attrs, "type");
+
+                    if (!scriptType || scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0) {
+                        context = startTag.tagName;
+                    }
+                    break;
+
 	    		case "style":
 	    			if (!startTag.selfClosing) {
 	    				context = startTag.tagName;
@@ -305,8 +326,6 @@ class Rewriter
 	    			break;
 
 	    	}
-
-	    	rwStream.emitStartTag(startTag);
 	    });
 
 	    rwStream.on('endTag', endTag => {
@@ -321,7 +340,7 @@ class Rewriter
 	    		//textToken.text = this.rewriteJSProxy(textToken.text);
 	    		//console.log(raw);
 	    		//console.log(textToken.text);
-	    		rwStream.emitRaw(this.rewriteJSProxy(textToken.text));
+	    		rwStream.emitRaw(this.rewriteJS(textToken.text));
 	    	} else if (context === "style") {
 	    		//textToken.text = this.rewriteCSSText(textToken.text);
 	    		rwStream.emitRaw(this.rewriteCSSText(textToken.text));
@@ -396,60 +415,41 @@ class Rewriter
 	}
 
 	// JS
-	rewriteJSProxy(text) {
-		if (!text ||
-			text.indexOf('_____WB$wombat$assign$function_____') >= 0 ||
-			text.indexOf('<') === 0
-			) {
-			return text;
-	}
+	rewriteJS(text, inline) {
+		const overrideProps = [
+			'window',
+			'self',
+			'document',
+			'location',
+			'top',
+			'parent',
+			'frames',
+			'opener',
+			'this',
+			'eval',
+			'postMessage'
+		];
 
-	const overrideProps = [
-	'window',
-	'self',
-	'document',
-	'location',
-	'top',
-	'parent',
-	'frames',
-	'opener'
-	];
+		let containsProps = false;
 
-	let containsProps = false;
-
-	for (let prop of overrideProps) {
-		if (text.indexOf(prop) >= 0) {
-			containsProps = true;
-			break;
+		for (let prop of overrideProps) {
+			if (text.indexOf(prop) >= 0) {
+				containsProps = true;
+				break;
+			}
 		}
+
+		if (!containsProps) {
+			return text;
+		}
+
+		return jsRules.rewrite(text, inline);
 	}
 
-	if (!containsProps) return text;
-
-
-	text = text.replace(DOT_POST_MSG_REGEX, '.__WB_pmw(self.window)$1');
-
-	return (
-		'var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && ' +
-		'self._wb_wombat.local_init &&self._wb_wombat.local_init(name)) || self[name]; };\n' +
-		'if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { return obj; } }\n{\n' +
-		'let window = _____WB$wombat$assign$function_____("window");\n' +
-		'let self = _____WB$wombat$assign$function_____("self");\n' +
-		'let document = _____WB$wombat$assign$function_____("document");\n' +
-		'let location = _____WB$wombat$assign$function_____("location");\n' +
-		'let top = _____WB$wombat$assign$function_____("top");\n' +
-		'let parent = _____WB$wombat$assign$function_____("parent");\n' +
-		'let frames = _____WB$wombat$assign$function_____("frames");\n' +
-		'let opener = _____WB$wombat$assign$function_____("opener");\n' +
-		text +
-		'\n\n}'
-		);
-	}
-
-	rewriteJS(response, headers) {
+	rewriteScript(response, headers) {
 		return response.text().then((text) => {
 
-			return this.makeResponse(this.rewriteJSProxy(text), response, headers);
+			return this.makeResponse(this.rewriteJS(text), response, headers);
 		});
 	}
 
@@ -594,7 +594,7 @@ class Rewriter
 						} catch(e) {}
 					}
 
-					new_headers.append(headerPrefix + header[0], header[1]);
+					new_headers.append(header[0], header[1]);
 					break;
 
 				case "transfer-encoding":
@@ -619,6 +619,173 @@ class Rewriter
 		return new_headers;
 	}
 }
+
+class JSRewriterRules {
+	constructor() {
+        this.thisRw = '_____WB$wombat$check$this$function_____(this)';
+
+        const checkLoc = '((self.__WB_check_loc && self.__WB_check_loc(location)) || {}).href = ';
+
+        const localObjs = [
+            'window',
+            'self',
+            'document',
+            'location',
+            'top',
+            'parent',
+            'frames',
+            'opener'
+        ];
+
+        const propStr = localObjs.join('|');
+
+        const evalStr = 'WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).';
+
+
+        this.rules = [
+            // rewriting 'eval(....)' - invocation
+            [/\beval\s*\(/, this.addPrefix(evalStr)],
+
+            // rewriting 'x = eval' - no invocation
+            [/\beval\b/, this.addPrefix('WB_wombat_')],
+
+            // rewriting .postMessage -> __WB_pmw(self).postMessage
+            [/\.postMessage\b\(/, this.addPrefix('.__WB_pmw(self)')],
+
+            // rewriting 'location = ' to custom expression '(...).href =' assignment
+            [/\s*\blocation\b\s*[=]\s*(?![=])/, this.addSuffix(checkLoc)],
+
+            // rewriting 'return this'
+            [/\breturn\s+this\b\s*(?![.$])/, this.replaceThis()],
+
+            // rewriting 'this.' special properties access on new line, with ; prepended
+            // if prev char is '\n', or if prev is not '.' or '$', no semi
+            [new RegExp(`\\s*\\bthis\\b(?=(?:\\.(?:${propStr})\\b))`), this.replaceThisProp()],
+
+            // rewrite '= this' or ', this'
+            [/[=,]\s*\bthis\b\s*(?![.$])/, this.replaceThis()],
+
+            // rewrite '})(this)'
+            [/\}(?:\s*\))?\s*\(this\)/, this.replaceThis()],
+
+            // rewrite this in && or || expr?
+            [/[^|&][|&]{2}\s*this\b\s*(?![|&.$]([^|&]|$))/, this.replaceThis()],
+        ];
+
+        this.compileRules();
+
+        this.firstBuff = this.initLocalDecl(localObjs);
+        this.lastBuff = '\n\n}';
+	}
+
+	compileRules() {
+		let rxBuff = '';
+
+		for (let rule of this.rules) {
+			if (rxBuff) {
+				rxBuff += "|";
+			}
+			rxBuff += `(${rule[0].source})`;
+		}
+
+		const rxString = `(?:${rxBuff})`;
+
+		console.log(rxString);
+
+		this.rx = new RegExp(rxString, 'gm');
+	}
+
+	doReplace(params) {
+		const offset = params[params.length - 2];
+		const string = params[params.length - 1];
+
+		for (let i = 0; i < this.rules.length; i++) {
+			const curr = params[i];
+			if (!curr) {
+				continue;
+			}
+
+			// if (this.rules[i].length == 3) {
+			// 	const lookbehind = this.rules[i][2];
+			// 	const offset = params[params.length - 2];
+			// 	const string = params[params.length - 1];
+
+			// 	const len = lookbehind.len || 1;
+			// 	const behind = string.slice(offset - len, offset);
+
+			// 	// if lookbehind check does not pass, don't replace!
+			// 	if (!behind.match(lookbehind.rx) !== (lookbehind.neg || false)) {
+			// 		return curr;
+			// 	}
+			// }
+
+			const result = this.rules[i][1].call(this, curr, offset, string);
+			if (result) {
+				return result;
+			}
+		}
+	}
+
+	addPrefix(prefix) {
+		return x => prefix + x;
+	}
+
+	addSuffix(suffix) {
+		return (x, offset, string) => {
+			if (offset > 0) {
+				const prev = string[offset - 1];
+				if (prev === '.' || prev === '$') {
+					return x;
+				}
+			}
+			return x + suffix;
+		}
+	}
+
+	replaceThis() {
+		return x => x.replace('this', this.thisRw);
+	}
+
+	replaceThisProp() {
+		return (x, offset, string) => {
+			const prev = (offset > 0 ? string[offset - 1] : "");
+			if (prev === '\n') {
+				return x.replace('this', ';' + this.thisRw);
+			} else if (prev !== '.' && prev !== '$') {
+				return x.replace('this', this.thisRw);
+			} else {
+				return x;
+			}
+		};
+	}
+
+	initLocalDecl(localDecls) {
+		const checkThisFunc = '_____WB$wombat$check$this$function_____';
+
+		const assignFunc = '_____WB$wombat$assign$function_____';
+
+		let buffer = `\
+var ${checkThisFunc} = function (thisObj) { if (thisObj && thisObj._WB_wombat_obj_proxy) return thisObj._WB_wombat_obj_proxy; return thisObj; };
+var ${assignFunc} = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
+if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
+{
+`
+		for (let decl of localDecls) {
+			buffer += `let ${decl} = ${assignFunc}("${decl}");\n`;
+		}
+
+		return buffer + '\n';
+	}
+
+
+	rewrite(text, inline) {
+		let newText = text.replace(this.rx, (match, ...params) => this.doReplace(params));
+		newText = this.firstBuff + newText + this.lastBuff;
+		return inline ? newText.replace(/\n/g, " ") : newText;
+	}
+}
+
+const jsRules = new JSRewriterRules();
 
 
 module.exports = Rewriter;

@@ -1,11 +1,9 @@
+import { getTS } from './utils.js';
+
 class WARCCache {
 	constructor() {
 		this.urlMap = {}
 		this.pageList = [];
-	}
-
-	getTS(iso) {
-		return iso.replace(/[-:T]/g, '').slice(0, 14);
 	}
 
 	parseWarcInfo(record) {
@@ -39,8 +37,16 @@ class WARCCache {
 		}
 
 		let url = record.warcTargetURI;
-		let timestamp = this.getTS(record.warcDate);
 		let initInfo = null;
+
+		const date = record.warcDate;
+		const timestamp = getTS(date);
+
+		// needed due to bug in node-warc in including trailing \r\n in record
+		let content = record.content;
+		if (content.byteLength > 0) {
+			content = record.content.slice(0, record.content.byteLength - 2);
+		}
 
 		if (record.httpInfo) {
 			let status;
@@ -57,6 +63,12 @@ class WARCCache {
 
 			initInfo = { status, statusText, headers };
 
+			const cl = headers.get('content-length');
+
+			if (cl && content.byteLength != cl) {
+				console.log(`CL mismatch for ${url}: expected: ${cl}, found: ${record.content.byteLength - 2}`);
+			}
+
             // if no pages found, start detection if hasn't started already
             if (this.detectPages === undefined) {
                 this.detectPages = (this.pageList === []);
@@ -72,10 +84,7 @@ class WARCCache {
             }
 		}
 
-        // needed due to bug in node-warc in including trailing \r\n in record
-		const content = record.content.slice(0, record.content.byteLength - 2);
-
-		this.urlMap[url] = {timestamp, initInfo, content};
+		this.urlMap[url] = {timestamp, date, initInfo, content};
 	}
 
     isPage(url, status, headers) {
@@ -121,6 +130,7 @@ class WARCCache {
 
 		const resp = new Response(entry.content, entry.initInfo);
 		resp.timestamp = entry.timestamp;
+		resp.date = new Date(entry.date);
 		return resp;
 	}
 }
