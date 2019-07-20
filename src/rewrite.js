@@ -50,8 +50,6 @@ class Rewriter
 	        content = (inflator.result && !inflator.err) ? inflator.result : ab;
 	    }
 
-	    response.headers.set("Content-Length", content.byteLength);
-
 		return this.makeResponse(content, response);
 	}
 
