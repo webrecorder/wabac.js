@@ -5,6 +5,7 @@ import { HARCache } from './harcache.js';
 import { RemoteArchiveCache } from './remotearchive.js'
 import { WARCCache } from './warccache.js';
 import { WarcParser } from './warcparse.js';
+import { notFound } from './utils.js';
 
 
 self.prefix = self.registration ? self.registration.scope : '';
@@ -111,16 +112,6 @@ self.addEventListener("message", function (event) {
 async function getResponseFor(request, fe) {
   let response = null;
 
-  if (request.url === self.prefix) {
-    return caches.match(request).then(function (resp) {
-      if (resp) {
-        return resp;
-      }
-
-      return fetch(request);
-    }).catch(function () { return fetch(request); });
-  }
-
   if (request.url.startsWith(self.prefix + "stats.json")) {
     return await getStats(fe);
   }
@@ -133,10 +124,25 @@ async function getResponseFor(request, fe) {
     }
   }
 
-  if (!response) {
-    console.log(request.url);
-    return fetch(request);
+  try {
+    response = await caches.match(request);
+    if (response) {
+      return response;
+    }
+  } catch (e) {
+    response = null;
   }
+
+  try {
+    response = await fetch(request);
+    if (response && response.status < 400) {
+      return response;
+    }
+  } catch (e) {
+    response = null;
+  }
+
+  return notFound(request);
 }
 
 function updateStats(response, request, id) {

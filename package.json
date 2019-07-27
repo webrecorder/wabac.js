@@ -11,7 +11,7 @@
     "idb": "^4.0.3",
     "iltorb": "^2.4.3",
     "lodash": "^4.17.13",
-    "node-warc": "https://github.com/ikreymer/node-warc.git#browser-support",
+    "node-warc": "https://github.com/ikreymer/node-warc.git#parse-fix",
     "pako": "^1.0.10",
     "parse5": "^5.1.0",
     "parse5-html-rewriting-stream": "^5.1.0",

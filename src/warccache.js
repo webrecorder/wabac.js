@@ -1,4 +1,4 @@
-import { getTS } from './utils.js';
+import { getTS, makeNewResponse } from './utils.js';
 
 class WARCCache {
   constructor() {
@@ -129,10 +129,10 @@ class WARCCache {
       return null;
     }
 
-    const resp = new Response(entry.content, entry.initInfo);
-    resp.timestamp = entry.timestamp;
-    resp.date = new Date(entry.date);
-    return resp;
+    return makeNewResponse(entry.content,
+      entry.initInfo,
+      entry.timestamp,
+      entry.date);
   }
 }
 

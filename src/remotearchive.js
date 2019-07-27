@@ -33,6 +33,10 @@ class RemoteArchiveCache {
         mode: 'cors'
       });
 
+    if (response.status >= 400 && !response.headers.get("memento-datetime")) {
+      return null;
+    }
+
     const redirRes = await this.getRedirect(request, response, prefix);
 
     let timestamp = null;

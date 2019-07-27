@@ -1,4 +1,6 @@
 
+import { makeRwResponse, startsWithAny } from './utils.js';
+
 const STYLE_REGEX = /(url\s*\(\s*[\\"']*)([^)'"]+)([\\"']*\s*\))/gi;
 
 const IMPORT_REGEX = /(@import\s*[\\"']*)([^)'";]+)([\\"']*\s*;?)/gi;
@@ -6,16 +8,6 @@ const IMPORT_REGEX = /(@import\s*[\\"']*)([^)'";]+)([\\"']*\s*;?)/gi;
 const NO_WOMBAT_REGEX = /WB_wombat_/g;
 
 const DOT_POST_MSG_REGEX = /(.postMessage\s*\()/;
-
-function startsWithAny(value, iter) {
-  for (let str of iter) {
-    if (value.startsWith(str)) {
-      return true;
-    }
-  }
-
-  return false;
-}
 
 const DATA_RW_PROTOCOLS = ["http://", "https://", "//"];
 
@@ -49,7 +41,7 @@ class Rewriter {
       content = (inflator.result && !inflator.err) ? inflator.result : ab;
     }
 
-    return this.makeResponse(content, response);
+    return makeRwResponse(content, response);
   }
 
   getRewriteMode(requestType, contentType) {
@@ -107,7 +99,7 @@ class Rewriter {
         return this.rewriteHtml(response, headers);
     }
 
-    return this.makeResponse(response.body, response, headers);
+    return makeRwResponse(response.body, response, headers);
   }
 
   // URL
@@ -396,7 +388,7 @@ class Rewriter {
       }
     });
 
-    return this.makeResponse(rs, response, headers);
+    return makeRwResponse(rs, response, headers);
   }
 
   // CSS
@@ -417,7 +409,7 @@ class Rewriter {
 
     }).then((text) => {
 
-      return this.makeResponse(text, response, headers);
+      return makeRwResponse(text, response, headers);
     });
   }
 
@@ -456,21 +448,8 @@ class Rewriter {
   rewriteScript(response, headers) {
     return response.text().then((text) => {
 
-      return this.makeResponse(this.rewriteJS(text), response, headers);
+      return makeRwResponse(this.rewriteJS(text), response, headers);
     });
-  }
-
-  makeResponse(content, response, headers) {
-    const initOpt = {
-      "status": response.status,
-      "statusText": response.statusText,
-      "headers": headers || response.headers
-    };
-
-    const timestamp = response.timestamp;
-    response = new Response(content, initOpt);
-    response.timestamp = timestamp;
-    return response;
   }
 
   //Headers
@@ -697,7 +676,7 @@ class JSRewriterRules {
 
     const rxString = `(?:${rxBuff})`;
 
-    console.log(rxString);
+    //console.log(rxString);
 
     this.rx = new RegExp(rxString, 'gm');
   }
@@ -713,17 +692,17 @@ class JSRewriterRules {
       }
 
       // if (this.rules[i].length == 3) {
-      // 	const lookbehind = this.rules[i][2];
-      // 	const offset = params[params.length - 2];
-      // 	const string = params[params.length - 1];
+      //  const lookbehind = this.rules[i][2];
+      //  const offset = params[params.length - 2];
+      //  const string = params[params.length - 1];
 
-      // 	const len = lookbehind.len || 1;
-      // 	const behind = string.slice(offset - len, offset);
+      //  const len = lookbehind.len || 1;
+      //  const behind = string.slice(offset - len, offset);
 
-      // 	// if lookbehind check does not pass, don't replace!
-      // 	if (!behind.match(lookbehind.rx) !== (lookbehind.neg || false)) {
-      // 		return curr;
-      // 	}
+      //  // if lookbehind check does not pass, don't replace!
+      //  if (!behind.match(lookbehind.rx) !== (lookbehind.neg || false)) {
+      //      return curr;
+      //  }
       // }
 
       const result = this.rules[i][1].call(this, curr, offset, string);
@@ -775,7 +754,7 @@ class JSRewriterRules {
 var ${checkThisFunc} = function (thisObj) { if (thisObj && thisObj._WB_wombat_obj_proxy) return thisObj._WB_wombat_obj_proxy; return thisObj; };
 var ${assignFunc} = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
 if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
-{
+{\
 `
     for (let decl of localDecls) {
       buffer += `let ${decl} = ${assignFunc}("${decl}");\n`;
@@ -783,7 +762,6 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     return buffer + '\n';
   }
-
 
   rewrite(text, inline) {
     let newText = text.replace(this.rx, (match, ...params) => this.doReplace(params));
@@ -795,5 +773,5 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 const jsRules = new JSRewriterRules();
 
 
-module.exports = Rewriter;
+export { Rewriter };
 

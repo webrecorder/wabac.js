@@ -1,4 +1,4 @@
-import { getTS } from './utils.js';
+import { getTS, makeNewResponse } from './utils.js';
 
 class HARCache {
   constructor(string_or_har) {
@@ -71,10 +71,9 @@ class HARCache {
       content = entry.response.content.text;
     }
 
-    const resp = new Response(content, init);
-    resp.timestamp = entry.timestamp;
-    resp.date = new Date(entry.startedDateTime);
-    return resp;
+    return makeNewResponse(content, init,
+      entry.timestamp,
+      entry.startedDateTime);
   }
 }
 

@@ -1,10 +1,10 @@
 "use strict";
 
-import Rewriter from './rewrite.js';
+import { Rewriter } from './rewrite.js';
 
 import { parseHAR } from './harcache.js';
 
-import { getSecondsStr } from './utils.js';
+import { getSecondsStr, notFound } from './utils.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
@@ -80,7 +80,7 @@ class Collection {
     if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:"))) {
       url = wbUrlStr;
     } else if (!wbUrl) {
-      return this.notFound(wbUrlStr);
+      return notFound(request, `Replay URL ${wbUrlStr} not found`);
     } else {
       requestTS = wbUrl[1];
       mod = wbUrl[2];
@@ -133,23 +133,13 @@ class Collection {
       if (response) {
         return response;
       } else {
-        return this.notFound(wbUrlStr);
+        return notFound(request, `URL ${url} not found`);
       }
 
     } else {
       return this.makeTopFrame(url, requestTS);
     }
 
-  }
-
-  notFound(url) {
-    let responseData = {
-      "status": 404,
-      "statusText": "Not Found",
-      "headers": { "Content-Type": "text/html" }
-    };
-
-    return new Response('404 Not Found', responseData);
   }
 
   makeTopFrame(url, requestTS) {
@@ -220,7 +210,7 @@ window.home = "${this.rootPrefix}";
   if (window == window.top && wbinfo.top_url) {
     var loc = window.location.href.replace(window.location.hash, "");
     loc = decodeURI(loc);
- 
+
     if (loc != decodeURI(wbinfo.top_url)) {
         window.location.href = wbinfo.top_url + window.location.hash;
     }

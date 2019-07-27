@@ -105,7 +105,7 @@ eval("/* flatpickr v4.6.1, @license MIT */\n(function (global, factory) {\n     
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"Page\", function() { return Page; });\n//export let Collection = require('./src/collection.js');\n\n//export let HARCache = require('./src/harcache.js');\n\nlet Page = __webpack_require__(/*! ./src/page.js */ \"./src/page.js\");\n\n//export let fs = require('fs');\n\n//export let nodeWarc = require('node-warc');\n\n//export let zlib = require('zlib');\n\n\n//# sourceURL=webpack:///./page-build.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, \"Page\", function() { return Page; });\nlet Page = __webpack_require__(/*! ./src/page.js */ \"./src/page.js\");\n\n\n//# sourceURL=webpack:///./page-build.js?");
 
 /***/ }),
 

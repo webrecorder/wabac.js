@@ -23,7 +23,7 @@ class WarcParser {
 
   parse(arraybuffer, onRecord) {
     // this.rstream.pipe(this.warc).on('data', (record) => {
-    // 	console.log(record.warcTargetURI);
+    //  console.log(record.warcTargetURI);
     // });
     if (!onRecord) {
       onRecord = () => { };
