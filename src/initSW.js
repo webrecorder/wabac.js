@@ -5,12 +5,12 @@ if ('serviceWorker' in navigator) {
   let path = window.location.origin + window.location.pathname;
 
   if (!path.endsWith("/")) {
-  	path = path.slice(0, path.lastIndexOf("/") + 1);
+    path = path.slice(0, path.lastIndexOf("/") + 1);
   }
 
-  navigator.serviceWorker.register(path + 'sw.js', {scope: path}).then(function(registration) {
+  navigator.serviceWorker.register(path + 'sw.js', { scope: path }).then(function (registration) {
     console.log('Service worker registration succeeded:', registration);
-  }, /*catch*/ function(error) {
+  }, /*catch*/ function (error) {
     console.log('Service worker registration failed:', error);
   });
 } else {

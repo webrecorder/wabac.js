@@ -11,148 +11,149 @@ const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob
 const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?[\/|](.+)/;
 
 
-class Collection
-{
-	constructor(name, cache, prefix, rootColl, sourceName) {
-		this.name = name;
-		this.cache = cache;
+class Collection {
+  constructor(name, cache, prefix, rootColl, sourceName) {
+    this.name = name;
+    this.cache = cache;
 
-		this.sourceName = sourceName;
+    this.sourceName = sourceName;
 
-		this.rootPrefix = prefix;
+    this.rootPrefix = prefix;
 
-		this.prefix = prefix + this.name + "/";
+    this.prefix = prefix + this.name + "/";
 
-		// support root collection hashtag nav
-		if (rootColl) {
-			this.appPrefix = prefix + "#/";
-			this.isRoot = true;
-		} else {
-			this.appPrefix = this.prefix;
-			this.isRoot = false;
-		}
+    // support root collection hashtag nav
+    if (rootColl) {
+      this.appPrefix = prefix + "#/";
+      this.isRoot = true;
+    } else {
+      this.appPrefix = this.prefix;
+      this.isRoot = false;
+    }
 
-		this.staticPrefix = prefix + "static";
-	}
+    this.staticPrefix = prefix + "static";
+  }
 
-	async handleRequest(request) {
-		let wbUrlStr = request.url;
+  async handleRequest(request) {
+    let wbUrlStr = request.url;
 
-		if (wbUrlStr.startsWith(this.prefix)) {
-			wbUrlStr = wbUrlStr.substring(this.prefix.length);
-		} else if (this.isRoot && wbUrlStr.startsWith(this.appPrefix)) {
-			wbUrlStr = wbUrlStr.substring(this.appPrefix.length);
-		} else {
-			return null;
-		}
+    if (wbUrlStr.startsWith(this.prefix)) {
+      wbUrlStr = wbUrlStr.substring(this.prefix.length);
+    } else if (this.isRoot && wbUrlStr.startsWith(this.appPrefix)) {
+      wbUrlStr = wbUrlStr.substring(this.appPrefix.length);
+    } else {
+      return null;
+    }
 
-		let responseData = {"status": 200,
-							 "statusText": "OK",
-						     "headers": {"Content-Type": "text/html"}
-							};
+    let responseData = {
+      "status": 200,
+      "statusText": "OK",
+      "headers": { "Content-Type": "text/html" }
+    };
 
-		let content = null;
+    let content = null;
 
-		// pageList
-		if (wbUrlStr == "") {
+    // pageList
+    if (wbUrlStr == "") {
 
-			content = '<html><body><h2>Available Pages</h2><ul>'
+      content = '<html><body><h2>Available Pages</h2><ul>'
 
-			for (let page of this.cache.pageList) {
-				let href = this.appPrefix;
-				if (page.ts) {
-					href += page.ts + "/";
-				}
-				href += page.url;
-				content += `<li><a href="${href}">${page.url}</a></li>`
-			}
+      for (let page of this.cache.pageList) {
+        let href = this.appPrefix;
+        if (page.ts) {
+          href += page.ts + "/";
+        }
+        href += page.url;
+        content += `<li><a href="${href}">${page.url}</a></li>`
+      }
 
-			content += '</ul></body></html>'
+      content += '</ul></body></html>'
 
-			return new Response(content, responseData);
-		}
+      return new Response(content, responseData);
+    }
 
-		const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
-		let requestTS = '';
-		let url = '';
-		let mod = '';
+    const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
+    let requestTS = '';
+    let url = '';
+    let mod = '';
 
-		if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:"))) {
-			url = wbUrlStr;
-		} else if (!wbUrl) {
-			return this.notFound(wbUrlStr);
-		} else {
-			requestTS = wbUrl[1];
-			mod = wbUrl[2];
-			url = wbUrl[3];
-		}
+    if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:"))) {
+      url = wbUrlStr;
+    } else if (!wbUrl) {
+      return this.notFound(wbUrlStr);
+    } else {
+      requestTS = wbUrl[1];
+      mod = wbUrl[2];
+      url = wbUrl[3];
+    }
 
-		// force timestamp for root coll
-		if (!requestTS && this.isRoot) {
-			requestTS = "2";
-		}
+    // force timestamp for root coll
+    if (!requestTS && this.isRoot) {
+      requestTS = "2";
+    }
 
-		if (mod) {
-			const hash = url.indexOf("#");
-			if (hash > 0) {
-				url = url.substring(0, hash);
-			}
+    if (mod) {
+      const hash = url.indexOf("#");
+      if (hash > 0) {
+        url = url.substring(0, hash);
+      }
 
-			let referrer = request.referrer;
+      let referrer = request.referrer;
 
-			let response = null;
+      let response = null;
 
-			const rwPrefix = this.prefix;// + requestTS + mod + "/";
+      const rwPrefix = this.prefix;// + requestTS + mod + "/";
 
-			if (url.startsWith("//")) {
-				response = await this.cache.match({"url": "https:" + url, "timestamp": requestTS}, rwPrefix);
+      if (url.startsWith("//")) {
+        response = await this.cache.match({ "url": "https:" + url, "timestamp": requestTS }, rwPrefix);
 
-				if (!response) {
-					response = await this.cache.match({"url": "http:" + url, "timestamp": requestTS}, rwPrefix);
-					if (response) {
-						url = "http:" + url;
-					}
-				} else {
-					url = "https:" + url;
-				}
-			} else {
-				response = await this.cache.match({"url": url, "timestamp": requestTS}, rwPrefix);
-			}
+        if (!response) {
+          response = await this.cache.match({ "url": "http:" + url, "timestamp": requestTS }, rwPrefix);
+          if (response) {
+            url = "http:" + url;
+          }
+        } else {
+          url = "https:" + url;
+        }
+      } else {
+        response = await this.cache.match({ "url": url, "timestamp": requestTS }, rwPrefix);
+      }
 
-			if (response && !response.noRW && mod != "id_") {
-				let headInsert = "";
+      if (response && !response.noRW && mod != "id_") {
+        let headInsert = "";
 
-				if (request.destination === "" || request.destination === "document") {
-					headInsert = this.makeHeadInsert(url, response.timestamp, request.url, requestTS, response.date);
-				}
+        if (request.destination === "" || request.destination === "document") {
+          headInsert = this.makeHeadInsert(url, response.timestamp, request.url, requestTS, response.date);
+        }
 
-				const rewriter = new Rewriter(url, this.prefix + requestTS + "mp_/", headInsert);
-				response = await rewriter.rewrite(response, request.destination, DEFAULT_CSP);
-			}
+        const rewriter = new Rewriter(url, this.prefix + requestTS + "mp_/", headInsert);
+        response = await rewriter.rewrite(response, request.destination, DEFAULT_CSP);
+      }
 
-			if (response) {
-				return response;
-			} else {
-				return this.notFound(wbUrlStr);
-			}
+      if (response) {
+        return response;
+      } else {
+        return this.notFound(wbUrlStr);
+      }
 
-		} else {
-			return this.makeTopFrame(url, requestTS);
-		}
-			
-	}
+    } else {
+      return this.makeTopFrame(url, requestTS);
+    }
 
-	notFound(url) {
-		let responseData = {"status": 404,
-						   	 "statusText": "Not Found",
-							 "headers": {"Content-Type": "text/html"}
-							};
+  }
 
-		return new Response('404 Not Found', responseData);
-	}
+  notFound(url) {
+    let responseData = {
+      "status": 404,
+      "statusText": "Not Found",
+      "headers": { "Content-Type": "text/html" }
+    };
 
-	makeTopFrame(url, requestTS) {
-		const content = `
+    return new Response('404 Not Found', responseData);
+  }
+
+  makeTopFrame(url, requestTS) {
+    const content = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -192,24 +193,25 @@ window.home = "${this.rootPrefix}";
 </body>
 </html>
 `
-		let responseData = {"status": 200,
-							 "statusText": "OK",
-							 "headers": {"Content-Type": "text/html", "Content-Security-Policy": DEFAULT_CSP}
-							};
+    let responseData = {
+      "status": 200,
+      "statusText": "OK",
+      "headers": { "Content-Type": "text/html", "Content-Security-Policy": DEFAULT_CSP }
+    };
 
-		return new Response(content, responseData);
-	}
+    return new Response(content, responseData);
+  }
 
-	makeHeadInsert(url, timestamp, requestUrl, requestTS, date) {
+  makeHeadInsert(url, timestamp, requestUrl, requestTS, date) {
 
-		const topUrl = this.appPrefix + requestTS + (requestTS ? "/" : "") + url;
-		const prefix = this.prefix;
-		const coll = this.name;
+    const topUrl = this.appPrefix + requestTS + (requestTS ? "/" : "") + url;
+    const prefix = this.prefix;
+    const coll = this.name;
 
-		const seconds = getSecondsStr(date);
+    const seconds = getSecondsStr(date);
 
-		const urlParsed = new URL(url);
-		return `
+    const urlParsed = new URL(url);
+    return `
 <!-- WB Insert -->
 <script>
   wbinfo = {};
@@ -249,7 +251,7 @@ window.home = "${this.rootPrefix}";
   }
 </script>
   `
-	}
+  }
 }
 
 export { Collection };

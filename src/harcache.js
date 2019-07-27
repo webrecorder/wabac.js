@@ -1,80 +1,81 @@
 import { getTS } from './utils.js';
 
 class HARCache {
-	constructor(string_or_har) {
-		let har = string_or_har;
+  constructor(string_or_har) {
+    let har = string_or_har;
 
-		if (typeof har === "string") {
-			har = JSON.parse(har);
-		}
+    if (typeof har === "string") {
+      har = JSON.parse(har);
+    }
 
-		this.parseEntries(har);
+    this.parseEntries(har);
 
-		this.parsePages(har);
-	}
+    this.parsePages(har);
+  }
 
-	parsePages(har) {
-		this.pageList = [];
+  parsePages(har) {
+    this.pageList = [];
 
-		for (let page of har.log.pages) {
-			if (!page.pageTimings || !page.pageTimings.onLoad) {
-				continue;
-			}
-			this.pageList.push({"timestamp": getTS(page.startedDateTime), "title": page.title, "url": page.title});
-		}
-	}
+    for (let page of har.log.pages) {
+      if (!page.pageTimings || !page.pageTimings.onLoad) {
+        continue;
+      }
+      this.pageList.push({ "timestamp": getTS(page.startedDateTime), "title": page.title, "url": page.title });
+    }
+  }
 
-	parseEntries(har) {
-		this.urlMap = {}
+  parseEntries(har) {
+    this.urlMap = {}
 
-		for (let entry of har.log.entries) {
-			if (!entry.response.content || !entry.response.content.text) {
-				continue;
-			}
-			this.urlMap[entry.request.url] = {
-											  "request": entry.request,
-											  "response": entry.response,
-											  "timestamp": getTS(entry.startedDateTime),
-											  "datetime": entry.startedDateTime,
-											 };
-		}
-	}
+    for (let entry of har.log.entries) {
+      if (!entry.response.content || !entry.response.content.text) {
+        continue;
+      }
+      this.urlMap[entry.request.url] = {
+        "request": entry.request,
+        "response": entry.response,
+        "timestamp": getTS(entry.startedDateTime),
+        "datetime": entry.startedDateTime,
+      };
+    }
+  }
 
-	async match(request) {
-		const entry = this.urlMap[request.url];
-		if (!entry) {
-			return null;
-		}
+  async match(request) {
+    const entry = this.urlMap[request.url];
+    if (!entry) {
+      return null;
+    }
 
-		const headers = {}
+    const headers = {}
 
-		for (let header of entry.response.headers) {
-			if (header.name.toLowerCase() === "content-encoding") {
-				continue;
-			}
-			headers[header.name] = header.value;
-		}
+    for (let header of entry.response.headers) {
+      if (header.name.toLowerCase() === "content-encoding") {
+        continue;
+      }
+      headers[header.name] = header.value;
+    }
 
-		const init = {"status": entry.response.status,
-					  "statusText": entry.response.statusText,
-					  "headers": headers
-					 }
+    const init = {
+      "status": entry.response.status,
+      "statusText": entry.response.statusText,
+      "headers": headers
+    }
 
-		let content = null;
+    let content = null;
 
 
-		try {
-			//content = atob(entry.response.content.text);
-			content = Uint8Array.from(atob(entry.response.content.text), c => c.charCodeAt(0));
-		} catch(e) {
-			content = entry.response.content.text;
-		}
+    try {
+      //content = atob(entry.response.content.text);
+      content = Uint8Array.from(atob(entry.response.content.text), c => c.charCodeAt(0));
+    } catch (e) {
+      content = entry.response.content.text;
+    }
 
-		const resp = new Response(content, init);
-		resp.timestamp = entry.timestamp;
-		resp.date = new Date(entry.startedDateTime);
-		return resp;
-	}
+    const resp = new Response(content, init);
+    resp.timestamp = entry.timestamp;
+    resp.date = new Date(entry.startedDateTime);
+    return resp;
+  }
 }
 
 export { HARCache };
