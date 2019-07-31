@@ -7,6 +7,10 @@ const IMPORT_REGEX = /(@import\s*[\\"']*)([^)'";]+)([\\"']*\s*;?)/gi;
 
 const NO_WOMBAT_REGEX = /WB_wombat_/g;
 
+const JSONP_REGEX = /(?:^[ \t]*(?:(?:\/\*[^\*]*\*\/)|(?:\/\/[^\n]+[\n])))*[ \t]*(\w+)\(\{/m;
+
+const JSONP_CALLBACK_REGEX = /[?].*callback=([^&]+)/;
+
 const DOT_POST_MSG_REGEX = /(.postMessage\s*\()/;
 
 const DATA_RW_PROTOCOLS = ["http://", "https://", "//"];
@@ -62,6 +66,9 @@ class Rewriter {
       case "application/x-javascript":
         return "js";
 
+      case "application/json":
+        return "json";
+
       case "text/css":
         return "css";
     }
@@ -94,6 +101,9 @@ class Rewriter {
 
       case "js":
         return this.rewriteScript(response, headers);
+
+      case "json":
+        return this.rewriteJSONP(response, headers);
 
       case "html":
         return this.rewriteHtml(response, headers);
@@ -281,8 +291,16 @@ class Rewriter {
     const rwStream = new RewritingStream();
 
     let insertAdded = false;
+    let hasData = false;
 
     let context = "";
+
+    const addInsert = () => {
+      if (!insertAdded && hasData) {
+        rwStream.emitRaw(this.headInsert);
+        insertAdded = true;
+      }
+    };
 
     // Replace divs with spans
     rwStream.on('startTag', startTag => {
@@ -291,14 +309,13 @@ class Rewriter {
 
       this.rewriteAttrs(startTag, tagRules || {});
 
+      if (!insertAdded && !["head", "html"].includes(startTag.tagName)) {
+        addInsert();
+      }
+
       rwStream.emitStartTag(startTag);
 
       switch (startTag.tagName) {
-        case "head":
-          rwStream.emitRaw(this.headInsert);
-          insertAdded = true;
-          break;
-
         case "base":
           const newBase = this.getAttr(startTag.attrs, "href");
           if (newBase && newBase.startsWith(this.prefix)) {
@@ -351,6 +368,7 @@ class Rewriter {
     const buff = new stream.Readable({ encoding: 'utf-8' });
     buff._read = () => { };
     buff.pipe(rwStream);
+    buff.on('end', addInsert);
 
     const reader = response.body.getReader();
 
@@ -359,15 +377,14 @@ class Rewriter {
         // When no more data needs to be consumed, close the stream
 
         if (done) {
-          //rewriter.close();
           buff.push(null);
           return;
         }
-        //console.log(value);
 
         // Enqueue the next data chunk into our target stream
         //rewriter.write(value, 'utf-8');
         buff.push(value);
+        hasData = hasData || !!value.length;
         return pump();
       });
     }
@@ -450,6 +467,33 @@ class Rewriter {
 
       return makeRwResponse(this.rewriteJS(text), response, headers);
     });
+  }
+
+  //JSONP
+  rewriteJSONP(response, headers) {
+    return response.text().then((text) => {
+      return this.rewriteJSONPText(text);
+
+    }).then((text) => {
+
+      return makeRwResponse(text, response, headers);
+    });
+  }
+
+  rewriteJSONPText(text) {
+    const jsonM = text.match(JSONP_REGEX);
+    if (!jsonM) {
+      return text;
+    }
+
+    const callback = this.baseUrl.match(JSONP_CALLBACK_REGEX);
+
+    // if no callback found, or callback is just '?', not jsonp
+    if (!callback || callback[1] === "?") {
+      return text;
+    }
+
+    return callback[1] + text.slice(text.indexOf(josnM[1]) + jsonM[1].length);
   }
 
   //Headers

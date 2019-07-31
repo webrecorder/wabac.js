@@ -60,6 +60,9 @@
         line-height: 2.5rem;
         font-variant-caps: all-small-caps;
     }
+    .tagline i {
+        font-size: 1.0rem;
+    }
     .sectionhead {
         font-family: sans-serif;
         margin-top: 50px;

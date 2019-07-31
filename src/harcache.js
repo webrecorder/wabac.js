@@ -20,12 +20,23 @@ class HARCache {
       if (!page.pageTimings || !page.pageTimings.onLoad) {
         continue;
       }
-      this.pageList.push({ "timestamp": getTS(page.startedDateTime), "title": page.title, "url": page.title });
+
+      let url;
+      if (page.title && (page.title.startsWith("http:") || page.title.startsWith("https:"))) {
+        url = page.title;
+      } else {
+        url = this.pageRefs[page.id];
+      }
+
+      const title = page.title || url;
+
+      this.pageList.push({ "timestamp": getTS(page.startedDateTime), "title": title, "url": url });
     }
   }
 
   parseEntries(har) {
-    this.urlMap = {}
+    this.urlMap = {};
+    this.pageRefs = {};
 
     for (let entry of har.log.entries) {
       if (!entry.response.content || !entry.response.content.text) {
@@ -37,6 +48,10 @@ class HARCache {
         "timestamp": getTS(entry.startedDateTime),
         "datetime": entry.startedDateTime,
       };
+
+      if (entry.pageref && !this.pageRefs[entry.pageref]) {
+        this.pageRefs[entry.pageref] = entry.request.url;
+      }
     }
   }
 
@@ -73,7 +88,7 @@ class HARCache {
 
     return makeNewResponse(content, init,
       entry.timestamp,
-      entry.startedDateTime);
+      entry.datetime);
   }
 }
 

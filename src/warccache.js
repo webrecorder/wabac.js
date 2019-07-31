@@ -61,6 +61,16 @@ class WARCCache {
 
       const headers = new Headers(record.httpInfo.headers);
 
+      // skip self-redirects
+      if (status > 300 && status < 400) {
+        const location = headers.get('location');
+        if (location) {
+          if (new URL(location, url).href === url) {
+            return;
+          }
+        }
+      }
+
       initInfo = { status, statusText, headers };
 
       const cl = headers.get('content-length');
