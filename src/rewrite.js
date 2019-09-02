@@ -674,23 +674,23 @@ class JSRewriterRules {
 
     this.rules = [
       // rewriting 'eval(....)' - invocation
-      [/\beval\s*\(/, this.addPrefix(evalStr)],
+      [/[^$]\beval\s*\(/, this.addPrefixAfter1(evalStr)],
 
       // rewriting 'x = eval' - no invocation
-      [/\beval\b/, this.addPrefix('WB_wombat_')],
+      [/[^$]\beval\b/, this.addPrefixAfter1('WB_wombat_')],
 
       // rewriting .postMessage -> __WB_pmw(self).postMessage
       [/\.postMessage\b\(/, this.addPrefix('.__WB_pmw(self)')],
 
       // rewriting 'location = ' to custom expression '(...).href =' assignment
-      [/\s*\blocation\b\s*[=]\s*(?![=])/, this.addSuffix(checkLoc)],
+      [/[^$.]\s*\blocation\b\s*[=]\s*(?![=])/, this.addSuffix(checkLoc)],
 
       // rewriting 'return this'
       [/\breturn\s+this\b\s*(?![.$])/, this.replaceThis()],
 
       // rewriting 'this.' special properties access on new line, with ; prepended
       // if prev char is '\n', or if prev is not '.' or '$', no semi
-      [new RegExp(`\\s*\\bthis\\b(?=(?:\\.(?:${propStr})\\b))`), this.replaceThisProp()],
+      [new RegExp(`[^$.]\\s*\\bthis\\b(?=(?:\\.(?:${propStr})\\b))`), this.replaceThisProp()],
 
       // rewrite '= this' or ', this'
       [/[=,]\s*\bthis\b\s*(?![.$])/, this.replaceThis()],
@@ -758,6 +758,10 @@ class JSRewriterRules {
 
   addPrefix(prefix) {
     return x => prefix + x;
+  }
+
+  addPrefixAfter1(prefix) {
+    return x => x[0] + prefix + x.slice(1);
   }
 
   addSuffix(suffix) {

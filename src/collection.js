@@ -2,9 +2,7 @@
 
 import { Rewriter } from './rewrite.js';
 
-import { parseHAR } from './harcache.js';
-
-import { getSecondsStr, notFound } from './utils.js';
+import { getTS, getSecondsStr, notFound, makeNewResponse } from './utils.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
@@ -34,6 +32,27 @@ class Collection {
     this.staticPrefix = prefix + "static";
   }
 
+  async rewriteInline(request, responseOpts) {
+    const acceptDT = request.headers.get('Accept-Datetime');
+    const datetime = acceptDT ? new Date(acceptDT) : new Date();
+    const requestTS = getTS(datetime.toISOString());
+
+    responseOpts.headers['Content-Type'] = request.headers.get('Content-Type');
+
+    const text = await request.text();
+    const response = makeNewResponse(text, responseOpts, requestTS, datetime);
+
+    const headInsert = this.makeHeadInsert('', requestTS, requestTS, datetime);
+
+    const rewriter = new Rewriter('', this.prefix + requestTS + "mp_/", headInsert);
+    try {
+      return await rewriter.rewrite(response, '', '');
+    } catch(e) {
+      console.log(e);
+      return null;
+    }
+  }
+
   async handleRequest(request) {
     let wbUrlStr = request.url;
 
@@ -45,7 +64,7 @@ class Collection {
       return null;
     }
 
-    let responseData = {
+    const responseOpts = {
       "status": 200,
       "statusText": "OK",
       "headers": { "Content-Type": "text/html" }
@@ -55,13 +74,16 @@ class Collection {
 
     // pageList
     if (wbUrlStr == "") {
+      if (request.method === 'POST') {
+        return this.rewriteInline(request, responseOpts);
+      }
 
       content = '<html><body><h2>Available Pages</h2><ul>'
 
       for (let page of this.cache.pageList) {
         let href = this.appPrefix;
-        if (page.ts) {
-          href += page.ts + "/";
+        if (page.timestamp) {
+          href += page.timestamp + "/";
         }
         href += page.url;
         content += `<li><a href="${href}">${page.url}</a></li>`
@@ -69,7 +91,7 @@ class Collection {
 
       content += '</ul></body></html>'
 
-      return new Response(content, responseData);
+      return new Response(content, responseOpts);
     }
 
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
@@ -123,7 +145,7 @@ class Collection {
         let headInsert = "";
 
         if (request.destination === "" || request.destination === "document") {
-          headInsert = this.makeHeadInsert(url, response.timestamp, request.url, requestTS, response.date);
+          headInsert = this.makeHeadInsert(url, response.timestamp, requestTS, response.date);
         }
 
         const rewriter = new Rewriter(url, this.prefix + requestTS + "mp_/", headInsert);
@@ -192,7 +214,7 @@ window.home = "${this.rootPrefix}";
     return new Response(content, responseData);
   }
 
-  makeHeadInsert(url, timestamp, requestUrl, requestTS, date) {
+  makeHeadInsert(url, timestamp, requestTS, date) {
 
     const topUrl = this.appPrefix + requestTS + (requestTS ? "/" : "") + url;
     const prefix = this.prefix;
