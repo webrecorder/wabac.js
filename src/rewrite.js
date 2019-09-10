@@ -64,6 +64,9 @@ class Rewriter {
       case "text/javascript":
       case "application/javascript":
       case "application/x-javascript":
+        if (this.baseUrl.endsWith(".json")) {
+          return "json";
+        }
         return "js";
 
       case "application/json":
@@ -76,16 +79,21 @@ class Rewriter {
     return null;
   }
 
-  async rewrite(response, requestType, csp) {
+  async rewrite(response, request, csp, noRewrite = false) {
     let contentType = response.headers.get("Content-Type") || "";
     contentType = contentType.split(";", 1)[0];
 
+    //if (request.headers.get('X-Pywb-Requested-With') === 'XMLHttpRequest') {
+    //  noRewrite = true;
+    //}
 
-    const rewriteMode = this.getRewriteMode(requestType, contentType);
+    const requestType = request.destination;
+
+    const rewriteMode = noRewrite ? null : this.getRewriteMode(requestType, contentType);
 
     const encoding = response.headers.get("content-encoding");
 
-    const headers = this.rewriteHeaders(response.headers, true, rewriteMode !== null);
+    const headers = this.rewriteHeaders(response.headers, !noRewrite, rewriteMode !== null);
 
     if (csp) {
       headers.append("Content-Security-Policy", csp);
@@ -294,6 +302,7 @@ class Rewriter {
     let hasData = false;
 
     let context = "";
+    let scriptRw = false;
 
     const addInsert = () => {
       if (!insertAdded && hasData) {
@@ -328,11 +337,11 @@ class Rewriter {
             break;
           }
 
+          context = startTag.tagName;
+
           const scriptType = this.getAttr(startTag.attrs, "type");
 
-          if (!scriptType || scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0) {
-            context = startTag.tagName;
-          }
+          scriptRw = !scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0);
           break;
 
         case "style":
@@ -353,12 +362,8 @@ class Rewriter {
 
     rwStream.on('text', (textToken, raw) => {
       if (context === "script") {
-        //textToken.text = this.rewriteJSProxy(textToken.text);
-        //console.log(raw);
-        //console.log(textToken.text);
-        rwStream.emitRaw(this.rewriteJS(textToken.text));
+        rwStream.emitRaw(scriptRw ? this.rewriteJS(textToken.text) : textToken.text);
       } else if (context === "style") {
-        //textToken.text = this.rewriteCSSText(textToken.text);
         rwStream.emitRaw(this.rewriteCSSText(textToken.text));
       } else {
         rwStream.emitText(textToken);

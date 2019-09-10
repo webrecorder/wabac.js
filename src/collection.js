@@ -46,7 +46,7 @@ class Collection {
 
     const rewriter = new Rewriter('', this.prefix + requestTS + "mp_/", headInsert);
     try {
-      return await rewriter.rewrite(response, '', '');
+      return await rewriter.rewrite(response, request, '', false);
     } catch(e) {
       console.log(e);
       return null;
@@ -141,15 +141,15 @@ class Collection {
         response = await this.cache.match({ "url": url, "timestamp": requestTS }, rwPrefix);
       }
 
-      if (response && !response.noRW && mod != "id_") {
+      if (response && !response.noRW) {
         let headInsert = "";
 
         if (request.destination === "" || request.destination === "document") {
           headInsert = this.makeHeadInsert(url, response.timestamp, requestTS, response.date);
         }
 
-        const rewriter = new Rewriter(url, this.prefix + requestTS + "mp_/", headInsert);
-        response = await rewriter.rewrite(response, request.destination, DEFAULT_CSP);
+        const rewriter = new Rewriter(url, this.prefix + requestTS + mod + "/", headInsert);
+        response = await rewriter.rewrite(response, request, DEFAULT_CSP, mod === "id_");
       }
 
       if (response) {
