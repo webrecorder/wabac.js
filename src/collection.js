@@ -94,7 +94,7 @@ class Collection {
       return new Response(content, responseOpts);
     }
 
-    const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
+    const wbUrl = REPLAY_REGEX.exec(decodeURI(wbUrlStr));
     let requestTS = '';
     let url = '';
     let mod = '';
