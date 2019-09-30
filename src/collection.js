@@ -6,7 +6,7 @@ import { getTS, getSecondsStr, notFound, makeNewResponse } from './utils.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
-const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?[\/|](.+)/;
+const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
 
 class Collection {
@@ -94,7 +94,7 @@ class Collection {
       return new Response(content, responseOpts);
     }
 
-    const wbUrl = REPLAY_REGEX.exec(decodeURI(wbUrlStr));
+    const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
     let requestTS = '';
     let url = '';
     let mod = '';
