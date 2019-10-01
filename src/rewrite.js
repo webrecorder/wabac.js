@@ -83,9 +83,9 @@ class Rewriter {
     let contentType = response.headers.get("Content-Type") || "";
     contentType = contentType.split(";", 1)[0];
 
-    //if (request.headers.get('X-Pywb-Requested-With') === 'XMLHttpRequest') {
-    //  noRewrite = true;
-    //}
+    if (request.headers.get('X-Pywb-Requested-With') === 'XMLHttpRequest') {
+      noRewrite = true;
+    }
 
     const requestType = request.destination;
 
