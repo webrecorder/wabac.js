@@ -81,7 +81,7 @@ class WARCCache {
 
       // if no pages found, start detection if hasn't started already
       if (this.detectPages === undefined) {
-        this.detectPages = (this.pageList === []);
+        this.detectPages = (this.pageList.length === 0);
       }
 
       if (this.detectPages) {
@@ -125,7 +125,7 @@ class WARCCache {
 
     let contentType = headers.get("Content-Type") || "";
     contentType = contentType.split(";", 1)[0];
-    if (contentType !== "text/html" && contentType !== "text/plain") {
+    if (contentType !== "text/html") {
       return false;
     }
 

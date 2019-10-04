@@ -24,19 +24,71 @@ class Rewriter {
     this.headInsert = headInsert || "";
   }
 
-  async decodeResponse(response, encoding) {
-    if (!encoding) {
-      return response;
+  dechunkArrayBuffer(ab) {
+    const data = new Uint8Array(ab);
+
+    let readOffset = 0;
+    let writeOffset = 0;
+
+    const decoder = new TextDecoder("utf-8");
+
+    while(readOffset < data.length) {
+      let i = readOffset;
+
+      // check hex digits, 0-9, A-Z, a-z
+      while ((data[i] >= 48 && data[i] <= 57) ||
+             (data[i] >= 65 && data[i] <= 70) ||
+             (data[i] >= 97 && data[i] <= 102)) {
+        i++;
+      }
+
+      // doesn't start with number, return original
+      if (i === 0) {
+        return ab;
+      }
+
+      // ensure \r\n\r\n
+      if (data[i] != 13 || data[i + 1] != 10) {
+        return ab;
+      }
+
+      i += 2;
+
+      var chunkLength = parseInt(decoder.decode(data.subarray(readOffset, i)), 16);
+
+      if (chunkLength == 0) {
+        break;
+      }
+
+      data.set(data.subarray(i, i + chunkLength), writeOffset);
+
+      i += chunkLength;
+
+      writeOffset += chunkLength;
+
+      if (data[i] == 13 && data[i + 1] == 10) {
+        i += 2;
+      }
+
+      readOffset = i;
     }
 
-    const ab = await response.arrayBuffer();
+    return data.subarray(0, writeOffset).buffer;
+  }
+
+  async decodeResponse(response, encoding, chunked) {
+    let ab = await response.arrayBuffer();
+
+    if (chunked) {
+      ab = this.dechunkArrayBuffer(ab);
+    }
 
     let content = ab;
 
-    if (encoding == "br") {
+    if (encoding === "br") {
       content = brotliDecode(new Uint8Array(ab));
 
-    } else {
+    } else if (encoding === "gzip") {
       const inflator = new pako.Inflate();
 
       inflator.push(ab, true);
@@ -99,8 +151,10 @@ class Rewriter {
       headers.append("Content-Security-Policy", csp);
     }
 
-    if (rewriteMode || encoding) {
-      response = await this.decodeResponse(response, encoding);
+    const te = response.headers.get('transfer-encoding');
+
+    if (encoding || te) {
+      response = await this.decodeResponse(response, encoding, te === 'chunked');
     }
 
     switch (rewriteMode) {
