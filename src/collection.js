@@ -32,25 +32,23 @@ class Collection {
     this.staticPrefix = prefix + "static";
   }
 
-  async rewriteInline(request, responseOpts) {
+  async redirectToBlob(request, responseOpts) {
+
+    async function digestMessage(message, hashtype) {
+      const msgUint8 = new TextEncoder().encode(message);                           // encode as (utf-8) Uint8Array
+      const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);           // hash the message
+      const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
+      return hashHex;
+    }
+
     const acceptDT = request.headers.get('Accept-Datetime');
     const datetime = acceptDT ? new Date(acceptDT) : new Date();
     const requestTS = getTS(datetime.toISOString());
 
-    responseOpts.headers['Content-Type'] = request.headers.get('Content-Type');
+    const blobId = await digestMessage(await request.text(), "SHA-256");
 
-    const text = await request.text();
-    const response = makeNewResponse(text, responseOpts, requestTS, datetime);
-
-    const headInsert = this.makeHeadInsert('', requestTS, requestTS, datetime);
-
-    const rewriter = new Rewriter('', this.prefix + requestTS + "mp_/", headInsert);
-    try {
-      return await rewriter.rewrite(response, request, '', false);
-    } catch(e) {
-      console.log(e);
-      return null;
-    }
+    return Response.redirect(this.prefix + requestTS + '/blob:' + blobId);
   }
 
   async handleRequest(request) {
@@ -75,7 +73,7 @@ class Collection {
     // pageList
     if (wbUrlStr == "") {
       if (request.method === 'POST') {
-        return this.rewriteInline(request, responseOpts);
+        return this.redirectToBlob(request, responseOpts);
       }
 
       content = '<html><body><h2>Available Pages</h2><ul>'
@@ -99,7 +97,7 @@ class Collection {
     let url = '';
     let mod = '';
 
-    if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:"))) {
+    if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:") || wbUrlStr.startsWith("blob:"))) {
       url = wbUrlStr;
     } else if (!wbUrl) {
       return notFound(request, `Replay URL ${wbUrlStr} not found`);

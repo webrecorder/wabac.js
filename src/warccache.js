@@ -48,18 +48,19 @@ class WARCCache {
       content = record.content.slice(0, record.content.byteLength - 2);
     }
 
-    if (record.httpInfo) {
-      let status;
+    let headers;
+    let status = 200;
+    let statusText = "OK";
 
+    if (record.httpInfo) {
       try {
         status = parseInt(record.httpInfo.statusCode);
       } catch (e) {
-        status = 200;
       }
 
-      const statusText = record.httpInfo.statusReason;
+      statusText = record.httpInfo.statusReason;
 
-      const headers = new Headers(record.httpInfo.headers);
+      headers = new Headers(record.httpInfo.headers);
 
       // skip self-redirects
       if (status > 300 && status < 400) {
@@ -70,28 +71,32 @@ class WARCCache {
           }
         }
       }
+    } else {
+      headers = new Headers();
+      headers.set("content-type", record.warcContentType);
+      headers.set("content-length", record.warcContentLength);
+    }
 
-      initInfo = { status, statusText, headers };
+    initInfo = { status, statusText, headers };
 
-      const cl = headers.get('content-length');
+    const cl = headers.get('content-length');
 
-      if (cl && content.byteLength != cl) {
-        console.log(`CL mismatch for ${url}: expected: ${cl}, found: ${record.content.byteLength - 2}`);
-      }
+    if (cl && content.byteLength != cl) {
+      console.log(`CL mismatch for ${url}: expected: ${cl}, found: ${record.content.byteLength - 2}`);
+    }
 
-      // if no pages found, start detection if hasn't started already
-      if (this.detectPages === undefined) {
-        this.detectPages = (this.pageList.length === 0);
-      }
+    // if no pages found, start detection if hasn't started already
+    if (this.detectPages === undefined) {
+      this.detectPages = (this.pageList.length === 0);
+    }
 
-      if (this.detectPages) {
-        if (this.isPage(url, status, headers)) {
-          this.pageList.push({
-            "url": url,
-            "timestamp": timestamp,
-            "title": url
-          });
-        }
+    if (this.detectPages) {
+      if (this.isPage(url, status, headers)) {
+        this.pageList.push({
+          "url": url,
+          "timestamp": timestamp,
+          "title": url
+        });
       }
     }
 
@@ -103,7 +108,7 @@ class WARCCache {
       return false;
     }
 
-    if (!url.startsWith("http:") && !url.startsWith("https:")) {
+    if (!url.startsWith("http:") && !url.startsWith("https:") && !url.startsWith("blob:")) {
       return false;
     }
 
