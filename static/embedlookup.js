@@ -10,7 +10,7 @@ async function initTemplates() {
       const width = template.getAttribute("data-width") || "auto";
       const height = template.getAttribute("data-height") || "auto";
 
-      const text = template.innerHTML;
+      const text = template.innerHTML.trim();
 
       const replayOrigin = template.getAttribute("data-replay-origin") || "http://localhost:9990/";
 
