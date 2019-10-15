@@ -1,6 +1,3 @@
-//const replayOrigin = "https://wab.ac/";
-const replayOrigin = "http://localhost:9990/";
-
 document.addEventListener("DOMContentLoaded", initTemplates);
 
 async function initTemplates() {
@@ -14,6 +11,8 @@ async function initTemplates() {
       const height = template.getAttribute("data-height") || "auto";
 
       const text = template.innerHTML;
+
+      const replayOrigin = template.getAttribute("data-replay-origin") || "http://localhost:9990/";
 
       const digest = await digestMessage(text, 'SHA-256');
 
