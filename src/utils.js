@@ -44,6 +44,14 @@ function getSecondsStr(date) {
   }
 }
 
+async function digestMessage(message, hashtype) {
+  const msgUint8 = new TextEncoder().encode(message);                           // encode as (utf-8) Uint8Array
+  const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);           // hash the message
+  const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
+  return hashHex;
+}
+
 function makeRwResponse(content, response, headers) {
   const initOpt = {
     "status": response.status,
@@ -95,4 +103,5 @@ function notFound(request, msg) {
   return new Response(content, initOpt);
 }
 
-export { startsWithAny, getTS, tsToDate, getSecondsStr, makeRwResponse, makeNewResponse, notFound };
+export { startsWithAny, getTS, tsToDate, getSecondsStr, digestMessage,
+         makeRwResponse, makeNewResponse, notFound };

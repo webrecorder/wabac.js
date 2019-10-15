@@ -2,7 +2,7 @@
 
 import { Rewriter } from './rewrite.js';
 
-import { getTS, getSecondsStr, notFound, makeNewResponse } from './utils.js';
+import { getTS, getSecondsStr, notFound, makeNewResponse, digestMessage } from './utils.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
@@ -33,15 +33,6 @@ class Collection {
   }
 
   async redirectToBlob(request, responseOpts) {
-
-    async function digestMessage(message, hashtype) {
-      const msgUint8 = new TextEncoder().encode(message);                           // encode as (utf-8) Uint8Array
-      const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);           // hash the message
-      const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
-      return hashHex;
-    }
-
     const acceptDT = request.headers.get('Accept-Datetime');
     const datetime = acceptDT ? new Date(acceptDT) : new Date();
     const requestTS = getTS(datetime.toISOString());
