@@ -212,6 +212,8 @@ window.home = "${this.rootPrefix}";
     const seconds = getSecondsStr(date);
 
     const urlParsed = new URL(url);
+
+    const scheme = urlParsed.protocol === 'blob:' ? 'https' : urlParsed.protocol.slice(0, -1);
     return `
 <!-- WB Insert -->
 <script>
@@ -242,7 +244,7 @@ window.home = "${this.rootPrefix}";
 <script>
   wbinfo.wombat_ts = "${timestamp}";
   wbinfo.wombat_sec = "${seconds}";
-  wbinfo.wombat_scheme = "${urlParsed.protocol.slice(0, -1)}";
+  wbinfo.wombat_scheme = "${scheme}";
   wbinfo.wombat_host = "${urlParsed.host}";
 
   wbinfo.wombat_opts = {};
