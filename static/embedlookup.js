@@ -4,7 +4,7 @@ async function initTemplates() {
     let templates = document.querySelectorAll("template[data-archive-name][data-archive-file]");
     
     for (let template of templates) {
-      const filename = template.getAttribute("data-archive-file");
+      const fileURL = new URL(template.getAttribute("data-archive-file"), window.location.origin).href;
       const name = template.getAttribute("data-archive-name");
 
       const width = template.getAttribute("data-width") || "auto";
@@ -23,7 +23,7 @@ async function initTemplates() {
   <span style="font-style: italic" class="status"></span>
   </span>
   <div style="background-color: aliceblue; padding-top: 4px;" class="embed-archived-container">
-    <iframe src="${replayOrigin}?coll_${name}=${filename}&url=/${name}/mp_/blob:${digest}" data-archive="${name}"
+    <iframe src="${replayOrigin}?coll_${name}=${fileURL}&url=/${name}/mp_/blob:${digest}" data-archive="${name}"
     style="width: ${width}; height: ${height}; border: 0px"></iframe>
   </div>
   <div style="background-color: aliceblue; padding-top: 4px;" class="embed-live-container">
