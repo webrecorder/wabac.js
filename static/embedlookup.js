@@ -14,7 +14,8 @@ async function initTemplates() {
 
       const replayOrigin = template.getAttribute("data-replay-origin") || "http://localhost:9990/";
 
-      const digest = await digestMessage(text, 'SHA-256');
+      //const digest = //await digestMessage(text, 'SHA-256');
+      const digest = template.getAttribute("data-digest");
 
       const insertHTML = `
   <span style="background-color: lightblue; padding: 8px;">
