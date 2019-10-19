@@ -103,5 +103,29 @@ function notFound(request, msg) {
   return new Response(content, initOpt);
 }
 
+async function makeRangeResponse(response, range) {
+  const bytes = range.match(/^bytes\=(\d+)\-(\d+)?$/);
+
+  const arrayBuffer = await response.arrayBuffer();
+
+  if (bytes) {
+    const start = Number(bytes[1]);
+    const end = Number(bytes[2]) || arrayBuffer.byteLength - 1;
+    const headers = response.headers;
+    headers.append('Content-Range', `bytes ${start}-${end}/${arrayBuffer.byteLength}`);
+    return new Response(arrayBuffer.slice(start, end + 1), {
+      status: 206,
+      statusText: 'Partial Content',
+      headers: headers,
+    });
+  } else {
+    return new Response(null, {
+      status: 416,
+      statusText: 'Range Not Satisfiable',
+      headers: [['Content-Range', `*/${arrayBuffer.byteLength}`]]
+    });
+  }
+}
+
 export { startsWithAny, getTS, tsToDate, getSecondsStr, digestMessage,
-         makeRwResponse, makeNewResponse, notFound };
+         makeRwResponse, makeNewResponse, notFound, makeRangeResponse };

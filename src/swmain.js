@@ -85,10 +85,15 @@ self.addEventListener("message", function (event) {
   switch (event.data.msg_type) {
     case "addColl":
       initCollection(event.data).then(function (coll) {
-        self.collections[event.data.name] = coll;
+        if (!coll) {
+          return;
+        }
+        const name = event.data.name;
+        self.collections[name] = coll;
         event.source.postMessage({
           "msg_type": "collAdded",
-          "prefix": coll.prefix
+          "prefix": coll.prefix,
+          "name": name
         });
 
         doListAll(event.source);

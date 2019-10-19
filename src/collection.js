@@ -2,7 +2,7 @@
 
 import { Rewriter } from './rewrite.js';
 
-import { getTS, getSecondsStr, notFound, makeNewResponse, digestMessage } from './utils.js';
+import { getTS, getSecondsStr, notFound, makeNewResponse, digestMessage, makeRangeResponse } from './utils.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
@@ -130,7 +130,9 @@ class Collection {
         response = await this.cache.match({ "url": url, "timestamp": requestTS }, rwPrefix);
       }
 
-      if (response && !response.noRW) {
+      const range = request.headers.get("range");
+
+      if (response && !response.noRW && !range) {
         let headInsert = "";
 
         if (request.destination === "" || request.destination === "document") {
@@ -139,6 +141,10 @@ class Collection {
 
         const rewriter = new Rewriter(url, this.prefix + requestTS + mod + "/", headInsert);
         response = await rewriter.rewrite(response, request, DEFAULT_CSP, mod === "id_");
+      }
+
+      if (range) {
+        response = await makeRangeResponse(response, range);
       }
 
       if (response) {
