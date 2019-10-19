@@ -81,23 +81,30 @@ function doListAll(source) {
   source.postMessage({ "msg_type": "listAll", "colls": msgData });
 }
 
-self.addEventListener("message", function (event) {
+self.addEventListener("message", async function (event) {
   switch (event.data.msg_type) {
     case "addColl":
-      initCollection(event.data).then(function (coll) {
+      const name = event.data.name;
+
+      let coll = self.collections[name];
+
+      if (!coll || !event.data.skipExisting) {
+        coll = await initCollection(event.data);
+
         if (!coll) {
           return;
         }
-        const name = event.data.name;
-        self.collections[name] = coll;
-        event.source.postMessage({
-          "msg_type": "collAdded",
-          "prefix": coll.prefix,
-          "name": name
-        });
 
-        doListAll(event.source);
+        self.collections[name] = coll;
+      }
+
+      event.source.postMessage({
+        "msg_type": "collAdded",
+        "prefix": coll.prefix,
+        "name": name
       });
+
+      doListAll(event.source);
       break;
 
     case "removeColl":

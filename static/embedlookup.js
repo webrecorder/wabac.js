@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", initTemplates);
 
 async function initTemplates() {
-    let templates = document.querySelectorAll("template[data-archive-name][data-archive-file]");
+    const templates = document.querySelectorAll("template[data-archive-name][data-archive-file]");
 
     try {
       await initSW("sw.js", "/");
@@ -9,49 +9,16 @@ async function initTemplates() {
       console.log("no sw");
     }
 
-    const style = document.createElement("style");
-    style.innerHTML = `
-    .emp-header {
-      background-color: lightblue;
-      padding: 8px;
-      padding-top: 12px;
-    }
-
-    .emp-status {
-      font-style: italic;
-      padding-left: 20px;
-    }
-
-    .emp-container {
-      background-color: aliceblue;
-      padding-top: 4px;
-    }
-
-    .emp-tab {
-      padding: 8px;
-      border-top-left-radius: 6px;
-      border-top-right-radius: 6px;
-    }
-
-    a.emp-active {
-      text-decoration: none !important;
-      color: inherit !important;
-      font-weight: bold;
-      background-color: aliceblue;
-      cursor: auto;
-    }
-
-    a.emp-active:hover {
-      text-decoration: none !important;
-    }
-    `;
-
-    document.head.appendChild(style);
+    initStyle();
 
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (event.data.msg_type === "collAdded") {
         const name = event.data.name;
+
         const iframe = document.querySelector(`iframe[data-archive="${name}"]`);
+        if (!iframe) {
+          return;
+        }
         const digest = iframe.getAttribute("data-digest");
         const replayOrigin = iframe.parentElement.parentElement.getAttribute("data-replay-origin") || window.location.origin;
         iframe.src = replayOrigin + "/" + name + "/mp_/blob:" + digest;
@@ -72,7 +39,7 @@ async function initTemplates() {
 
       const files = [{ "name": fileURL, "url": fileURL }];
 
-      navigator.serviceWorker.controller.postMessage({ "msg_type": "addColl", name, files });
+      navigator.serviceWorker.controller.postMessage({ "msg_type": "addColl", name, files, skipExisting: true });
 
       const insertHTML = `
   <span class="emp-header">
@@ -104,24 +71,20 @@ async function initTemplates() {
       const btnLive = div.querySelector("a.emp-tab.emp-live");
       const btnArchived = div.querySelector("a.emp-tab.emp-archived");
 
-      btnArchived.addEventListener("click", (event) => {
+      btnArchived.addEventListener("click", () => {
         live.style.display = "none";
         archived.style.display = "";
         btnArchived.classList.add("emp-active");
         btnLive.classList.remove("emp-active");
         status.innerText = iframe.getAttribute("data-ts");
-        event.preventDefault();
-        return false;
       });
 
-      btnLive.addEventListener("click", (event) => {
+      btnLive.addEventListener("click", () => {
         live.style.display = "";
         archived.style.display = "none";
         btnLive.classList.add("emp-active");
         btnArchived.classList.remove("emp-active");
         status.innerText = "Live Embed";
-        event.preventDefault();
-        return false;
       });
     }
 
@@ -137,6 +100,41 @@ async function initTemplates() {
     });
 };
 
+function initStyle() {
+  const style = document.createElement("style");
+    style.innerHTML = `
+    .emp-header {
+      background-color: lightblue;
+      padding: 8px;
+      padding-top: 12px;
+    }
+
+    .emp-status {
+      font-style: italic;
+      padding-left: 20px;
+    }
+
+    .emp-container {
+      background-color: aliceblue;
+      padding-top: 4px;
+    }
+
+    .emp-tab {
+      padding: 8px;
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+    }
+
+    .emp-active {
+      text-decoration: none;
+      color: black;
+      background-color: aliceblue;
+      cursor: auto;
+    }
+    `;
+
+    document.head.appendChild(style);
+}
 
 async function digestMessage(message, hashtype) {
   const msgUint8 = new TextEncoder().encode(message);                           // encode as (utf-8) Uint8Array
@@ -191,6 +189,10 @@ function initSW(relUrl, path) {
   }
 
   let url = path + relUrl;
+
+  if (navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL === url) {
+    return;
+  }
 
   return new Promise((resolve, reject) => {
     window.fetch(url, { "mode": "cors" }).then(resp => {
