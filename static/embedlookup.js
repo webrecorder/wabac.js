@@ -51,6 +51,7 @@ async function initTemplates() {
     <iframe data-archive="${name}" data-digest="${digest}" style="width: ${width}; height: ${height}; border: 0px"></iframe>
   </div>
   <div class="emp-container emp-live">
+    <iframe data-live="${name}" style="width: ${width}; height: ${height}; border: 0px"></iframe>
   </div>
       `;
 
@@ -65,26 +66,37 @@ async function initTemplates() {
       const live = div.querySelector("div.emp-container.emp-live");
       const archived = div.querySelector("div.emp-container.emp-archived");
 
-      //const liveNode = document.importNode(template, true);
-      live.appendChild(template.content);
+      const liveIframe = live.querySelector("iframe");
+      const liveNode = liveIframe.contentDocument.importNode(template.content, true);
+      if (liveIframe.contentDocument.readyState === 'complete') {
+        liveIframe.contentDocument.body.appendChild(liveNode);
+      } else {
+        liveIframe.contentWindow.addEventListener("DOMContentLoaded", () => {
+          liveIframe.contentDocument.body.appendChild(liveNode);
+        });
+      }
 
       const btnLive = div.querySelector("a.emp-tab.emp-live");
       const btnArchived = div.querySelector("a.emp-tab.emp-archived");
 
-      btnArchived.addEventListener("click", () => {
+      btnArchived.addEventListener("click", (event) => {
         live.style.display = "none";
         archived.style.display = "";
         btnArchived.classList.add("emp-active");
         btnLive.classList.remove("emp-active");
         status.innerText = iframe.getAttribute("data-ts");
+        event.preventDefault();
+        return false;
       });
 
-      btnLive.addEventListener("click", () => {
+      btnLive.addEventListener("click", (event) => {
         live.style.display = "";
         archived.style.display = "none";
         btnLive.classList.add("emp-active");
         btnArchived.classList.remove("emp-active");
         status.innerText = "Live Embed";
+        event.preventDefault();
+        return false;
       });
     }
 

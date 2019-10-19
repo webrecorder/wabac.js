@@ -373,6 +373,7 @@ class Rewriter {
       this.rewriteAttrs(startTag, tagRules || {});
 
       if (!insertAdded && !["head", "html"].includes(startTag.tagName)) {
+        hasData = true;
         addInsert();
       }
 
