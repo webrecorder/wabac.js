@@ -3,8 +3,10 @@ document.addEventListener("DOMContentLoaded", initTemplates);
 async function initTemplates() {
     const templates = document.querySelectorAll("template[data-archive-name][data-archive-file]");
 
+    const replayPrefix = "wabac";
+
     try {
-      await initSW("sw.js", "/");
+      await initSW("sw.js?replayPrefix=" + replayPrefix, "/");
     } catch (e) {
       console.log("no sw");
     }
@@ -21,7 +23,7 @@ async function initTemplates() {
         }
         const digest = iframe.getAttribute("data-digest");
         const replayOrigin = iframe.parentElement.parentElement.getAttribute("data-replay-origin") || window.location.origin;
-        iframe.src = replayOrigin + "/" + name + "/mp_/blob:" + digest;
+        iframe.src = `${replayOrigin}/${replayPrefix}/${name}/mp_/blob:${digest}`;
       }
     });
 

@@ -7,8 +7,25 @@ import { WARCCache } from './warccache.js';
 import { WarcParser } from './warcparse.js';
 import { notFound } from './utils.js';
 
+function initReplayPrefix() {
+  const sp = new URLSearchParams(self.location.search);
+
+  const replayPrefix = sp.get("replayPrefix");
+
+  let prefix = self.prefix;
+
+  if (replayPrefix) {
+    prefix += replayPrefix + "/";
+  }
+
+  return prefix;
+}
 
 self.prefix = self.registration ? self.registration.scope : '';
+
+self.replayPrefix = initReplayPrefix();
+
+self.staticPrefix = self.prefix + "static";
 
 self.collections = {};
 
@@ -65,7 +82,12 @@ async function initCollection(data) {
     return null;
   }
 
-  return new Collection(data.name, cache, self.prefix, data.root, sourceName);
+  const rootColl = data.root;
+  const name = data.name;
+  const staticPrefix = self.staticPrefix;
+  const prefix = self.replayPrefix;
+
+  return new Collection({name, cache, prefix, rootColl, sourceName, staticPrefix});
 }
 
 function doListAll(source) {
@@ -120,11 +142,23 @@ self.addEventListener("message", async function (event) {
   }
 });
 
+async function defaultFetch(request) {
+  let opts = {};
+  if (request.cache === 'only-if-cached' && request.mode !== 'same-origin') {
+    opts.cache = 'default';
+  }
+  return await fetch(request, opts);
+}
 
 async function getResponseFor(request, fe) {
+  // if not within replay prefix, just pass through
+  if (!request.url.startsWith(self.replayPrefix)) {
+    return await defaultFetch(request);
+  }
+
   let response = null;
 
-  if (request.url.startsWith(self.prefix + "stats.json")) {
+  if (request.url.startsWith(self.replayPrefix + "stats.json")) {
     return await getStats(fe);
   }
 
@@ -146,7 +180,7 @@ async function getResponseFor(request, fe) {
   }
 
   try {
-    response = await fetch(request);
+    response = await defaultFetch(request);
     if (response && response.status < 400) {
       return response;
     }

@@ -10,7 +10,9 @@ const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
 
 class Collection {
-  constructor(name, cache, prefix, rootColl, sourceName) {
+  constructor(opts) {
+    const { name, cache, prefix, rootColl, sourceName, staticPrefix } = opts;
+
     this.name = name;
     this.cache = cache;
 
@@ -29,7 +31,7 @@ class Collection {
       this.isRoot = false;
     }
 
-    this.staticPrefix = prefix + "static";
+    this.staticPrefix = staticPrefix;
   }
 
   async redirectToBlob(request, responseOpts) {
@@ -150,7 +152,8 @@ class Collection {
       if (response) {
         return response;
       } else {
-        return notFound(request, `URL ${url} not found`);
+        const msg = `<p>Sorry, the URL <b>${url}</b> is not in this archive.</p><p><a href="${url}">Try Live Version?</a></p>`;
+        return notFound(request, msg);
       }
 
     } else {
