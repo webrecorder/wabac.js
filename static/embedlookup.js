@@ -27,7 +27,6 @@ async function initTemplates() {
 
     for (let template of templates) {
       const fileURL = new URL(template.getAttribute("data-archive-file"), window.location.origin).href;
-      const name = template.getAttribute("data-archive-name");
 
       const width = template.getAttribute("data-width") || "auto";
       const height = template.getAttribute("data-height") || "auto";
@@ -36,6 +35,7 @@ async function initTemplates() {
 
       //const digest = //await digestMessage(text, 'SHA-256');
       const digest = template.getAttribute("data-digest");
+      const name = "em-" + digest.slice(0, 10);//template.getAttribute("data-archive-name");
 
       const files = [{ "name": fileURL, "url": fileURL }];
 
@@ -139,9 +139,14 @@ function initStyle() {
 
     .emp-active {
       text-decoration: none;
+      font-weight: bold;
       color: black;
       background-color: aliceblue;
       cursor: auto;
+    }
+
+    .emp-active:hover {
+      text-decoration: none;
     }
     `;
 
