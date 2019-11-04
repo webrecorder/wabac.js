@@ -1,4 +1,4 @@
-import { getTS, makeNewResponse } from './utils.js';
+import { getTS, makeNewResponse, fuzzyMatch } from './utils.js';
 
 class WARCCache {
   constructor() {
@@ -42,20 +42,20 @@ class WARCCache {
     const date = record.warcDate;
     const timestamp = getTS(date);
 
-    // needed due to bug in node-warc in including trailing \r\n in record
-    let content = record.content;
-    if (content.byteLength > 0) {
-      content = record.content.slice(0, record.content.byteLength - 2);
-    }
-
     let headers;
     let status = 200;
     let statusText = "OK";
+    let content = record.content;
 
     if (record.httpInfo) {
       try {
         status = parseInt(record.httpInfo.statusCode);
       } catch (e) {
+      }
+
+      // skip empty and partial responses
+      if (status === 204 || status === 206) {
+        return;
       }
 
       statusText = record.httpInfo.statusReason;
@@ -79,10 +79,16 @@ class WARCCache {
 
     initInfo = { status, statusText, headers };
 
-    const cl = headers.get('content-length');
+    const cl = Number(headers.get('content-length') || 0);
 
-    if (cl && content.byteLength != cl) {
-      console.log(`CL mismatch for ${url}: expected: ${cl}, found: ${record.content.byteLength - 2}`);
+    if (cl && content.byteLength !== cl) {
+      // expected mismatch due to bug in node-warc occasionally including trailing \r\n in record
+      if (cl === content.byteLength - 2) {
+        content = content.slice(0, cl);
+      } else {
+      // otherwise, warn about mismatch
+        console.warn(`CL mismatch for ${url}: expected: ${cl}, found: ${content.byteLength}`);
+      }
     }
 
     // if no pages found, start detection if hasn't started already
@@ -101,6 +107,12 @@ class WARCCache {
     }
 
     this.urlMap[url] = { timestamp, date, initInfo, content };
+
+    const fuzzyUrls = fuzzyMatch(url);
+
+    for (let fuzzyUrl of fuzzyUrls) {
+      this.urlMap[fuzzyUrl] = { timestamp, date, initInfo, content };
+    }
   }
 
   isPage(url, status, headers) {

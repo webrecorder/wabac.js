@@ -113,6 +113,7 @@ async function makeRangeResponse(response, range) {
     const end = Number(bytes[2]) || arrayBuffer.byteLength - 1;
     const headers = response.headers;
     headers.append('Content-Range', `bytes ${start}-${end}/${arrayBuffer.byteLength}`);
+    headers.set('Content-Length', end - start + 1);
     return new Response(arrayBuffer.slice(start, end + 1), {
       status: 206,
       statusText: 'Partial Content',
@@ -127,5 +128,20 @@ async function makeRangeResponse(response, range) {
   }
 }
 
+// Simple fuzzy match (for now)
+
+function fuzzyMatch(url) {
+  const RX = /[?&](_|cb|\w*cache\w*)=[\d]+(?=$|&)/;
+
+  // remove _=
+  let newUrl = url.replace(RX, '');
+
+  if (newUrl != url) {
+    return [newUrl];
+  }
+
+  return [];
+}
+
 export { startsWithAny, getTS, tsToDate, getSecondsStr, digestMessage,
-         makeRwResponse, makeNewResponse, notFound, makeRangeResponse };
+         makeRwResponse, makeNewResponse, notFound, makeRangeResponse, fuzzyMatch };

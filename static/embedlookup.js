@@ -5,6 +5,9 @@ async function initTemplates() {
 
     const replayPrefix = "wabac";
 
+    const loadQ = [];
+    let numLoading = 0;
+
     try {
       await initSW("sw.js?replayPrefix=" + replayPrefix, "/");
     } catch (e) {
@@ -23,9 +26,24 @@ async function initTemplates() {
         }
         const digest = iframe.getAttribute("data-digest");
         const replayOrigin = iframe.parentElement.parentElement.getAttribute("data-replay-origin") || window.location.origin;
+        iframe.addEventListener("load", () => {
+          numLoading -= 1;
+          if (loadQ.length) {
+            navigator.serviceWorker.controller.postMessage(loadQ.shift());
+          }
+        }, {"once": true});
         iframe.src = `${replayOrigin}/${replayPrefix}/${name}/mp_/blob:${digest}`;
       }
     });
+
+    function queueLoad(msg) {
+      if (numLoading > 2) {
+        loadQ.push(msg);
+      } else {
+        numLoading += 1;
+        navigator.serviceWorker.controller.postMessage(msg);
+      }
+    }
 
     for (let template of templates) {
       const fileURL = new URL(template.getAttribute("data-archive-file"), window.location.origin).href;
@@ -41,7 +59,7 @@ async function initTemplates() {
 
       const files = [{ "name": fileURL, "url": fileURL }];
 
-      navigator.serviceWorker.controller.postMessage({ "msg_type": "addColl", name, files, skipExisting: true });
+      queueLoad({ "msg_type": "addColl", name, files, skipExisting: true });
 
       const insertHTML = `
   <span class="emp-header">
@@ -50,9 +68,9 @@ async function initTemplates() {
   <span class="emp-status"></span>
   </span>
   <div class="emp-container emp-archived">
-    <iframe data-archive="${name}" data-digest="${digest}" style="width: ${width}; height: ${height}; border: 0px"></iframe>
+    <iframe src="data:text/html,Loading Archive..." data-archive="${name}" data-digest="${digest}" style="width: ${width}; height: ${height}; border: 0px"></iframe>
   </div>
-  <div class="emp-container emp-live">
+  <div class="emp-container emp-live" style="display: none">
     <iframe data-live="${name}" style="width: ${width}; height: ${height}; border: 0px"></iframe>
   </div>
       `;
@@ -75,7 +93,7 @@ async function initTemplates() {
       } else {
         liveIframe.contentWindow.addEventListener("DOMContentLoaded", () => {
           liveIframe.contentDocument.body.appendChild(liveNode);
-        });
+        }, {"once": true});
       }
 
       const btnLive = div.querySelector("a.emp-tab.emp-live");
@@ -119,8 +137,8 @@ function initStyle() {
     style.innerHTML = `
     .emp-header {
       background-color: lightblue;
-      padding: 8px;
-      padding-top: 12px;
+      padding: 12px 8px 0px 8px;
+      display: flex;
     }
 
     .emp-status {

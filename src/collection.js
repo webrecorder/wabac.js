@@ -2,7 +2,7 @@
 
 import { Rewriter } from './rewrite.js';
 
-import { getTS, getSecondsStr, notFound, makeNewResponse, digestMessage, makeRangeResponse } from './utils.js';
+import { getTS, getSecondsStr, notFound, makeNewResponse, digestMessage, makeRangeResponse, fuzzyMatch } from './utils.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
@@ -132,6 +132,18 @@ class Collection {
         response = await this.cache.match({ "url": url, "timestamp": requestTS }, rwPrefix);
       }
 
+      // Fuzzy match
+      if (!response) {
+        const fuzzyUrls = fuzzyMatch(url);
+
+        for (let fuzzyUrl of fuzzyUrls) {
+          response = await this.cache.match({"url": fuzzyUrl, "timestamp": requestTS }, rwPrefix);
+          if (response) {
+            break;
+          }
+        }
+      }
+
       const range = request.headers.get("range");
 
       if (response && !response.noRW && !range) {
@@ -142,7 +154,7 @@ class Collection {
         }
 
         const rewriter = new Rewriter(url, this.prefix + requestTS + mod + "/", headInsert);
-        response = await rewriter.rewrite(response, request, DEFAULT_CSP, mod === "id_");
+        response = await rewriter.rewrite(response, request, DEFAULT_CSP, mod === "id_" || mod === "wkrf_");
       }
 
       if (range) {

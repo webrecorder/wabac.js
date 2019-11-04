@@ -854,16 +854,10 @@ class JSRewriterRules {
   }
 
   initLocalDecl(localDecls) {
-    const checkThisFunc = '_____WB$wombat$check$this$function_____';
-
     const assignFunc = '_____WB$wombat$assign$function_____';
+    
+    let buffer = '{\n';
 
-    let buffer = `\
-var ${checkThisFunc} = function (thisObj) { if (thisObj && thisObj._WB_wombat_obj_proxy) return thisObj._WB_wombat_obj_proxy; return thisObj; };
-var ${assignFunc} = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
-if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
-{\
-`
     for (let decl of localDecls) {
       buffer += `let ${decl} = ${assignFunc}("${decl}");\n`;
     }

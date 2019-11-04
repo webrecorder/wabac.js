@@ -7,3 +7,4 @@ cd $CURR_DIR/wombat
 yarn install
 yarn run build-prod
 cp ./dist/wombat.js ../static/
+cp ./dist/wombatWorkers.js ../static/
