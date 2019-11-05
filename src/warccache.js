@@ -46,6 +46,7 @@ class WARCCache {
     let status = 200;
     let statusText = "OK";
     let content = record.content;
+    let cl = 0;
 
     if (record.httpInfo) {
       try {
@@ -53,14 +54,28 @@ class WARCCache {
       } catch (e) {
       }
 
-      // skip empty and partial responses
-      if (status === 204 || status === 206) {
+      // skip empty responses
+      if (status === 204) {
         return;
       }
 
       statusText = record.httpInfo.statusReason;
 
       headers = new Headers(record.httpInfo.headers);
+
+      cl = parseInt(headers.get('content-length') || 0);
+
+      // skip partial responses (not starting from 0)
+      if (status === 206) {
+        const range = headers.get("content-range");
+
+        const fullRange = `bytes 0-${cl-1}/${cl}`;
+
+        // only include 206 responses if they are the full range
+        if (range && range !== fullRange) {
+          return;
+        }
+      }
 
       // skip self-redirects
       if (status > 300 && status < 400) {
@@ -75,11 +90,10 @@ class WARCCache {
       headers = new Headers();
       headers.set("content-type", record.warcContentType);
       headers.set("content-length", record.warcContentLength);
+      cl = record.warcContentLength;
     }
 
     initInfo = { status, statusText, headers };
-
-    const cl = Number(headers.get('content-length') || 0);
 
     if (cl && content.byteLength !== cl) {
       // expected mismatch due to bug in node-warc occasionally including trailing \r\n in record
