@@ -7,36 +7,44 @@ async function initTemplates() {
 
     const loadQ = [];
     let numLoading = 0;
+    let swAvail = true;
 
     try {
       await initSW("sw.js?replayPrefix=" + replayPrefix, "/");
     } catch (e) {
       console.log("no sw");
+      swAvail = false;
     }
 
     initStyle();
 
-    navigator.serviceWorker.addEventListener("message", (event) => {
-      if (event.data.msg_type === "collAdded") {
-        const name = event.data.name;
+    if (swAvail) {
+      navigator.serviceWorker.addEventListener("message", (event) => {
+        if (event.data.msg_type === "collAdded") {
+          const name = event.data.name;
 
-        const iframe = document.querySelector(`iframe[data-archive="${name}"]`);
-        if (!iframe) {
-          return;
-        }
-        const digest = iframe.getAttribute("data-digest");
-        const replayOrigin = iframe.parentElement.parentElement.getAttribute("data-replay-origin") || window.location.origin;
-        iframe.addEventListener("load", () => {
-          numLoading -= 1;
-          if (loadQ.length) {
-            navigator.serviceWorker.controller.postMessage(loadQ.shift());
+          const iframe = document.querySelector(`iframe[data-archive="${name}"]`);
+          if (!iframe) {
+            return;
           }
-        }, {"once": true});
-        iframe.src = `${replayOrigin}/${replayPrefix}/${name}/mp_/blob:${digest}`;
-      }
-    });
+          const digest = iframe.getAttribute("data-digest");
+          const replayOrigin = iframe.parentElement.parentElement.getAttribute("data-replay-origin") || window.location.origin;
+          iframe.addEventListener("load", () => {
+            numLoading -= 1;
+            if (loadQ.length) {
+              navigator.serviceWorker.controller.postMessage(loadQ.shift());
+            }
+          }, {"once": true});
+          iframe.src = `${replayOrigin}/${replayPrefix}/${name}/mp_/blob:${digest}`;
+        }
+      });
+    }
 
     function queueLoad(msg) {
+      if (!swAvail) {
+        return;
+      }
+
       if (numLoading > 2) {
         loadQ.push(msg);
       } else {
@@ -61,6 +69,12 @@ async function initTemplates() {
 
       queueLoad({ "msg_type": "addColl", name, files, skipExisting: true });
 
+      const loadMsg = swAvail ? "Loading Archive..." : 
+      `<p>Sorry, your browser does not currently support this prototype.</p>
+      <p>Service Workers are not available or have been disabled.</p>
+      <p>Please try in a different browser.<br>
+      (Using Shift+Refresh or Private Window also disables service workers in some browsers.)</p>`;
+
       const insertHTML = `
   <span class="emp-header">
   <a href="#" class="emp-tab emp-archived">Archived</a>
@@ -68,7 +82,7 @@ async function initTemplates() {
   <span class="emp-status"></span>
   </span>
   <div class="emp-container emp-archived">
-    <iframe src="data:text/html,Loading Archive..." data-archive="${name}" data-digest="${digest}" style="width: ${width}; height: ${height}; border: 0px"></iframe>
+    <iframe src="data:text/html,${loadMsg}" data-archive="${name}" data-digest="${digest}" style="width: ${width}; height: ${height}; border: 0px"></iframe>
   </div>
   <div class="emp-container emp-live" style="display: none">
     <iframe data-live="${name}" style="width: ${width}; height: ${height}; border: 0px"></iframe>
@@ -118,6 +132,10 @@ async function initTemplates() {
         event.preventDefault();
         return false;
       });
+
+      if (!swAvail) {
+        btnLive.click();
+      }
     }
 
     window.addEventListener("message", (event) => {
@@ -232,19 +250,28 @@ function initSW(relUrl, path) {
   }
 
   return new Promise((resolve, reject) => {
+    let done = false;
+
     window.fetch(url, { "mode": "cors" }).then(resp => {
       if (!resp.url.startsWith(path)) {
         reject("Service Worker in wrong scope!")
       }
       return resp.url;
     }).then((swUrl) => {
+      navigator.serviceWorker.addEventListener('error', e => reject(null));
+
+      setTimeout(() => {
+        if (!done) { reject(null); }
+      }, 500);
+
       return navigator.serviceWorker.register(swUrl, { scope: path });
     }).then((registration) => {
       console.log('Service worker registration succeeded:', registration);
       if (navigator.serviceWorker.controller) {
+        done = true;
         resolve(null);
       }
-      navigator.serviceWorker.addEventListener('controllerchange', e => resolve(null));
+      navigator.serviceWorker.addEventListener('controllerchange', e => { done = true; resolve(null); });
     }).catch((error) => {
       console.log('Service worker registration failed:', error);
       reject(error);
