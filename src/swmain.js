@@ -5,6 +5,7 @@ import { HARCache } from './harcache.js';
 import { RemoteArchiveCache } from './remotearchive.js'
 import { WARCCache } from './warccache.js';
 import { WarcParser } from './warcparse.js';
+import { WebBundleCache } from './webbundle.js';
 import { notFound } from './utils.js';
 
 function initReplayPrefix() {
@@ -69,6 +70,9 @@ async function initCollection(data) {
 
         const parser = new WarcParser();
         await parser.parse(ab, cache.index.bind(cache));
+      } else if (file.name.endsWith(".wbn")) {
+        const ab = await resp.arrayBuffer();
+        cache = new WebBundleCache(ab);
       }
       sourceName = "file://" + file.name;
     }

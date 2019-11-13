@@ -7,7 +7,7 @@
     font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
     width: 100% !important;
     font-size: 18px !important;
-    background-color: #0000ee !important;
+    background-color: dodgerblue !important;
     color: white !important;
     text-align: center !important;
     z-index: 2147483643 !important;
@@ -20,6 +20,8 @@
   text-overflow: ellipsis;
   padding-right: 4px;
   display: block;
+  margin-right: 130px;
+  margin-left: 130px;
 }
 
 #_wb_plain_banner

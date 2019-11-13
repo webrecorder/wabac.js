@@ -17,6 +17,7 @@
     "parse5-html-rewriting-stream": "^5.1.0",
     "parse5-serializer-stream": "^5.1.0",
     "wasm-brotli": "^1.0.2",
+    "wbn": "^0.0.3",
     "webpack": "^4.31.0"
   },
   "devDependencies": {
