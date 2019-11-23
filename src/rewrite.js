@@ -1,3 +1,10 @@
+import brotliDecode from 'brotli/decompress';
+import { Inflate } from 'pako';
+
+import { Readable } from 'stream';
+
+import RewritingStream from 'parse5-html-rewriting-stream';
+
 
 import { makeRwResponse, startsWithAny } from './utils.js';
 
@@ -89,7 +96,7 @@ class Rewriter {
       content = brotliDecode(new Uint8Array(ab));
 
     } else if (encoding === "gzip") {
-      const inflator = new pako.Inflate();
+      const inflator = new Inflate();
 
       inflator.push(ab, true);
 
@@ -101,8 +108,8 @@ class Rewriter {
   }
 
   getRewriteMode(request, contentType) {
-
     const requestType = request.destination;
+    const baseUrl = this.baseUrl;
 
     let mode = getRWMode();
 
@@ -130,7 +137,7 @@ class Rewriter {
         case "text/javascript":
         case "application/javascript":
         case "application/x-javascript":
-          if (this.baseUrl.endsWith(".json")) {
+          if (baseUrl.endsWith(".json")) {
             return "json";
           }
           return "js";
@@ -456,7 +463,7 @@ class Rewriter {
       }
     });
 
-    const buff = new stream.Readable({ encoding: 'utf-8' });
+    const buff = new Readable({ encoding: 'utf-8' });
     buff._read = () => { };
     buff.pipe(rwStream);
     buff.on('end', addInsert);

@@ -1,6 +1,7 @@
 "use strict";
 
-import * as stream from 'stream';
+import { Readable, Transform } from 'stream';
+import { Inflate } from 'pako';
 
 import { WARCStreamTransform } from 'node-warc';
 
@@ -9,7 +10,7 @@ class WarcParser {
     //this.reader = new FileReader();
     this.warc = new WARCStreamTransform();
 
-    this.rstream = new stream.Readable();
+    this.rstream = new Readable();
     this.rstream._read = () => { };
 
     //this.reader.addEventListener("progress", (event) => { this.onUpdate() });
@@ -60,7 +61,7 @@ class WarcParser {
 }
 
 
-class DecompStream extends stream.Transform {
+class DecompStream extends Transform {
   constructor(parser) {
     super();
     this.parser = parser;
@@ -77,7 +78,7 @@ class DecompStream extends stream.Transform {
 
       const _in = new Uint8Array(buffer.buffer, pos, len);
 
-      inflator = new pako.Inflate();
+      inflator = new Inflate();
 
       strm = inflator.strm;
       inflator.push(_in, true);

@@ -33,8 +33,6 @@ self.collections = {};
 self.timeRanges = {};
 
 
-importScripts("static/brotliDecode.js");
-
 self.addEventListener('install', function (event) {
   event.waitUntil(self.skipWaiting());
 });

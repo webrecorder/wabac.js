@@ -4,7 +4,7 @@ const webpack = require('webpack');
 module.exports = {
   mode: 'production',
   entry: {
-    'sw': './sw-build.js',
+    'sw': './src/swmain.js',
     'page': './page-build.js'
   },
   //devtool: 'inline-source-map',
