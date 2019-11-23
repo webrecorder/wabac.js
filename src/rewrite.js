@@ -100,48 +100,61 @@ class Rewriter {
     return makeRwResponse(content, response);
   }
 
-  getRewriteMode(requestType, contentType) {
-    switch (requestType) {
-      case "style":
-        return "css";
+  getRewriteMode(request, contentType) {
 
-      case "script":
-        return "js";
+    const requestType = request.destination;
+
+    let mode = getRWMode();
+
+    if (request.headers.get('X-Pywb-Requested-With') === 'XMLHttpRequest') {
+      if (mode === "js" || mode === "html" || mode === "json") {
+        mode = null;
+      }
     }
 
-    switch (contentType) {
-      case "text/html":
-        return "html";
+    return mode;
 
-      case "text/javascript":
-      case "application/javascript":
-      case "application/x-javascript":
-        if (this.baseUrl.endsWith(".json")) {
+    function getRWMode() {
+      switch (requestType) {
+        case "style":
+          return "css";
+
+        case "script":
+          return "js";
+      }
+
+      switch (contentType) {
+        case "text/html":
+          return "html";
+
+        case "text/javascript":
+        case "application/javascript":
+        case "application/x-javascript":
+          if (this.baseUrl.endsWith(".json")) {
+            return "json";
+          }
+          return "js";
+
+        case "application/json":
           return "json";
-        }
-        return "js";
 
-      case "application/json":
-        return "json";
+        case "text/css":
+          return "css";
 
-      case "text/css":
-        return "css";
+        case "application/x-mpegURL":
+        case "application/vnd.apple.mpegurl":
+          return "hls";
+      }
+
+      return null;
     }
-
-    return null;
   }
 
   async rewrite(response, request, csp, noRewrite = false) {
     let contentType = response.headers.get("Content-Type") || "";
     contentType = contentType.split(";", 1)[0];
 
-    if (request.headers.get('X-Pywb-Requested-With') === 'XMLHttpRequest') {
-      noRewrite = true;
-    }
-
-    const requestType = request.destination;
-
-    const rewriteMode = noRewrite ? null : this.getRewriteMode(requestType, contentType);
+    const rewriteMode = noRewrite ? null : this.getRewriteMode(request, contentType);
 
     const encoding = response.headers.get("content-encoding");
 
@@ -157,21 +170,39 @@ class Rewriter {
       response = await this.decodeResponse(response, encoding, te === 'chunked');
     }
 
+    let rwFunc = null;
+
     switch (rewriteMode) {
+      case "html":
+          return this.rewriteHtml(response, headers);
+
       case "css":
-        return this.rewriteCSS(response, headers);
+        rwFunc = this.rewriteCSS;
+        break;
 
       case "js":
-        return this.rewriteScript(response, headers);
+        rwFunc = this.rewriteJS;
+        break;
 
       case "json":
-        return this.rewriteJSONP(response, headers);
+        rwFunc = this.rewriteJSONP;
+        break;
 
-      case "html":
-        return this.rewriteHtml(response, headers);
+      case "hls":
+        rwFunc = this.rewriteHLS;
+        break;
     }
 
-    return makeRwResponse(response.body, response, headers);
+    let content = null;
+
+    if (rwFunc) {
+      const text = await response.text();
+      content = rwFunc.call(this, text);
+    } else {
+      content = response.body;
+    }
+
+    return makeRwResponse(content, response, headers);
   }
 
   // URL
@@ -251,7 +282,7 @@ class Rewriter {
       }
       // css attrs
       else if (name === "style") {
-        attr.value = this.rewriteCSSText(attr.value);
+        attr.value = this.rewriteCSS(attr.value);
       }
 
       // background attr
@@ -419,7 +450,7 @@ class Rewriter {
       if (context === "script") {
         rwStream.emitRaw(scriptRw ? this.rewriteJS(textToken.text) : textToken.text);
       } else if (context === "style") {
-        rwStream.emitRaw(this.rewriteCSSText(textToken.text));
+        rwStream.emitRaw(this.rewriteCSS(textToken.text));
       } else {
         rwStream.emitText(textToken);
       }
@@ -468,26 +499,25 @@ class Rewriter {
     return makeRwResponse(rs, response, headers);
   }
 
+  // Generic Response
+  rewriteResponse(response, headers, rewriteFunc) {
+    return response.text().then((text) => {
+      //return rewriteFunc.call(this, text);
+      return makeRwResponse(rewriteFunc.call(this, text), response, headers);
+
+    });
+  }
+
   // CSS
   cssStyleReplacer(match, n1, n2, n3, offset, string) {
     return n1 + this.rewriteUrl(n2) + n3;
   };
 
-  rewriteCSSText(text) {
+  rewriteCSS(text) {
     return text
       .replace(STYLE_REGEX, this.cssStyleReplacer.bind(this))
       .replace(IMPORT_REGEX, this.cssStyleReplacer.bind(this))
       .replace(NO_WOMBAT_REGEX, '');
-  }
-
-  rewriteCSS(response, headers) {
-    return response.text().then((text) => {
-      return this.rewriteCSSText(text);
-
-    }).then((text) => {
-
-      return makeRwResponse(text, response, headers);
-    });
   }
 
   // JS
@@ -522,25 +552,8 @@ class Rewriter {
     return jsRules.rewrite(text, inline);
   }
 
-  rewriteScript(response, headers) {
-    return response.text().then((text) => {
-
-      return makeRwResponse(this.rewriteJS(text), response, headers);
-    });
-  }
-
   //JSONP
-  rewriteJSONP(response, headers) {
-    return response.text().then((text) => {
-      return this.rewriteJSONPText(text);
-
-    }).then((text) => {
-
-      return makeRwResponse(text, response, headers);
-    });
-  }
-
-  rewriteJSONPText(text) {
+  rewriteJSONP(text) {
     const jsonM = text.match(JSONP_REGEX);
     if (!jsonM) {
       return text;
@@ -554,6 +567,63 @@ class Rewriter {
     }
 
     return callback[1] + text.slice(text.indexOf(josnM[1]) + jsonM[1].length);
+  }
+
+  //HLS
+  rewriteHLS(text) {
+    const EXT_INF = /#EXT-X-STREAM-INF:(?:.*[,])?BANDWIDTH=([\d]+)/;
+    const EXT_RESOLUTION = /RESOLUTION=([\d]+)x([\d]+)/;
+
+    const maxRes = 0;
+    const maxBand = 1000000000;
+
+    let indexes = [];
+    let count = 0;
+    let bestIndex = null;
+
+    let bestBand = 0;
+    let bestRes = 0;
+
+    let lines = text.trimEnd().split('\n');
+
+    for (let line of lines) {
+      const m = line.match(EXT_INF);
+      if (!m) {
+        count += 1;
+        continue;
+      }
+
+      indexes.push(count);
+
+      const currBand = Number(m[1]);
+
+      const m2 = line.match(EXT_RESOLUTION);
+      const currRes = m2 ? Number(m2[1]) * Number(m2[2]) : 0;
+
+      if (maxRes && currRes) {
+        if (currRes > bestRes && currRes < maxRes) {
+          bestRes = currRes;
+          bestBand = currBand;
+          bestIndex = count;
+        }
+      } else if (currBand > bestBand && currBand <= maxBand) {
+        bestRes = currRes;
+        bestBand = currBand;
+        bestIndex = count;
+      }
+
+      count += 1;
+    }
+
+    indexes.reverse();
+
+    for (let inx of indexes) {
+      if (inx !== bestIndex) {
+        lines.splice(inx, 2);
+      }
+    }
+
+    return lines.join('\n');
   }
 
   //Headers

@@ -1,22 +1,24 @@
-document.addEventListener("DOMContentLoaded", initTemplates);
+const replayPrefix = "wabac";
+
+const loadQ = [];
+let numLoading = 0;
+let swAvail = true;
+
+document.addEventListener("DOMContentLoaded", async () => {
+  initStyle();
+
+  try {
+    await initSW("sw.js?replayPrefix=" + replayPrefix, "/");
+  } catch (e) {
+    console.log("no sw");
+    swAvail = false;
+  }
+
+  initTemplates();
+});
 
 async function initTemplates() {
     const templates = document.querySelectorAll("template[data-archive-name][data-archive-file]");
-
-    const replayPrefix = "wabac";
-
-    const loadQ = [];
-    let numLoading = 0;
-    let swAvail = true;
-
-    try {
-      await initSW("sw.js?replayPrefix=" + replayPrefix, "/");
-    } catch (e) {
-      console.log("no sw");
-      swAvail = false;
-    }
-
-    initStyle();
 
     if (swAvail) {
       navigator.serviceWorker.addEventListener("message", (event) => {
@@ -27,7 +29,7 @@ async function initTemplates() {
           if (!iframe) {
             return;
           }
-          const digest = iframe.getAttribute("data-digest");
+          const url = iframe.getAttribute("data-url");
           const replayOrigin = iframe.parentElement.parentElement.getAttribute("data-replay-origin") || window.location.origin;
           iframe.addEventListener("load", () => {
             numLoading -= 1;
@@ -35,7 +37,7 @@ async function initTemplates() {
               navigator.serviceWorker.controller.postMessage(loadQ.shift());
             }
           }, {"once": true});
-          iframe.src = `${replayOrigin}/${replayPrefix}/${name}/mp_/blob:${digest}`;
+          iframe.src = `${replayOrigin}/${replayPrefix}/${name}/mp_/${url}`;
         }
       });
     }
@@ -61,9 +63,18 @@ async function initTemplates() {
 
       const text = template.innerHTML.trim();
 
-      //const digest = //await digestMessage(text, 'SHA-256');
-      const digest = template.getAttribute("data-digest");
-      const name = "em-" + digest.slice(0, 10);//template.getAttribute("data-archive-name");
+      let dataUrl = null;
+      let name = null;
+      let digest = template.getAttribute("data-digest");
+
+      if (digest) {
+        dataUrl = "blob:" + digest;
+        name = "em-" + (digest && digest.slice(0, 10);
+      } else {
+        dataUrl = template.getAttribute("data-url");
+        digest = await digestMessage(dataUrl, 'SHA-256');
+        name = template.getAttribute("data-archive-name");
+      }
 
       const files = [{ "name": fileURL, "url": fileURL }];
 
@@ -82,7 +93,7 @@ async function initTemplates() {
   <span class="emp-status"></span>
   </span>
   <div class="emp-container emp-archived">
-    <iframe src="data:text/html,${loadMsg}" data-archive="${name}" data-digest="${digest}" style="width: ${width}; height: ${height}; border: 0px"></iframe>
+    <iframe src="data:text/html,${loadMsg}" data-archive="${name}" data-url="${dataUrl}" style="width: ${width}; height: ${height}; border: 0px"></iframe>
   </div>
   <div class="emp-container emp-live" style="display: none">
     <iframe data-live="${name}" style="width: ${width}; height: ${height}; border: 0px"></iframe>
@@ -189,14 +200,6 @@ function initStyle() {
     `;
 
     document.head.appendChild(style);
-}
-
-async function digestMessage(message, hashtype) {
-  const msgUint8 = new TextEncoder().encode(message);                           // encode as (utf-8) Uint8Array
-  const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);           // hash the message
-  const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
-  return hashHex;
 }
 
 function tsToDate(ts) {
