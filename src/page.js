@@ -1,5 +1,7 @@
 import flatpickr from "flatpickr";
 
+import { initSW } from './pageutils.js';
+
 const ation = "ation";
 const loc = window["loc" + ation];
 
@@ -144,48 +146,6 @@ function initCollection(collDef, autoLoad) {
   navigator.serviceWorker.controller.postMessage({ "msg_type": "addColl", ...collDef });
 }
 
-function initSW(relUrl) {
-  if (!navigator.serviceWorker) {
-    let msg = null;
-
-    if (loc.protocol === "http:") {
-      msg = 'Service workers only supported when loading via https://, but this site loaded from: ' + loc.origin;
-    } else {
-      msg = 'Sorry, Service workers are not supported in this browser'
-    }
-    return Promise.reject(msg);
-  }
-
-  // Register SW in current path scope (if not '/' use curr directory)
-  let path = loc.origin + loc.pathname;
-
-  if (!path.endsWith("/")) {
-    path = path.slice(0, path.lastIndexOf("/") + 1);
-  }
-
-  let url = path + relUrl;
-
-  return new Promise((resolve, reject) => {
-    window.fetch(url, { "mode": "cors" }).then(resp => {
-      if (!resp.url.startsWith(path)) {
-        reject("Service Worker in wrong scope!")
-      }
-      return resp.url;
-    }).then((swUrl) => {
-      return navigator.serviceWorker.register(swUrl, { scope: path });
-    }).then((registration) => {
-      console.log('Service worker registration succeeded:', registration);
-      if (navigator.serviceWorker.controller) {
-        resolve(null);
-      }
-      navigator.serviceWorker.addEventListener('controllerchange', e => resolve(null));
-    }).catch((error) => {
-      console.log('Service worker registration failed:', error);
-      reject(error);
-    });
-  });
-}
-
 function getMountedArchive(loc) {
   if (!window) {
     return null;
@@ -258,10 +218,12 @@ function goToColl(event) {
   return false;
 }
 
-function main() {
+async function main() {
   const mountInfo = getMountedArchive(loc);
 
-  initSW("sw.js").then(function () {
+  try {
+    await initSW("sw.js?replayPrefix=wabac&stats=true");
+    
     if (mountInfo) {
       initCollection({ "name": "web", "root": true, "remote": mountInfo }, true);
 
@@ -272,16 +234,16 @@ function main() {
 
     const index = new Page.ReplayIndex();
 
-    document.querySelector("#file-input").addEventListener("change", function () {
+    document.querySelector("#file-input").addEventListener("change", function(event) {
       index.processFile(this.files);
     });
-
-  }).catch(function (error) {
+  }
+  catch(error) {
     const err = document.querySelector("#error");
     err.innerText = "Error: " + error;
     err.style.display = "";
     console.warn(error);
-  });
+  }
 }
 
 document.addEventListener("DOMContentLoaded", main, { "once": true });

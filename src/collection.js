@@ -13,14 +13,14 @@ const HEADER_DESTINATIONS = ["", "document", "unknown"];
 
 class Collection {
   constructor(opts) {
-    const { name, cache, prefix, rootColl, sourceName, staticPrefix } = opts;
+    const { name, cache, prefix, rootPrefix, rootColl, sourceName, staticPrefix } = opts;
 
     this.name = name;
     this.cache = cache;
 
     this.sourceName = sourceName;
 
-    this.rootPrefix = prefix;
+    this.rootPrefix = rootPrefix || prefix;
 
     this.prefix = prefix + this.name + "/";
 
