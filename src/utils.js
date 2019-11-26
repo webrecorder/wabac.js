@@ -75,6 +75,9 @@ function makeNewResponse(content, initOpt, timestamp, datestr) {
   return response;
 }
 
+function isAjaxRequest(request) {
+  return request.headers.get('X-Pywb-Requested-With') === 'XMLHttpRequest';
+}
 
 function notFound(request, msg) {
   let content;
@@ -144,4 +147,4 @@ function fuzzyMatch(url) {
 }
 
 export { startsWithAny, getTS, tsToDate, getSecondsStr, digestMessage,
-         makeRwResponse, makeNewResponse, notFound, makeRangeResponse, fuzzyMatch };
+         makeRwResponse, makeNewResponse, notFound, makeRangeResponse, fuzzyMatch, isAjaxRequest };

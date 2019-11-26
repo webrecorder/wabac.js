@@ -8,8 +8,6 @@ const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob
 
 const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
-const HEADER_DESTINATIONS = ["", "document", "unknown"];
-
 
 class Collection {
   constructor(opts) {
@@ -149,13 +147,11 @@ class Collection {
       const range = request.headers.get("range");
 
       if (response && !response.noRW && !range) {
-        let headInsert = "";
+        const headInsertFunc = () => {
+          return this.makeHeadInsert(url, response.timestamp, requestTS, response.date);
+        };
 
-        if (HEADER_DESTINATIONS.includes(request.destination)) {
-          headInsert = this.makeHeadInsert(url, response.timestamp, requestTS, response.date);
-        }
-
-        const rewriter = new Rewriter(url, this.prefix + requestTS + mod + "/", headInsert);
+        const rewriter = new Rewriter(url, this.prefix + requestTS + mod + "/", headInsertFunc);
         response = await rewriter.rewrite(response, request, mod !== "id_" ? DEFAULT_CSP : null, mod === "id_" || mod === "wkrf_");
       }
 

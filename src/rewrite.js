@@ -5,8 +5,7 @@ import { Readable } from 'stream';
 
 import RewritingStream from 'parse5-html-rewriting-stream';
 
-
-import { makeRwResponse, startsWithAny } from './utils.js';
+import { makeRwResponse, startsWithAny, isAjaxRequest } from './utils.js';
 
 const STYLE_REGEX = /(url\s*\(\s*[\\"']*)([^)'"]+)([\\"']*\s*\))/gi;
 
@@ -24,11 +23,11 @@ const DATA_RW_PROTOCOLS = ["http://", "https://", "//"];
 
 
 class Rewriter {
-  constructor(baseUrl, prefix, headInsert) {
+  constructor(baseUrl, prefix, headInsertFunc = null) {
     this.baseUrl = baseUrl;
     this.prefix = prefix || "";
     this.relPrefix = new URL(this.prefix).pathname;
-    this.headInsert = headInsert || "";
+    this.headInsertFunc = headInsertFunc;
   }
 
   dechunkArrayBuffer(ab) {
@@ -107,61 +106,52 @@ class Rewriter {
     return makeRwResponse(content, response);
   }
 
-  getRewriteMode(request, contentType) {
+  getRewriteMode(request, response) {
     const requestType = request.destination;
     const baseUrl = this.baseUrl;
 
-    let mode = getRWMode();
-
-    if (request.headers.get('X-Pywb-Requested-With') === 'XMLHttpRequest') {
-      if (mode === "js" || mode === "html" || mode === "json") {
-        mode = null;
-      }
-    }
-
-    return mode;
-
-    function getRWMode() {
-      switch (requestType) {
-        case "style":
-          return "css";
-
-        case "script":
-          return "js";
-      }
-
-      switch (contentType) {
-        case "text/html":
-          return "html";
-
-        case "text/javascript":
-        case "application/javascript":
-        case "application/x-javascript":
-          if (baseUrl.endsWith(".json")) {
-            return "json";
-          }
-          return "js";
-
-        case "application/json":
-          return "json";
-
-        case "text/css":
-          return "css";
-
-        case "application/x-mpegURL":
-        case "application/vnd.apple.mpegurl":
-          return "hls";
-      }
-
-      return null;
-    }
-  }
-
-  async rewrite(response, request, csp, noRewrite = false) {
     let contentType = response.headers.get("Content-Type") || "";
     contentType = contentType.split(";", 1)[0];
 
-    const rewriteMode = noRewrite ? null : this.getRewriteMode(request, contentType);
+    const isAjax = isAjaxRequest(request);
+
+    switch (requestType) {
+      case "style":
+        return "css";
+
+      case "script":
+        return !isAjax ? "js" : null;
+    }
+
+    switch (contentType) {
+      case "text/html":
+        return !isAjax ? "html" : null;
+
+      case "text/javascript":
+      case "application/javascript":
+      case "application/x-javascript":
+        if (isAjax) {
+          return null;
+        }
+
+        return this.baseUrl.endsWith(".json") ? "json" : "js";
+
+      case "application/json":
+        return !isAjax ? "json" : null;
+
+      case "text/css":
+        return "css";
+
+      case "application/x-mpegURL":
+      case "application/vnd.apple.mpegurl":
+        return "hls";
+    }
+
+    return null;
+  }
+
+  async rewrite(response, request, csp, noRewrite = false) {
+    const rewriteMode = noRewrite ? null : this.getRewriteMode(request, response);
 
     const encoding = response.headers.get("content-encoding");
 
@@ -397,8 +387,11 @@ class Rewriter {
     let scriptRw = false;
 
     const addInsert = () => {
-      if (!insertAdded && hasData) {
-        rwStream.emitRaw(this.headInsert);
+      if (!insertAdded && hasData && this.headInsertFunc) {
+        const headInsert = this.headInsertFunc();
+        if (headInsert) {
+          rwStream.emitRaw(headInsert);
+        }
         insertAdded = true;
       }
     };

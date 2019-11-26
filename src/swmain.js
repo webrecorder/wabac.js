@@ -6,10 +6,11 @@ import { RemoteArchiveCache } from './remotearchive.js'
 import { WARCCache } from './warccache.js';
 import { WarcParser } from './warcparse.js';
 import { WebBundleCache } from './webbundle.js';
-import { notFound } from './utils.js';
+import { notFound, isAjaxRequest } from './utils.js';
 import { StatsTracker } from './statstracker.js';
 
 const CACHE_PREFIX = "wabac-";
+const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 
 class SWReplay {
   constructor() {
@@ -175,9 +176,11 @@ class SWReplay {
     const isGet = (request.method === "GET");
     const getRequest = (isGet || !this.allowCache) ? request : await this.toGetRequest(request);
 
+    const isAjax = isAjaxRequest(request);
+
     try {
       response = await self.caches.match(getRequest);
-      if (response) {
+      if (response && !!response.headers.get(IS_AJAX_HEADER) === isAjax) {
         return response;
       }
     } catch (e) {
@@ -208,6 +211,9 @@ class SWReplay {
       if (this.allowCache && response.status === 200) {
         try {
           const cache = await self.caches.open(CACHE_PREFIX + coll.name);
+          if (isAjax) {
+            response.headers.set(IS_AJAX_HEADER, "true");
+          }
           const cacheResp = response.clone();
           await cache.put(getRequest, cacheResp);
         } catch (e) {
@@ -249,7 +255,7 @@ class SWReplay {
 
     const newUrl = request.url + (request.url.indexOf("?") >= 0 ? "&" : "?") + query;
 
-    console.log(`${request.method} ${request.url} ->  ${newUrl}`);
+    //console.log(`${request.method} ${request.url} ->  ${newUrl}`);
 
     const options = {
       method: "GET",
