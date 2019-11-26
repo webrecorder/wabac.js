@@ -52,34 +52,41 @@ function initSW(relUrl = 'sw.js?replayPrefix=wabac', path) {
     return Promise.resolve(false);
   }
 
-  return new Promise((resolve, reject) => {
-    let done = false;
+  let done = false;
+  let resolve, reject;
 
-    window.fetch(url, { "mode": "cors" }).then(resp => {
-      if (!resp.url.startsWith(path)) {
-        reject("Service Worker in wrong scope!")
-      }
-      return resp.url;
-    }).then((swUrl) => {
-      navigator.serviceWorker.addEventListener('error', e => reject(null));
-
-      setTimeout(() => {
-        if (!done) { reject(null); }
-      }, 1000);
-
-      return navigator.serviceWorker.register(swUrl, { scope: path });
-    }).then((registration) => {
-      console.log('Service worker registration succeeded:', registration);
-      if (navigator.serviceWorker.controller) {
-        done = true;
-        resolve(true);
-      }
-      navigator.serviceWorker.addEventListener('controllerchange', e => { done = true; resolve(true); });
-    }).catch((error) => {
-      console.log('Service worker registration failed:', error);
-      reject(error);
-    });
+  const pr = new Promise((res, rej) => {
+    resolve = (e) => { done = true; res(e); };
+    reject = (e) => { done = true; rej(e); };
   });
+
+  window.fetch(url, { "mode": "cors" }).then(resp => {
+    if (!resp.url.startsWith(path)) {
+      reject("Service Worker in wrong scope!")
+    }
+    return resp.url;
+  }).then((swUrl) => {
+    navigator.serviceWorker.addEventListener('error', e => reject(null));
+
+    setTimeout(() => {
+      if (!done) {
+        reject('Service Worker is not available'); 
+      }
+    }, 30000);
+
+    return navigator.serviceWorker.register(swUrl, { scope: path });
+  }).then((registration) => {
+    console.log('Service worker registration succeeded:', registration);
+    if (navigator.serviceWorker.controller) {
+      resolve(true);
+    }
+    navigator.serviceWorker.addEventListener('controllerchange', e => resolve(true));
+  }).catch((error) => {
+    console.log('Service worker registration failed:', error);
+    reject(error);
+  });
+
+  return pr;
 }
 
 
