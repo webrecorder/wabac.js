@@ -9,6 +9,8 @@ import { WebBundleCache } from './webbundle.js';
 import { notFound } from './utils.js';
 import { StatsTracker } from './statstracker.js';
 
+const CACHE_PREFIX = "wabac-";
+
 class SWReplay {
   constructor() {
     this.prefix = self.registration ? self.registration.scope : '';
@@ -26,6 +28,8 @@ class SWReplay {
     this.staticPrefix = this.prefix + "static";
 
     this.collections = {};
+
+    this.allowCache = true;
 
     this.stats = sp.get("stats") ? new StatsTracker() : null;
 
@@ -50,6 +54,7 @@ class SWReplay {
   async _handleMessage(event) {
     switch (event.data.msg_type) {
       case "addColl":
+      {
         const name = event.data.name;
 
         let coll = this.collections[name];
@@ -72,13 +77,19 @@ class SWReplay {
 
         this.doListAll(event.source);
         break;
+      }
 
       case "removeColl":
-        if (this.collections[event.data.name]) {
-          delete this.collections[event.data.name];
+      {
+        const name = event.data.name;
+
+        if (this.collections[name]) {
+          delete this.collections[name];
           this.doListAll(event.source);
+          self.caches.delete(CACHE_PREFIX + name);
         }
         break;
+      }
 
       case "listAll":
         this.doListAll(event.source);
@@ -161,8 +172,11 @@ class SWReplay {
 
     let response = null;
 
+    const isGet = (request.method === "GET");
+    const getRequest = (isGet || !this.allowCache) ? request : await this.toGetRequest(request);
+
     try {
-      response = await self.caches.match(request);
+      response = await self.caches.match(getRequest);
       if (response) {
         return response;
       }
@@ -170,23 +184,38 @@ class SWReplay {
       response = null;
     }
 
-    try {
-      response = await this.defaultFetch(request);
-      if (response && response.status < 400) {
-        return response;
+    if (isGet) {
+      try {
+        response = await this.defaultFetch(request);
+        if (response && response.status < 400) {
+          return response;
+        }
+      } catch (e) {
+        response = null;
       }
-    } catch (e) {
-      response = null;
     }
 
     for (let coll of Object.values(this.collections)) {
       response = await coll.handleRequest(request);
-      if (response) {
-        if (this.stats) {
-          this.stats.updateStats(response, request, event);
-        }
-        return response;
+      if (!response) {
+        continue;
       }
+
+      if (this.stats) {
+        this.stats.updateStats(response, request, event);
+      }
+
+      if (this.allowCache && response.status === 200) {
+        try {
+          const cache = await self.caches.open(CACHE_PREFIX + coll.name);
+          const cacheResp = response.clone();
+          await cache.put(getRequest, cacheResp);
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+
+      return response;
     }
 
     if (this.stats && request.url.startsWith(this.replayPrefix + "stats.json")) {
@@ -195,6 +224,45 @@ class SWReplay {
     }
 
     return notFound(request);
+  }
+
+  async toGetRequest(request) {
+    let query = null;
+
+    const contentType = request.headers.get("Content-Type");
+
+    if (request.method === "POST" || request.method === "PUT") {
+      switch (contentType) {
+        case "application/x-www-form-urlencoded":
+          query = await request.text();
+          break;
+
+        default:
+          query = "____wabac_method=" + request.method.toLowerCase();
+          const buff = await request.arrayBuffer();
+          if (buff.byteLength > 0) {
+            const text = new TextDecoder().decode(buff);
+            query += "&" + atob(text);
+          }
+      }
+    }
+
+    const newUrl = request.url + (request.url.indexOf("?") >= 0 ? "&" : "?") + query;
+
+    console.log(`${request.method} ${request.url} ->  ${newUrl}`);
+
+    const options = {
+      method: "GET",
+      headers: request.headers,
+      mode: (request.mode === 'navigate' ? 'same-origin' : request.mode),
+      credentials: request.credentials,
+      cache: request.cache,
+      redirect: request.redirect,
+      referrer: request.referrer,
+      integrity: request.integrity,
+    }
+
+    return new Request(newUrl, options);
   }
 }
 
