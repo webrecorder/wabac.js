@@ -89,6 +89,11 @@ class EmbedTab extends LitElement {
 
   static get styles() {
     return css`
+
+    @media (max-device-width: 480px) {
+      a { font-size: 2.0em; }
+    }
+
     a {
       font-family: "Raleway", "Helvetica Neue", Helvetica, Arial, sans-serif;
       padding: 8px;
@@ -135,7 +140,7 @@ class EmbedTabs extends LitElement {
     button {
       padding: 0px 6px;
       margin: 0px 12px 0px 12px;
-      max-height: 24px;
+      /*max-height: 24px;*/
       background: transparent;
       border: 0px;
     }
@@ -146,13 +151,16 @@ class EmbedTabs extends LitElement {
     button:hover g {
       fill: black;
     }
-    
+
+    @media (max-device-width: 480px) {
+      svg { width: 2.6em; height: 2.6em; }
+    }
     `;
   }
 
   getIcon() {
     return html`
-    <svg width="13px" height="14px" viewBox="0 0 18 19" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <svg width="1.3em" height="1.3em" viewBox="0 0 18 19" version="1.1" xmlns="http://www.w3.org/2000/svg">
       <g stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
         <g transform="translate(-649.000000, -241.000000)" fill="#000000" fillRule="nonzero">
           <g transform="translate(564.000000, 241.000000)">
