@@ -134,17 +134,81 @@ async function makeRangeResponse(response, range) {
 // Simple fuzzy match (for now)
 
 function fuzzyMatch(url) {
-  const RX = /[?&](_|cb|\w*cache\w*)=[\d]+(?=$|&)/;
+  const RX = [
+              {"match": /[?&](_|cb|\w*cache\w*)=[\d]+(?=$|&)/,
+               "replace": ''},
 
-  // remove _=
-  let newUrl = url.replace(RX, '');
+              {"match": /\.(php|js|webm|mp4)\?.*/,
+               "replace": '$1'}
+             ];
 
-  if (newUrl != url) {
-    return [newUrl];
+  if (url.indexOf("?") === -1) {
+    url += "?";
   }
 
-  return [];
+  // remove _=
+  for (let rx of RX) {
+    const newUrl = url.replace(rx.match, rx.replace);
+
+    if (newUrl != url) {
+      return [newUrl];
+    }
+  }
+
+  return fuzzyQuery(url);
 }
+
+function fuzzyQuery(url) {
+  const SIG_PARAMS = [
+                      {'rx': /www[.]youtube[.]com\/get_video_info/,
+                       'args': ["video_id", "html5"],
+                      },
+                      {'rx': /googlevideo.com\/videoplayback/,
+                       'args': ["id", "itag"],
+                      }
+                     ];
+
+  console.log(url);
+  let up = null;
+
+  try {
+    up = new URL(url);
+  } catch (e) {
+    return [];
+  }
+
+  let matched = false;
+  let rule = null;
+
+  for (rule of SIG_PARAMS) {
+    if (rule.rx.exec(url)) {
+      matched = true;
+    }
+  }
+ 
+  if (!matched) {
+    return [];
+  }
+
+  const query = new URLSearchParams(up.search);
+  const newQuery = new URLSearchParams();
+
+  for (let key of rule.args) {
+    const value = query.get(key);
+    if (value) {
+      newQuery.set(key, value);
+    }
+  }
+
+  up.search = "?" + newQuery.toString();
+  console.log(url + " -> " + up.toString());
+  return [up.toString()];
+}
+
+
+
+
+
 
 export { startsWithAny, getTS, tsToDate, getSecondsStr, digestMessage,
          makeRwResponse, makeNewResponse, notFound, makeRangeResponse, fuzzyMatch, isAjaxRequest };

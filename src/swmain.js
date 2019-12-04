@@ -182,16 +182,20 @@ class SWReplay {
     const getRequest = (isGet || !this.allowCache) ? request : await this.toGetRequest(request);
 
     const isAjax = isAjaxRequest(request);
+    const range = request.headers.get('range');
 
     try {
-      response = await self.caches.match(getRequest);
-      if (response && !!response.headers.get(IS_AJAX_HEADER) === isAjax) {
-        return response;
+      if (!range) {
+        response = await self.caches.match(getRequest);
+        if (response && !!response.headers.get(IS_AJAX_HEADER) === isAjax) {
+          return response;
+        }
       }
     } catch (e) {
       response = null;
     }
 
+/*
     if (isGet) {
       try {
         response = await this.defaultFetch(request);
@@ -202,7 +206,7 @@ class SWReplay {
         response = null;
       }
     }
-
+*/
     for (let coll of Object.values(this.collections)) {
       response = await coll.handleRequest(request);
       if (!response) {
@@ -229,6 +233,10 @@ class SWReplay {
       return response;
     }
 
+    if (range) {
+      console.log('Not Found Range!: ' + range);
+    }
+
     return notFound(request);
   }
 
@@ -248,7 +256,7 @@ class SWReplay {
           const buff = await request.arrayBuffer();
           if (buff.byteLength > 0) {
             const text = new TextDecoder().decode(buff);
-            query += "&" + atob(text);
+            query += "&" + btoa(text);
           }
       }
     }

@@ -5,6 +5,7 @@
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "brotli": "github:foliojs/brotli.js",
+    "fast-xml-parser": "^3.15.1",
     "flatpickr": "^4.6.1",
     "idb": "^4.0.3",
     "lit-element": "^2.2.1",

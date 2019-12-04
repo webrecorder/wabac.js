@@ -9,13 +9,13 @@ async function digestMessage(message, hashtype) {
 
 function waitForReady() {
   return new Promise((resolve) => {
+    window.addEventListener("load", () => {
+      resolve();
+    });
+
     if (document.readyState === 'complete') {
       resolve();
     }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      resolve();
-    });
   });
 }
 

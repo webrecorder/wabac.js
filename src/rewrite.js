@@ -5,6 +5,8 @@ import { Readable } from 'stream';
 
 import RewritingStream from 'parse5-html-rewriting-stream';
 
+import XMLParser from 'fast-xml-parser';
+
 import { makeRwResponse, startsWithAny, isAjaxRequest } from './utils.js';
 
 const STYLE_REGEX = /(url\s*\(\s*[\\"']*)([^)'"]+)([\\"']*\s*\))/gi;
@@ -167,7 +169,7 @@ class Rewriter {
 
     switch (rewriteMode) {
       case "html":
-          return this.rewriteHtml(response, headers);
+        return this.rewriteHtml(response, headers);
 
       case "css":
         rwFunc = this.rewriteCSS;
@@ -545,6 +547,14 @@ class Rewriter {
       return text;
     }
 
+    if (this.baseUrl.indexOf("youtube.com") > 0) {
+      return new JSRewriterRules(youtubeRules).rewrite(text, inline);
+    }
+
+    if (this.baseUrl.indexOf("facebook.com") > 0) {
+      return new JSRewriterRules(makeFBRules(this)).rewrite(text, inline);
+    }
+
     return jsRules.rewrite(text, inline);
   }
 
@@ -620,6 +630,66 @@ class Rewriter {
     }
 
     return lines.join('\n');
+  }
+
+  // DASH
+  rewriteDash(text, bestIds) {
+    const options = {ignoreAttributes: false, ignoreNameSpace: false};
+    const root = XMLParser.parse(text, options);
+
+    //console.log(util.inspect(root, {depth: null}));
+
+    const maxRes = 0;
+    const maxBand = 1000000000;
+
+    let best = null;
+    let bestRes = 0;
+    let bestBand = 0;
+
+    for (let adaptset of root.MPD.Period.AdaptationSet) {
+      //console.log(adaptset);
+
+      best = null;
+      bestRes = 0;
+      bestBand = 0;
+
+      if (!Array.isArray(adaptset.Representation)) {
+        if (Array.isArray(bestIds) && typeof(adaptset.Representation) === 'object' && adaptset.Representation["@_id"]) {
+          bestIds.push(adaptset.Representation["@_id"]);
+        }
+        continue;
+      }
+
+      for (let repres of adaptset.Representation) {
+        const currRes = Number(repres['@_width'] || '0') * Number(repres['@_height'] || '0');
+        const currBand = Number(repres['@_bandwidth'] || '0');
+
+        if (currRes && maxRes) {
+          if (currRes <= maxRes && currRes > bestRes) {
+              bestRes = currRes;
+              bestBand = currBand;
+              best = repres;
+          }
+        } else if (currBand <= maxBand && currBand > bestBand) {
+          bestRes = currRes;
+          bestBand = currBand;
+          best = repres;
+        }
+      }
+
+      if (best && Array.isArray(bestIds)) {
+        bestIds.push(best['@_id']);
+      }
+
+      if (best) {
+        adaptset.Representation = [best];
+      }
+    }
+
+    const toXML = new XMLParser.j2xParser(options);
+    const xml = toXML.parse(root);
+
+    return "<?xml version='1.0' encoding='UTF-8'?>\n" + xml.trim();
   }
 
   //Headers
@@ -777,7 +847,7 @@ class Rewriter {
 }
 
 class JSRewriterRules {
-  constructor() {
+  constructor(extraRules) {
     this.thisRw = '_____WB$wombat$check$this$function_____(this)';
 
     const checkLoc = '((self.__WB_check_loc && self.__WB_check_loc(location)) || {}).href = ';
@@ -825,8 +895,12 @@ class JSRewriterRules {
       [/\}(?:\s*\))?\s*\(this\)/, this.replaceThis()],
 
       // rewrite this in && or || expr?
-      [/[^|&][|&]{2}\s*this\b\s*(?![|&.$]([^|&]|$))/, this.replaceThis()],
+      [/[^|&][|&]{2}\s*this\b\s*(?![|&.$](?:[^|&]|$))/, this.replaceThis()],
     ];
+
+    if (extraRules) {
+      this.rules = this.rules.concat(extraRules);
+    }
 
     this.compileRules();
 
@@ -943,6 +1017,46 @@ class JSRewriterRules {
 }
 
 const jsRules = new JSRewriterRules();
+
+function ruleReplace(string) {
+  return x => string.replace('{0}', x);
+}
+
+const youtubeRules = [
+  [/ytplayer.load\(\);/, ruleReplace('ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""; {0}')],
+  [/yt\.setConfig.*PLAYER_CONFIG.*args":\s*{/, ruleReplace('{0} "dash": "0", dashmpd: "", ')],
+  [/"player":.*"args":{/, ruleReplace('{0}"dash":"0","dashmpd":"",')],
+];
+
+
+
+function makeFBRules(rewriter) {
+  function rewriteFBDash(string) {
+    let dashManifest = null;
+
+    try {
+      dashManifest = JSON.parse(string.match(/dash_manifest":(".*"),"dash/)[1]);
+    } catch (e) {
+      return;
+    }
+
+    let bestIds = [];
+
+    const newDashManifest = rewriter.rewriteDash(dashManifest, bestIds) + "\n";
+
+    const resultJSON = {"dash_manifest": newDashManifest, "dash_prefetched_representation_ids": bestIds};   
+
+    const result = JSON.stringify(resultJSON).replace(/</g, "\\u003C").slice(1, -1);
+
+    return result;
+  }
+
+  const FBRules = [
+    [/"dash_manifest":".*dash_prefetched_representation_ids":.*?\]/, rewriteFBDash]
+  ];
+
+  return FBRules;
+}
 
 
 export { Rewriter };
