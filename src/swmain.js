@@ -168,6 +168,11 @@ class SWReplay {
   async getResponseFor(request, event) {
     // if not within replay prefix, just pass through
     if (!request.url.startsWith(this.replayPrefix)) {
+
+      if (this.stats && request.url.startsWith(this.prefix + "stats.json")) {
+        return await this.stats.getStats(event);
+      }
+
       return await this.defaultFetch(request);
     }
 
@@ -221,11 +226,6 @@ class SWReplay {
         }
       }
 
-      return response;
-    }
-
-    if (this.stats && request.url.startsWith(this.replayPrefix + "stats.json")) {
-      response = await this.stats.getStats(event);
       return response;
     }
 
