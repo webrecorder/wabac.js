@@ -89,5 +89,26 @@ function initSW(relUrl = 'sw.js?replayPrefix=wabac', path) {
   return pr;
 }
 
+function tsToDate(ts) {
+  if (!ts) {
+    return "";
+  }
 
-export { initSW, waitForReady, digestMessage };
+  if (ts.length < 14) {
+    ts += "00000000000000".substr(ts.length);
+  }
+
+  const datestr = (ts.substring(0, 4) + "-" +
+    ts.substring(4, 6) + "-" +
+    ts.substring(6, 8) + "T" +
+    ts.substring(8, 10) + ":" +
+    ts.substring(10, 12) + ":" +
+    ts.substring(12, 14) + "-00:00");
+
+  return new Date(datestr);
+};
+
+
+
+
+export { initSW, waitForReady, digestMessage, tsToDate };

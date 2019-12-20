@@ -4,7 +4,7 @@
 import { LitElement, html, css } from 'lit-element';
 import { styleMap } from 'lit-html/directives/style-map';
 
-import { initSW, waitForReady, digestMessage } from './pageutils';
+import { initSW, waitForReady, digestMessage, tsToDate } from './pageutils';
 
 class EmbedPanel extends LitElement {
   static get properties() {
@@ -13,12 +13,19 @@ class EmbedPanel extends LitElement {
       url: { type: String },
       width: { type: String, reflect: true },
       height: { type: String, reflect: true },
-      autoSize: { type: Boolean }
+      autoSize: { type: Boolean },
+      role: { type: String }
     }
   }
 
   render() {
     const dimensions = { width: this.width, height: this.height };
+
+    if (this.role === 'screenshot') {
+      return html`
+        <div id="screenshot" style="${styleMap({'width': this.width})}" class="${this.active ? '' : 'hidden'}"><img src="${this.url}"></div>
+      `;
+    }
 
     return html`
       <iframe style="${styleMap(dimensions)}" class="${this.active ? '' : 'hidden'}" src="${this.url}"></iframe>
@@ -29,8 +36,12 @@ class EmbedPanel extends LitElement {
     this.resizeIframe();
   }
 
+  getIframe() {
+    return this.shadowRoot.querySelector("iframe");
+  }
+
   refresh() {
-    const iframe = this.shadowRoot.querySelector("iframe");
+    const iframe = this.getIframe();
 
     if (!iframe) {
       return;
@@ -44,9 +55,18 @@ class EmbedPanel extends LitElement {
       return;
     }
 
-    const iframe = this.shadowRoot.querySelector("iframe");
+    const iframe = this.getIframe();
 
     if (!iframe) {
+      const img = this.shadowRoot.querySelector("img");
+      if (img) {
+        img.addEventListener("load", () => {
+          this.height = img.naturalHeight;
+        });
+        if (img.complete) {
+          this.height = img.naturalHeight;
+        }
+      }
       return;
     }
 
@@ -62,10 +82,14 @@ class EmbedPanel extends LitElement {
 
   static get styles() {
     return css`
-    iframe {
+    iframe, #screenshot {
       background-color: aliceblue;
       padding-top: 6px;
       border: 0px;
+    }
+
+    img {
+      margin: 10px 0px 8px 8px;
     }
 
     .hidden {
@@ -126,7 +150,8 @@ class EmbedTab extends LitElement {
 class EmbedTabs extends LitElement {
   static get properties() {
     return {
-      width: { type: String }
+      width: { type: String },
+      statusMsg: { type: String }
     }
   }
 
@@ -136,6 +161,12 @@ class EmbedTabs extends LitElement {
       background-color: lightblue;
       padding: 12px 0px 6px 0px;
       display: block;
+    }
+    #statusMsg {
+      font-style: italic;
+      font-size: 80%;
+      float: right;
+      margin: 4px 12px 0px 0px;
     }
     button {
       padding: 0px 6px;
@@ -177,6 +208,7 @@ class EmbedTabs extends LitElement {
       <span class="tabs" style="${styleMap({'max-width': this.width})}">
         <button @click="${this.refresh}">${this.getIcon()}</button>
         <slot name="tab" @click=${this.tabClicked}></slot>
+        <span id="statusMsg">${this.statusMsg}</span>
       </span>
       <div class="panels">
         <slot name="panel"></slot>
@@ -229,12 +261,15 @@ class ArchiveEmbed extends LitElement {
     this.height = height || "100%";
     this.ready = false;
 
+    this.statusMsg = "";
+
     this.replayPrefix = (self.swReplayPrefix !== undefined) ? self.swReplayPrefix : "wabac";
   }
 
   static get properties() {
     return {
-      archive: { type: String },
+      archiveUrl: { type: String },
+      archiveName: { type: String },
       url: { type: String },
       coll: { type: String },
       ready: { type: Boolean },
@@ -243,6 +278,7 @@ class ArchiveEmbed extends LitElement {
       autoSize: { type: Boolean },
       live: { type: Boolean },
       screenshot: { type: Boolean },
+      statusMsg: { type: String },
     }
   }
 
@@ -276,7 +312,23 @@ class ArchiveEmbed extends LitElement {
       }
     });
 
-    const files = [{ "name": this.archive, "url": this.archive }];
+    window.addEventListener("message", (event) => {
+      const sourceTab = this.shadowRoot.querySelector("[role='webarchive']");
+
+      if (!sourceTab) {
+        return;
+      }
+
+      const source = sourceTab.getIframe().contentWindow;
+
+      if (event.source === source) {
+        if (event.data.wb_type === "load") {
+          this.statusMsg = `From: ${tsToDate(event.data.ts).toISOString().replace("T", " ").slice(0, 19) + " UTC"}`;
+        }
+      }
+    });
+
+    const files = [{ "name": this.archiveName || this.archiveUrl, "url": this.archiveUrl }];
 
     const msg = { "msg_type": "addColl", "name": this.coll, skipExisting: true, files };
 
@@ -293,7 +345,7 @@ class ArchiveEmbed extends LitElement {
     const embedUrl = this.url;
 
     return html`
-    <embed-tabs width="${this.width}">
+    <embed-tabs width="${this.width}" statusMsg="${this.statusMsg}">
     <embed-tab slot="tab" label="Web Archive"></embed-tab>
     <embed-panel role="webarchive" slot="panel" url="${this._prefixUrl}/mp_/${embedUrl}" width="${this.width}" height="${this.height}" ?autoSize="${this.autoSize}"></embed-panel>
     ${this.screenshot ? html`
@@ -313,7 +365,7 @@ class ArchiveEmbed extends LitElement {
 async function embedInit() {
   await waitForReady();
 
-  await initSW(self.swUrl);
+  await initSW(self.swUrl, self.swPath);
 
   customElements.define('embed-panel', EmbedPanel);
   customElements.define('embed-tab', EmbedTab);
