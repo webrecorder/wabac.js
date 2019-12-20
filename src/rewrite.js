@@ -77,7 +77,7 @@ class Rewriter {
       readOffset = i;
     }
 
-    return data.subarray(0, writeOffset).buffer;
+    return data.subarray(0, writeOffset);
   }
 
   async decodeResponse(response, encoding, chunked) {
