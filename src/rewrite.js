@@ -30,9 +30,7 @@ class Rewriter {
     this.headInsertFunc = headInsertFunc;
   }
 
-  dechunkArrayBuffer(ab) {
-    const data = new Uint8Array(ab);
-
+  dechunkArrayBuffer(data) {
     let readOffset = 0;
     let writeOffset = 0;
 
@@ -50,12 +48,12 @@ class Rewriter {
 
       // doesn't start with number, return original
       if (i === 0) {
-        return ab;
+        return data;
       }
 
       // ensure \r\n\r\n
       if (data[i] != 13 || data[i + 1] != 10) {
-        return ab;
+        return data;
       }
 
       i += 2;
@@ -83,24 +81,22 @@ class Rewriter {
   }
 
   async decodeResponse(response, encoding, chunked) {
-    let ab = await response.arrayBuffer();
+    let content = new Uint8Array(await response.arrayBuffer());
 
     if (chunked) {
-      ab = this.dechunkArrayBuffer(ab);
+      content = this.dechunkArrayBuffer(content);
     }
 
-    let content = ab;
-
     if (encoding === "br") {
-      content = brotliDecode(new Uint8Array(ab));
+      content = brotliDecode(content);
 
     } else if (encoding === "gzip") {
       const inflator = new Inflate();
 
-      inflator.push(ab, true);
+      inflator.push(content, true);
 
       // if error occurs (eg. not gzip), use original arraybuffer
-      content = (inflator.result && !inflator.err) ? inflator.result : ab;
+      content = (inflator.result && !inflator.err) ? inflator.result : content;
     }
 
     return makeRwResponse(content, response);
