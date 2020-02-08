@@ -2,6 +2,7 @@
 
 import { Collection } from './collection.js';
 import { HARCache } from './harcache.js';
+import { LiveCache } from './live.js';
 import { RemoteArchiveCache } from './remotearchive.js'
 import { WARCCache } from './warccache.js';
 import { WarcParser } from './warcparse.js';
@@ -30,7 +31,7 @@ class SWReplay {
 
     this.collections = {};
 
-    this.allowCache = true;
+    this.allowCache = false;
 
     this.stats = sp.get("stats") ? new StatsTracker() : null;
 
@@ -50,6 +51,21 @@ class SWReplay {
     self.addEventListener("message", (event) => {
       this._handleMessage(event);
     });
+
+    const cacheColl = sp.get("cacheColl");
+
+    if (cacheColl) {
+      for (let cache of cacheColl.split(",")) {
+        const cacheProps = cache.split(":");
+        if (cacheProps.length === 2) {
+          const name = cacheProps[0];
+          const cache = cacheProps[1];
+          this.initCollection({name, cache}).then(() => {
+            console.log(`Cache Collection Inited: ${name} = ${cache}`);
+          });
+        }
+      }
+    }
   }
 
   async _handleMessage(event) {
@@ -66,8 +82,6 @@ class SWReplay {
           if (!coll) {
             return;
           }
-
-          this.collections[name] = coll;
         }
 
         event.source.postMessage({
@@ -128,6 +142,9 @@ class SWReplay {
     } else if (data.remote) {
       cache = new RemoteArchiveCache(data.remote);
       sourceName = data.remote.replayPrefix;
+    } else if (data.cache) {
+      cache = new LiveCache(data.cache);
+      sourceName = "cache:" + data.cache;
     }
 
     if (!cache) {
@@ -141,7 +158,9 @@ class SWReplay {
     const prefix = this.replayPrefix;
     const rootPrefix = this.prefix;
 
-    return new Collection({name, cache, prefix, rootPrefix, rootColl, sourceName, staticPrefix});
+    const coll = new Collection({name, cache, prefix, rootPrefix, rootColl, sourceName, staticPrefix});
+    this.collections[name] = coll;
+    return coll;
   }
 
   doListAll(source) {

@@ -1,6 +1,6 @@
 {
   "name": "wabac.js",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "main": "index.js",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
@@ -16,6 +16,10 @@
     "wbn": "^0.0.3"
   },
   "devDependencies": {
+    "ava": "^3.2.0",
+    "esm": "^3.2.25",
+    "node-fetch": "^2.6.0",
+    "web-streams-polyfill": "^2.0.6",
     "webpack": "^4.41.2",
     "webpack-cli": "^3.3.2",
     "webpack-dev-server": "^3.9.0"
@@ -24,5 +28,16 @@
     "build": "webpack --mode production",
     "build-dev": "webpack --mode development",
     "start-dev": "webpack-dev-server --mode development --open"
+  },
+  "ava": {
+    "concurrency": 1,
+    "verbose": true,
+    "serial": true,
+    "require": [
+      "esm"
+    ],
+    "files": [
+      "test/*.js"
+    ]
   }
 }

@@ -19,7 +19,7 @@ function waitForReady() {
   });
 }
 
-function initSW(relUrl = 'sw.js?replayPrefix=wabac', path) {
+function initSW(relUrl = 'sw.js?replayPrefix=wabac&stats=true', path) {
   const loc = window.location;
 
   console.log(`Register SW: ${relUrl}`);

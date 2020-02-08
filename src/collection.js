@@ -1,13 +1,14 @@
 "use strict";
 
-import { Rewriter } from './rewrite.js';
+import { Rewriter } from './rewrite';
 
-import { getTS, getSecondsStr, notFound, makeNewResponse, digestMessage, makeRangeResponse, fuzzyMatch } from './utils.js';
+import { getTS, getSecondsStr, notFound, makeNewResponse, digestMessage, makeRangeResponse } from './utils.js';
+
+import { fuzzyMatcher } from './fuzzymatcher';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
-
 
 class Collection {
   constructor(opts) {
@@ -117,30 +118,15 @@ class Collection {
 
       const rwPrefix = this.prefix;// + requestTS + mod + "/";
 
-      if (url.startsWith("//")) {
-        response = await this.cache.match({ "url": "https:" + url, "timestamp": requestTS }, rwPrefix);
+      let fuzzyUrl = null;
 
-        if (!response) {
-          response = await this.cache.match({ "url": "http:" + url, "timestamp": requestTS }, rwPrefix);
-          if (response) {
-            url = "http:" + url;
+      for await (let fuzzyUrl of fuzzyMatcher.fuzzyUrls(url)) {
+        response = await this.cache.match({ "url": fuzzyUrl, "timestamp": requestTS }, rwPrefix);
+        if (response) {
+          if (url.startsWith("//")) {
+            url = fuzzyUrl;
           }
-        } else {
-          url = "https:" + url;
-        }
-      } else {
-        response = await this.cache.match({ "url": url, "timestamp": requestTS }, rwPrefix);
-      }
-
-      // Fuzzy match
-      if (!response) {
-        const fuzzyUrls = fuzzyMatch(url);
-
-        for (let fuzzyUrl of fuzzyUrls) {
-          response = await this.cache.match({"url": fuzzyUrl, "timestamp": requestTS }, rwPrefix);
-          if (response) {
-            break;
-          }
+          break;
         }
       }
 
@@ -148,7 +134,8 @@ class Collection {
 
       if (response && !response.noRW) {
         const headInsertFunc = () => {
-          return this.makeHeadInsert(url, response.timestamp, requestTS, response.date);
+          const presetCookie = response.headers.get("x-wabac-preset-cookie");
+          return this.makeHeadInsert(url, response.timestamp, requestTS, response.date, presetCookie);
         };
 
         const rewriter = new Rewriter(url, this.prefix + requestTS + mod + "/", headInsertFunc);
@@ -222,7 +209,7 @@ window.home = "${this.rootPrefix}";
     return new Response(content, responseData);
   }
 
-  makeHeadInsert(url, timestamp, requestTS, date) {
+  makeHeadInsert(url, timestamp, requestTS, date, presetCookie) {
 
     const topUrl = this.appPrefix + requestTS + (requestTS ? "/" : "") + url;
     const prefix = this.prefix;
@@ -233,6 +220,8 @@ window.home = "${this.rootPrefix}";
     const urlParsed = new URL(url);
 
     const scheme = urlParsed.protocol === 'blob:' ? 'https' : urlParsed.protocol.slice(0, -1);
+
+    const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
     return `
 <!-- WB Insert -->
 <script>
@@ -258,6 +247,7 @@ window.home = "${this.rootPrefix}";
   wbinfo.proxy_magic = "";
   wbinfo.static_prefix = "${this.staticPrefix}/";
   wbinfo.enable_auto_fetch = true;
+  wbinfo.presetCookie = ${presetCookieStr};
 </script>
 <script src='${this.staticPrefix}/wombat.js'> </script>
 <script>

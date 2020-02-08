@@ -1,8 +1,7 @@
     body { 
         background-color: white;
         color: black;
-        font-family: 'HKGrotesk';
-        /*font-family: sans-serif;*/
+        font-family: sans-serif;
     }
 
     input {
@@ -139,33 +138,4 @@
         font-family: 'InknutAntiqua';
         line-height: 1.5em;
         letter-spacing: -0.03rem;
-    }
-
-    @font-face {
-        font-family: 'InknutAntiqua';
-        src: url('InknutAntiqua-Regular.woff2') format('woff2');
-    }
-
-    @font-face {
-        font-family: 'HKGrotesk';
-        src: url('HKGrotesk-Regular.woff2') format('woff2');
-    }
-
-    @font-face {
-        font-family: 'HKGrotesk';
-        font-weight: bold;
-        src: url('HKGrotesk-Bold.woff2') format('woff2');
-    }
-
-    @font-face {
-        font-family: 'HKGrotesk';
-        font-weight: bold;
-        font-style: italic;
-        src: url('HKGrotesk-BoldItalic.woff2') format('woff2');
-    }
-
-    @font-face {
-        font-family: 'HKGrotesk';
-        font-style: italic;
-        src: url('HKGrotesk-LightItalic.woff2') format('woff2');
     }

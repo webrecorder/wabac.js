@@ -1,9 +1,12 @@
-import { getTS, makeNewResponse, fuzzyMatch } from './utils.js';
+import { getTS, makeNewResponse } from './utils.js';
+import { fuzzyMatcher } from './fuzzymatcher.js';
 
 class WARCCache {
   constructor() {
     this.urlMap = {}
     this.pageList = [];
+
+    this._lastRecord = null;
   }
 
   parseWarcInfo(record) {
@@ -26,17 +29,46 @@ class WARCCache {
     }
   }
 
-  async index(record, cdx) {
+  index(record, cdx) {
     if (record.warcType === "warcinfo") {
       this.parseWarcInfo(record);
       return;
     }
 
+    //record.cdx = cdx;
+
+    if (!this._lastRecord) {
+      this._lastRecord = record;
+      return;
+    }
+
+    if (this._lastRecord.warcTargetURI != record.warcTargetURI) {
+      this.indexReqResponse(this._lastRecord, null);
+      this._lastRecord = record;
+      return;
+    }
+
+    if (record.warcType === "request" && this._lastRecord.warcType === "response") {
+      this.indexReqResponse(this._lastRecord, record);
+    } else if (record.warcType === "response" && this._lastRecord.warcType === "request") {
+      this.indexReqResponse(record, this._lastRecord);
+    }
+    this._lastRecord = null;
+  }
+
+  indexDone() {
+    if (this._lastRecord) {
+      this.indexReqResponse(this._lastRecord);
+      this._lastRecord = null;
+    }
+  }
+
+  indexReqResponse(record, reqRecord) {
     if (record.warcType !== "response" && record.warcType !== "resource") {
       return;
     }
 
-    let url = record.warcTargetURI;
+    let url = record.warcTargetURI.split("#")[0];
     let initInfo = null;
 
     const date = record.warcDate;
@@ -61,7 +93,19 @@ class WARCCache {
 
       statusText = record.httpInfo.statusReason;
 
-      headers = new Headers(record.httpInfo.headers);
+      try {
+        headers = new Headers(record.httpInfo.headers)
+      } catch (e) {
+        // try to sanitize the headers, if any errors
+        for (let key of Object.keys(record.httpInfo.headers)) {
+          const value = record.httpInfo.headers[key];
+          const newValue = value.replace(/[\r\n]+/g, ', ');
+          if (value != newValue) {
+            record.httpInfo.headers[key] = newValue;
+          }
+        }
+        headers = new Headers(record.httpInfo.headers)
+      }
 
       cl = parseInt(headers.get('content-length') || 0);
 
@@ -90,7 +134,20 @@ class WARCCache {
       headers = new Headers();
       headers.set("content-type", record.warcContentType);
       headers.set("content-length", record.warcContentLength);
+
       cl = record.warcContentLength;
+    }
+
+    if (reqRecord && reqRecord.httpInfo.headers) {
+      try {
+        const reqHeaders = new Headers(reqRecord.httpInfo.headers);
+        const cookie = reqHeaders.get("cookie");
+        if (cookie) {
+          headers.set("x-wabac-preset-cookie", cookie);
+        }
+      } catch(e) {
+        console.warn(e);
+      }
     }
 
     initInfo = { status, statusText, headers };
@@ -120,11 +177,9 @@ class WARCCache {
       }
     }
 
-    this.urlMap[url] = { timestamp, date, initInfo, content };
+    //this.urlMap[url] = { timestamp, date, initInfo, content };
 
-    const fuzzyUrls = fuzzyMatch(url);
-
-    for (let fuzzyUrl of fuzzyUrls) {
+    for (let fuzzyUrl of fuzzyMatcher.fuzzyUrls(url)) {
       this.urlMap[fuzzyUrl] = { timestamp, date, initInfo, content };
     }
   }
@@ -166,7 +221,7 @@ class WARCCache {
   async match(request) {
     const entry = this.urlMap[request.url];
     if (!entry) {
-      console.log(request.url);
+      console.warn("Not Found: " + request.url);
       return null;
     }
 
