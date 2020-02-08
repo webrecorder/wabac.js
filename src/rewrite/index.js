@@ -14,6 +14,7 @@ import { rewriteDASH, rewriteHLS } from './rewriteVideo';
 
 import { DomainSpecificRuleSet } from './dsruleset';
 
+import { RxRewriter } from './rxrewriter';
 import { JSRewriter } from './jsrewriter';
 
 // ===========================================================================
@@ -33,7 +34,9 @@ const DOT_POST_MSG_REGEX = /(.postMessage\s*\()/;
 
 const DATA_RW_PROTOCOLS = ["http://", "https://", "//"];
 
-const DS_RULES = new DomainSpecificRuleSet(JSRewriter);
+// JS Rewriters
+const jsRules = new DomainSpecificRuleSet(JSRewriter);
+const baseRules = new DomainSpecificRuleSet(RxRewriter);
 
 
 // ===========================================================================
@@ -43,7 +46,7 @@ class Rewriter {
 
     this.prefix = prefix || "";
 
-    this.dsRules = dsRules || DS_RULES;
+    this.dsRules = dsRules || jsRules;
 
     const url = new URL(this.prefix);
     this.relPrefix = url.pathname;
@@ -828,5 +831,5 @@ class Rewriter {
   }
 }
 
-export { Rewriter };
+export { Rewriter, baseRules, jsRules };
 

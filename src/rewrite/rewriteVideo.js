@@ -64,6 +64,16 @@ function rewriteHLS(text) {
 // ===========================================================================
 // DASH
 function rewriteDASH(text, bestIds) {
+  try {
+    return _rewriteDASH(text, bestIds);
+  } catch (e) {
+    console.log(e);
+    return text;
+  }
+}
+
+
+function _rewriteDASH(text, bestIds) {
   const options = {ignoreAttributes: false, ignoreNameSpace: false, format: true, supressEmptyNode: true};
   const root = XMLParser.parse(text, options);
 

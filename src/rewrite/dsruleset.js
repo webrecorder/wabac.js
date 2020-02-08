@@ -1,4 +1,5 @@
 import { rewriteDASH } from './rewriteVideo';
+import unescapeJs from 'unescape-js';
 
 
 // ===========================================================================
@@ -37,18 +38,21 @@ function ruleReplace(string) {
 function ruleRewriteFBDash(string) {
   let dashManifest = null;
 
-  console.log("FB Dash");
-
   try {
-    dashManifest = JSON.parse(string.match(/dash_manifest":(".*"),"dash/)[1]);
+    //dashManifest = JSON.parse(string.match(/dash_manifest":(".*"),"dash/)[1]);
+    dashManifest = unescapeJs(string.match(/dash_manifest":"(.*)","dash/)[1]);
   } catch (e) {
-    console.log(e);
-    return;
+    console.warn(e);
+    return string;
   }
 
   let bestIds = [];
 
   const newDashManifest = rewriteDASH(dashManifest, bestIds) + "\n";
+
+  if (!bestIds.length) {
+    return string;
+  }
 
   const resultJSON = {"dash_manifest": newDashManifest, "dash_prefetched_representation_ids": bestIds};   
 
@@ -81,8 +85,6 @@ class DomainSpecificRuleSet
     for (let rule of this.rwRules) {
       if (rule.contains && url.indexOf(rule.contains) >= 0) {
         if (rule.rxRewriter) {
-          console.log(rule.contains);
-          console.log("Custom RW");
           return rule.rxRewriter;
         }
       }

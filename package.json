@@ -1,5 +1,5 @@
 {
-  "name": "wabac.js",
+  "name": "wabac",
   "version": "1.2.0",
   "main": "index.js",
   "license": "AGPL-3.0-or-later",
@@ -13,6 +13,7 @@
     "node-warc": "https://github.com/ikreymer/node-warc.git#parse-fix",
     "pako": "^1.0.10",
     "parse5-html-rewriting-stream": "^5.1.0",
+    "unescape-js": "^1.1.4",
     "wbn": "^0.0.3"
   },
   "devDependencies": {
@@ -27,7 +28,8 @@
   "scripts": {
     "build": "webpack --mode production",
     "build-dev": "webpack --mode development",
-    "start-dev": "webpack-dev-server --mode development --open"
+    "start-dev": "webpack-dev-server --mode development --open",
+    "test": "ava"
   },
   "ava": {
     "concurrency": 1,

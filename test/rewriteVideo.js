@@ -8,11 +8,7 @@ import { doRewrite } from './helpers';
 
 import { promises as fs} from 'fs';
 
-import { DomainSpecificRuleSet } from '../src/rewrite/dsruleset';
-import { RxRewriter } from '../src/rewrite/rxrewriter';
-
-const dsRules = new DomainSpecificRuleSet(RxRewriter);
-
+import { baseRules } from '../src/rewrite';
 
 
 // ===========================================================================
@@ -58,7 +54,7 @@ test('FB DASH', async t => {
 
   const result = await doRewrite({content,
       contentType: "text/javascript", 
-      url: "http://facebook.com/example/dash/manifest.js", dsRules});
+      url: "http://facebook.com/example/dash/manifest.js", baseRules});
 
   const res = JSON.parse(result);
 
