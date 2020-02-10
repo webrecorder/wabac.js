@@ -123,7 +123,7 @@
      */
     DefaultBanner.prototype.createBanner = function (bid) {
         this.banner = document.createElement("wb_div", true);
-        this.banner.innerHTML += '<span class="left-nav"><span class="caret"></span><a href="' + window.home + '">Back</a></span>';
+        this.banner.innerHTML += '<span class="left-nav"><span class="caret"></span><a href="' + window.home + 'index.html">Back</a></span>';
         this.banner.innerHTML += '<span class="right-nav"><a href="https://github.com/ikreymer/wabac.js" target="_blank">Powered by wabac.js</a></span>';
         this.banner.setAttribute("id", bid);
         this.banner.setAttribute("lang", "en");
