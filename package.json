@@ -19,6 +19,7 @@
   "devDependencies": {
     "ava": "^3.2.0",
     "esm": "^3.2.25",
+    "fake-indexeddb": "^3.0.0",
     "node-fetch": "^2.6.0",
     "web-streams-polyfill": "^2.0.6",
     "webpack": "^4.41.2",

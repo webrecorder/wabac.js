@@ -1,6 +1,7 @@
 "use strict";
 
 import { Collection } from './collection.js';
+import { DBIndex } from './collIndex.js';
 import { HARCache } from './harcache.js';
 import { LiveCache } from './live.js';
 import { RemoteArchiveCache } from './remotearchive.js'
@@ -52,21 +53,25 @@ class SWReplay {
       this._handleMessage(event);
     });
 
-    const cacheColl = sp.get("cacheColl");
+    this._autoinitColl(sp.get("cacheColl"), "cache");
+    this._autoinitColl(sp.get("dbColl"), "db");
+  }
 
-    if (cacheColl) {
-      for (let cache of cacheColl.split(",")) {
-        const cacheProps = cache.split(":");
-        if (cacheProps.length === 2) {
-          const name = cacheProps[0];
-          const cache = cacheProps[1];
-          this.initCollection({name, cache}).then(() => {
-            console.log(`Cache Collection Inited: ${name} = ${cache}`);
-          });
-        }
+  _autoinitColl(string, prop) {
+    if (!string) return;
+
+    for (let obj of string.split(",")) {
+      const objProps = obj.split(":");
+      if (objProps.length === 2) {
+        const def = {name: objProps[0]};
+        def[prop] = objProps[1];
+
+        this.initCollection(def).then(() => {
+          console.log(`${prop} Collection Inited: ${objProps[0]} = ${objProps[1]}`);
+        });
       }
     }
-  }
+ }
 
   async _handleMessage(event) {
     switch (event.data.msg_type) {
@@ -145,6 +150,10 @@ class SWReplay {
     } else if (data.cache) {
       cache = new LiveCache(data.cache);
       sourceName = "cache:" + data.cache;
+    } else if (data.db) {
+      cache = new DBIndex(data.db);
+      cache.init();
+      sourceName = "db:" + data.name;
     }
 
     if (!cache) {

@@ -1,4 +1,4 @@
-import { getTS, makeNewResponse } from './utils.js';
+import { getTS, makeNewResponse, makeHeaders } from './utils.js';
 import { fuzzyMatcher } from './fuzzymatcher.js';
 
 class WARCCache {
@@ -93,19 +93,7 @@ class WARCCache {
 
       statusText = record.httpInfo.statusReason;
 
-      try {
-        headers = new Headers(record.httpInfo.headers)
-      } catch (e) {
-        // try to sanitize the headers, if any errors
-        for (let key of Object.keys(record.httpInfo.headers)) {
-          const value = record.httpInfo.headers[key];
-          const newValue = value.replace(/[\r\n]+/g, ', ');
-          if (value != newValue) {
-            record.httpInfo.headers[key] = newValue;
-          }
-        }
-        headers = new Headers(record.httpInfo.headers)
-      }
+      headers = makeHeaders(record.httpInfo.headers);
 
       cl = parseInt(headers.get('content-length') || 0);
 

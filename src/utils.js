@@ -15,7 +15,7 @@ function getTS(iso) {
 
 function tsToDate(ts) {
   if (!ts) {
-    return "";
+    return new Date();
   }
 
   if (ts.length < 14) {
@@ -31,6 +31,10 @@ function tsToDate(ts) {
 
   return new Date(datestr);
 };
+
+function tsToSec(ts) {
+  return tsToDate(ts).getTime() / 1000;
+}
 
 function getSecondsStr(date) {
   if (!date) {
@@ -50,6 +54,22 @@ async function digestMessage(message, hashtype) {
   const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
   return hashHex;
+}
+
+function makeHeaders(headers) {
+  try {
+    return new Headers(headers);
+  } catch (e) {
+    // try to sanitize the headers, if any errors
+    for (let key of Object.keys(headers)) {
+      const value = headers[key];
+      const newValue = value.replace(/[\r\n]+/g, ', ');
+      if (value != newValue) {
+        headers[key] = newValue;
+      }
+    }
+    return new Headers(headers)
+  }
 }
 
 function makeRwResponse(content, response, headers) {
@@ -131,5 +151,5 @@ async function makeRangeResponse(response, range) {
   }
 }
 
-export { startsWithAny, getTS, tsToDate, getSecondsStr, digestMessage,
-         makeRwResponse, makeNewResponse, notFound, makeRangeResponse, isAjaxRequest };
+export { startsWithAny, getTS, tsToDate, tsToSec, getSecondsStr, digestMessage,
+         makeRwResponse, makeNewResponse, makeHeaders, notFound, makeRangeResponse, isAjaxRequest };

@@ -73,9 +73,11 @@ class DomainSpecificRuleSet
   }
 
   _initRules() {
+    this.rewriters = new Map();
+
     for (let rule of this.rwRules) {
       if (rule.rxRules) {
-        rule.rxRewriter = new this.RewriterCls(rule.rxRules);
+        this.rewriters.set(rule, new this.RewriterCls(rule.rxRules));
       }
     }
     this.defaultRewriter = new this.RewriterCls();
@@ -84,8 +86,9 @@ class DomainSpecificRuleSet
   getRewriter(url) {
     for (let rule of this.rwRules) {
       if (rule.contains && url.indexOf(rule.contains) >= 0) {
-        if (rule.rxRewriter) {
-          return rule.rxRewriter;
+        const rewriter = this.rewriters.get(rule);
+        if (rewriter) {
+          return rewriter;
         }
       }
     }
