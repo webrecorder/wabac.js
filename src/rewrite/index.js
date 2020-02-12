@@ -41,12 +41,12 @@ const baseRules = new DomainSpecificRuleSet(RxRewriter);
 
 // ===========================================================================
 class Rewriter {
-  constructor(baseUrl, prefix, headInsertFunc = null, dsRules = null) {
+  constructor(baseUrl, prefix, headInsertFunc = null, useBaseRules = false) {
     this.baseUrl = baseUrl;
 
     this.prefix = prefix || "";
 
-    this.dsRules = dsRules || jsRules;
+    this.dsRules = useBaseRules ? baseRules : jsRules;
 
     const url = new URL(this.prefix);
     this.relPrefix = url.pathname;

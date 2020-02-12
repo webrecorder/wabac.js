@@ -6,8 +6,8 @@ import { doRewrite } from './helpers';
 
 
 // ===========================================================================
-async function rewriteHtml(t, content, expected) {
-  const actual = await doRewrite({content, contentType: "text/html"});
+async function rewriteHtml(t, content, expected, useBaseRules = true) {
+  const actual = await doRewrite({content, contentType: "text/html", useBaseRules});
 
   t.is(actual, expected);
 }
@@ -255,9 +255,15 @@ test('srcset', rewriteHtml,
 
 // SCRIPT Tag
 // pywb diff: no script url rewriting!
-test('script', rewriteHtml,
+test('script proxy wrapped', rewriteHtml,
   '<script>window.location = "http://example.com/a/b/c.html"</script>',
-  `<script>${wrapScript('window.location = "http://example.com/a/b/c.html"')}</script>`);
+  `<script>${wrapScript('window.location = "http://example.com/a/b/c.html"')}</script>`,
+  false);
+
+// pywb diff: no script url rewriting!
+test('script not wrapped', rewriteHtml,
+  '<script>window.location = "http://example.com/a/b/c.html"</script>',
+  '<script>window.location = "http://example.com/a/b/c.html"</script>');
 
 // no rewriting if no props
 test('script', rewriteHtml,

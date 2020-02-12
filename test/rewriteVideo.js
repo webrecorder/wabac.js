@@ -8,8 +8,6 @@ import { doRewrite } from './helpers';
 
 import { promises as fs} from 'fs';
 
-import { baseRules } from '../src/rewrite';
-
 
 // ===========================================================================
 test('DASH', async t => {
@@ -54,7 +52,7 @@ test('FB DASH', async t => {
 
   const result = await doRewrite({content,
       contentType: "text/javascript", 
-      url: "http://facebook.com/example/dash/manifest.js", baseRules});
+      url: "http://facebook.com/example/dash/manifest.js"});
 
   const res = JSON.parse(result);
 
