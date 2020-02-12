@@ -12,10 +12,11 @@ const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
 class Collection {
   constructor(opts) {
-    const { name, cache, prefix, rootPrefix, rootColl, sourceName, staticPrefix } = opts;
+    const { name, cache, prefix, rootPrefix, rootColl, sourceName, staticPrefix, decode } = opts;
 
     this.name = name;
     this.cache = cache;
+    this.decode = decode;
 
     this.sourceName = sourceName;
 
@@ -45,7 +46,7 @@ class Collection {
     return Response.redirect(this.prefix + requestTS + '/blob:' + blobId);
   }
 
-  async handleRequest(request) {
+  async handleRequest(request, event) {
     let wbUrlStr = request.url;
 
     if (wbUrlStr.startsWith(this.prefix)) {
@@ -121,7 +122,7 @@ class Collection {
       let fuzzyUrl = null;
 
       for await (let fuzzyUrl of fuzzyMatcher.fuzzyUrls(url)) {
-        response = await this.cache.match({ "url": fuzzyUrl, "timestamp": requestTS }, rwPrefix);
+        response = await this.cache.match({ "url": fuzzyUrl, "timestamp": requestTS }, rwPrefix, event);
         if (response) {
           if (url.startsWith("//")) {
             url = fuzzyUrl;
@@ -138,7 +139,7 @@ class Collection {
           return this.makeHeadInsert(url, response.timestamp, requestTS, response.date, presetCookie);
         };
 
-        const rewriter = new Rewriter(url, this.prefix + requestTS + mod + "/", headInsertFunc);
+        const rewriter = new Rewriter(url, this.prefix + requestTS + mod + "/", headInsertFunc, false, this.decode);
         response = await rewriter.rewrite(response, request, mod !== "id_" ? DEFAULT_CSP : null, mod === "id_" || mod === "wkrf_");
       }
 

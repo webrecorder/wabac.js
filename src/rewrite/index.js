@@ -1,14 +1,12 @@
 "use strict";
 
-import brotliDecode from 'brotli/decompress';
-
-import { Inflate } from 'pako';
-
 import { Readable } from 'stream';
 
 import RewritingStream from 'parse5-html-rewriting-stream';
 
 import { makeRwResponse, startsWithAny, isAjaxRequest } from '../utils.js';
+
+import { decodeResponse } from './decoder';
 
 import { rewriteDASH, rewriteHLS } from './rewriteVideo';
 
@@ -41,12 +39,13 @@ const baseRules = new DomainSpecificRuleSet(RxRewriter);
 
 // ===========================================================================
 class Rewriter {
-  constructor(baseUrl, prefix, headInsertFunc = null, useBaseRules = false) {
+  constructor(baseUrl, prefix, headInsertFunc = null, useBaseRules = false, decode = true) {
     this.baseUrl = baseUrl;
 
     this.prefix = prefix || "";
 
     this.dsRules = useBaseRules ? baseRules : jsRules;
+    this.decode = decode;
 
     const url = new URL(this.prefix);
     this.relPrefix = url.pathname;
@@ -55,86 +54,6 @@ class Rewriter {
     this.scheme = url.protocol;
 
     this.headInsertFunc = headInsertFunc;
-  }
-
-  dechunkArrayBuffer(data) {
-    let readOffset = 0;
-    let writeOffset = 0;
-
-    const decoder = new TextDecoder("utf-8");
-
-    while (readOffset < data.length) {
-      let i = readOffset;
-
-      // check hex digits, 0-9, A-Z, a-z
-      while ((data[i] >= 48 && data[i] <= 57) ||
-             (data[i] >= 65 && data[i] <= 70) ||
-             (data[i] >= 97 && data[i] <= 102)) {
-        i++;
-      }
-
-      // doesn't start with number, return original
-      if (i === 0) {
-        return data;
-      }
-
-      // ensure \r\n\r\n
-      if (data[i] != 13 || data[i + 1] != 10) {
-        return data;
-      }
-
-      i += 2;
-
-      var chunkLength = parseInt(decoder.decode(data.subarray(readOffset, i)), 16);
-
-      if (chunkLength == 0) {
-        break;
-      }
-
-      data.set(data.subarray(i, i + chunkLength), writeOffset);
-
-      i += chunkLength;
-
-      writeOffset += chunkLength;
-
-      if (data[i] == 13 && data[i + 1] == 10) {
-        i += 2;
-      }
-
-      readOffset = i;
-    }
-
-    return data.subarray(0, writeOffset);
-  }
-
-  async decodeResponse(response, encoding, chunked) {
-    let content = new Uint8Array(await response.arrayBuffer());
-
-    try {
-      if (chunked) {
-        content = this.dechunkArrayBuffer(content);
-      }
-    } catch (e) {
-      console.log("Chunk-Encoding Ignored: " + e);
-    }
-
-    try {
-      if (encoding === "br") {
-        content = brotliDecode(content);
-
-      } else if (encoding === "gzip") {
-        const inflator = new Inflate();
-
-        inflator.push(content, true);
-
-        // if error occurs (eg. not gzip), use original arraybuffer
-        content = (inflator.result && !inflator.err) ? inflator.result : content;
-      }
-    } catch(e) {
-      console.log("Content-Encoding Ignored: " + e);
-    }
-
-    return makeRwResponse(content, response);
   }
 
   getRewriteMode(request, response) {
@@ -187,18 +106,19 @@ class Rewriter {
   async rewrite(response, request, csp, noRewrite = false) {
     const rewriteMode = noRewrite ? null : this.getRewriteMode(request, response);
 
-    const encoding = response.headers.get("content-encoding");
-
     const headers = this.rewriteHeaders(response.headers, !noRewrite, rewriteMode !== null);
 
     if (csp) {
       headers.append("Content-Security-Policy", csp);
     }
 
+    const encoding = response.headers.get("content-encoding");
     const te = response.headers.get('transfer-encoding');
 
-    if (encoding || te) {
-      response = await this.decodeResponse(response, encoding, te === 'chunked');
+    // attempt to decode only if set
+    // eg. data may already be decoded for many stores
+    if (this.decode && (encoding || te)) {
+      response = await decodeResponse(response, encoding, te);
     }
 
     let rwFunc = null;

@@ -120,6 +120,7 @@ class SWReplay {
   async initCollection(data) {
     let cache = null;
     let sourceName = null;
+    let decode = false;
 
     if (data.files) {
       // TODO: multiple files
@@ -135,6 +136,7 @@ class SWReplay {
         } else if (file.name.endsWith(".warc") || file.name.endsWith(".warc.gz")) {
           const ab = await resp.arrayBuffer();
           cache = new WARCCache();
+          decode = true;
 
           const parser = new WarcParser();
           await parser.parse(ab, cache.index.bind(cache));
@@ -167,7 +169,7 @@ class SWReplay {
     const prefix = this.replayPrefix;
     const rootPrefix = this.prefix;
 
-    const coll = new Collection({name, cache, prefix, rootPrefix, rootColl, sourceName, staticPrefix});
+    const coll = new Collection({name, cache, prefix, rootPrefix, rootColl, sourceName, staticPrefix, decode});
     this.collections[name] = coll;
     return coll;
   }
@@ -236,7 +238,7 @@ class SWReplay {
     }
 */
     for (let coll of Object.values(this.collections)) {
-      response = await coll.handleRequest(request);
+      response = await coll.handleRequest(request, event);
       if (!response) {
         continue;
       }
