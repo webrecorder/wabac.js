@@ -1,7 +1,7 @@
 "use strict";
 
 import { Collection } from './collection.js';
-import { DBIndex } from './collIndex.js';
+import { ArchiveDB } from './archivedb.js';
 import { HARCache } from './harcache.js';
 import { LiveCache } from './live.js';
 import { RemoteArchiveCache } from './remotearchive.js'
@@ -15,7 +15,7 @@ const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 
 class SWReplay {
-  constructor() {
+  constructor(cacheTypes) {
     this.prefix = self.registration ? self.registration.scope : '';
 
     this.replayPrefix = this.prefix;
@@ -32,7 +32,7 @@ class SWReplay {
 
     this.collections = {};
 
-    this.allowCache = false;
+    this.allowRewrittenCache = sp.get("allowCache") ? true : false;
 
     this.stats = sp.get("stats") ? new StatsTracker() : null;
 
@@ -53,18 +53,28 @@ class SWReplay {
       this._handleMessage(event);
     });
 
-    this._autoinitColl(sp.get("cacheColl"), "cache");
-    this._autoinitColl(sp.get("dbColl"), "db");
+    if (!cacheTypes) {
+      cacheTypes = {"db": ArchiveDB,
+                    "livecache": LiveCache
+                   }
+    }
+
+    this.cacheTypes = cacheTypes;
+
+    for (const source of Object.keys(this.cacheTypes)) {
+      this._autoinitColl(sp.get(source + "Coll"), source);
+    }
   }
 
   _autoinitColl(string, prop) {
     if (!string) return;
 
-    for (let obj of string.split(",")) {
+    for (const obj of string.split(",")) {
       const objProps = obj.split(":");
       if (objProps.length === 2) {
-        const def = {name: objProps[0]};
-        def[prop] = objProps[1];
+        const def = {type: prop,
+                     name: objProps[0],
+                     data: objProps[1]};
 
         this.initCollection(def).then(() => {
           console.log(`${prop} Collection Inited: ${objProps[0]} = ${objProps[1]}`);
@@ -149,13 +159,14 @@ class SWReplay {
     } else if (data.remote) {
       cache = new RemoteArchiveCache(data.remote);
       sourceName = data.remote.replayPrefix;
-    } else if (data.cache) {
-      cache = new LiveCache(data.cache);
-      sourceName = "cache:" + data.cache;
-    } else if (data.db) {
-      cache = new DBIndex(data.db);
-      cache.init();
-      sourceName = "db:" + data.name;
+    }
+
+    // extra cache types
+    for (const source of Object.keys(this.cacheTypes)) {
+      if (data.type === source) {
+        cache  = new this.cacheTypes[source](data.data);
+        sourceName = source + ":" + data.name;
+      }
     }
 
     if (!cache) {
@@ -176,7 +187,7 @@ class SWReplay {
 
   doListAll(source) {
     let msgData = [];
-    for (let coll of Object.values(this.collections)) {
+    for (const coll of Object.values(this.collections)) {
       msgData.push({
         "name": coll.name,
         "prefix": coll.appPrefix,
@@ -209,7 +220,7 @@ class SWReplay {
     let response = null;
 
     const isGet = (request.method === "GET");
-    const getRequest = (isGet || !this.allowCache) ? request : await this.toGetRequest(request);
+    const getRequest = (isGet || !this.allowRewrittenCache) ? request : await this.toGetRequest(request);
 
     const isAjax = isAjaxRequest(request);
     const range = request.headers.get('range');
@@ -237,7 +248,7 @@ class SWReplay {
       }
     }
 */
-    for (let coll of Object.values(this.collections)) {
+    for (const coll of Object.values(this.collections)) {
       response = await coll.handleRequest(request, event);
       if (!response) {
         continue;
@@ -247,7 +258,7 @@ class SWReplay {
         this.stats.updateStats(response, request, event);
       }
 
-      if (this.allowCache && response.status === 200) {
+      if (this.allowRewrittenCache && response.status === 200) {
         try {
           const cache = await self.caches.open(CACHE_PREFIX + coll.name);
           if (isAjax) {

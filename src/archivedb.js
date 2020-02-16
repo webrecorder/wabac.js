@@ -4,9 +4,12 @@ import { openDB } from 'idb/with-async-ittr.js';
 import { tsToSec, tsToDate, getTS, makeNewResponse, makeHeaders } from './utils';
 
 
-class DBIndex {
+// ===========================================================================
+class ArchiveDB {
   constructor(name) {
     this.name = name;
+    this.db = null;
+    this.init();
   }
 
   async init() {
@@ -23,7 +26,15 @@ class DBIndex {
   }
 
   async addPage(data) {
-    return await this.db.add("pages", data);   
+    if (data.id) {
+      return await this.db.put("pages", data);
+    } else {
+      return await this.db.add("pages", data);
+    }
+  }
+
+  async getAllPages() {
+    return await this.db.getAll("pages");
   }
 
   async addUrl(data) {
@@ -122,6 +133,7 @@ class DBIndex {
 }
 
 
+// ===========================================================================
 class WarcIndexer {
   constructor(collDB) {
     this.parser = new WarcParser();
@@ -151,6 +163,6 @@ class WarcIndexer {
 }
 
 
-export { DBIndex };
+export { ArchiveDB };
 
 
