@@ -9,17 +9,18 @@ class ArchiveDB {
   constructor(name) {
     this.name = name;
     this.db = null;
-    this.init();
+    this.initing = this.init();
   }
 
   async init() {
     this.db = await openDB(this.name, 1, {
       upgrade(db, oldVersion, newVersion, transaction) {
-        const pageStore = db.createObjectStore("pages", { keyPath: "id", autoIncrement: true });
+        const pageStore = db.createObjectStore("pages", { keyPath: "id" });
         pageStore.createIndex("url", "url");
+        pageStore.createIndex("date", "date");
 
-        const urlStore = db.createObjectStore("urls", { keyPath: ["url", "ts"] });
-        urlStore.createIndex("session", "session");
+        const urlStore = db.createObjectStore("resources", { keyPath: ["url", "ts"] });
+        urlStore.createIndex("pageId", "pageId");
         urlStore.createIndex("mime", "mime");
       }
     });
@@ -34,11 +35,11 @@ class ArchiveDB {
   }
 
   async getAllPages() {
-    return await this.db.getAll("pages");
+    return await this.db.getAllFromIndex("pages", "date");
   }
 
   async addUrl(data) {
-    return await this.db.add("urls", data);
+    return await this.db.add("resources", data);
   }
 
   async match(request) {
@@ -67,7 +68,7 @@ class ArchiveDB {
   }
 
   async lookupUrl(url, datetime) {
-    const tx = this.db.transaction("urls", "readonly");
+    const tx = this.db.transaction("resources", "readonly");
 
     if (datetime) {
       const res = await tx.store.get([url, datetime]);
@@ -90,21 +91,14 @@ class ArchiveDB {
     return lastValue;
   }
 
-  async urlsBySession(session) {
-    const tx = this.db.transaction("urls", "readonly");
-    const urls = [];
-
-    for await (const cursor of tx.store.index("session").iterate(session)) {
-      urls.push(cursor.value);
-    }
-
-    return urls;
+  async resourcesByPage(pageId) {
+    return this.db.getAllFromIndex("resources", "pageId", pageId);
   }
 
-  async deleteSession(session) {
-    const tx = this.db.transaction("urls", "readwrite");
+  async deletePageResources(pageId) {
+    const tx = this.db.transaction("resources", "readwrite");
 
-    let cursor = await tx.store.index("session").openKeyCursor(session);
+    let cursor = await tx.store.index("pageId").openKeyCursor(pageId);
 
     while (cursor) {
       tx.store.delete(cursor.primaryKey);
