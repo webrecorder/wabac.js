@@ -38,11 +38,6 @@ async function decodeResponse(response, contentEncoding, transferEncoding) {
     console.log("Content-Encoding Ignored: " + e);
   }
 
-  // assume decoding failed!
-  if ((content === origContent) || (content.length === 0 && origContent.length > 0)) {
-    return response;
-  }
-
   return makeRwResponse(content, response);
 }
 

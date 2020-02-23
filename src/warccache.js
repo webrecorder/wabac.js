@@ -63,6 +63,11 @@ class WARCCache {
     }
   }
 
+  indexError() {
+    //todo: indicate partial parse?
+    this.indexDone();
+  }
+
   indexReqResponse(record, reqRecord) {
     if (record.warcType !== "response" && record.warcType !== "resource") {
       return;

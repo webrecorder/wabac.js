@@ -149,7 +149,7 @@ class SWReplay {
           decode = true;
 
           const parser = new WarcParser();
-          await parser.parse(ab, cache.index.bind(cache));
+          await parser.parse(ab, cache);
         } else if (file.name.endsWith(".wbn")) {
           const ab = await resp.arrayBuffer();
           cache = new WebBundleCache(ab);

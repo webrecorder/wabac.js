@@ -225,6 +225,12 @@ window.home = "${this.rootPrefix}";
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
     return `
 <!-- WB Insert -->
+<style>
+body {
+  font-family: inherit;
+  font-size: inherit;
+}
+</style>
 <script>
   wbinfo = {};
   wbinfo.top_url = "${topUrl}";

@@ -22,14 +22,10 @@ class WarcParser {
     this.recordCount = 0;
   }
 
-  parse(arraybuffer, onRecord) {
+  parse(arraybuffer, cache) {
     // this.rstream.pipe(this.warc).on('data', (record) => {
     //  console.log(record.warcTargetURI);
     // });
-    if (!onRecord) {
-      onRecord = () => { };
-    }
-
     this.recordCount = 0;
 
     const buffer = new Uint8Array(arraybuffer);
@@ -39,9 +35,9 @@ class WarcParser {
     if (isGzip) {
       return new Promise((resolve, reject) => {
         this.rstream.pipe(new DecompStream(this)).pipe(this.warc)
-          .on('data', (record) => { onRecord(record, this.offsets[this.recordCount++]) })
-          .on('end', resolve)
-          .on('error', reject);
+          .on('data', (record) => { cache.index(record, this.offsets[this.recordCount++]) })
+          .on('end', () => { cache.indexDone(); resolve(); })
+          .on('error', () => { cache.indexError(); resolve(); });
 
         this.rstream.push(buffer);
         this.rstream.push(null);
@@ -49,9 +45,9 @@ class WarcParser {
     } else {
       return new Promise((resolve, reject) => {
         this.rstream.pipe(this.warc)
-          .on('data', (record) => { onRecord(record, {}) })
-          .on('end', resolve)
-          .on('error', reject);
+          .on('data', (record) => { cache.index(record, {}) })
+          .on('end', () => { cache.indexDone(); resolve(); })
+          .on('error', () => { cache.indexError(); resolve(); });
 
         this.rstream.push(buffer);
         this.rstream.push(null);
