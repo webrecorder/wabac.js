@@ -3,7 +3,7 @@
 class RxRewriter
 {
   constructor(rules) {
-    this.rules = rules;
+    this.rules = rules || null;
     if (this.rules) {
       this.compileRules();
     } else {
@@ -44,6 +44,10 @@ class RxRewriter
   }
 
   rewrite(text) {
+    if (!this.rx) {
+      return text;
+    }
+
     return text.replace(this.rx, (match, ...params) => this.doReplace(params));
   }
 }

@@ -22,7 +22,8 @@ const DEFAULT_RULES = [
   {
     contains: "facebook.com/",
     rxRules: [
-      [/"dash_manifest":"?.*dash_prefetched_representation_ids"?:.*?\]/, ruleRewriteFBDash],
+      //[/"dash_manifest":"?.*dash_prefetched_representation_ids"?:(\[.*\]|[^,]+)/, ruleRewriteFBDash],
+      [/"dash_manifest":"?.*?dash_prefetched_representation_ids"?:(?:null|(?:.+?\]))/, ruleRewriteFBDash],
     ]
   }
 ];
@@ -39,18 +40,24 @@ function ruleRewriteFBDash(string) {
   let dashManifest = null;
 
   try {
-    //dashManifest = JSON.parse(string.match(/dash_manifest":(".*"),"dash/)[1]);
-    dashManifest = unescapeJs(string.match(/dash_manifest":"(.*)","dash/)[1]);
+    dashManifest = unescapeJs(string.match(/dash_manifest":"(.*?)","dash/)[1]);
+    dashManifest = dashManifest.replace(/\\\//g, '/');
   } catch (e) {
     console.warn(e);
     return string;
   }
 
-  let bestIds = [];
+  let bestIds;
+
+  if (string.endsWith("null")) {
+    bestIds = null;
+  } else {
+    bestIds = [];
+  }
 
   const newDashManifest = rewriteDASH(dashManifest, bestIds) + "\n";
 
-  if (!bestIds.length) {
+  if (bestIds != null && !bestIds.length) {
     return string;
   }
 

@@ -122,7 +122,7 @@ class Collection {
       let fuzzyUrl = null;
 
       for await (let fuzzyUrl of fuzzyMatcher.fuzzyUrls(url)) {
-        response = await this.cache.match({ "url": fuzzyUrl, "timestamp": requestTS }, rwPrefix, event);
+        response = await this.cache.match({ "url": fuzzyUrl, "method": request.method, "timestamp": requestTS }, rwPrefix, event);
         if (response) {
           if (url.startsWith("//")) {
             url = fuzzyUrl;

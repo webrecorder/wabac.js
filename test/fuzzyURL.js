@@ -1,7 +1,7 @@
 "use strict";
 
 import test from 'ava';
-import { FuzzyMatcher } from '../src/fuzzymatcher';
+import { FuzzyMatcher, compareUrls } from '../src/fuzzymatcher';
 
 const fuzzy = new FuzzyMatcher();
 
@@ -69,5 +69,62 @@ test('match yt', fuzzyMatch,
 test('match yt2', fuzzyMatch,
   'https://r1---sn-xyz.googlevideo.com/videoplayback?id=ABCDEFG&itag=22&food=abc',
   'https://r1---sn-abcdefg.googlevideo.com/videoplayback?id=ABCDEFG&itag=22&foo=abc&_1=2');
+
+
+
+
+function fuzzyMatchScore(t, url, results, expected) {
+  t.deepEqual(compareUrls(url, results).result, expected);
+}
+
+
+test('compare score', fuzzyMatchScore,
+  'https://example.com/?_=123',
+  [
+   'https://example.com/?_=456',
+   'https://example.com/?__=123&foo=bar'
+  ],
+  'https://example.com/?_=456'
+);
+
+
+
+test('compare score 2', fuzzyMatchScore,
+  'https://example.com/?a=b',
+  [
+   'https://example.com/?c=d&_=456',
+   'https://example.com/?',
+   'https://example.com/?d=f',
+   'https://example.com/?__=123&foo=bar',
+   'https://example.com/?_=123&__foo=789&__bar=abc',
+   'https://example.com/?_=123&__foo=789&__bar=abc&a=b',
+   'https://example.com/?_=123&__foo=789&__bar=abc&a=d'
+  ],
+  'https://example.com/?_=123&__foo=789&__bar=abc&a=b'
+);
+
+
+test('compare score 3', fuzzyMatchScore,
+  'https://example.com/?v=foo,bar',
+  [
+   'https://example.com/?v=foo&__=123',
+   'https://example.com/?v=blah&__=456',
+   'https://example.com/?v=bar',
+   'https://example.com/?__=789'
+  ],
+  'https://example.com/?v=bar'
+);
+
+test('compare score 4', fuzzyMatchScore,
+  'https://example.com/?param=value',
+  [
+    'https://example.com/?__a=b&param=value',
+    'https://example.com/?__a=b&param=foo',
+  ],
+  'https://example.com/?__a=b&param=value'
+);
+
+
+
 
 

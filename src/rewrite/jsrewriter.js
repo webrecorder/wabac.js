@@ -47,7 +47,7 @@ class JSRewriter extends RxRewriter {
       [new RegExp(`[^$.]\\s*\\bthis\\b(?=(?:\\.(?:${propStr})\\b))`), this.replaceThisProp()],
 
       // rewrite '= this' or ', this'
-      [/[=,]\s*\bthis\b\s*(?![.$])/, this.replaceThis()],
+      [/[=,]\s*\bthis\b\s*(?![:.$])/, this.replaceThis()],
 
       // rewrite '})(this)'
       [/\}(?:\s*\))?\s*\(this\)/, this.replaceThis()],

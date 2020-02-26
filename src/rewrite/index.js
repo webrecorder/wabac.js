@@ -63,31 +63,25 @@ class Rewriter {
     let contentType = response.headers.get("Content-Type") || "";
     contentType = contentType.split(";", 1)[0];
 
-    const isAjax = isAjaxRequest(request);
-
     switch (requestType) {
       case "style":
         return "css";
 
       case "script":
-        return !isAjax ? "js" : null;
+        return "js";
     }
 
     switch (contentType) {
       case "text/html":
-        return !isAjax ? "html" : null;
+        return "html";
 
       case "text/javascript":
       case "application/javascript":
       case "application/x-javascript":
-        if (isAjax) {
-          return null;
-        }
-
         return this.baseUrl.endsWith(".json") ? "json" : "js";
 
       case "application/json":
-        return !isAjax ? "json" : null;
+        return "json";
 
       case "text/css":
         return "css";
@@ -106,6 +100,8 @@ class Rewriter {
   async rewrite(response, request, csp, noRewrite = false) {
     const rewriteMode = noRewrite ? null : this.getRewriteMode(request, response);
 
+    const isAjax = isAjaxRequest(request);
+
     const headers = this.rewriteHeaders(response.headers, !noRewrite, rewriteMode !== null);
 
     if (csp) {
@@ -122,10 +118,14 @@ class Rewriter {
     }
 
     let rwFunc = null;
+    let opt = null;
 
     switch (rewriteMode) {
       case "html":
-        return await this.rewriteHtml(response, headers);
+        if (!isAjax) {
+          return await this.rewriteHtml(response, headers);
+        }
+        break;
 
       case "css":
         rwFunc = this.rewriteCSS;
@@ -136,7 +136,7 @@ class Rewriter {
         break;
 
       case "json":
-        rwFunc = this.rewriteJSONP;
+        rwFunc = this.rewriteJSON;
         break;
 
       case "hls":
@@ -152,7 +152,7 @@ class Rewriter {
 
     if (rwFunc) {
       const text = await response.text();
-      content = rwFunc.call(this, text);
+      content = rwFunc.call(this, text, isAjax);
     } else {
       content = response.body;
     }
@@ -193,7 +193,7 @@ class Rewriter {
       return origUrl;
     }
 
-    if (url.startsWith("http:") || url.startsWith("https:")) {
+    if (url.startsWith("http:") || url.startsWith("https:") || url.startsWith("https\\3a/")) {
       return this.prefix + url;
     }
 
@@ -256,7 +256,7 @@ class Rewriter {
 
       // js attrs
       if (name.startsWith("on") && value.startsWith("javascript:") && name.slice(2, 3) != "-") {
-        attr.value = "javascript:" + this.rewriteJS(value.slice("javascript:".length), true);
+        attr.value = "javascript:" + this.rewriteJS(value.slice("javascript:".length), false, true);
       }
       // css attrs
       else if (name === "style") {
@@ -532,23 +532,31 @@ class Rewriter {
   }
 
   // CSS
-  cssStyleReplacer(match, n1, n2, n3, offset, string) {
-    return n1 + this.rewriteUrl(n2) + n3;
-  };
-
   rewriteCSS(text) {
+    const rewriter = this;
+
+    function cssStyleReplacer(match, n1, n2, n3, offset, string) {
+      n2 = n2.replace(/\s+/g, '');
+      return n1 + rewriter.rewriteUrl(n2) + n3;
+    };
+
     return text
-      .replace(STYLE_REGEX, this.cssStyleReplacer.bind(this))
-      .replace(IMPORT_REGEX, this.cssStyleReplacer.bind(this))
+      .replace(STYLE_REGEX, cssStyleReplacer)
+      .replace(IMPORT_REGEX, cssStyleReplacer)
       .replace(NO_WOMBAT_REGEX, '');
   }
 
   // JS
-  rewriteJS(text, inline) {
-    const dsRewriter = this.dsRules.getRewriter(this.baseUrl);
+  rewriteJS(text, isAjax, inline) {
+    const dsRules = isAjax ? baseRules : this.dsRules;
+    const dsRewriter = dsRules.getRewriter(this.baseUrl);
 
     // optimize: if default rewriter, only rewrite if contains JS props
-    if (dsRewriter === this.dsRules.defaultRewriter) {
+    if (dsRewriter === dsRules.defaultRewriter) {
+      if (isAjax) {
+        return text;
+      }
+
       const overrideProps = [
         'window',
         'self',
@@ -580,7 +588,22 @@ class Rewriter {
     return dsRewriter.rewrite(text, inline);
   }
 
-  //JSONP
+  // JSON
+  rewriteJSON(text, isAjax) {
+    if (!isAjax) {
+      text = this.rewriteJSONP(text);
+    }
+
+    const dsRewriter = baseRules.getRewriter(this.baseUrl);
+
+    if (dsRewriter !== baseRules.defaultRewriter) {
+      return dsRewriter.rewrite(text);
+    }
+
+    return text;
+  }
+
+  // JSONP
   rewriteJSONP(text) {
     const jsonM = text.match(JSONP_REGEX);
     if (!jsonM) {

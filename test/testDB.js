@@ -44,32 +44,36 @@ const URL_DATA = [
 {
   "url": "https://example.com/",
   "ts": ts("202003040506"),
-  "pageId": 1,
+  "pageId": "01",
   "content": new Uint8Array([1, 2, 3]),
   "headers": {"a": "b"},
+  "mime": "",
 },
 
 {
   "url": "https://example.com/script.js",
   "ts": ts("202003040507"),
-  "pageId": 1,
+  "pageId": "01",
   "content": "text",
-  "headers": {"a": "b"}
+  "headers": {"a": "b"},
+  "mime": "",
 },
 
 {
   "url": "https://another.example.com/page",
   "ts": ts("20200102000000"),
-  "pageId": 2,
+  "pageId": "02",
   "content": new Uint8Array([0, 1, 0, 1]),
-  "headers": {"a": "b"}
+  "headers": {"a": "b"},
+  "mime": "",
 },
 
 {
   "url": "https://example.com/",
   "ts": ts("202103040506"),
-  "pageId": 3,
-  "content": new Uint8Array([4, 5, 6])
+  "pageId": "03",
+  "content": new Uint8Array([4, 5, 6]),
+  "mime": "",
 },
 
 ]
@@ -162,14 +166,14 @@ test('Lookup Not Found Url', async t => {
 
 test('Search by pageId', async t => {
   t.deepEqual(
-    await db.resourcesByPage(1),
+    await db.resourcesByPage("01"),
     [URL_DATA[0], URL_DATA[1]]
   );
 
-  await db.deletePageResources(1);
+  await db.deletePageResources("01");
 
   t.deepEqual(
-    await db.resourcesByPage(1),
+    await db.resourcesByPage("01"),
     []
   );
 

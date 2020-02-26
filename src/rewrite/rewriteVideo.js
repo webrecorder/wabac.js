@@ -2,6 +2,10 @@
 
 import XMLParser from 'fast-xml-parser';
 
+const DEFAULT_MAX_BAND = 1000000;
+//const DEFAULT_MAX_RES = 1280 * 720;
+const DEFAULT_MAX_RES = 860 * 480;
+
 
 // ===========================================================================
 //HLS
@@ -9,8 +13,8 @@ function rewriteHLS(text) {
   const EXT_INF = /#EXT-X-STREAM-INF:(?:.*[,])?BANDWIDTH=([\d]+)/;
   const EXT_RESOLUTION = /RESOLUTION=([\d]+)x([\d]+)/;
 
-  const maxRes = 0;
-  const maxBand = 1000000000;
+  const maxRes = DEFAULT_MAX_RES;
+  const maxBand = DEFAULT_MAX_BAND;
 
   let indexes = [];
   let count = 0;
@@ -21,7 +25,7 @@ function rewriteHLS(text) {
 
   let lines = text.trimEnd().split('\n');
 
-  for (let line of lines) {
+  for (const line of lines) {
     const m = line.match(EXT_INF);
     if (!m) {
       count += 1;
@@ -52,7 +56,7 @@ function rewriteHLS(text) {
 
   indexes.reverse();
 
-  for (let inx of indexes) {
+  for (const inx of indexes) {
     if (inx !== bestIndex) {
       lines.splice(inx, 2);
     }
@@ -74,33 +78,38 @@ function rewriteDASH(text, bestIds) {
 
 
 function _rewriteDASH(text, bestIds) {
-  const options = {ignoreAttributes: false, ignoreNameSpace: false, format: true, supressEmptyNode: true};
+  const options = {ignoreAttributes: false, ignoreNameSpace: false, format: false, supressEmptyNode: true};
   const root = XMLParser.parse(text, options);
 
-  //console.log(util.inspect(root, {depth: null}));
-
-  const maxRes = 0;
-  const maxBand = 1000000000;
+  const maxRes = DEFAULT_MAX_RES;
+  const maxBand = DEFAULT_MAX_BAND;
 
   let best = null;
   let bestRes = 0;
   let bestBand = 0;
 
-  for (let adaptset of root.MPD.Period.AdaptationSet) {
-    //console.log(adaptset);
+  let adaptSets = null;
 
+  if (!Array.isArray(root.MPD.Period.AdaptationSet)) {
+    adaptSets = [root.MPD.Period.AdaptationSet];
+  } else {
+    adaptSets = root.MPD.Period.AdaptationSet;
+  }
+
+  for (const adaptset of adaptSets) {
     best = null;
     bestRes = 0;
     bestBand = 0;
 
+    let reps = null;
+
     if (!Array.isArray(adaptset.Representation)) {
-      if (Array.isArray(bestIds) && typeof(adaptset.Representation) === 'object' && adaptset.Representation["@_id"]) {
-        bestIds.push(adaptset.Representation["@_id"]);
-      }
-      continue;
+      reps = [adaptset.Representation];
+    } else {
+      reps = adaptset.Representation;
     }
 
-    for (let repres of adaptset.Representation) {
+    for (const repres of reps) {
       const currRes = Number(repres['@_width'] || '0') * Number(repres['@_height'] || '0');
       const currBand = Number(repres['@_bandwidth'] || '0');
 

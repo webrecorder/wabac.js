@@ -48,7 +48,7 @@ test('DASH', async t => {
 test('FB DASH', async t => {
   const text = await fs.readFile(path.join(__dirname, "data", "sample_dash.mpd"), "utf-8");
 
-  const content = JSON.stringify({"dash_manifest": text + '\n', "dash_prefetched_representation_ids":["4","5"]});
+  const content = JSON.stringify({"dash_manifest": text + '\n', "dash_prefetched_representation_ids":["4","5"], "other": "data"});
 
   const result = await doRewrite({content,
       contentType: "text/javascript", 
@@ -61,6 +61,24 @@ test('FB DASH', async t => {
   // ids replaced to 1, 7 from 4, 5
   t.deepEqual(res.dash_prefetched_representation_ids, ["1","7"]);
 });
+
+test('FB DASH 2', async t => {
+  const text = await fs.readFile(path.join(__dirname, "data", "sample_dash.mpd"), "utf-8");
+
+  const content = JSON.stringify({"dash_manifest": text + '\n', "dash_prefetched_representation_ids": null, "other": "data"});
+
+  const result = await doRewrite({content,
+      contentType: "text/javascript", 
+      url: "http://facebook.com/example/dash/manifest.js"});
+
+  const res = JSON.parse(result);
+
+  t.not(result, content);
+
+  // ids replaced to 1, 7 from 4, 5
+  t.deepEqual(res.dash_prefetched_representation_ids, ["1","7"]);
+});
+
 
 
 test('HLS DEFAULT MAX', async t => {
