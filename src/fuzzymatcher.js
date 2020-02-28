@@ -1,4 +1,4 @@
-const FUZZY_PREFIX = "http://fuzzy.example.com/";
+//const FUZZY_PREFIX = "http://fuzzy.example.com/";
 
 const DEFAULT_RULES = 
 [
@@ -58,26 +58,27 @@ class FuzzyMatcher {;
   }
 
   *fuzzyUrls(url) {
-    if (url.startsWith("//")) {
-      yield "https:" + url;
-      yield "http:" + url;
-    } else {
-      yield url;
-    }
-
     if (url.indexOf("?") === -1) {
       url += "?";
     }
 
-    for (let rule of this.rules) {
+    for (const rule of this.rules) {
+      const matched = url.match(rule.match);
+
+      if (!matched) {
+        continue;
+      }
+
       if (rule.args === undefined && rule.replace !== undefined) {
         const newUrl = url.replace(rule.match, rule.replace);
 
         if (newUrl != url) {
-          yield FUZZY_PREFIX + newUrl;
+          yield newUrl;
           url = newUrl;
         }
-      } else if (rule.args !== undefined && url.match(rule.match)) {
+        break;
+
+      } else if (rule.args !== undefined) {
         
         if (rule.replace !== undefined) {
           url = url.replace(rule.match, rule.replace);
@@ -85,16 +86,19 @@ class FuzzyMatcher {;
 
         for (let args of rule.args) {
           const newUrl = this.getQueryUrl(url, args);
-          if (newUrl) {
-            yield FUZZY_PREFIX + newUrl;
+          if (url != newUrl) {
+            yield newUrl;
           }
         }
-      } else if (rule.match && url.match(rule.match) && rule.replaceQuery) {
+        break;
+
+      } else if (rule.replaceQuery) {
         const results = url.match(rule.replaceQuery);
         const newUrl = this.getQueryUrl(url, results ? results.join("") : "");
-        if (newUrl) {
-          yield FUZZY_PREFIX + newUrl;
+        if (newUrl != url) {
+          yield newUrl;
         }
+        break;
       }
     }
   }
@@ -153,7 +157,7 @@ class FuzzyMatcher {;
   }
 }
 
-function compareUrls(reqUrl, results) {
+function fuzzyCompareUrls(reqUrl, results) {
   try {
     reqUrl = new URL(reqUrl);
   } catch (e) {
@@ -226,4 +230,4 @@ function getMatch(reqQuery, foundQuery) {
 
 const fuzzyMatcher = new FuzzyMatcher();
 
-export { FuzzyMatcher, fuzzyMatcher, compareUrls };
+export { FuzzyMatcher, fuzzyMatcher, fuzzyCompareUrls };

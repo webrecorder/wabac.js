@@ -2,7 +2,8 @@
 
 import { openDB } from 'idb/with-async-ittr.js';
 import { tsToSec, tsToDate, getTS, makeNewResponse, makeHeaders } from './utils';
-import { compareUrls } from './fuzzymatcher';
+import { fuzzyMatcher, fuzzyCompareUrls } from './fuzzymatcher';
+import { STATUS_CODES } from 'http';
 
 
 // ===========================================================================
@@ -14,11 +15,14 @@ class ArchiveDB {
     this.version = 1;
 
     this.repeats = {};
+    this.allowRepeats = false;
+    this.fuzzyPrefixSearch = false;
   }
 
   async init() {
     this.db = await openDB(this.name, this.version, {
-      upgrade: (db, oldV, newV, tx) => this._initDB(db, oldV, newV, tx)
+      upgrade: (db, oldV, newV, tx) => this._initDB(db, oldV, newV, tx),
+      blocking: (e) => { if (e.newVersion === null) { this.close(); }}
     });
   }
 
@@ -29,31 +33,62 @@ class ArchiveDB {
 
     const urlStore = db.createObjectStore("resources", { keyPath: ["url", "ts"] });
     urlStore.createIndex("pageId", "pageId");
-    urlStore.createIndex("ts", "ts");
+    //urlStore.createIndex("ts", "ts");
+    urlStore.createIndex("pageMime", ["page", "mime"]);
 
-    if (newV === 2) {
-      urlStore.createIndex("pageMime", ["page", "mime"]);
+    const fuzzyStore = db.createObjectStore("fuzzy", { keyPath: "key" });
+  }
+
+  close() {
+    if (this.db) {
+      this.db.close();
     }
   }
 
   async addPage(data) {
-    if (data.id) {
-      return await this.db.put("pages", data);
-    } else {
-      return await this.db.add("pages", data);
+    if (!data.id) {
+      data.id = this.newPageId();
     }
+    return await this.db.put("pages", data);
+  }
+
+  //from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
+  newPageId() {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   }
 
   async getAllPages() {
     return await this.db.getAllFromIndex("pages", "date");
   }
 
-  async addUrl(data) {
-    return await this.db.add("resources", data);
+  async addResource(data, addFuzzy = true) {
+    const result = await this.db.add("resources", data);
+
+    if (addFuzzy && data.status >= 200 && data.status < 300 && data.status != 204) {
+      for await (const fuzzyUrl of fuzzyMatcher.fuzzyUrls(data.url)) {
+        if (fuzzyUrl === data.url) {
+          continue;
+        }
+
+        try {
+          await this.db.add("fuzzy", {
+            key: fuzzyUrl,
+            ts: data.ts,
+            original: data.url,
+            pageId: data.pageId
+          });
+        } catch (e) {
+          console.warn(`Fuzzy Add Error: ${fuzzyUrl}`);
+          console.warn(e);
+        }
+      }
+    }
+
+    return result;
   }
 
   _repeatCountFor(event, url, method) {
-    if (method !== "POST") {
+    if (!this.allowRepeats || method !== "POST") {
       return 0;
     }
 
@@ -79,38 +114,56 @@ class ArchiveDB {
     return this.repeats[id][url];
   }
 
-  async match(request, rwPrefix, event) {
+  async getResource(request, rwPrefix, event) {
     const datetime = tsToDate(request.timestamp).getTime();
+    let url = request.url;
 
-    let skip = this._repeatCountFor(event, request.url, request.method);
+    let skip = this._repeatCountFor(event, url, request.method);
 
-    let result = await this.lookupUrl(request.url, datetime, skip);
+    let result = null;
 
-    const fuzzySearch = false;
+    if (url.startsWith("//")) {
+      result = await this.lookupUrl("https:" + url, datetime, skip);
+      if (!result) {
+        result = await this.lookupUrl("http:" + url, datetime, skip);
+        url = "http:" + url;
+      }
+    } else {
+      result = await this.lookupUrl(url, datetime, skip);
+    }
 
-    if (!result && fuzzySearch) {
-      result = await this.lookupQueryPrefix(request.url);
+    if (!result) {
+      for await (const fuzzyUrl of fuzzyMatcher.fuzzyUrls(url)) {
+        result = await this.lookupFuzzyUrl(fuzzyUrl);
+        if (result) {
+          result = await this.lookupUrl(result.original, datetime, skip);
+        }
+        if (result) {
+          break;
+        }
+      }
+    }
+
+    if (!result && this.fuzzyPrefixSearch) {
+      result = await this.lookupQueryPrefix(url);
     }
 
     if (!result) {
       return null;
     }
 
-    if (result.mime === "fuzzy") {
-      skip = this._repeatCountFor(event, request.url, request.method);
-      result = await this.lookupUrl(result.original, datetime, skip);
-      if (!result) {
-        return null;
-      }
-    }
-
     const status = result.status;
-    const statusText = result.statusText;
+    const statusText = result.statusText || STATUS_CODES[status];
     const headers = makeHeaders(result.respHeaders);
 
     const date = new Date(result.ts);
 
-    return makeNewResponse(result.payload, {status, statusText, headers}, getTS(date.toISOString()), date);
+    return makeNewResponse(result.payload, {status, statusText, headers},
+                           getTS(date.toISOString()), date);
+  }
+
+  async lookupFuzzyUrl(url) {
+    return this.db.get("fuzzy", url);
   }
 
   async lookupUrl(url, datetime, skip = 0) {
@@ -145,6 +198,7 @@ class ArchiveDB {
     return lastValue;
   }
 
+  // experimental
   async lookupQueryPrefix(url) {
     const tx = this.db.transaction("resources", "readonly");
 
@@ -160,7 +214,7 @@ class ArchiveDB {
       return null;
     }
 
-    const result = compareUrls(url, results);
+    const result = fuzzyCompareUrls(url, results);
     if (result) {
       console.log(`Fuzz: ${result.result.url} <-> ${url}`);
     }
@@ -189,8 +243,8 @@ class ArchiveDB {
   getLookupRange(url, type) {
     switch (type) {
       case "prefix":
-        const upper = url;
-        upper[upper.length - 1] = String.fromCharCode(url.charCodeAt(url.length - 1) + 1);
+        let upper = url;
+        upper = upper.slice(0, -1) + String.fromCharCode(url.charCodeAt(url.length - 1) + 1);
         return IDBKeyRange.bound([url], [upper], false, true);
 
       case "host":

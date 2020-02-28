@@ -108,7 +108,11 @@ function tsToDate(ts) {
   return new Date(datestr);
 };
 
+function getTS(iso) {
+  return iso.replace(/[-:T]/g, '').slice(0, 14);
+}
 
 
 
-export { initSW, waitForReady, digestMessage, tsToDate };
+
+export { initSW, waitForReady, digestMessage, tsToDate, getTS };

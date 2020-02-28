@@ -1,6 +1,6 @@
 import flatpickr from "flatpickr";
 
-import { initSW } from './pageutils.js';
+import { initSW, getTS } from './pageutils.js';
 
 const ation = "ation";
 const loc = window["loc" + ation];
@@ -96,8 +96,8 @@ class ReplayIndex {
 
       for (let page of coll.pageList) {
         let href = coll.prefix;
-        if (page.timestamp) {
-          href += page.timestamp + "/";
+        if (page.date) {
+          href += getTS(page.date) + "/";
         }
         href += page.url;
         content += `<li><a href="${href}">${page.title || page.url}</a></li>`

@@ -2,20 +2,26 @@
 
 import { Collection } from './collection.js';
 import { ArchiveDB } from './archivedb.js';
-import { HARCache } from './harcache.js';
-import { LiveCache } from './live.js';
+
+import { HARLoader } from './harloader';
+import { WBNLoader } from './wbnloader';
+import { WARCLoader } from './warcloader';
+
 import { RemoteArchiveCache } from './remotearchive.js'
-import { WARCCache } from './warccache.js';
-import { WarcParser } from './warcparse.js';
-import { WebBundleCache } from './webbundle.js';
+
+//import { LiveCache } from './live.js';
 import { notFound, isAjaxRequest } from './utils.js';
 import { StatsTracker } from './statstracker.js';
+
+import { deleteDB, openDB } from 'idb/with-async-ittr.js';
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 
+
+// ===========================================================================
 class SWReplay {
-  constructor(cacheTypes) {
+  constructor() {
     this.prefix = self.registration ? self.registration.scope : '';
 
     this.replayPrefix = this.prefix;
@@ -31,6 +37,7 @@ class SWReplay {
     this.staticPrefix = this.prefix + "static";
 
     this.collections = {};
+    this._init_wait = this.initAllColls(sp.get("dbColl"));
 
     this.allowRewrittenCache = sp.get("allowCache") ? true : false;
 
@@ -52,51 +59,162 @@ class SWReplay {
     self.addEventListener("message", (event) => {
       this._handleMessage(event);
     });
-
-    if (!cacheTypes) {
-      cacheTypes = {"db": ArchiveDB,
-                    "livecache": LiveCache
-                   }
-    }
-
-    this.cacheTypes = cacheTypes;
-
-    for (const source of Object.keys(this.cacheTypes)) {
-      this._autoinitColl(sp.get(source + "Coll"), source);
-    }
   }
 
-  _autoinitColl(string, prop) {
-    if (!string) return;
+  async initAllColls(dbColls) {
+    this.colldb = await openDB("collDB", 1, {
+      upgrade: (db, oldV, newV, tx) => {
+        db.createObjectStore("colls", {keyPath: "name"});
+      }
+    });
 
-    for (const obj of string.split(",")) {
-      const objProps = obj.split(":");
-      if (objProps.length === 2) {
-        const def = {type: prop,
-                     name: objProps[0],
-                     data: objProps[1]};
-
-        this.initCollection(def).then(() => {
-          console.log(`${prop} Collection Inited: ${objProps[0]} = ${objProps[1]}`);
-        });
+    for (const extraColl of dbColls.split(",")) {
+      const parts = extraColl.split(":");
+      if (parts.length === 2) {
+        const config = {dbname: parts[1], sourceName: parts[1], decode: false};
+        const collData = {name: parts[0], type: "archive", config};
+        console.log("Adding Coll: " + JSON.stringify(collData));
+        await this.colldb.put("colls", collData);
       }
     }
- }
+
+    const allColls = await this.colldb.getAll("colls");
+
+    for (const data of allColls) {
+      this.collections[data.name] = await this.loadColl(data);
+    }
+
+    return true;
+  }
+
+  async loadColl(data) {
+    let store = null;
+
+    switch (data.type) {
+      case "archive":
+        store = new ArchiveDB(data.config.dbname);
+        await store.initing;
+        break;
+
+      case "remote":
+        store = new RemoteArchiveCache(data.config);
+        break;
+    }
+
+    if (!store) {
+      return null;
+    }
+
+    const name = data.name;
+    const config = data.config;
+
+    const staticPrefix = this.staticPrefix;
+    const prefix = this.replayPrefix;
+    const rootPrefix = this.prefix;
+
+    return new Collection({name, store, prefix, rootPrefix, staticPrefix, config});
+  }
+
+  async addCollection(data) {
+    await this._init_wait;
+
+    const name = data.name;
+
+    let decode = false;
+    let type = null;
+    let config = {};
+
+    if (data.files) {
+      // TODO: multiple files
+      const file = data.files[0];
+
+      let loader = null;
+
+      if (file.url) {
+        const resp = await self.fetch(file.url);
+
+        if (file.name.endsWith(".har")) {
+          loader = new HARLoader(await resp.json());
+
+        } else if (file.name.endsWith(".warc") || file.name.endsWith(".warc.gz")) {
+          loader = new WARCLoader(await resp.arrayBuffer());
+          decode = true;
+
+        } else if (file.name.endsWith(".wbn")) {
+          loader = new WBNLoader(await resp.arrayBuffer());
+        } else {
+          return null;
+        }
+        type = "archive";
+        config.dbname = "db:" + name;
+        config.sourceName = file.name;
+        config.root = false;
+        const db = new ArchiveDB(config.dbname);
+        await db.initing;
+        await loader.load(db);
+        db.close();
+      }
+      
+    } else if (data.remote) {
+      type = "remote";
+      config = data.remote;
+      config.sourceName = config.replayPrefix;
+    } else {
+      return null;
+    }
+
+    config.decode = decode;
+
+    const collData = {name, type, config};
+    await this.colldb.add("colls", collData);
+    this.collections[name] = await this.loadColl(collData);
+    return this.collections[name];
+  }
+
+  async hasCollection(name) {
+    await this._init_wait;
+
+    return this.collections[name] != undefined;
+  }
+
+  async deleteCollection(name) {
+    if (!await this.hasCollection(name)) {
+      return false;
+    }
+
+    if (this.collections[name].config.dbname) {
+      this.collections[name].store.close();
+      await deleteDB(this.collections[name].config.dbname, {
+        blocked(reason) {
+          console.log("Unable to delete: " + reason);
+        }
+      });
+    }
+
+    await this.colldb.delete("colls", name);
+    delete this.collections[name];
+    self.caches.delete(CACHE_PREFIX + name);
+    return true;
+  }
 
   async _handleMessage(event) {
     switch (event.data.msg_type) {
       case "addColl":
       {
-        const name = event.data.name;
+        const name = event.data.name; 
+        let coll = null;
 
-        let coll = this.collections[name];
-
-        if (!coll || !event.data.skipExisting) {
-          coll = await this.initCollection(event.data);
-
-          if (!coll) {
-            return;
+        if (await this.hasCollection(name)) {
+          if (!event.data.skipExisting) {
+            await this.deleteCollection(name);
+            coll = await this.addCollection(event.data);
           }
+        } else {
+          coll = await this.addCollection(event.data);
+        }
+
+        if (!coll) {
+          return;
         }
 
         event.source.postMessage({
@@ -113,10 +231,9 @@ class SWReplay {
       {
         const name = event.data.name;
 
-        if (this.collections[name]) {
-          delete this.collections[name];
+        if (await this.hasCollection(name)) {
+          await this.deleteCollection(name);
           this.doListAll(event.source);
-          self.caches.delete(CACHE_PREFIX + name);
         }
         break;
       }
@@ -127,72 +244,16 @@ class SWReplay {
     }
   }
 
-  async initCollection(data) {
-    let cache = null;
-    let sourceName = null;
-    let decode = false;
-
-    if (data.files) {
-      // TODO: multiple files
-      let file = data.files[0];
-
-      if (file.url) {
-        const resp = await self.fetch(file.url);
-
-        if (file.name.endsWith(".har")) {
-          const har = await resp.json();
-          cache = new HARCache(har);
-
-        } else if (file.name.endsWith(".warc") || file.name.endsWith(".warc.gz")) {
-          const ab = await resp.arrayBuffer();
-          cache = new WARCCache();
-          decode = true;
-
-          const parser = new WarcParser();
-          await parser.parse(ab, cache);
-        } else if (file.name.endsWith(".wbn")) {
-          const ab = await resp.arrayBuffer();
-          cache = new WebBundleCache(ab);
-        }
-        sourceName = file.name;
-      }
-    } else if (data.remote) {
-      cache = new RemoteArchiveCache(data.remote);
-      sourceName = data.remote.replayPrefix;
-    }
-
-    // extra cache types
-    for (const source of Object.keys(this.cacheTypes)) {
-      if (data.type === source) {
-        cache  = new this.cacheTypes[source](data.data);
-        sourceName = source + ":" + data.name;
-      }
-    }
-
-    if (!cache) {
-      console.log("No Valid Cache!");
-      return null;
-    }
-
-    const rootColl = data.root;
-    const name = data.name;
-    const staticPrefix = this.staticPrefix;
-    const prefix = this.replayPrefix;
-    const rootPrefix = this.prefix;
-
-    const coll = new Collection({name, cache, prefix, rootPrefix, rootColl, sourceName, staticPrefix, decode});
-    this.collections[name] = coll;
-    return coll;
-  }
-
-  doListAll(source) {
-    let msgData = [];
+  async doListAll(source) {
+    const msgData = [];
     for (const coll of Object.values(this.collections)) {
+      const pageList = await coll.store.getAllPages();
+  
       msgData.push({
         "name": coll.name,
         "prefix": coll.appPrefix,
-        "pageList": coll.cache.pageList,
-        "sourceName": coll.sourceName
+        "pageList": pageList,
+        "sourceName": coll.config.sourceName
       });
     }
     source.postMessage({ "msg_type": "listAll", "colls": msgData });

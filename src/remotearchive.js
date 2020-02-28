@@ -12,9 +12,10 @@ class RemoteArchiveCache {
     this.redirMod = (remoteInfo.redirMod !== undefined ? remoteInfo.redirMod : "mp_");
 
     this.redirectMode = (this.idMod === this.redirMod) ? "follow" : "manual";
+  }
 
-    this.urlMap = {}
-    this.pageList = [];
+  async getAllPages() {
+    return [];
   }
 
   getUrl(request, mod) {
@@ -25,7 +26,7 @@ class RemoteArchiveCache {
     return url + request.url;
   }
 
-  async match(request, prefix) {
+  async getResource(request, prefix) {
     let response = await fetch(this.getUrl(request, this.idMod),
       {
         credentials: 'same-origin',

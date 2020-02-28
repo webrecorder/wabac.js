@@ -1,27 +1,51 @@
 import { getTS, makeNewResponse, makeHeaders } from './utils.js';
 import { fuzzyMatcher } from './fuzzymatcher.js';
 
-class WARCCache {
-  constructor() {
-    this.urlMap = {}
-    this.pageList = [];
+import { Readable, Transform } from 'stream';
+import { Inflate } from 'pako';
+
+import { WARCStreamTransform } from 'node-warc';
+
+
+// ===========================================================================
+class WARCLoader {
+  constructor(ab) {
+    this.arraybuffer = ab;
+
+    this.anyPages = false;
 
     this._lastRecord = null;
+
+    //this.reader = new FileReader();
+    this.warc = new WARCStreamTransform();
+
+    this.rstream = new Readable();
+    this.rstream._read = () => { };
+
+    this.lastOffset = 0;
+
+    this.offsets = [];
+    this.recordCount = 0;
   }
 
   parseWarcInfo(record) {
     var dec = new TextDecoder("utf-8");
     const text = dec.decode(record.content);
 
-    for (let line of text.split("\n")) {
+    // Webrecorder-style metadata
+    for (const line of text.split("\n")) {
       if (line.startsWith("json-metadata:")) {
         try {
           const json = JSON.parse(line.slice("json-metadata:".length));
 
           const pages = json.pages || [];
 
-          for (let page of pages) {
-            this.pageList.push(page);
+          for (const page of pages) {
+            const url = page.url;
+            const title = page.title || page.url;
+            const date = tsToDate(page.timestamp).toISOString();
+            this.db.addPage({url, date, title});
+            anyPages = true;
           }
 
         } catch (e) { }
@@ -73,17 +97,15 @@ class WARCCache {
       return;
     }
 
-    let url = record.warcTargetURI.split("#")[0];
-    let initInfo = null;
-
+    const url = record.warcTargetURI.split("#")[0];
     const date = record.warcDate;
-    const timestamp = getTS(date);
 
     let headers;
     let status = 200;
     let statusText = "OK";
     let content = record.content;
     let cl = 0;
+    let mime = "";
 
     if (record.httpInfo) {
       try {
@@ -99,6 +121,8 @@ class WARCCache {
       statusText = record.httpInfo.statusReason;
 
       headers = makeHeaders(record.httpInfo.headers);
+
+      mime = (headers.get("content-type") || "").split(";")[0];
 
       cl = parseInt(headers.get('content-length') || 0);
 
@@ -127,6 +151,7 @@ class WARCCache {
       headers = new Headers();
       headers.set("content-type", record.warcContentType);
       headers.set("content-length", record.warcContentLength);
+      mime = record.warcContentType;
 
       cl = record.warcContentLength;
     }
@@ -143,8 +168,6 @@ class WARCCache {
       }
     }
 
-    initInfo = { status, statusText, headers };
-
     if (cl && content.byteLength !== cl) {
       // expected mismatch due to bug in node-warc occasionally including trailing \r\n in record
       if (cl === content.byteLength - 2) {
@@ -157,24 +180,24 @@ class WARCCache {
 
     // if no pages found, start detection if hasn't started already
     if (this.detectPages === undefined) {
-      this.detectPages = (this.pageList.length === 0);
+      this.detectPages = !this.anyPages;
     }
 
     if (this.detectPages) {
       if (this.isPage(url, status, headers)) {
-        this.pageList.push({
-          "url": url,
-          "timestamp": timestamp,
-          "title": url
-        });
+        const title = url;
+        this.db.addPage({url, date, title});
       }
     }
 
-    //this.urlMap[url] = { timestamp, date, initInfo, content };
-
-    for (let fuzzyUrl of fuzzyMatcher.fuzzyUrls(url)) {
-      this.urlMap[fuzzyUrl] = { timestamp, date, initInfo, content };
-    }
+    const ts = new Date(date).getTime();
+    this.db.addResource({url,
+                    ts,
+                    status,
+                    mime,
+                    respHeaders: Object.fromEntries(headers.entries()),
+                    payload: content
+                   });
   }
 
   isPage(url, status, headers) {
@@ -211,18 +234,79 @@ class WARCCache {
     return true;
   }
 
-  async match(request) {
-    const entry = this.urlMap[request.url];
-    if (!entry) {
-      console.warn("Not Found: " + request.url);
-      return null;
-    }
+  load(db) {
+    this.db = db;
+    this.recordCount = 0;
 
-    return makeNewResponse(entry.content,
-      entry.initInfo,
-      entry.timestamp,
-      entry.date);
+    const buffer = new Uint8Array(this.arraybuffer);
+
+    const isGzip = (buffer.length > 2 && buffer[0] == 0x1f && buffer[1] == 0x8b && buffer[2] == 0x08);
+
+    if (isGzip) {
+      return new Promise((resolve, reject) => {
+        this.rstream.pipe(new DecompStream(this)).pipe(this.warc)
+          .on('data', (record) => { this.index(record, this.offsets[this.recordCount++]) })
+          .on('end', () => { this.indexDone(); resolve(); })
+          .on('error', () => { this.indexError(); resolve(); });
+
+        this.rstream.push(buffer);
+        this.rstream.push(null);
+      });
+    } else {
+      return new Promise((resolve, reject) => {
+        this.rstream.pipe(this.warc)
+          .on('data', (record) => { this.index(record, {}) })
+          .on('end', () => { this.indexDone(); resolve(); })
+          .on('error', () => { this.indexError(); resolve(); });
+
+        this.rstream.push(buffer);
+        this.rstream.push(null);
+      });
+    }
   }
 }
 
-export { WARCCache };
+
+// ===========================================================================
+class DecompStream extends Transform {
+  constructor(loader) {
+    super();
+    this.loader = loader;
+  }
+
+  _transform(buffer, encoding, done) {
+    let strm, len, pos = 0;
+
+    let lastPos = 0;
+    let inflator;
+
+    do {
+      len = buffer.length - pos;
+
+      const _in = new Uint8Array(buffer.buffer, pos, len);
+
+      inflator = new Inflate();
+
+      strm = inflator.strm;
+      inflator.push(_in, true);
+
+      this.push(inflator.result);
+
+      lastPos = pos;
+      pos += strm.next_in;
+
+      this.loader.offsets.push({ "offset": lastPos, "length": pos - lastPos });
+
+    } while (strm.avail_in);
+
+    done();
+  }
+
+  _flush(done) {
+    done()
+  }
+}
+
+
+
+export { WARCLoader };

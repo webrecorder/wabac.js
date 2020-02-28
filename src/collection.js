@@ -4,28 +4,24 @@ import { Rewriter } from './rewrite';
 
 import { getTS, getSecondsStr, notFound, makeNewResponse, digestMessage, makeRangeResponse } from './utils.js';
 
-import { fuzzyMatcher } from './fuzzymatcher';
-
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
 class Collection {
   constructor(opts) {
-    const { name, cache, prefix, rootPrefix, rootColl, sourceName, staticPrefix, decode } = opts;
+    const { name, store, prefix, rootPrefix, staticPrefix, config } = opts;
 
     this.name = name;
-    this.cache = cache;
-    this.decode = decode;
-
-    this.sourceName = sourceName;
+    this.store = store;
+    this.config = config;
 
     this.rootPrefix = rootPrefix || prefix;
 
     this.prefix = prefix + this.name + "/";
 
     // support root collection hashtag nav
-    if (rootColl) {
+    if (this.config.root) {
       this.appPrefix = prefix + "#/";
       this.isRoot = true;
     } else {
@@ -73,7 +69,7 @@ class Collection {
 
       content = '<html><body><h2>Available Pages</h2><ul>'
 
-      for (let page of this.cache.pageList) {
+      for (const page of this.store.getAllPages()) {
         let href = this.appPrefix;
         if (page.timestamp) {
           href += page.timestamp + "/";
@@ -107,57 +103,61 @@ class Collection {
       requestTS = "2";
     }
 
-    if (mod) {
-      const hash = url.indexOf("#");
-      if (hash > 0) {
-        url = url.substring(0, hash);
-      }
-
-      let referrer = request.referrer;
-
-      let response = null;
-
-      const rwPrefix = this.prefix;// + requestTS + mod + "/";
-
-      let fuzzyUrl = null;
-
-      for await (let fuzzyUrl of fuzzyMatcher.fuzzyUrls(url)) {
-        response = await this.cache.match({ "url": fuzzyUrl, "method": request.method, "timestamp": requestTS }, rwPrefix, event);
-        if (response) {
-          if (url.startsWith("//")) {
-            url = fuzzyUrl;
-          }
-          break;
-        }
-      }
-
-      const range = request.headers.get("range");
-
-      if (response && !response.noRW) {
-        const headInsertFunc = () => {
-          const presetCookie = response.headers.get("x-wabac-preset-cookie");
-          return this.makeHeadInsert(url, response.timestamp, requestTS, response.date, presetCookie);
-        };
-
-        const rewriter = new Rewriter(url, this.prefix + requestTS + mod + "/", headInsertFunc, false, this.decode);
-        response = await rewriter.rewrite(response, request, mod !== "id_" ? DEFAULT_CSP : null, mod === "id_" || mod === "wkrf_");
-      }
-
-      if (range && response && response.status === 200) {
-        response = await makeRangeResponse(response, range);
-      }
-
-      if (response) {
-        return response;
-      } else {
-        const msg = `<p>Sorry, the URL <b>${url}</b> is not in this archive.</p><p><a href="${url}">Try Live Version?</a></p>`;
-        return notFound(request, msg);
-      }
-
-    } else {
+    if (!mod) {
       return this.makeTopFrame(url, requestTS);
     }
 
+    const hash = url.indexOf("#");
+    if (hash > 0) {
+      url = url.substring(0, hash);
+    }
+
+    //if (url.startsWith("//") && request.referrer) {
+    //  if (request.referrer.indexOf("/http:", 1) >= 0) {
+    //    url = "http:" + url;
+    //  } else {
+    //    url = "https:" + url;
+    //  }
+    //}
+
+    const query = {url, "method": request.method, "timestamp": requestTS};
+
+    // exact or fuzzy match
+    let response = await this.store.getResource(query, this.prefix, event);
+
+/*
+    if (!response) {
+      for await (const fuzzyUrl of fuzzyMatcher.fuzzyUrls(url)) {
+        query.url = fuzzyUrl;
+        response = await this.cache.match(query, this.prefix, event, true);
+        if (response) {
+          break;
+        }
+      }
+    }
+*/
+    const range = request.headers.get("range");
+
+    if (response && !response.noRW) {
+      const headInsertFunc = () => {
+        const presetCookie = response.headers.get("x-wabac-preset-cookie");
+        return this.makeHeadInsert(url, response.timestamp, requestTS, response.date, presetCookie);
+      };
+
+      const rewriter = new Rewriter(url, this.prefix + requestTS + mod + "/", headInsertFunc, false, this.config.decode);
+      response = await rewriter.rewrite(response, request, mod !== "id_" ? DEFAULT_CSP : null, mod === "id_" || mod === "wkrf_");
+    }
+
+    if (range && response && response.status === 200) {
+      response = await makeRangeResponse(response, range);
+    }
+
+    if (response) {
+      return response;
+    } else {
+      const msg = `<p>Sorry, the URL <b>${url}</b> is not in this archive.</p><p><a href="${url}">Try Live Version?</a></p>`;
+      return notFound(request, msg);
+    }
   }
 
   makeTopFrame(url, requestTS) {
