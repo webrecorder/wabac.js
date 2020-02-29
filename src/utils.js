@@ -79,20 +79,13 @@ function makeRwResponse(content, response, headers) {
     "headers": headers || response.headers
   };
 
-  return makeNewResponse(content, initOpt, response.timestamp, response.date);
+  return new Response(content, initOpt);
 }
 
 const NULL_STATUS = [101, 204, 205, 304];
 
-function makeNewResponse(content, initOpt, timestamp, datestr) {
-  if (initOpt && initOpt.status && NULL_STATUS.includes(initOpt.status)) {
-    content = null;
-  }
-
-  const response = new Response(content, initOpt);
-  response.timestamp = timestamp;
-  response.date = (datestr.getDate ? datestr : new Date(datestr));
-  return response;
+function isNullBodyStatus(status) {
+  return NULL_STATUS.includes(status);
 }
 
 function isAjaxRequest(request) {
@@ -104,7 +97,7 @@ function notFound(request, msg) {
   let contentType;
 
   if (!msg) {
-    msg = "URL not found";
+    msg = "Sorry, this url was not found in the archive.";
   }
 
   if (request.destination === "script" || request.headers.get("x-pywb-requested-with")) {
@@ -152,4 +145,4 @@ async function makeRangeResponse(response, range) {
 }
 
 export { startsWithAny, getTS, tsToDate, tsToSec, getSecondsStr, digestMessage,
-         makeRwResponse, makeNewResponse, makeHeaders, notFound, makeRangeResponse, isAjaxRequest };
+         makeRwResponse, isNullBodyStatus, makeHeaders, notFound, makeRangeResponse, isAjaxRequest };

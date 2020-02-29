@@ -105,7 +105,7 @@ test('Add Url', async t => {
 
   for (const data of URL_DATA) {
     t.deepEqual(
-      await db.addUrl(data),
+      await db.addResource(data),
       [data.url, data.ts]
     );
   }

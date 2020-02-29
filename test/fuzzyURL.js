@@ -1,14 +1,14 @@
 "use strict";
 
 import test from 'ava';
-import { FuzzyMatcher, compareUrls } from '../src/fuzzymatcher';
+import { FuzzyMatcher, fuzzyCompareUrls } from '../src/fuzzymatcher';
 
 const fuzzy = new FuzzyMatcher();
 
 function fuzzyUrls(t, url, expectedResults) {
-  const result = [];
+  const result = [url];
 
-  for (let res of fuzzy.fuzzyUrls(url)) {
+  for (const res of fuzzy.fuzzyUrls(url)) {
     result.push(res);
   }
 
@@ -16,8 +16,8 @@ function fuzzyUrls(t, url, expectedResults) {
 }
 
 function fuzzyMatch(t, url, anotherUrl) {
-  for (let url1 of fuzzy.fuzzyUrls(url)) {
-    for (let url2 of fuzzy.fuzzyUrls(anotherUrl)) {
+  for (const url1 of fuzzy.fuzzyUrls(url)) {
+    for (const url2 of fuzzy.fuzzyUrls(anotherUrl)) {
       if (url1 === url2) {
         t.pass('match found!');
         return;
@@ -35,12 +35,12 @@ test('simple url', fuzzyUrls,
 
 test('no ext, _= timestamp', fuzzyUrls,
   'https://example.com/abc?_=1234',
-  ['http://fuzzy.example.com/https://example.com/abc']
+  ['https://example.com/abc']
 );
 
 test('allowed ext', fuzzyUrls,
   'https://example.com/abc.mp4?foo=bar&__123=xyz',
-  ['http://fuzzy.example.com/https://example.com/abc.mp4']
+  ['https://example.com/abc.mp4']
 )
 
 test('other ext', fuzzyUrls,
@@ -74,7 +74,7 @@ test('match yt2', fuzzyMatch,
 
 
 function fuzzyMatchScore(t, url, results, expected) {
-  t.deepEqual(compareUrls(url, results).result, expected);
+  t.deepEqual(fuzzyCompareUrls(url, results).result, expected);
 }
 
 

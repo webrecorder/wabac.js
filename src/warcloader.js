@@ -1,5 +1,4 @@
-import { getTS, makeNewResponse, makeHeaders } from './utils.js';
-import { fuzzyMatcher } from './fuzzymatcher.js';
+import { makeHeaders, tsToDate } from './utils.js';
 
 import { Readable, Transform } from 'stream';
 import { Inflate } from 'pako';
@@ -43,9 +42,10 @@ class WARCLoader {
           for (const page of pages) {
             const url = page.url;
             const title = page.title || page.url;
+            const id = page.id;
             const date = tsToDate(page.timestamp).toISOString();
-            this.db.addPage({url, date, title});
-            anyPages = true;
+            this.db.addPage({url, date, title, id});
+            this.anyPages = true;
           }
 
         } catch (e) { }
@@ -118,9 +118,18 @@ class WARCLoader {
         return;
       }
 
+      if (reqRecord && reqRecord.httpInfo.method === "OPTIONS") {
+        return;
+      }
+ 
       statusText = record.httpInfo.statusReason;
 
       headers = makeHeaders(record.httpInfo.headers);
+
+      if (!reqRecord && !record.content.length &&
+          (headers.get("access-control-allow-methods") || headers.get("access-control-allow-credentials"))) {
+        return;
+      }
 
       mime = (headers.get("content-type") || "").split(";")[0];
 
@@ -191,13 +200,18 @@ class WARCLoader {
     }
 
     const ts = new Date(date).getTime();
-    this.db.addResource({url,
-                    ts,
-                    status,
-                    mime,
-                    respHeaders: Object.fromEntries(headers.entries()),
-                    payload: content
-                   });
+
+    const respHeaders = Object.fromEntries(headers.entries());
+
+    const entry = {url, ts, status, mime, respHeaders, payload: content}
+
+    if (record.warcHeader["WARC-JSON-Metadata"]) {
+      try {
+        entry.extraOpts = JSON.parse(record.warcHeader["WARC-JSON-Metadata"]);
+      } catch (e) { }
+    }
+
+    this.db.addResource(entry);
   }
 
   isPage(url, status, headers) {

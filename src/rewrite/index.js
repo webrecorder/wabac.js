@@ -97,7 +97,7 @@ class Rewriter {
     return null;
   }
 
-  async rewrite(response, request, csp, noRewrite = false) {
+  async rewrite(response, request, csp, extraOpts, noRewrite = false) {
     const rewriteMode = noRewrite ? null : this.getRewriteMode(request, response);
 
     const isAjax = isAjaxRequest(request);
@@ -152,7 +152,7 @@ class Rewriter {
 
     if (rwFunc) {
       const text = await response.text();
-      content = rwFunc.call(this, text, isAjax);
+      content = rwFunc.call(this, text, isAjax, extraOpts);
     } else {
       content = response.body;
     }

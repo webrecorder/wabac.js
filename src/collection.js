@@ -2,7 +2,7 @@
 
 import { Rewriter } from './rewrite';
 
-import { getTS, getSecondsStr, notFound, makeNewResponse, digestMessage, makeRangeResponse } from './utils.js';
+import { getTS, getSecondsStr, notFound, digestMessage, makeRangeResponse } from './utils.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
@@ -71,8 +71,8 @@ class Collection {
 
       for (const page of this.store.getAllPages()) {
         let href = this.appPrefix;
-        if (page.timestamp) {
-          href += page.timestamp + "/";
+        if (page.date) {
+          href += page.date + "/";
         }
         href += page.url;
         content += `<li><a href="${href}">${page.url}</a></li>`
@@ -85,17 +85,17 @@ class Collection {
 
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
     let requestTS = '';
-    let url = '';
+    let requestURL = '';
     let mod = '';
 
     if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:") || wbUrlStr.startsWith("blob:"))) {
-      url = wbUrlStr;
+      requestURL = wbUrlStr;
     } else if (!wbUrl) {
       return notFound(request, `Replay URL ${wbUrlStr} not found`);
     } else {
       requestTS = wbUrl[1];
       mod = wbUrl[2];
-      url = wbUrl[3];
+      requestURL = wbUrl[3];
     }
 
     // force timestamp for root coll
@@ -104,63 +104,52 @@ class Collection {
     }
 
     if (!mod) {
-      return this.makeTopFrame(url, requestTS);
+      return this.makeTopFrame(requestURL, requestTS);
     }
 
-    const hash = url.indexOf("#");
+    const hash = requestURL.indexOf("#");
     if (hash > 0) {
-      url = url.substring(0, hash);
+      requestURL = requestURL.substring(0, hash);
     }
 
-    //if (url.startsWith("//") && request.referrer) {
-    //  if (request.referrer.indexOf("/http:", 1) >= 0) {
-    //    url = "http:" + url;
-    //  } else {
-    //    url = "https:" + url;
-    //  }
-    //}
-
-    const query = {url, "method": request.method, "timestamp": requestTS};
+    const query = {"url": requestURL,
+                   "method": request.method,
+                   "request": request,
+                   "timestamp": requestTS};
 
     // exact or fuzzy match
-    let response = await this.store.getResource(query, this.prefix, event);
+    const resInfo = await this.store.getResource(query, this.prefix, event);
 
-/*
-    if (!response) {
-      for await (const fuzzyUrl of fuzzyMatcher.fuzzyUrls(url)) {
-        query.url = fuzzyUrl;
-        response = await this.cache.match(query, this.prefix, event, true);
-        if (response) {
-          break;
-        }
-      }
+    if (!resInfo) {
+      const msg = `<p>Sorry, the URL <b>${requestURL}</b> is not in this archive.</p><p><a href="${requestURL}">Try Live Version?</a></p>`;
+      return notFound(request, msg);
     }
-*/
-    const range = request.headers.get("range");
 
-    if (response && !response.noRW) {
+    let { url, response, date, noRW } = resInfo;
+
+    if (!noRW) {
       const headInsertFunc = () => {
         const presetCookie = response.headers.get("x-wabac-preset-cookie");
-        return this.makeHeadInsert(url, response.timestamp, requestTS, response.date, presetCookie);
+        return this.makeHeadInsert(url, requestTS, date, presetCookie, resInfo.isLive);
       };
 
       const rewriter = new Rewriter(url, this.prefix + requestTS + mod + "/", headInsertFunc, false, this.config.decode);
-      response = await rewriter.rewrite(response, request, mod !== "id_" ? DEFAULT_CSP : null, mod === "id_" || mod === "wkrf_");
+      const csp = mod !== "id_" ? DEFAULT_CSP : null;
+      const noRewrite = mod === "id_" || mod === "wkrf_";
+      response = await rewriter.rewrite(response, request, csp, resInfo.extraOpts, noRewrite);
     }
 
-    if (range && response && response.status === 200) {
+    const range = request.headers.get("range");
+
+    if (range && response.status === 200) {
       response = await makeRangeResponse(response, range);
     }
 
-    if (response) {
-      return response;
-    } else {
-      const msg = `<p>Sorry, the URL <b>${url}</b> is not in this archive.</p><p><a href="${url}">Try Live Version?</a></p>`;
-      return notFound(request, msg);
-    }
+    response.date = date;
+    return response;
   }
 
-  makeTopFrame(url, requestTS) {
+  makeTopFrame(url, requestTS, isLive) {
     const content = `
 <!DOCTYPE html>
 <html>
@@ -210,13 +199,15 @@ window.home = "${this.rootPrefix}";
     return new Response(content, responseData);
   }
 
-  makeHeadInsert(url, timestamp, requestTS, date, presetCookie) {
+  makeHeadInsert(url, requestTS, date, presetCookie, isLive) {
 
     const topUrl = this.appPrefix + requestTS + (requestTS ? "/" : "") + url;
     const prefix = this.prefix;
     const coll = this.name;
 
     const seconds = getSecondsStr(date);
+
+    const timestamp = getTS(date.toISOString());
 
     const urlParsed = new URL(url);
 
@@ -249,7 +240,7 @@ body {
   wbinfo.prefix = decodeURI("${prefix}");
   wbinfo.mod = "mp_";
   wbinfo.is_framed = true;
-  wbinfo.is_live = false;
+  wbinfo.is_live = ${isLive ? 'true' : 'false'};
   wbinfo.coll = "${coll}";
   wbinfo.proxy_magic = "";
   wbinfo.static_prefix = "${this.staticPrefix}/";

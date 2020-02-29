@@ -28,7 +28,7 @@
                     <p>This project demonstrates replay of HTTP network traffic stored in <a href="https://en.wikipedia.org/wiki/Web_ARChive">WARC</a>, <a href="https://en.wikipedia.org/wiki/HAR_(file_format)">HAR</a> and <a href="https://web.dev/web-bundles/">Web Bundle (WBN)</a> files.<br>Choose a name and select a file to create a local web archive collection.</p>
                     <span>
                         <label for="coll-name">Add New Collection:</label>
-                        <input id="file-input" type="file" name="file-input" style="display: none;" />
+                        <input id="file-input" type="file" name="file-input" onclick="this.value = null" style="display: none;" />
                         <input id="coll-name" type="text" value="replay" name="coll-name"/>
                         <button id="open" onclick="document.getElementById('file-input').click();">Load WARC, HAR or WBN File...</button>
                     </span>

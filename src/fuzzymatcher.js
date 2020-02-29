@@ -76,7 +76,7 @@ class FuzzyMatcher {;
           yield newUrl;
           url = newUrl;
         }
-        break;
+        //break;
 
       } else if (rule.args !== undefined) {
         

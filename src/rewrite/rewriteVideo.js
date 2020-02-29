@@ -3,18 +3,19 @@
 import XMLParser from 'fast-xml-parser';
 
 const DEFAULT_MAX_BAND = 1000000;
-//const DEFAULT_MAX_RES = 1280 * 720;
 const DEFAULT_MAX_RES = 860 * 480;
+//const DEFAULT_MAX_BAND = 2000000;
+//const DEFAULT_MAX_RES = 1280 * 720;
 
 
 // ===========================================================================
 //HLS
-function rewriteHLS(text) {
+function rewriteHLS(text, isAjax, extraOpts) {
   const EXT_INF = /#EXT-X-STREAM-INF:(?:.*[,])?BANDWIDTH=([\d]+)/;
   const EXT_RESOLUTION = /RESOLUTION=([\d]+)x([\d]+)/;
 
-  const maxRes = DEFAULT_MAX_RES;
-  const maxBand = DEFAULT_MAX_BAND;
+  const maxRes = extraOpts && extraOpts["adaptive_max_resolution"] || DEFAULT_MAX_RES;
+  const maxBand = extraOpts && extraOpts["adaptive_max_bandwidth"] || DEFAULT_MAX_BAND;
 
   let indexes = [];
   let count = 0;
@@ -67,6 +68,9 @@ function rewriteHLS(text) {
 
 // ===========================================================================
 // DASH
+const dashOutputOpts = {ignoreAttributes: false, ignoreNameSpace: false, format: false, supressEmptyNode: true};
+
+
 function rewriteDASH(text, bestIds) {
   try {
     return _rewriteDASH(text, bestIds);
@@ -78,7 +82,7 @@ function rewriteDASH(text, bestIds) {
 
 
 function _rewriteDASH(text, bestIds) {
-  const options = {ignoreAttributes: false, ignoreNameSpace: false, format: false, supressEmptyNode: true};
+  const options = dashOutputOpts;
   const root = XMLParser.parse(text, options);
 
   const maxRes = DEFAULT_MAX_RES;
@@ -143,5 +147,5 @@ function _rewriteDASH(text, bestIds) {
 
 
 // ===========================================================================
-export { rewriteHLS, rewriteDASH };
+export { rewriteHLS, rewriteDASH, dashOutputOpts };
 

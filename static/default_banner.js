@@ -209,10 +209,10 @@
         this.captureInfo.innerHTML = capture_str;
         window.document.title = title_str;
 
-        this.updateStats();
+        this.updateStats(is_live);
     };
 
-    DefaultBanner.prototype.updateStats = function() {
+    DefaultBanner.prototype.updateStats = function(is_live) {
         var iframe = document.querySelector("iframe");
 
         fetch(window.home + "stats.json?url=" + encodeURIComponent(iframe.contentWindow.location.href)).then(resp => resp.json())
@@ -220,12 +220,13 @@
             if (!json.min) {
                 return;
             }
-            const start = this.ts_to_date(json.min);
+            const msgType = is_live ? "Live" : "Archived";
+            const start = new Date(json.min).toLocaleString();
             if (json.min === json.max) {
-                this.archivedOn = `<i>Archived on&nbsp;</i>${start} - ${json.count} resource`;
+                this.archivedOn = `<i>${msgType} on&nbsp;</i>${start} - ${json.count} resource`;
             } else {
-                const end = this.ts_to_date(json.max);
-                this.archivedOn = `<i>Archived between&nbsp;</i>${start} and ${end} - ${json.count} resource`;
+                const end = new Date(json.max).toLocaleString();
+                this.archivedOn = `<i>${msgType} between&nbsp;</i>${start} and ${end} - ${json.count} resource`;
             }
             if (json.count > 1) {
                 this.archivedOn += 's';

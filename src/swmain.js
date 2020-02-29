@@ -7,7 +7,7 @@ import { HARLoader } from './harloader';
 import { WBNLoader } from './wbnloader';
 import { WARCLoader } from './warcloader';
 
-import { RemoteArchiveCache } from './remotearchive.js'
+import { RemoteArchiveSource, LiveAccess } from './remotearchive.js'
 
 //import { LiveCache } from './live.js';
 import { notFound, isAjaxRequest } from './utils.js';
@@ -68,15 +68,20 @@ class SWReplay {
       }
     });
 
-    for (const extraColl of dbColls.split(",")) {
-      const parts = extraColl.split(":");
-      if (parts.length === 2) {
-        const config = {dbname: parts[1], sourceName: parts[1], decode: false};
-        const collData = {name: parts[0], type: "archive", config};
-        console.log("Adding Coll: " + JSON.stringify(collData));
-        await this.colldb.put("colls", collData);
+    if (dbColls) {
+      for (const extraColl of dbColls.split(",")) {
+        const parts = extraColl.split(":");
+        if (parts.length === 2) {
+          const config = {dbname: parts[1], sourceName: parts[1], decode: false};
+          const collData = {name: parts[0], type: "archive", config};
+          console.log("Adding Coll: " + JSON.stringify(collData));
+          await this.colldb.put("colls", collData);
+        }
       }
     }
+
+    // live -- can only work if CORS disabled, eg. in extensions
+    //await this.colldb.put("colls", {name: "live", type: "live", config: {}});
 
     const allColls = await this.colldb.getAll("colls");
 
@@ -87,17 +92,21 @@ class SWReplay {
     return true;
   }
 
-  async loadColl(data) {
+  async loadColl(data, db) {
     let store = null;
 
     switch (data.type) {
       case "archive":
-        store = new ArchiveDB(data.config.dbname);
+        store = db ? db : new ArchiveDB(data.config.dbname);
         await store.initing;
         break;
 
       case "remote":
-        store = new RemoteArchiveCache(data.config);
+        store = new RemoteArchiveSource(data.config);
+        break;
+
+      case "live":
+        store = new LiveAccess();
         break;
     }
 
@@ -123,6 +132,7 @@ class SWReplay {
     let decode = false;
     let type = null;
     let config = {};
+    let db = null;
 
     if (data.files) {
       // TODO: multiple files
@@ -149,10 +159,9 @@ class SWReplay {
         config.dbname = "db:" + name;
         config.sourceName = file.name;
         config.root = false;
-        const db = new ArchiveDB(config.dbname);
+        db = new ArchiveDB(config.dbname);
         await db.initing;
         await loader.load(db);
-        db.close();
       }
       
     } else if (data.remote) {
@@ -167,7 +176,7 @@ class SWReplay {
 
     const collData = {name, type, config};
     await this.colldb.add("colls", collData);
-    this.collections[name] = await this.loadColl(collData);
+    this.collections[name] = await this.loadColl(collData, db);
     return this.collections[name];
   }
 
@@ -208,6 +217,8 @@ class SWReplay {
           if (!event.data.skipExisting) {
             await this.deleteCollection(name);
             coll = await this.addCollection(event.data);
+          } else {
+            coll = this.collections[name];
           }
         } else {
           coll = await this.addCollection(event.data);
@@ -316,7 +327,7 @@ class SWReplay {
       }
 
       if (this.stats) {
-        this.stats.updateStats(response, request, event);
+        this.stats.updateStats(response.date, response.status, request, event);
       }
 
       if (this.allowRewrittenCache && response.status === 200) {

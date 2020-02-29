@@ -1,7 +1,7 @@
 "use strict";
 
 import { openDB } from 'idb/with-async-ittr.js';
-import { tsToSec, tsToDate, getTS, makeNewResponse, makeHeaders } from './utils';
+import { tsToDate, isNullBodyStatus, makeHeaders } from './utils';
 import { fuzzyMatcher, fuzzyCompareUrls } from './fuzzymatcher';
 import { STATUS_CODES } from 'http';
 
@@ -16,7 +16,7 @@ class ArchiveDB {
 
     this.repeats = {};
     this.allowRepeats = false;
-    this.fuzzyPrefixSearch = false;
+    this.fuzzyPrefixSearch = true;
   }
 
   async init() {
@@ -62,7 +62,15 @@ class ArchiveDB {
   }
 
   async addResource(data, addFuzzy = true) {
-    const result = await this.db.add("resources", data);
+    let result = null;
+
+    try {
+      result = await this.db.put("resources", data);
+
+    } catch (e) {
+      console.warn(`Resource Add Error: ${data.url}`);
+      console.warn(e);
+    }
 
     if (addFuzzy && data.status >= 200 && data.status < 300 && data.status != 204) {
       for await (const fuzzyUrl of fuzzyMatcher.fuzzyUrls(data.url)) {
@@ -127,6 +135,8 @@ class ArchiveDB {
       if (!result) {
         result = await this.lookupUrl("http:" + url, datetime, skip);
         url = "http:" + url;
+      } else {
+        url = "https:" + url;
       }
     } else {
       result = await this.lookupUrl(url, datetime, skip);
@@ -134,11 +144,14 @@ class ArchiveDB {
 
     if (!result) {
       for await (const fuzzyUrl of fuzzyMatcher.fuzzyUrls(url)) {
+        let origUrl = null;
         result = await this.lookupFuzzyUrl(fuzzyUrl);
         if (result) {
-          result = await this.lookupUrl(result.original, datetime, skip);
+          origUrl = result.original;
+          result = await this.lookupUrl(origUrl, datetime, skip);
         }
         if (result) {
+          url = origUrl;
           break;
         }
       }
@@ -158,8 +171,13 @@ class ArchiveDB {
 
     const date = new Date(result.ts);
 
-    return makeNewResponse(result.payload, {status, statusText, headers},
-                           getTS(date.toISOString()), date);
+    const payload = !isNullBodyStatus(status) ? result.payload : null;
+
+    const response = new Response(payload, {status, statusText, headers});
+
+    const extraOpts = result.extraOpts || null;
+
+    return {url, response, date, noRW: false, extraOpts};
   }
 
   async lookupFuzzyUrl(url) {

@@ -1,10 +1,11 @@
-import { getTS, tsToDate } from './utils.js';
+import { tsToDate } from './utils.js';
 
 
 const EXTRACT_TS = /(?:([\d]+)[^\/]*\/)?(http.*)/;
 
 
-class RemoteArchiveCache {
+// ===========================================================================
+class RemoteArchiveSource {
 
   constructor(remoteInfo) {
     this.replayPrefix = remoteInfo.replayPrefix;
@@ -26,7 +27,7 @@ class RemoteArchiveCache {
     return url + request.url;
   }
 
-  async getResource(request, prefix) {
+  async getResource(request, prefix, event) {
     let response = await fetch(this.getUrl(request, this.idMod),
       {
         credentials: 'same-origin',
@@ -38,28 +39,25 @@ class RemoteArchiveCache {
       return null;
     }
 
-    const redirRes = await this.getRedirect(request, response, prefix);
+    const redirRes  = await this.getRedirect(request, response, prefix);
 
     let timestamp = null;
+    let noRW = false;
 
     if (redirRes) {
-      response = Response.redirect(redirRes[1], 307);
-      response.noRW = true;
-      timestamp = redirRes[0];
+      response = Response.redirect(redirRes.path, 307);
+      noRW = true;
+      timestamp = redirRes.timestamp;
     } else {
       timestamp = request.timestamp;
     }
 
-    if (!timestamp) {
-      const date = new Date().toISOString();
-      response.date = date;
-      response.timestamp = getTS(date);
-    } else {
-      response.timestamp = timestamp;
-      response.date = tsToDate(timestamp);
-    }
+    // todo: get url from Link: header?
+    const url = request.url;
 
-    return response;
+    const date = (timestamp ? tsToDate(timestamp) : new Date());
+
+    return {url, response, date, noRW };
   }
 
   async getRedirect(request, response, prefix) {
@@ -82,11 +80,40 @@ class RemoteArchiveCache {
     const m = redirOrig.match(EXTRACT_TS);
 
     if (m) {
-      return [m[1], prefix + m[1] + "mp_/" + m[2]];
+      return {timestamp: m[1],
+              path: prefix + m[1] + "mp_/" + m[2]}
     } else {
-      return [null, prefix + redirOrig];
+      return {path: prefix + redirOrig};
     }
   }
 }
 
-export { RemoteArchiveCache };
+
+// ===========================================================================
+class LiveAccess {
+  async getAllPages() {
+    return [];
+  }
+
+  async getResource(request, prefix, event) {
+    const response = await fetch(request.url,
+              {method:  request.request.method,
+               body: request.request.body,
+               headers: request.request.headers,
+               //mode: request.request.mode,
+               credentials: request.request.credentials,
+              });
+
+    return {url: request.url,
+            response,
+            date: new Date(),
+            noRW: false,
+            isLive: true
+           };
+  }
+}
+
+
+
+
+export { RemoteArchiveSource, LiveAccess };

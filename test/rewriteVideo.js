@@ -8,6 +8,10 @@ import { doRewrite } from './helpers';
 
 import { promises as fs} from 'fs';
 
+import { dashOutputOpts } from '../src/rewrite/rewriteVideo';
+
+dashOutputOpts.format = true;
+
 
 // ===========================================================================
 test('DASH', async t => {
@@ -21,10 +25,10 @@ test('DASH', async t => {
   <Period duration="PT0H3M1.63S" start="PT0S">
     <AdaptationSet>
       <ContentComponent contentType="video" id="1"/>
-      <Representation bandwidth="4190760" codecs="avc1.640028" height="1080" id="1" mimeType="video/mp4" width="1920">
-        <BaseURL>http://example.com/video-10.mp4</BaseURL>
-        <SegmentBase indexRange="674-1149">
-          <Initialization range="0-673"/>
+      <Representation bandwidth="869460" codecs="avc1.4d401e" height="480" id="3" mimeType="video/mp4" width="854">
+        <BaseURL>http://example.com/video-8.mp4</BaseURL>
+        <SegmentBase indexRange="708-1183">
+          <Initialization range="0-707"/>
         </SegmentBase>
       </Representation>
     </AdaptationSet>
@@ -58,8 +62,8 @@ test('FB DASH', async t => {
 
   t.not(result, content);
 
-  // ids replaced to 1, 7 from 4, 5
-  t.deepEqual(res.dash_prefetched_representation_ids, ["1","7"]);
+  // ids replaced to 3, 7 from 4, 5
+  t.deepEqual(res.dash_prefetched_representation_ids, ["3","7"]);
 });
 
 test('FB DASH 2', async t => {
@@ -75,8 +79,8 @@ test('FB DASH 2', async t => {
 
   t.not(result, content);
 
-  // ids replaced to 1, 7 from 4, 5
-  t.deepEqual(res.dash_prefetched_representation_ids, ["1","7"]);
+  // keep null
+  t.deepEqual(res.dash_prefetched_representation_ids, null);
 });
 
 
@@ -92,8 +96,8 @@ test('HLS DEFAULT MAX', async t => {
   const expected = `\
 #EXTM3U
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="WebVTT",NAME="English",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="https://example.com/subtitles/"
-#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=4495000,RESOLUTION=1920x1080,CODECS="avc1.640028, mp4a.40.2",SUBTITLES="WebVTT"
-http://example.com/video_6.m3u8`;
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=610000,RESOLUTION=640x360,CODECS="avc1.66.30, mp4a.40.2",SUBTITLES="WebVTT"
+http://example.com/video_1.m3u8`;
 
   t.is(result, expected, result);
 });

@@ -3,10 +3,10 @@ class StatsTracker {
     this.timeRanges = {};
   }
 
-  updateStats(response, request, event) {
+  updateStats(date, status, request, event) {
     const id = event.clientId || event.resultingClientId;
     
-    if (!id) {
+    if (!id || !date) {
       return;
     }
 
@@ -14,7 +14,7 @@ class StatsTracker {
       return;
     }
 
-    if (request.destination === "document" && (response.status > 300 && response.status < 400)) {
+    if (request.destination === "document" && (status > 300 && status < 400)) {
       return;
     }
 
@@ -30,17 +30,17 @@ class StatsTracker {
       timeRange = this.timeRanges[id];
     }
 
-    if (response.timestamp) {
-      if (!timeRange.min || (response.timestamp < timeRange.min)) {
-        timeRange.min = response.timestamp;
-      }
+    const timestamp = date.getTime();
 
-      if (!timeRange.max || (response.timestamp > timeRange.max)) {
-        timeRange.max = response.timestamp;
-      }
-
-      timeRange.count++;
+    if (!timeRange.min || (timestamp < timeRange.min)) {
+      timeRange.min = timestamp;
     }
+
+    if (!timeRange.max || (timestamp > timeRange.max)) {
+      timeRange.max = timestamp;
+    }
+
+    timeRange.count++;
   }
 
   updateStatsParent(id, referrer, clients) {
