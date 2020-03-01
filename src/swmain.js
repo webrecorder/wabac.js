@@ -279,6 +279,8 @@ class SWReplay {
   }
 
   async getResponseFor(request, event) {
+    await this._init_wait;
+
     // if not within replay prefix, just pass through
     if (!request.url.startsWith(this.replayPrefix)) {
 

@@ -2,15 +2,21 @@
 
 require("fake-indexeddb/auto");
 
-import { } from './helpers';
-
 import test from 'ava';
 
 import { tsToDate } from '../src/utils';
 
 import { ArchiveDB } from '../src/archiveDB';
 
-const db = new ArchiveDB("db");
+import { createHash } from 'crypto';
+
+global.crypto = {subtle: {digest: (type, buff) => {
+  const hash = createHash("sha256");
+  hash.update(buff);
+  return Promise.resolve(hash.digest());
+}}};
+
+const db = new ArchiveDB("db", {minDedupSize: 0});
 
 function ts(timestamp) {
   return tsToDate(timestamp).getTime();
@@ -18,21 +24,21 @@ function ts(timestamp) {
 
 const PAGES = [
 {
-  "id": 1,
+  "id": "01",
   "url": "https://example.com/",
   "title": "Example Domain",
   "ts": ts("20200303040506"),
 },
 
 {
-  "id": 2,
+  "id": "02",
   "url": "http://another.example.com/page",
   "title": "Another Page",
   "ts": ts("20200102000000"),
 },
 
 {
-  "id": 3,
+  "id": "03",
   "url": "https://example.com/",
   "title": "Example Domain Again",
   "ts": ts("20210303040506"),
@@ -45,7 +51,7 @@ const URL_DATA = [
   "url": "https://example.com/",
   "ts": ts("202003040506"),
   "pageId": "01",
-  "content": new Uint8Array([1, 2, 3]),
+  "payload": new Uint8Array([1, 2, 3]),
   "headers": {"a": "b"},
   "mime": "",
 },
@@ -54,7 +60,7 @@ const URL_DATA = [
   "url": "https://example.com/script.js",
   "ts": ts("202003040507"),
   "pageId": "01",
-  "content": "text",
+  "payload": "text",
   "headers": {"a": "b"},
   "mime": "",
 },
@@ -63,7 +69,7 @@ const URL_DATA = [
   "url": "https://another.example.com/page",
   "ts": ts("20200102000000"),
   "pageId": "02",
-  "content": new Uint8Array([0, 1, 0, 1]),
+  "payload": new Uint8Array([0, 1, 0, 1]),
   "headers": {"a": "b"},
   "mime": "",
 },
@@ -72,9 +78,19 @@ const URL_DATA = [
   "url": "https://example.com/",
   "ts": ts("202103040506"),
   "pageId": "03",
-  "content": new Uint8Array([4, 5, 6]),
+  "payload": new Uint8Array([4, 5, 6]),
   "mime": "",
 },
+
+{
+  "url": "https://example.com/dupe/page.html",
+  "ts": ts("202006040506"),
+  "pageId": "02",
+  "payload": new Uint8Array([1, 2, 3]),
+  "mime": "",
+},
+
+
 
 ]
 
@@ -90,12 +106,10 @@ test('init', async t => {
 
 
 test('Add Pages', async t => {
-  let count = 1;
-
   for (const page of PAGES) {
-    const pageIndex = await db.addPage(page);
+    const pageId = await db.addPage(page);
 
-    t.is(pageIndex, count++);
+    t.is(pageId, page.id);
   }
 });
 
@@ -104,10 +118,13 @@ test('Add Url', async t => {
   let count = 0;
 
   for (const data of URL_DATA) {
-    t.deepEqual(
-      await db.addResource(data),
-      [data.url, data.ts]
-    );
+    const length = data.payload.length;
+    const added = await db.addResource(data);
+    if (data === URL_DATA[4]) {
+      t.false(added);
+    } else {
+      t.true(added);
+    }
   }
 });
 
@@ -169,12 +186,47 @@ test('Search by pageId', async t => {
     await db.resourcesByPage("01"),
     [URL_DATA[0], URL_DATA[1]]
   );
+});
+
+
+test('Delete with ref counts', async t => {
+  const toDict= (results) => {
+    const obj = {};
+    for (const res of results) {
+      obj[res.digest] = res.count;
+    }
+    return obj;
+  };
+
+  const allDict = toDict(await db.db.getAll("digestRef"));
+
+  t.is(allDict[URL_DATA[0].digest], 2);
+  t.is(allDict[URL_DATA[1].digest], 1);
+  t.is(allDict[URL_DATA[2].digest], 1);
+  t.is(allDict[URL_DATA[3].digest], 1);
+  t.is(allDict[URL_DATA[4].digest], 2);
 
   await db.deletePageResources("01");
 
   t.deepEqual(
     await db.resourcesByPage("01"),
     []
+  );
+
+  const delDict = toDict(await db.db.getAll("digestRef"));
+  t.is(delDict[URL_DATA[0].digest], 1);
+  t.is(delDict[URL_DATA[1].digest], undefined);
+  t.is(delDict[URL_DATA[2].digest], 1);
+  t.is(delDict[URL_DATA[3].digest], 1);
+  t.is(delDict[URL_DATA[4].digest], 1);
+
+  await db.deletePageResources("02");
+  await db.deletePageResources("03");
+  await db.deletePageResources("04");
+
+  t.deepEqual(
+    toDict(await db.db.getAll("digestRef")),
+    {}
   );
 
 });

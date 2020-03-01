@@ -8,14 +8,18 @@ import { STATUS_CODES } from 'http';
 
 // ===========================================================================
 class ArchiveDB {
-  constructor(name) {
+  constructor(name, opts = {}) {
     this.name = name;
     this.db = null;
+
+    const { minDedupSize } = opts;
+    this.minDedupSize = Number.isInteger(minDedupSize) ? minDedupSize : 1024;
+
     this.initing = this.init();
     this.version = 1;
 
-    this.repeats = {};
-    this.allowRepeats = false;
+    this.allowRepeats = true;
+    this.repeatTracker = this.allowRepeats ? new RepeatTracker() : null;
     this.fuzzyPrefixSearch = true;
   }
 
@@ -36,7 +40,21 @@ class ArchiveDB {
     //urlStore.createIndex("ts", "ts");
     urlStore.createIndex("pageMime", ["page", "mime"]);
 
+    const payload = db.createObjectStore("payload", { keyPath: "digest", unique: true});
+    const digestRef = db.createObjectStore("digestRef", { keyPath: "digest", unique: true});
+
     const fuzzyStore = db.createObjectStore("fuzzy", { keyPath: "key" });
+  }
+
+  async clearAll() {
+    const stores = ["pages", "resources", "payload", "digestRef", "fuzzy"];
+    const tx = this.db.transaction(stores, "readwrite");
+
+    for (const store of stores) {
+      this.db.clear(store);
+    }
+
+    await tx.done;
   }
 
   close() {
@@ -61,15 +79,61 @@ class ArchiveDB {
     return await this.db.getAllFromIndex("pages", "date");
   }
 
+  async getDigest(payload, type = "sha-256") {
+    const hashBuffer = await crypto.subtle.digest(type, payload);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return type + ":" + hashHex;
+  }
+
+  async dedupResource(data) {
+    const payload = data.payload;
+    if (!payload || payload.length < this.minDedupSize) {
+      return {tx: this.db.transaction("resources", "readwrite"), added: false};
+    }
+
+    const digest = await this.getDigest(payload);
+    const tx = this.db.transaction(["payload", "digestRef", "resources"], "readwrite");
+
+    const digestRefStore = tx.objectStore("digestRef");
+    const ref = await digestRefStore.get(digest);
+    let added = true;
+
+    if (ref) {
+      //console.log("Digest Dupe: " + digest + " for " + data.url);
+      ++ref.count;
+      digestRefStore.put(ref);
+      added = false;
+    } else {
+      try {
+        tx.objectStore("payload").add({digest, payload});
+        const size = data.payload.length;
+        const count = 1;
+        digestRefStore.put({digest, count, size});
+      } catch (e) {
+        console.log(e);
+      }
+    }
+
+    delete data.payload;
+    data.digest = digest;
+
+    return {tx, added};
+  }
+
   async addResource(data, addFuzzy = true) {
     let result = null;
 
+    let { tx, added } = await this.dedupResource(data);
+
     try {
-      result = await this.db.put("resources", data);
+      tx.objectStore("resources").put(data);
+      await tx.done;
 
     } catch (e) {
       console.warn(`Resource Add Error: ${data.url}`);
       console.warn(e);
+      added = false;
     }
 
     if (addFuzzy && data.status >= 200 && data.status < 300 && data.status != 204) {
@@ -86,49 +150,22 @@ class ArchiveDB {
             pageId: data.pageId
           });
         } catch (e) {
-          console.warn(`Fuzzy Add Error: ${fuzzyUrl}`);
-          console.warn(e);
+          //console.warn(`Fuzzy Add Error: ${fuzzyUrl}`);
+          //console.warn(e);
         }
       }
     }
 
-    return result;
-  }
-
-  _repeatCountFor(event, url, method) {
-    if (!this.allowRepeats || method !== "POST") {
-      return 0;
-    }
-
-    if (event.replacesClientId) {
-      delete this.repeats[event.replacesClientId];
-    }
-
-    const id = event.resultingClientId || event.clientId;
-    if (!id) {
-      return 0;
-    }
-
-    if (this.repeats[id] === undefined) {
-      this.repeats[id] = {};
-    }
-
-    if (this.repeats[id][url] === undefined) {
-      this.repeats[id][url] = 0;
-    } else {
-      this.repeats[id][url]++;
-    }
-
-    return this.repeats[id][url];
+    return added;
   }
 
   async getResource(request, rwPrefix, event) {
     const datetime = tsToDate(request.timestamp).getTime();
     let url = request.url;
 
-    let skip = this._repeatCountFor(event, url, request.method);
-
     let result = null;
+
+    const skip = this.repeatTracker ? this.repeatTracker.getSkipCount(event, url, request.method) : 0;
 
     if (url.startsWith("//")) {
       result = await this.lookupUrl("https:" + url, datetime, skip);
@@ -165,6 +202,8 @@ class ArchiveDB {
       return null;
     }
 
+    await this.loadPayload(result);
+
     const status = result.status;
     const statusText = result.statusText || STATUS_CODES[status];
     const headers = makeHeaders(result.respHeaders);
@@ -178,6 +217,16 @@ class ArchiveDB {
     const extraOpts = result.extraOpts || null;
 
     return {url, response, date, noRW: false, extraOpts};
+  }
+
+  async loadPayload(result) {
+    if (result.digest && !result.payload) {
+      const { payload } = await this.db.get("payload", result.digest);
+      result.payload = payload;
+      if (!result.payload) {
+        console.log("Missing payload for: " + result.digest);
+      }
+    }
   }
 
   async lookupFuzzyUrl(url) {
@@ -245,17 +294,51 @@ class ArchiveDB {
   }
 
   async deletePageResources(pageId) {
+    const digestSet = {};
+
     const tx = this.db.transaction("resources", "readwrite");
 
-    let cursor = await tx.store.index("pageId").openKeyCursor(pageId);
+    let cursor = await tx.store.index("pageId").openCursor(pageId);
+
+    let size = 0;
 
     while (cursor) {
+      const digest = cursor.value.digest;
+      if (digest) {
+        digestSet[digest] = (digestSet[digest] || 0) + 1;
+      } else if (cursor.value.payload) {
+        size += cursor.value.payload.length;
+      }
+
       tx.store.delete(cursor.primaryKey);
 
       cursor = await cursor.continue();
     }
 
     await tx.done;
+
+    // delete payloads
+    const tx2 = this.db.transaction(["payload", "digestRef"], "readwrite");
+    const digestRefStore = tx2.objectStore("digestRef");
+
+    for (const digest of Object.keys(digestSet)) {
+      const ref = await digestRefStore.get(digest);
+
+      if (ref) {
+        ref.count -= digestSet[digest];
+      }
+
+      if (ref && ref.count >= 1) {
+        digestRefStore.put(ref);
+      } else {
+        size += ref.size;
+        digestRefStore.delete(digest);
+        tx2.objectStore("payload").delete(digest);
+      }
+    }
+
+    await tx2.done;
+    return size;
   }
 
   getLookupRange(url, type) {
@@ -276,33 +359,37 @@ class ArchiveDB {
   }
 }
 
-
 // ===========================================================================
-class WarcIndexer {
-  constructor(collDB) {
-    this.parser = new WarcParser();
-    this.collDB = collDB;
+class RepeatTracker {
+  constructor() {
+    this.repeats = {};
   }
 
-  index(file) {
-    this.parser.parse(file, this.buildCdx.bind(this)).then(function () {
-      console.log("all done")
-    });
-  }
-
-  async buildCdx(record, cdx) {
-    cdx.url = record.warcTargetURI;
-    cdx.timestamp = record.warcDate.replace(/[^\d]/g, "");
-    let status = record.httpInfo && record.httpInfo.statusCode;
-    if (status) {
-      cdx.status = record.httpInfo.statusCode;
+  getSkipCount(event, url, method) {
+    if (method !== "POST") {
+      return 0;
     }
-    cdx.type = record.warcType;
-    cdx.digest = record.warcPayloadDigest;
-    cdx.urlKey = cdx.url + " " + cdx.timestamp;
 
-    await this.collDB.writeTransaction().put(cdx);
-    console.log(cdx);
+    if (event.replacesClientId) {
+      delete this.repeats[event.replacesClientId];
+    }
+
+    const id = event.resultingClientId || event.clientId;
+    if (!id) {
+      return 0;
+    }
+
+    if (this.repeats[id] === undefined) {
+      this.repeats[id] = {};
+    }
+
+    if (this.repeats[id][url] === undefined) {
+      this.repeats[id][url] = 0;
+    } else {
+      this.repeats[id][url]++;
+    }
+
+    return this.repeats[id][url];
   }
 }
 
