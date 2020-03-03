@@ -182,7 +182,7 @@ function fuzzyCompareUrls(reqUrl, results) {
     let total = getMatch(reqQuery, foundQuery);
     total += getMatch(foundQuery, reqQuery);
     total /= 2.0;
-    console.log('total: ' + total + ' ' + result + ' <=> ' + reqUrl);
+    //console.log('total: ' + total + ' ' + result + ' <=> ' + reqUrl);
 
     if (total > bestTotal) {
       bestTotal = total;

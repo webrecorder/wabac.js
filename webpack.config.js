@@ -15,10 +15,6 @@ module.exports = {
     globalObject: 'self'
   },
 
-  plugins: [
-    new webpack.IgnorePlugin(/fs|untildify/),
-  ],
-
   devServer: {
     compress: true,
     port: 9990,

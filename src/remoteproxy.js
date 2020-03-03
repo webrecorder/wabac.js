@@ -1,11 +1,13 @@
 import { tsToDate } from './utils.js';
 
+import { ArchiveResponse } from './response';
+
 
 const EXTRACT_TS = /(?:([\d]+)[^\/]*\/)?(http.*)/;
 
 
 // ===========================================================================
-class RemoteArchiveSource {
+class RemoteProxySource {
 
   constructor(remoteInfo) {
     this.replayPrefix = remoteInfo.replayPrefix;
@@ -57,7 +59,7 @@ class RemoteArchiveSource {
 
     const date = (timestamp ? tsToDate(timestamp) : new Date());
 
-    return {url, response, date, noRW };
+    return ArchiveResponse.fromResponse({url, response, date, noRW});
   }
 
   async getRedirect(request, response, prefix) {
@@ -104,16 +106,14 @@ class LiveAccess {
                credentials: request.request.credentials,
               });
 
-    return {url: request.url,
+    return ArchiveResponse.fromResponse({url: request.url,
             response,
             date: new Date(),
             noRW: false,
             isLive: true
-           };
+           });
   }
 }
 
 
-
-
-export { RemoteArchiveSource, LiveAccess };
+export { RemoteProxySource, LiveAccess };

@@ -4,12 +4,21 @@ import brotliDecode from 'brotli/decompress';
 
 import { Inflate } from 'pako';
 
-import { makeRwResponse } from '../utils.js';
+import { StreamReader } from '../warcio';
 
 
 // ===========================================================================
-async function decodeResponse(response, contentEncoding, transferEncoding) {
-  const origContent = new Uint8Array(await response.arrayBuffer());
+async function decodeResponse(response, contentEncoding, transferEncoding, noRW) {
+
+  // use the streaming decoder if gzip only and no rewriting
+  if (response.stream && noRW &&
+      ((contentEncoding === "gzip" && !transferEncoding) || 
+      (!contentEncoding && trasnferEncoding === "gzip"))) {
+    response.setContent(new StreamReader(response.stream));
+    return response;
+  }
+
+ const origContent = new Uint8Array(await response.getBuffer());
   let content = origContent;
 
   try {
@@ -38,8 +47,13 @@ async function decodeResponse(response, contentEncoding, transferEncoding) {
     console.log("Content-Encoding Ignored: " + e);
   }
 
-  return makeRwResponse(content, response);
+  if (origContent !== content) {
+    response.setContent(content);
+  }
+
+  return response;
 }
+
 
 // ===========================================================================
 function dechunkArrayBuffer(data) {

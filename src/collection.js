@@ -2,7 +2,7 @@
 
 import { Rewriter } from './rewrite';
 
-import { getTS, getSecondsStr, notFound, digestMessage, makeRangeResponse } from './utils.js';
+import { getTS, getSecondsStr, notFound, digestMessage } from './utils.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
@@ -118,35 +118,34 @@ class Collection {
                    "timestamp": requestTS};
 
     // exact or fuzzy match
-    const resInfo = await this.store.getResource(query, this.prefix, event);
+    let response = await this.store.getResource(query, this.prefix, event);
 
-    if (!resInfo) {
+    if (!response) {
       const msg = `<p>Sorry, the URL <b>${requestURL}</b> is not in this archive.</p><p><a href="${requestURL}">Try Live Version?</a></p>`;
       return notFound(request, msg);
     }
 
-    let { url, response, date, noRW } = resInfo;
-
-    if (!noRW) {
+    if (!response.noRW) {
       const headInsertFunc = () => {
         const presetCookie = response.headers.get("x-wabac-preset-cookie");
-        return this.makeHeadInsert(url, requestTS, date, presetCookie, resInfo.isLive);
+        return this.makeHeadInsert(response.url, requestTS, response.date, presetCookie, response.isLive);
       };
 
-      const rewriter = new Rewriter(url, this.prefix + requestTS + mod + "/", headInsertFunc, false, this.config.decode);
+      const rewriter = new Rewriter(response.url, this.prefix + requestTS + mod + "/", headInsertFunc, false, this.config.decode);
+
       const csp = mod !== "id_" ? DEFAULT_CSP : null;
       const noRewrite = mod === "id_" || mod === "wkrf_";
-      response = await rewriter.rewrite(response, request, csp, resInfo.extraOpts, noRewrite);
+
+      response = await rewriter.rewrite(response, request, csp, noRewrite);
     }
 
     const range = request.headers.get("range");
 
     if (range && response.status === 200) {
-      response = await makeRangeResponse(response, range);
+      response.setRange(range);
     }
 
-    response.date = date;
-    return response;
+    return response.makeResponse();
   }
 
   makeTopFrame(url, requestTS, isLive) {

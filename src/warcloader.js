@@ -1,35 +1,23 @@
 import { makeHeaders, tsToDate } from './utils.js';
 
-import { Readable, Transform } from 'stream';
-import { Inflate } from 'pako';
-
-import { WARCStreamTransform } from 'node-warc';
+import { StreamReader, WARCParser } from './warcio';
 
 
 // ===========================================================================
 class WARCLoader {
-  constructor(ab) {
-    this.arraybuffer = ab;
+  constructor(stream) {
+    this.stream = stream;
 
     this.anyPages = false;
 
     this._lastRecord = null;
 
-    //this.reader = new FileReader();
-    this.warc = new WARCStreamTransform();
-
-    this.rstream = new Readable();
-    this.rstream._read = () => { };
-
-    this.lastOffset = 0;
-
-    this.offsets = [];
-    this.recordCount = 0;
+    this.promises = [];
   }
 
   parseWarcInfo(record) {
     var dec = new TextDecoder("utf-8");
-    const text = dec.decode(record.content);
+    const text = dec.decode(record.payload);
 
     // Webrecorder-style metadata
     for (const line of text.split("\n")) {
@@ -44,7 +32,7 @@ class WARCLoader {
             const title = page.title || page.url;
             const id = page.id;
             const date = tsToDate(page.timestamp).toISOString();
-            this.db.addPage({url, date, title, id});
+            this.addPage({url, date, title, id});
             this.anyPages = true;
           }
 
@@ -53,7 +41,15 @@ class WARCLoader {
     }
   }
 
-  index(record, cdx) {
+  addPage(page) {
+    this.promises.push(this.db.addPage(page));
+  }
+
+  addResource(res) {
+    this.promises.push(this.db.addResource(res));
+  }
+
+  index(record) {
     if (record.warcType === "warcinfo") {
       this.parseWarcInfo(record);
       return;
@@ -87,14 +83,43 @@ class WARCLoader {
     }
   }
 
-  indexError() {
-    //todo: indicate partial parse?
-    this.indexDone();
+  parseRevisitRecord(record) {
+    const url = record.warcTargetURI.split("#")[0];
+    const date = record.warcDate;
+    const ts = new Date(record.warcDate).getTime();
+
+    const origURL = record.warcRefersToTargetURI;
+    const origTS = new Date(record.warcRefersToDate).getTime();
+
+    // self-revisit, skip
+    if (origURL === url && origTS === ts) {
+      return null;
+    }
+
+    const digest = record.warcPayloadDigest;
+
+    return {url, ts, origURL, origTS, digest, pageId: null};
   }
 
   indexReqResponse(record, reqRecord) {
+    const entry = this.parseRecords(record, reqRecord);
+
+    if (entry) {
+      this.addResource(entry);
+    }
+  }
+
+  parseRecords(record, reqRecord) {
+    if (record.warcType === "revisit") {
+      return this.parseRevisitRecord(record);
+    }
+
     if (record.warcType !== "response" && record.warcType !== "resource") {
-      return;
+      return null;
+    }
+
+    if (record.warcType === "resource") {
+      reqRecord = null;
     }
 
     const url = record.warcTargetURI.split("#")[0];
@@ -103,33 +128,30 @@ class WARCLoader {
     let headers;
     let status = 200;
     let statusText = "OK";
-    let content = record.content;
+    //let content = record.content;
     let cl = 0;
     let mime = "";
 
     if (record.httpInfo) {
-      try {
-        status = parseInt(record.httpInfo.statusCode);
-      } catch (e) {
-      }
+      status = Number(record.httpInfo.statusCode) || 200;
 
       // skip empty responses
       if (status === 204) {
-        return;
+        return null;
       }
 
       if (reqRecord && reqRecord.httpInfo.method === "OPTIONS") {
-        return;
+        return null;
       }
  
       statusText = record.httpInfo.statusReason;
 
       headers = makeHeaders(record.httpInfo.headers);
 
-      if (!reqRecord && !record.content.length &&
-          (headers.get("access-control-allow-methods") || headers.get("access-control-allow-credentials"))) {
-        return;
-      }
+      //if (!reqRecord && !record.content.length &&
+      //    (headers.get("access-control-allow-methods") || headers.get("access-control-allow-credentials"))) {
+      //  return null;
+      //}
 
       mime = (headers.get("content-type") || "").split(";")[0];
 
@@ -143,7 +165,7 @@ class WARCLoader {
 
         // only include 206 responses if they are the full range
         if (range && range !== fullRange) {
-          return;
+          return null;
         }
       }
 
@@ -152,7 +174,7 @@ class WARCLoader {
         const location = headers.get('location');
         if (location) {
           if (new URL(location, url).href === url) {
-            return;
+            return null;
           }
         }
       }
@@ -176,7 +198,7 @@ class WARCLoader {
         console.warn(e);
       }
     }
-
+/*
     if (cl && content.byteLength !== cl) {
       // expected mismatch due to bug in node-warc occasionally including trailing \r\n in record
       if (cl === content.byteLength - 2) {
@@ -186,16 +208,16 @@ class WARCLoader {
         console.warn(`CL mismatch for ${url}: expected: ${cl}, found: ${content.byteLength}`);
       }
     }
-
+*/
     // if no pages found, start detection if hasn't started already
     if (this.detectPages === undefined) {
       this.detectPages = !this.anyPages;
     }
 
     if (this.detectPages) {
-      if (this.isPage(url, status, headers)) {
+      if (isPage(url, status, mime)) {
         const title = url;
-        this.db.addPage({url, date, title});
+        this.addPage({url, date, title});
       }
     }
 
@@ -203,124 +225,78 @@ class WARCLoader {
 
     const respHeaders = Object.fromEntries(headers.entries());
 
-    const entry = {url, ts, status, mime, respHeaders, payload: content}
+    const digest = record.warcPayloadDigest;
 
-    if (record.warcHeader["WARC-JSON-Metadata"]) {
+    const payload = record.payload;
+    const stream = payload ? null : record.stream;
+
+    const entry = {url, ts, status, mime, respHeaders, digest, payload, stream}
+
+    if (record.warcHeader("WARC-JSON-Metadata")) {
       try {
-        entry.extraOpts = JSON.parse(record.warcHeader["WARC-JSON-Metadata"]);
+        entry.extraOpts = JSON.parse(record.warcHeader("WARC-JSON-Metadata"));
       } catch (e) { }
     }
 
-    this.db.addResource(entry);
+    return entry;
   }
 
-  isPage(url, status, headers) {
-    if (status != 200) {
-      return false;
-    }
-
-    if (!url.startsWith("http:") && !url.startsWith("https:") && !url.startsWith("blob:")) {
-      return false;
-    }
-
-    if (url.endsWith("/robots.txt")) {
-      return false;
-    }
-
-    // skip urls with long query
-    const parts = url.split("?", 2);
-
-    if (parts.length === 2 && parts[1].length > parts[0].length) {
-      return false;
-    }
-
-    // skip 'files' starting with '.' from being listed as pages
-    if (parts[0].substring(parts[0].lastIndexOf("/") + 1).startsWith(".")) {
-      return false;
-    }
-
-    let contentType = headers.get("Content-Type") || "";
-    contentType = contentType.split(";", 1)[0];
-    if (contentType !== "text/html") {
-      return false;
-    }
-
-    return true;
-  }
-
-  load(db) {
+  async load(db) {
     this.db = db;
-    this.recordCount = 0;
 
-    const buffer = new Uint8Array(this.arraybuffer);
+    const reader = new StreamReader(this.stream.getReader());
 
-    const isGzip = (buffer.length > 2 && buffer[0] == 0x1f && buffer[1] == 0x8b && buffer[2] == 0x08);
+    const parser = new WARCParser();
 
-    if (isGzip) {
-      return new Promise((resolve, reject) => {
-        this.rstream.pipe(new DecompStream(this)).pipe(this.warc)
-          .on('data', (record) => { this.index(record, this.offsets[this.recordCount++]) })
-          .on('end', () => { this.indexDone(); resolve(); })
-          .on('error', () => { this.indexError(); resolve(); });
+    let record = null;
 
-        this.rstream.push(buffer);
-        this.rstream.push(null);
-      });
-    } else {
-      return new Promise((resolve, reject) => {
-        this.rstream.pipe(this.warc)
-          .on('data', (record) => { this.index(record, {}) })
-          .on('end', () => { this.indexDone(); resolve(); })
-          .on('error', () => { this.indexError(); resolve(); });
-
-        this.rstream.push(buffer);
-        this.rstream.push(null);
-      });
+    while (record = await parser.parse(reader)) {
+      await record.readFully();
+      this.index(record);      
     }
+
+    this.indexDone();
+
+    await Promise.all(this.promises);
+    this.promises = [];
   }
 }
 
 
 // ===========================================================================
-class DecompStream extends Transform {
-  constructor(loader) {
-    super();
-    this.loader = loader;
+function isPage(url, status, mime) {
+  if (status != 200) {
+    return false;
   }
 
-  _transform(buffer, encoding, done) {
-    let strm, len, pos = 0;
-
-    let lastPos = 0;
-    let inflator;
-
-    do {
-      len = buffer.length - pos;
-
-      const _in = new Uint8Array(buffer.buffer, pos, len);
-
-      inflator = new Inflate();
-
-      strm = inflator.strm;
-      inflator.push(_in, true);
-
-      this.push(inflator.result);
-
-      lastPos = pos;
-      pos += strm.next_in;
-
-      this.loader.offsets.push({ "offset": lastPos, "length": pos - lastPos });
-
-    } while (strm.avail_in);
-
-    done();
+  if (!url.startsWith("http:") && !url.startsWith("https:") && !url.startsWith("blob:")) {
+    return false;
   }
 
-  _flush(done) {
-    done()
+  if (url.endsWith("/robots.txt")) {
+    return false;
   }
+
+  // skip urls with long query
+  const parts = url.split("?", 2);
+
+  if (parts.length === 2 && parts[1].length > parts[0].length) {
+    return false;
+  }
+
+  // skip 'files' starting with '.' from being listed as pages
+  if (parts[0].substring(parts[0].lastIndexOf("/") + 1).startsWith(".")) {
+    return false;
+  }
+
+  if (mime && mime !== "text/html") {
+    return false;
+  }
+
+  return true;
 }
 
 
 
-export { WARCLoader };
+
+export { WARCLoader, isPage };

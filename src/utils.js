@@ -49,11 +49,11 @@ function getSecondsStr(date) {
 }
 
 async function digestMessage(message, hashtype) {
-  const msgUint8 = new TextEncoder().encode(message);                           // encode as (utf-8) Uint8Array
+  const msgUint8 = typeof(message) === "string" ? new TextEncoder().encode(message) : message;
   const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);           // hash the message
   const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
-  return hashHex;
+  return hashtype + ":" + hashHex;
 }
 
 function makeHeaders(headers) {
@@ -72,16 +72,6 @@ function makeHeaders(headers) {
   }
 }
 
-function makeRwResponse(content, response, headers) {
-  const initOpt = {
-    "status": response.status,
-    "statusText": response.statusText,
-    "headers": headers || response.headers
-  };
-
-  return new Response(content, initOpt);
-}
-
 const NULL_STATUS = [101, 204, 205, 304];
 
 function isNullBodyStatus(status) {
@@ -91,6 +81,7 @@ function isNullBodyStatus(status) {
 function isAjaxRequest(request) {
   return request.headers.get('X-Pywb-Requested-With') === 'XMLHttpRequest';
 }
+
 
 function notFound(request, msg) {
   let content;
@@ -119,30 +110,6 @@ function notFound(request, msg) {
   return new Response(content, initOpt);
 }
 
-async function makeRangeResponse(response, range) {
-  const bytes = range.match(/^bytes\=(\d+)\-(\d+)?$/);
-
-  const arrayBuffer = await response.arrayBuffer();
-
-  if (bytes) {
-    const start = Number(bytes[1]);
-    const end = Number(bytes[2]) || arrayBuffer.byteLength - 1;
-    const headers = response.headers;
-    headers.append('Content-Range', `bytes ${start}-${end}/${arrayBuffer.byteLength}`);
-    headers.set('Content-Length', end - start + 1);
-    return new Response(arrayBuffer.slice(start, end + 1), {
-      status: 206,
-      statusText: 'Partial Content',
-      headers: headers,
-    });
-  } else {
-    return new Response(null, {
-      status: 416,
-      statusText: 'Range Not Satisfiable',
-      headers: [['Content-Range', `*/${arrayBuffer.byteLength}`]]
-    });
-  }
-}
 
 export { startsWithAny, getTS, tsToDate, tsToSec, getSecondsStr, digestMessage,
-         makeRwResponse, isNullBodyStatus, makeHeaders, notFound, makeRangeResponse, isAjaxRequest };
+         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest };

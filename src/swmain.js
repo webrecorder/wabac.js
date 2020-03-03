@@ -1,13 +1,18 @@
 "use strict";
 
 import { Collection } from './collection.js';
+
 import { ArchiveDB } from './archivedb.js';
+import { RemoteArchiveDB } from './remotearchivedb';
 
 import { HARLoader } from './harloader';
 import { WBNLoader } from './wbnloader';
 import { WARCLoader } from './warcloader';
+import { CDXLoader } from './cdxloader';
 
-import { RemoteArchiveSource, LiveAccess } from './remotearchive.js'
+import { RemoteProxySource, LiveAccess } from './remoteproxy';
+
+import { StreamReader } from './warcio';
 
 //import { LiveCache } from './live.js';
 import { notFound, isAjaxRequest } from './utils.js';
@@ -101,8 +106,12 @@ class SWReplay {
         await store.initing;
         break;
 
-      case "remote":
-        store = new RemoteArchiveSource(data.config);
+      case "remotewarc":
+        store = db ? db : new RemoteArchiveDB(data.config.dbname, data.config.remotePrefix);
+        break;
+
+      case "remoteproxy":
+        store = new RemoteProxySource(data.config);
         break;
 
       case "live":
@@ -131,7 +140,7 @@ class SWReplay {
 
     let decode = false;
     let type = null;
-    let config = {};
+    let config = {root: false};
     let db = null;
 
     if (data.files) {
@@ -141,31 +150,40 @@ class SWReplay {
       let loader = null;
 
       if (file.url) {
+        type = "archive";
+        config.dbname = "db:" + name;
+        config.sourceName = file.name;
+
         const resp = await self.fetch(file.url);
 
         if (file.name.endsWith(".har")) {
           loader = new HARLoader(await resp.json());
 
         } else if (file.name.endsWith(".warc") || file.name.endsWith(".warc.gz")) {
-          loader = new WARCLoader(await resp.arrayBuffer());
+          loader = new WARCLoader(await resp.body);
           decode = true;
 
         } else if (file.name.endsWith(".wbn")) {
           loader = new WBNLoader(await resp.arrayBuffer());
+        } else if (file.name.endsWith(".cdxj") || file.name.endsWith(".cdx")) {
+          config.remotePrefix = data.remotePrefix || file.url.slice(0, file.url.lastIndexOf("/") + 1);
+          loader = new CDXLoader(new StreamReader(resp.body.getReader()));
+          decode = true;
+          type = "remotewarc";
+          db = new RemoteArchiveDB(config.dbname, config.remotePrefix);
         } else {
           return null;
         }
-        type = "archive";
-        config.dbname = "db:" + name;
-        config.sourceName = file.name;
-        config.root = false;
-        db = new ArchiveDB(config.dbname);
+
+        if (!db) {
+          db = new ArchiveDB(config.dbname);
+        }
         await db.initing;
         await loader.load(db);
       }
       
     } else if (data.remote) {
-      type = "remote";
+      type = "remoteproxy";
       config = data.remote;
       config.sourceName = config.replayPrefix;
     } else {

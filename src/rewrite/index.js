@@ -4,7 +4,7 @@ import { Readable } from 'stream';
 
 import RewritingStream from 'parse5-html-rewriting-stream';
 
-import { makeRwResponse, startsWithAny, isAjaxRequest } from '../utils.js';
+import { startsWithAny, isAjaxRequest } from '../utils.js';
 
 import { decodeResponse } from './decoder';
 
@@ -56,29 +56,30 @@ class Rewriter {
     this.headInsertFunc = headInsertFunc;
   }
 
-  getRewriteMode(request, response) {
-    const requestType = request.destination;
-    const baseUrl = this.baseUrl;
-
-    let contentType = response.headers.get("Content-Type") || "";
-    contentType = contentType.split(";", 1)[0];
-
-    switch (requestType) {
-      case "style":
-        return "css";
-
-      case "script":
-        return "js";
+  getRewriteMode(request, response, url = "", mime = null) {
+    if (!mime && response) {
+      mime = response.headers.get("Content-Type") || "";
+      mime = mime.split(";", 1)[0];
     }
 
-    switch (contentType) {
+    if (request) {
+      switch (request.destination) {
+        case "style":
+          return "css";
+
+        case "script":
+          return "js";
+      }
+    }
+
+    switch (mime) {
       case "text/html":
         return "html";
 
       case "text/javascript":
       case "application/javascript":
       case "application/x-javascript":
-        return this.baseUrl.endsWith(".json") ? "json" : "js";
+        return url.endsWith(".json") ? "json" : "js";
 
       case "application/json":
         return "json";
@@ -97,8 +98,8 @@ class Rewriter {
     return null;
   }
 
-  async rewrite(response, request, csp, extraOpts, noRewrite = false) {
-    const rewriteMode = noRewrite ? null : this.getRewriteMode(request, response);
+  async rewrite(response, request, csp, noRewrite = false) {
+    const rewriteMode = noRewrite ? null : this.getRewriteMode(request, response, this.baseUrl);
 
     const isAjax = isAjaxRequest(request);
 
@@ -111,10 +112,12 @@ class Rewriter {
     const encoding = response.headers.get("content-encoding");
     const te = response.headers.get('transfer-encoding');
 
+    response.headers = headers;
+
     // attempt to decode only if set
     // eg. data may already be decoded for many stores
     if (this.decode && (encoding || te)) {
-      response = await decodeResponse(response, encoding, te);
+      response = await decodeResponse(response, encoding, te, rewriteMode === null);
     }
 
     let rwFunc = null;
@@ -123,7 +126,7 @@ class Rewriter {
     switch (rewriteMode) {
       case "html":
         if (!isAjax) {
-          return await this.rewriteHtml(response, headers);
+          return await this.rewriteHtml(response);
         }
         break;
 
@@ -151,13 +154,12 @@ class Rewriter {
     let content = null;
 
     if (rwFunc) {
-      const text = await response.text();
-      content = rwFunc.call(this, text, isAjax, extraOpts);
-    } else {
-      content = response.body;
+      let text = await response.getText();
+      text = rwFunc.call(this, text, isAjax, response.extraOpts);
+      response.setContent(text);
     }
 
-    return makeRwResponse(content, response, headers);
+    return response;
   }
 
   normalizeUrl(url) {
@@ -324,13 +326,11 @@ class Rewriter {
     return null;
   }
 
-  async rewriteHtml(response, headers) {
-    if (!response.body) {
-      console.warn("Missing response body for: " + response.url);
-      return makeRwResponse("", response, headers);
+  async rewriteHtml(response) {
+    if (!response.buffer && !response.stream) {
+      //console.warn("Missing response body for: " + response.url);
+      return response;
     }
-
-    const reader = response.body.getReader();
 
     const defmod = "mp_";
 
@@ -468,43 +468,9 @@ class Rewriter {
     buff.pipe(rwStream);
     buff.on('end', addInsert);
 
-    function pump() {
-      return reader.read().then(({ done, value }) => {
-        // When no more data needs to be consumed, close the stream
+    const encoder = new TextEncoder("utf-8");
 
-        if (done) {
-          buff.push(null);
-          return;
-        }
-
-        // Enqueue the next data chunk into our target stream
-        //rewriter.write(value, 'utf-8');
-        buff.push(value);
-        hasData = hasData || !!value.length;
-        return pump();
-      });
-    }
-
-    const pr = new Promise((resolve, reject) => {
-      const buffers = [];
-
-      rwStream.on("data", function (chunk) {
-        buffers.push(chunk);
-      });
-
-      rwStream.on("end", function() {
-        resolve(buffers.join(''));
-      });
-
-      pump();
-    });
-
-    const rs = await pr;
-
-/*
-    var encoder = new TextEncoder("utf-8");
-
-    var rs = new ReadableStream({
+    const rs = new ReadableStream({
       start(controller) {
         rwStream.on("data", function (chunk) {
           controller.enqueue(encoder.encode(chunk));
@@ -513,22 +479,18 @@ class Rewriter {
         rwStream.on("end", function () {
           controller.close();
         });
-
-        pump();
       }
     });
-*/
 
-    return makeRwResponse(rs, response, headers);
-  }
+    for await (const chunk of response.iterChunks()) {
+      buff.push(chunk);
+      hasData = true;
+    }
 
-  // Generic Response
-  rewriteResponse(response, headers, rewriteFunc) {
-    return response.text().then((text) => {
-      //return rewriteFunc.call(this, text);
-      return makeRwResponse(rewriteFunc.call(this, text), response, headers);
+    buff.push(null);
 
-    });
+    response.setContent(rs);
+    return response;
   }
 
   // CSS

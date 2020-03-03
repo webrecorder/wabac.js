@@ -1,9 +1,10 @@
 "use strict";
 
 import { openDB } from 'idb/with-async-ittr.js';
-import { tsToDate, isNullBodyStatus, makeHeaders } from './utils';
+import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage } from './utils';
 import { fuzzyMatcher, fuzzyCompareUrls } from './fuzzymatcher';
 import { STATUS_CODES } from 'http';
+import { ArchiveResponse } from './response';
 
 
 // ===========================================================================
@@ -43,11 +44,11 @@ class ArchiveDB {
     const payload = db.createObjectStore("payload", { keyPath: "digest", unique: true});
     const digestRef = db.createObjectStore("digestRef", { keyPath: "digest", unique: true});
 
-    const fuzzyStore = db.createObjectStore("fuzzy", { keyPath: "key" });
+    //const fuzzyStore = db.createObjectStore("fuzzy", { keyPath: "key" });
   }
 
   async clearAll() {
-    const stores = ["pages", "resources", "payload", "digestRef", "fuzzy"];
+    const stores = ["pages", "resources", "payload", "digestRef"];
     const tx = this.db.transaction(stores, "readwrite");
 
     for (const store of stores) {
@@ -79,21 +80,21 @@ class ArchiveDB {
     return await this.db.getAllFromIndex("pages", "date");
   }
 
-  async getDigest(payload, type = "sha-256") {
-    const hashBuffer = await crypto.subtle.digest(type, payload);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return type + ":" + hashHex;
-  }
-
   async dedupResource(data) {
     const payload = data.payload;
-    if (!payload || payload.length < this.minDedupSize) {
-      return {tx: this.db.transaction("resources", "readwrite"), added: false};
+    const size = (payload ? payload.length : 0);
+
+    let digest = data.digest;
+
+    if (!digest && (!payload || size < this.minDedupSize)) {
+      return false;
     }
 
-    const digest = await this.getDigest(payload);
-    const tx = this.db.transaction(["payload", "digestRef", "resources"], "readwrite");
+    if (!digest) {
+      digest = await digestMessage(payload, "sha-256");
+    }
+
+    const tx = this.db.transaction(["digestRef", "payload"], "readwrite");
 
     const digestRefStore = tx.objectStore("digestRef");
     const ref = await digestRefStore.get(digest);
@@ -107,7 +108,6 @@ class ArchiveDB {
     } else {
       try {
         tx.objectStore("payload").add({digest, payload});
-        const size = data.payload.length;
         const count = 1;
         digestRefStore.put({digest, count, size});
       } catch (e) {
@@ -115,44 +115,66 @@ class ArchiveDB {
       }
     }
 
+    try {
+      await tx.done;
+    } catch(e) {
+      console.log("Payload Add Failed: " + e);
+    }
+
     delete data.payload;
     data.digest = digest;
 
-    return {tx, added};
+    return added;
   }
 
-  async addResource(data, addFuzzy = true) {
+  async addResource(data) {
     let result = null;
 
-    let { tx, added } = await this.dedupResource(data);
+    let added = await this.dedupResource(data);
 
     try {
-      tx.objectStore("resources").put(data);
-      await tx.done;
+      await this.db.add("resources", data);
 
     } catch (e) {
-      console.warn(`Resource Add Error: ${data.url}`);
-      console.warn(e);
-      added = false;
+      const dupeData = await this.db.get("resources", [data.url, data.ts]);
+      if (dupeData) {
+        if (dupeData.mime === "warc/revisit" && dupeData.mime !== data.mime) {
+          await this.db.put("resources", data);
+          console.log(`Used non-revisit dupe for ${dupeData.url} @ ${dupeData.ts}`);
+        } else {
+          //console.log(`Ignored dupe dupe for ${dupeData.url} @ ${dupeData.ts}`);
+          return false;
+        }
+      } else {
+        console.warn(`Resource Add Error: ${data.url}`);
+        console.warn(e);
+        return false;
+      }
     }
 
-    if (addFuzzy && data.status >= 200 && data.status < 300 && data.status != 204) {
+    if (data.status >= 200 && data.status < 300 && data.status != 204) {
+      const tx = this.db.transaction("resources", "readwrite");
       for await (const fuzzyUrl of fuzzyMatcher.fuzzyUrls(data.url)) {
         if (fuzzyUrl === data.url) {
           continue;
         }
 
-        try {
-          await this.db.add("fuzzy", {
-            key: fuzzyUrl,
-            ts: data.ts,
-            original: data.url,
-            pageId: data.pageId
-          });
-        } catch (e) {
-          //console.warn(`Fuzzy Add Error: ${fuzzyUrl}`);
-          //console.warn(e);
-        }
+        //console.log(`Fuzzy ${fuzzyUrl} -> ${data.url}`);
+
+        const fuzzyRes = {url: fuzzyUrl,
+                          ts: data.ts,
+                          origURL: data.url,
+                          origTS: data.ts,
+                          pageId: data.pageId,
+                          digest: data.digest};
+        tx.store.put(fuzzyRes);
+      }
+
+      try {
+        await tx.done;
+      } catch (e) {
+        console.log("Fuzzy Add Error for " + data.url);
+        console.log(e);
       }
     }
 
@@ -181,14 +203,8 @@ class ArchiveDB {
 
     if (!result) {
       for await (const fuzzyUrl of fuzzyMatcher.fuzzyUrls(url)) {
-        let origUrl = null;
-        result = await this.lookupFuzzyUrl(fuzzyUrl);
+        result = await this.lookupUrl(fuzzyUrl);
         if (result) {
-          origUrl = result.original;
-          result = await this.lookupUrl(origUrl, datetime, skip);
-        }
-        if (result) {
-          url = origUrl;
           break;
         }
       }
@@ -198,46 +214,47 @@ class ArchiveDB {
       result = await this.lookupQueryPrefix(url);
     }
 
+    // check if redirect
+    if (result && result.origURL) {
+      const origResult = await this.lookupUrl(result.origURL, result.origTS || result.ts);
+      if (origResult) {
+        url = origResult.url;
+        result = origResult;
+      }
+    }
+
     if (!result) {
       return null;
     }
 
-    await this.loadPayload(result);
-
     const status = result.status;
     const statusText = result.statusText || STATUS_CODES[status];
+
+    const payload = !isNullBodyStatus(status) ? await this.loadPayload(result) : null;
+
     const headers = makeHeaders(result.respHeaders);
 
     const date = new Date(result.ts);
 
-    const payload = !isNullBodyStatus(status) ? result.payload : null;
-
-    const response = new Response(payload, {status, statusText, headers});
-
     const extraOpts = result.extraOpts || null;
 
-    return {url, response, date, noRW: false, extraOpts};
+    return new ArchiveResponse({url, payload, status, statusText, headers, date, extraOpts});
   }
 
   async loadPayload(result) {
     if (result.digest && !result.payload) {
       const { payload } = await this.db.get("payload", result.digest);
-      result.payload = payload;
-      if (!result.payload) {
-        console.log("Missing payload for: " + result.digest);
-      }
+      return payload;
     }
-  }
 
-  async lookupFuzzyUrl(url) {
-    return this.db.get("fuzzy", url);
+    return result.payload;
   }
 
   async lookupUrl(url, datetime, skip = 0) {
     const tx = this.db.transaction("resources", "readonly");
 
     if (skip > 0) {
-      console.log(`Skip ${skip} for ${url}`);
+      //console.log(`Skip ${skip} for ${url}`);
     }
 
     if (datetime) {
@@ -282,9 +299,9 @@ class ArchiveDB {
     }
 
     const result = fuzzyCompareUrls(url, results);
-    if (result) {
-      console.log(`Fuzz: ${result.result.url} <-> ${url}`);
-    }
+    //if (result) {
+      //console.log(`Fuzz: ${result.result.url} <-> ${url}`);
+    //}
     return result.result;
   }
 
