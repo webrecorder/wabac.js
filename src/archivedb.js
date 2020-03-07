@@ -80,7 +80,9 @@ class ArchiveDB {
     return await this.db.getAllFromIndex("pages", "date");
   }
 
-  async dedupResource(data) {
+  async dedupResource(data, tx) {
+    const ownTx = !tx;
+
     const payload = data.payload;
     const size = (payload ? payload.length : 0);
 
@@ -94,7 +96,9 @@ class ArchiveDB {
       digest = await digestMessage(payload, "sha-256");
     }
 
-    const tx = this.db.transaction(["digestRef", "payload"], "readwrite");
+    if (!tx) {
+      tx = this.db.transaction(["digestRef", "payload"], "readwrite");
+    }
 
     const digestRefStore = tx.objectStore("digestRef");
     const ref = await digestRefStore.get(digest);
@@ -115,10 +119,12 @@ class ArchiveDB {
       }
     }
 
-    try {
-      await tx.done;
-    } catch(e) {
-      console.log("Payload Add Failed: " + e);
+    if (ownTx) {
+      try {
+        await tx.done;
+      } catch(e) {
+        console.log("Payload Add Failed: " + e);
+      }
     }
 
     delete data.payload;
@@ -127,33 +133,43 @@ class ArchiveDB {
     return added;
   }
 
-  async addResource(data) {
-    let result = null;
+  async addResources(datas) {
+    let tx = this.db.transaction(["digestRef", "payload"], "readwrite");
 
-    let added = await this.dedupResource(data);
-
-    try {
-      await this.db.add("resources", data);
-
-    } catch (e) {
-      const dupeData = await this.db.get("resources", [data.url, data.ts]);
-      if (dupeData) {
-        if (dupeData.mime === "warc/revisit" && dupeData.mime !== data.mime) {
-          await this.db.put("resources", data);
-          console.log(`Used non-revisit dupe for ${dupeData.url} @ ${dupeData.ts}`);
-        } else {
-          //console.log(`Ignored dupe dupe for ${dupeData.url} @ ${dupeData.ts}`);
-          return false;
-        }
-      } else {
-        console.warn(`Resource Add Error: ${data.url}`);
-        console.warn(e);
-        return false;
-      }
+    for (const data of datas) {
+      await this.dedupResource(data, tx);
     }
 
+    await tx.done;
+
+    tx = this.db.transaction("resources", "readwrite");
+
+    const revisits = [];
+
+    for (const data of datas) {
+      if (data.mime === "warc/revisit") {
+        revisits.push(data);
+        continue;
+      }
+
+      this._addUrlFuzzy(data, tx);
+    }
+
+    await tx.done;
+
+    for (const revisit of revisits) {
+      try {
+        await this.db.add("resources", revisit);
+      } catch (e) {
+        console.log("Skip Duplicate revisit for: " + revisit.url);
+      }
+    }
+  }
+
+  async _addUrlFuzzy(data, tx) {
+    tx.store.put(data);
+
     if (data.status >= 200 && data.status < 300 && data.status != 204) {
-      const tx = this.db.transaction("resources", "readwrite");
       for await (const fuzzyUrl of fuzzyMatcher.fuzzyUrls(data.url)) {
         if (fuzzyUrl === data.url) {
           continue;
@@ -169,13 +185,35 @@ class ArchiveDB {
                           digest: data.digest};
         tx.store.put(fuzzyRes);
       }
+    }
+  }
 
+  async addResource(data) {
+    let result = null;
+
+    let added = await this.dedupResource(data);
+
+    // only add revisit if not a dupe
+    // don't allow revisits to override regular responses
+    if (data.mime === "warc/revisit") {
       try {
-        await tx.done;
+        await this.db.add("resources", data);
       } catch (e) {
-        console.log("Fuzzy Add Error for " + data.url);
-        console.log(e);
+        console.log("Skip Duplicate revisit for: " + data.url);
       }
+
+      return added;
+    }
+
+    const tx = this.db.transaction("resources", "readwrite");
+
+    this._addUrlFuzzy(data, tx);
+
+    try {
+      await tx.done;
+    } catch (e) {
+      console.log("Fuzzy Add Error for " + data.url);
+      console.log(e);
     }
 
     return added;
