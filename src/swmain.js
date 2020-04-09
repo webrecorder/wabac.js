@@ -12,7 +12,7 @@ import { CDXLoader } from './cdxloader';
 
 import { RemoteProxySource, LiveAccess } from './remoteproxy';
 
-import { StreamReader } from './warcio';
+import { StreamReader } from 'warcio';
 
 //import { LiveCache } from './live.js';
 import { notFound, isAjaxRequest } from './utils.js';

@@ -1,6 +1,6 @@
 import { ArchiveDB } from './archivedb';
 import { WARCLoader } from './warcloader';
-import { StreamReader, WARCParser, concatChunks } from './warcio';
+import { WARCParser, concatChunks } from 'warcio';
 
 
 // ===========================================================================
@@ -237,11 +237,11 @@ class SingleRecordWARCLoader extends WARCLoader
   addPage() {}
 
   async load(db, url) {
-    const reader = new StreamReader(this.stream.getReader());
+    //const reader = new StreamReader(this.stream.getReader());
 
     const parser = new WARCParser();
 
-    const record = await parser.parse(reader);
+    const record = await parser.parse(this.stream);
 
     if (!record) {
       console.log("No WARC Record Loaded for: " + url);

@@ -1,4 +1,4 @@
-import { StreamReader } from './warcio';
+import { StreamReader } from 'warcio';
 
 const decoder = new TextDecoder("utf-8");
 

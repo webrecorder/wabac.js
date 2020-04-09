@@ -1,6 +1,6 @@
 {
   "name": "wabac",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "main": "index.js",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
@@ -13,6 +13,7 @@
     "pako": "^1.0.10",
     "parse5-html-rewriting-stream": "^5.1.0",
     "unescape-js": "^1.1.4",
+    "warcio": "^1.0.3",
     "wbn": "^0.0.3",
     "web-streams-node": "^0.4.0"
   },

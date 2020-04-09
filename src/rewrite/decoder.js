@@ -4,7 +4,7 @@ import brotliDecode from 'brotli/decompress';
 
 import { Inflate } from 'pako';
 
-import { StreamReader } from '../warcio';
+import { StreamReader } from 'warcio';
 
 
 // ===========================================================================

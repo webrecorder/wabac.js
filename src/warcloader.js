@@ -1,6 +1,6 @@
 import { makeHeaders, tsToDate } from './utils.js';
 
-import { StreamReader, WARCParser } from './warcio';
+import { WARCParser } from 'warcio';
 
 
 // ===========================================================================
@@ -244,15 +244,11 @@ class WARCLoader {
   async load(db) {
     this.db = db;
 
-    const reader = new StreamReader(this.stream.getReader());
-
     const parser = new WARCParser();
 
-    let record = null;
-
-    while (record = await parser.parse(reader)) {
+    for await (const record of parser.iterRecords(this.stream)) {
       await record.readFully();
-      this.index(record);      
+      this.index(record);
     }
 
     this.indexDone();
