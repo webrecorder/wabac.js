@@ -5,22 +5,22 @@ import unescapeJs from 'unescape-js';
 // ===========================================================================
 const DEFAULT_RULES = [
   {
-    contains: "youtube.com",
+    contains: ["youtube.com", "youtube-nocookie.com"],
     rxRules: [
       [/ytplayer.load\(\);/, ruleReplace('ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""; {0}')],
       [/yt\.setConfig.*PLAYER_CONFIG.*args":\s*{/, ruleReplace('{0} "dash": "0", dashmpd: "", ')],
-      [/"player":.*"args":{/, ruleReplace('{0}"dash":"0","dashmpd":"",')],
+      [/(?:"player":|ytplayer\.config).*"args":\s*{/, ruleReplace('{0}"dash":"0","dashmpd":"",')],
     ]
   },
   {
-    contains: "vimeo.com/video",
+    contains: ["vimeo.com/video"],
     rxRules: [
       [/\"dash\"[:]/, ruleReplace('"__dash":')],
       [/\"hls\"[:]/, ruleReplace('"__hls":')],
     ]
   },
   {
-    contains: "facebook.com/",
+    contains: ["facebook.com/"],
     rxRules: [
       //[/"dash_manifest":"?.*dash_prefetched_representation_ids"?:(\[.*\]|[^,]+)/, ruleRewriteFBDash],
       [/"dash_manifest":"?.*?dash_prefetched_representation_ids"?:(?:null|(?:.+?\]))/, ruleRewriteFBDash],
@@ -82,7 +82,7 @@ class DomainSpecificRuleSet
   _initRules() {
     this.rewriters = new Map();
 
-    for (let rule of this.rwRules) {
+    for (const rule of this.rwRules) {
       if (rule.rxRules) {
         this.rewriters.set(rule, new this.RewriterCls(rule.rxRules));
       }
@@ -91,11 +91,17 @@ class DomainSpecificRuleSet
   }
 
   getRewriter(url) {
-    for (let rule of this.rwRules) {
-      if (rule.contains && url.indexOf(rule.contains) >= 0) {
-        const rewriter = this.rewriters.get(rule);
-        if (rewriter) {
-          return rewriter;
+    for (const rule of this.rwRules) {
+      if (!rule.contains) {
+        continue;
+      }
+
+      for (const containsStr of rule.contains) {
+        if (url.indexOf(containsStr) >= 0) {
+          const rewriter = this.rewriters.get(rule);
+          if (rewriter) {
+            return rewriter;
+          }
         }
       }
     }

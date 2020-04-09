@@ -102,3 +102,34 @@ http://example.com/video_1.m3u8`;
   t.is(result, expected, result);
 });
 
+
+test('YT rewrite', async t => {
+  const content = `
+<html>
+<body>
+<script>
+const test1 = {"player": {"args": {"some": "data"}}};
+const test2 = yt.setConfig(PLAYER_CONFIG: {"args": {"other":"data"}});
+const test3 = ytplayer.config = {"args": {"some": "data"}};
+const test4 = ytplayer.load(); 
+</script>
+</body>
+</html>
+`;
+
+  const expected = `\
+<html>
+<body>
+<script>
+const test1 = {"player": {"args": {"dash":"0","dashmpd":"","some": "data"}}};
+const test2 = yt.setConfig(PLAYER_CONFIG: {"args": { "dash": "0", dashmpd: "", "other":"data"}});
+const test3 = ytplayer.config = {"args": {"dash":"0","dashmpd":"","some": "data"}};
+const test4 = ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""; ytplayer.load(); 
+</script>
+</body>
+</html>
+`;
+
+  const result = await doRewrite({content, contentType: "text/html", url: 'https://youtube.com/example.html'});
+  t.is(result, expected);
+});
