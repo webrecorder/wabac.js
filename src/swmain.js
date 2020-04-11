@@ -4,6 +4,7 @@ import { Collection } from './collection.js';
 
 import { ArchiveDB } from './archivedb.js';
 import { RemoteArchiveDB } from './remotearchivedb';
+import { ZipRemoteArchiveDB } from './ziparchive';
 
 import { HARLoader } from './harloader';
 import { WBNLoader } from './wbnloader';
@@ -110,6 +111,10 @@ class SWReplay {
         store = db ? db : new RemoteArchiveDB(data.config.dbname, data.config.remotePrefix);
         break;
 
+      case "remotezip":
+        store = db ? db : new ZipRemoteArchiveDB(data.config.dbname, data.config.remoteUrl);
+        break;
+
       case "remoteproxy":
         store = new RemoteProxySource(data.config);
         break;
@@ -148,13 +153,23 @@ class SWReplay {
       const file = data.files[0];
 
       let loader = null;
+      let resp = null;
 
       if (file.url) {
         type = "archive";
         config.dbname = "db:" + name;
         config.sourceName = file.name;
 
-        const resp = await self.fetch(file.url);
+        if (file.name.endsWith(".wacz") || file.name.endsWith(".zip")) {
+          config.remoteUrl = file.url;
+          db = new ZipRemoteArchiveDB(config.dbname, config.remoteUrl);
+          type = "remotezip";
+          decode = true;
+          // is its own loader
+          loader = db;
+        } else {
+          resp = await self.fetch(file.url);
+        }
 
         if (file.name.endsWith(".har")) {
           loader = new HARLoader(await resp.json());
@@ -165,13 +180,15 @@ class SWReplay {
 
         } else if (file.name.endsWith(".wbn")) {
           loader = new WBNLoader(await resp.arrayBuffer());
+
         } else if (file.name.endsWith(".cdxj") || file.name.endsWith(".cdx")) {
           config.remotePrefix = data.remotePrefix || file.url.slice(0, file.url.lastIndexOf("/") + 1);
           loader = new CDXLoader(new StreamReader(resp.body.getReader()));
           decode = true;
           type = "remotewarc";
           db = new RemoteArchiveDB(config.dbname, config.remotePrefix);
-        } else {
+
+        } else if (!type) {
           return null;
         }
 

@@ -1,6 +1,6 @@
 import { ArchiveDB } from './archivedb';
-import { WARCLoader } from './warcloader';
-import { WARCParser, concatChunks } from 'warcio';
+import { SingleRecordWARCLoader } from './warcloader';
+import { concatChunks } from 'warcio';
 
 
 // ===========================================================================
@@ -12,7 +12,7 @@ class RemoteArchiveDB extends ArchiveDB
     this.remoteUrlPrefix = remoteUrlPrefix;
   }
 
-  async loadSource(source, url) {
+  async loadSource(source) {
     let response = null;
 
     if (typeof(source) === "string") {
@@ -22,17 +22,13 @@ class RemoteArchiveDB extends ArchiveDB
       const headers = new Headers();
       const url = source.url ? source.url : new URL(source.path, this.remoteUrlPrefix).href;
 
-      //console.log("Fetching: " + url);
-
       headers.set("Range", `bytes=${start}-${start + length - 1}`);
       response = await self.fetch(url, {headers});
     } else {
       return null;
     }
 
-    const loader = new SingleRecordWARCLoader(await response.body);
-    await loader.load(this, url);
-    return loader.awaitResource;
+    return response.body;
   }
 
   async loadPayload(cdx, depth = 0) {
@@ -43,10 +39,12 @@ class RemoteArchiveDB extends ArchiveDB
       }
     }
 
-    const remote = await this.loadSource(cdx.source, cdx.url);
+    const responseStream = await this.loadSource(cdx.source);
 
+    const remote = await new SingleRecordWARCLoader(responseStream).load();
+ 
     if (!remote) {
-      //console.log("Record not found for: " + JSON.stringify(cdx.source));
+      console.log(`No WARC Record Loaded for: ${cdx.url}`);
       return null;
     }
 
@@ -220,41 +218,6 @@ class PayloadBufferingReader
     while (res = await this.read(), res.value && !res.done) {
       yield res.value;
     }
-  }
-}
-
-
-// ===========================================================================
-class SingleRecordWARCLoader extends WARCLoader
-{
-  constructor(ab) {
-    super(ab);
-    this.detectPages = false;
-    this.done = null;
-    this.awaitResource = new Promise((resolve) => this.done = resolve);
-  }
-
-  addPage() {}
-
-  async load(db, url) {
-    //const reader = new StreamReader(this.stream.getReader());
-
-    const parser = new WARCParser();
-
-    const record = await parser.parse(this.stream);
-
-    if (!record) {
-      console.log("No WARC Record Loaded for: " + url);
-      return null;
-    }
-
-    const entry = this.parseRecords(record, null);
-
-    if (!entry || record.warcType === "revisit") {
-      await record.readFully();
-    }
-
-    this.done(entry);
   }
 }
 

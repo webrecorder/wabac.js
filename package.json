@@ -22,7 +22,7 @@
     "ava": "^3.2.0",
     "esm": "^3.2.25",
     "fake-indexeddb": "^3.0.0",
-    "node-fetch": "^2.6.0",
+    "test-listen": "^1.1.0",
     "web-streams-polyfill": "^2.1.0",
     "webpack": "^4.41.2",
     "webpack-cli": "^3.3.2",

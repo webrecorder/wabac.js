@@ -13,7 +13,7 @@ async function decodeResponse(response, contentEncoding, transferEncoding, noRW)
   // use the streaming decoder if gzip only and no rewriting
   if (response.stream && noRW &&
       ((contentEncoding === "gzip" && !transferEncoding) || 
-      (!contentEncoding && trasnferEncoding === "gzip"))) {
+      (!contentEncoding && transferEncoding === "gzip"))) {
     response.setContent(new StreamReader(response.stream));
     return response;
   }

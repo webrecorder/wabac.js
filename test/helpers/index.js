@@ -2,13 +2,17 @@ import test from 'ava';
 
 import { Rewriter } from '../../src/rewrite';
 
-import { Headers, Request, Response } from '@titelmedia/node-fetch';
+import fetch from '@titelmedia/node-fetch';
 import { ReadableStream } from "web-streams-polyfill/es6";
 import { ArchiveResponse } from '../../src/response';
 
 import { StreamReader } from 'warcio';
 
+const { Headers, Request, Response } = fetch;
+
+
 global.Headers = Headers;
+global.fetch = fetch;
 
 const encoder = new TextEncoder("utf-8");
 

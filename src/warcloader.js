@@ -293,6 +293,35 @@ function isPage(url, status, mime) {
 }
 
 
+// ===========================================================================
+class SingleRecordWARCLoader extends WARCLoader
+{
+  constructor(stream) {
+    super(stream);
+    this.detectPages = false;
+  }
+
+  addPage() {}
+
+  async load() {
+    const parser = new WARCParser();
+
+    const record = await parser.parse(this.stream);
+
+    if (!record) {
+      return null;
+    }
+
+    const entry = this.parseRecords(record, null);
+
+    if (!entry || record.warcType === "revisit") {
+      await record.readFully();
+    }
+
+    return entry;
+  }
+}
 
 
-export { WARCLoader, isPage };
+
+export { WARCLoader, SingleRecordWARCLoader, isPage };
