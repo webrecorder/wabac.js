@@ -3,10 +3,8 @@ import test from 'ava';
 import { Rewriter } from '../../src/rewrite';
 
 import fetch from '@titelmedia/node-fetch';
-import { ReadableStream } from "web-streams-polyfill/es6";
+import { ReadableStream } from "web-streams-node";
 import { ArchiveResponse } from '../../src/response';
-
-import { StreamReader } from 'warcio';
 
 const { Headers, Request, Response } = fetch;
 

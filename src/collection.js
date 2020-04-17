@@ -69,7 +69,9 @@ class Collection {
 
       content = '<html><body><h2>Available Pages</h2><ul>'
 
-      for (const page of this.store.getAllPages()) {
+      const pages = await this.store.getAllPages();
+
+      for (const page of pages) {
         let href = this.appPrefix;
         if (page.date) {
           href += page.date + "/";

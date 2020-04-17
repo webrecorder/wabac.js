@@ -12,7 +12,7 @@ import serveStatic from 'serve-static';
 
 import { ZipRangeReader } from '../src/ziparchive';
 
-import { WARCParser, StreamReader } from 'warcio';
+import { WARCParser } from 'warcio';
 
 
 const decoder = new TextDecoder("utf-8");
@@ -90,10 +90,8 @@ test('load test.zip WARC.GZ record', async t => {
 
   const reader = await zipreader.loadWARC('example.warc.gz', 784, 1228);
 
-  const warcreader = new StreamReader(reader);
-
-  const parser = new WARCParser();
-  const record = await parser.parse(warcreader);
+  const parser = new WARCParser(reader);
+  const record = await parser.parse();
 
   t.is(record.warcType, "response");
   t.is(record.warcTargetURI, "http://example.com/");
@@ -101,8 +99,7 @@ test('load test.zip WARC.GZ record', async t => {
 
   t.is(record.httpHeaders.headers.get("Content-Type"), "text/html");
 
-  //await record.readFully()
-  const line = await new StreamReader(record.stream).readline();
+  const line = await record.readline();
   t.is(line, '<!doctype html>\n');
 });
 
@@ -111,10 +108,8 @@ test('load test.zip WARC record', async t => {
 
   const reader = await zipreader.loadWARC('example-iana.org-chunked.warc', 405, 7970);
 
-  const warcreader = new StreamReader(reader);
-
-  const parser = new WARCParser();
-  const record = await parser.parse(warcreader);
+  const parser = new WARCParser(reader);
+  const record = await parser.parse();
 
   t.is(record.warcType, "response");
   t.is(record.warcTargetURI, "http://www.iana.org/");
@@ -124,15 +119,15 @@ test('load test.zip WARC record', async t => {
 
   let text = "";
   let count = 0;
-  for await (const line of new StreamReader(record.stream).iterLines()) {
-    text += line;
+  for await (const line of record.iterLines()) {
+    text += line.trimLeft();
     if (count++ === 3) break;
   }
   t.is(text, `\
-001c37\r
 <!doctype html>
 <html>
 <head>
+<title>Internet Assigned Numbers Authority</title>
 `);
 
 });

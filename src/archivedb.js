@@ -19,6 +19,8 @@ class ArchiveDB {
     this.initing = this.init();
     this.version = 1;
 
+    this.useRefCounts = true;
+
     this.allowRepeats = true;
     this.repeatTracker = this.allowRepeats ? new RepeatTracker() : null;
     this.fuzzyPrefixSearch = true;
@@ -134,41 +136,39 @@ class ArchiveDB {
   }
 
   async addResources(datas) {
-    let tx = this.db.transaction(["digestRef", "payload"], "readwrite");
-
-    for (const data of datas) {
-      await this.dedupResource(data, tx);
-    }
-
-    await tx.done;
-
-    tx = this.db.transaction("resources", "readwrite");
-
     const revisits = [];
+    const regulars = [];
+
+    //let tx = this.db.transaction(["digestRef", "payload"], "readwrite");
 
     for (const data of datas) {
       if (data.mime === "warc/revisit") {
         revisits.push(data);
-        continue;
+      } else {
+        regulars.push(data);
       }
+
+      //await this.dedupResource(data, tx);
+    }
+
+    //await tx.done;
+
+    const tx = this.db.transaction("resources", "readwrite");
+
+    for (const data of revisits) {
+      tx.store.put(data);
+    }
+
+    for (const data of regulars) {
+      tx.store.put(data);
 
       this._addUrlFuzzy(data, tx);
     }
 
     await tx.done;
-
-    for (const revisit of revisits) {
-      try {
-        await this.db.add("resources", revisit);
-      } catch (e) {
-        console.log("Skip Duplicate revisit for: " + revisit.url);
-      }
-    }
   }
 
   async _addUrlFuzzy(data, tx) {
-    tx.store.put(data);
-
     if (data.status >= 200 && data.status < 300 && data.status != 204) {
       for await (const fuzzyUrl of fuzzyMatcher.fuzzyUrls(data.url)) {
         if (fuzzyUrl === data.url) {
@@ -206,6 +206,8 @@ class ArchiveDB {
     }
 
     const tx = this.db.transaction("resources", "readwrite");
+
+    tx.store.put(data);
 
     this._addUrlFuzzy(data, tx);
 
@@ -281,7 +283,11 @@ class ArchiveDB {
 
   async loadPayload(result) {
     if (result.digest && !result.payload) {
-      const { payload } = await this.db.get("payload", result.digest);
+      const payloadRes = await this.db.get("payload", result.digest);
+      if (!payloadRes) {
+        return null;
+      }
+      const { payload } = payloadRes;
       return payload;
     }
 
@@ -386,7 +392,7 @@ class ArchiveDB {
       if (ref && ref.count >= 1) {
         digestRefStore.put(ref);
       } else {
-        size += ref.size;
+        size += ref ? ref.size : 0;
         digestRefStore.delete(digest);
         tx2.objectStore("payload").delete(digest);
       }

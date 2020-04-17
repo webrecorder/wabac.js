@@ -18,5 +18,7 @@ module.exports = {
   devServer: {
     compress: true,
     port: 9990,
+    open: false,
+    staticOptions: { acceptRanges: true },
   }
 };

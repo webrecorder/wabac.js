@@ -13,7 +13,7 @@ import { CDXLoader } from './cdxloader';
 
 import { RemoteProxySource, LiveAccess } from './remoteproxy';
 
-import { StreamReader } from 'warcio';
+import { AsyncIterReader } from 'warcio';
 
 //import { LiveCache } from './live.js';
 import { notFound, isAjaxRequest } from './utils.js';
@@ -92,7 +92,7 @@ class SWReplay {
     const allColls = await this.colldb.getAll("colls");
 
     for (const data of allColls) {
-      this.collections[data.name] = await this.loadColl(data);
+      await this.loadColl(data);
     }
 
     return true;
@@ -104,7 +104,6 @@ class SWReplay {
     switch (data.type) {
       case "archive":
         store = db ? db : new ArchiveDB(data.config.dbname);
-        await store.initing;
         break;
 
       case "remotewarc":
@@ -125,7 +124,12 @@ class SWReplay {
     }
 
     if (!store) {
+      console.log("no store found: " + data.type);
       return null;
+    }
+
+    if (store.initing) {
+      await store.initing;
     }
 
     const name = data.name;
@@ -135,7 +139,9 @@ class SWReplay {
     const prefix = this.replayPrefix;
     const rootPrefix = this.prefix;
 
-    return new Collection({name, store, prefix, rootPrefix, staticPrefix, config});
+    const coll = new Collection({name, store, prefix, rootPrefix, staticPrefix, config});
+    this.collections[name] = coll;
+    return coll;
   }
 
   async addCollection(data) {
@@ -183,7 +189,7 @@ class SWReplay {
 
         } else if (file.name.endsWith(".cdxj") || file.name.endsWith(".cdx")) {
           config.remotePrefix = data.remotePrefix || file.url.slice(0, file.url.lastIndexOf("/") + 1);
-          loader = new CDXLoader(new StreamReader(resp.body.getReader()));
+          loader = new CDXLoader(new AsyncIterReader(resp.body.getReader()));
           decode = true;
           type = "remotewarc";
           db = new RemoteArchiveDB(config.dbname, config.remotePrefix);
@@ -211,8 +217,7 @@ class SWReplay {
 
     const collData = {name, type, config};
     await this.colldb.add("colls", collData);
-    this.collections[name] = await this.loadColl(collData, db);
-    return this.collections[name];
+    return await this.loadColl(collData, db);
   }
 
   async hasCollection(name) {
@@ -293,6 +298,10 @@ class SWReplay {
   async doListAll(source) {
     const msgData = [];
     for (const coll of Object.values(this.collections)) {
+      if (!coll || !coll.store) {
+        continue;
+      }
+
       const pageList = await coll.store.getAllPages();
   
       msgData.push({

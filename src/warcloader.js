@@ -5,8 +5,9 @@ import { WARCParser } from 'warcio';
 
 // ===========================================================================
 class WARCLoader {
-  constructor(stream) {
-    this.stream = stream;
+  constructor(reader, abort = null) {
+    this.reader = reader;
+    this.abort = abort;
 
     this.anyPages = false;
 
@@ -132,21 +133,21 @@ class WARCLoader {
     let cl = 0;
     let mime = "";
 
-    if (record.httpInfo) {
-      status = Number(record.httpInfo.statusCode) || 200;
+    if (record.httpHeaders) {
+      status = Number(record.httpHeaders.statusCode) || 200;
 
       // skip empty responses
       if (status === 204) {
         return null;
       }
 
-      if (reqRecord && reqRecord.httpInfo.method === "OPTIONS") {
+      if (reqRecord && reqRecord.httpHeaders.verb === "OPTIONS") {
         return null;
       }
  
-      statusText = record.httpInfo.statusReason;
+      statusText = record.httpHeaders.statusText;
 
-      headers = makeHeaders(record.httpInfo.headers);
+      headers = makeHeaders(record.httpHeaders.headers);
 
       //if (!reqRecord && !record.content.length &&
       //    (headers.get("access-control-allow-methods") || headers.get("access-control-allow-credentials"))) {
@@ -187,9 +188,9 @@ class WARCLoader {
       cl = record.warcContentLength;
     }
 
-    if (reqRecord && reqRecord.httpInfo.headers) {
+    if (reqRecord && reqRecord.httpHeaders.headers) {
       try {
-        const reqHeaders = new Headers(reqRecord.httpInfo.headers);
+        const reqHeaders = new Headers(reqRecord.httpHeaders.headers);
         const cookie = reqHeaders.get("cookie");
         if (cookie) {
           headers.set("x-wabac-preset-cookie", cookie);
@@ -228,9 +229,9 @@ class WARCLoader {
     const digest = record.warcPayloadDigest;
 
     const payload = record.payload;
-    const stream = payload ? null : record.stream;
+    const reader = payload ? null : record.reader;
 
-    const entry = {url, ts, status, mime, respHeaders, digest, payload, stream}
+    const entry = {url, ts, status, mime, respHeaders, digest, payload, reader};
 
     if (record.warcHeader("WARC-JSON-Metadata")) {
       try {
@@ -241,12 +242,25 @@ class WARCLoader {
     return entry;
   }
 
+  filterRecord(record) {
+    return null;
+  }
+
   async load(db) {
     this.db = db;
 
-    const parser = new WARCParser();
+    const parser = new WARCParser(this.reader);
 
-    for await (const record of parser.iterRecords(this.stream)) {
+    for await (const record of parser) {
+      const skipMode = this.filterRecord(record);
+      if (skipMode === "done") {
+        if (this.abort) {
+          this.abort.abort();
+        }
+        break;
+      } else if (skipMode === "skip") {
+        continue;
+      }
       await record.readFully();
       this.index(record);
     }
@@ -296,17 +310,15 @@ function isPage(url, status, mime) {
 // ===========================================================================
 class SingleRecordWARCLoader extends WARCLoader
 {
-  constructor(stream) {
-    super(stream);
+  constructor(reader) {
+    super(reader);
     this.detectPages = false;
   }
 
   addPage() {}
 
   async load() {
-    const parser = new WARCParser();
-
-    const record = await parser.parse(this.stream);
+    const record = await new WARCParser(this.reader).parse();
 
     if (!record) {
       return null;
@@ -323,5 +335,14 @@ class SingleRecordWARCLoader extends WARCLoader
 }
 
 
+// ===========================================================================
+class WARCInfoOnlyWARCLoader extends WARCLoader
+{
+  filterRecord(record) {
+    if (record.warcType != "warcinfo") {
+      return "done";
+    }
+  }
+}
 
-export { WARCLoader, SingleRecordWARCLoader, isPage };
+export { WARCLoader, SingleRecordWARCLoader, isPage, WARCInfoOnlyWARCLoader };

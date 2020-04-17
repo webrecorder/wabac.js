@@ -1,6 +1,6 @@
 import { ArchiveDB } from './archivedb';
 import { SingleRecordWARCLoader } from './warcloader';
-import { concatChunks } from 'warcio';
+import { BaseAsyncIterReader } from 'warcio';
 
 
 // ===========================================================================
@@ -10,6 +10,7 @@ class RemoteArchiveDB extends ArchiveDB
     super(name);
 
     this.remoteUrlPrefix = remoteUrlPrefix;
+    this.useRefCounts = false;
   }
 
   async loadSource(source) {
@@ -90,23 +91,23 @@ class RemoteArchiveDB extends ArchiveDB
       return payload;
     }
 /*
-    if (remote.stream) {
+    if (remote.reader) {
       if (getRewriteMode({url: cdx.url, mime: cdx.mime}) || cdx.source && (cdx.source.length && cdx.source.length < 100000)) { 
-        remote.payload = await remote.stream.readFully();
+        remote.payload = await remote.reader.readFully();
       } else {
-        console.log(`Keep stream for ${cdx.url} size ${cdx.source.length}`);
+        console.log(`Keep reader for ${cdx.url} size ${cdx.source.length}`);
       }
     }
 */
     const digest = remote.digest;
 
-    if (remote.stream && digest) {
-      remote.stream = new PayloadBufferingReader(this, remote.stream, digest, cdx.url);
+    if (remote.reader && digest) {
+      remote.reader = new PayloadBufferingReader(this, remote.reader, digest, cdx.url);
     }
 
     payload = remote.payload;
 
-    if (!payload && !remote.stream) {
+    if (!payload && !remote.reader) {
       return null;
     }
 
@@ -132,24 +133,31 @@ class RemoteArchiveDB extends ArchiveDB
       return payload;
     }
 
-    return remote.stream;
+    return remote.reader;
   }
 
   async commitPayload(payload, digest) {
-    const tx = this.db.transaction(["payload", "digestRef"], "readwrite");
-
     if (!payload) {
       return;
     }
 
-    try {
-      const payloadEntry = await tx.objectStore("payload").get(digest);
-      payloadEntry.payload = payload;
-      tx.objectStore("payload").put(payloadEntry);
+    const tx = this.db.transaction(["payload", "digestRef"], "readwrite");
 
-      const ref = await tx.objectStore("digestRef").get(digest);
-      ref.size = payload.length;
-      tx.objectStore("digestRef").put(ref);
+    try {
+      //const payloadEntry = await tx.objectStore("payload").get(digest);
+      //payloadEntry.payload = payload;
+      tx.objectStore("payload").put({payload, digest});
+
+      if (this.useRefCounts) {
+        const ref = await tx.objectStore("digestRef").get(digest);
+        if (ref) {
+          ref.size = payload.length;
+          tx.objectStore("digestRef").put(ref);
+        }
+      }
+
+      await tx.done;
+
     } catch (e) {
       console.warn('Payload Commit Error: ' + e);
     }
@@ -158,11 +166,12 @@ class RemoteArchiveDB extends ArchiveDB
 
 
 // ===========================================================================
-class PayloadBufferingReader
+class PayloadBufferingReader extends BaseAsyncIterReader
 {
-  constructor(db, stream, digest, url = "") {
+  constructor(db, reader, digest, url = "") {
+    super();
     this.db = db;
-    this.stream = stream;
+    this.reader = reader;
 
     this.digest = digest;
     this.url = url;
@@ -172,52 +181,41 @@ class PayloadBufferingReader
     this.fullbuff = null;
 
     this.commit = true;
-    this.readingFully = false;
+    this.alreadyRead = false;
   }
 
   setLimitSkip(limit = -1, skip = 0) {
     if (limit != -1 && skip > 0) {
       this.commit = false;
     }
-    this.stream.setLimitSkip(limit, skip);
+    this.reader.setLimitSkip(limit, skip);
   }
 
-  async read(fullRead = false) {
-    let res = await this.stream.read();
-    const chunk = res.value;
-
-    if (!fullRead && !this.commit) {
-      return {value: chunk, done: !chunk};
+  async* [Symbol.asyncIterator]() {
+    if (this.alreadyRead) {
+      return;
     }
 
-    if (chunk) {
+    for await (const chunk of this.reader) {
       this.chunks.push(chunk);
       this.size += chunk.byteLength;
-    } else {
-      this.fullbuff = concatChunks(this.chunks, this.size);
 
-      if (this.commit) {
-        await this.db.commitPayload(this.fullbuff, this.digest);
-      }
+      yield chunk;
     }
 
-    return {value: chunk, done: !chunk};
+    this.fullbuff = BaseAsyncIterReader.concatChunks(this.chunks, this.size);
+
+    if (this.commit) {
+      await this.db.commitPayload(this.fullbuff, this.digest);
+    }
+
+    this.chunks = [];
+    this.alreadyRead = true;
   }
 
   async readFully() {
-    let chunk = null;
-    let res = null;
-
-    while (res = await this.read(true), chunk = res.value);
-
+    for await (const chunk of this);
     return this.fullbuff;
-  }
-
-  async* iterChunks() {
-    let res = null;
-    while (res = await this.read(), res.value && !res.done) {
-      yield res.value;
-    }
   }
 }
 

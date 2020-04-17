@@ -4,17 +4,17 @@ import brotliDecode from 'brotli/decompress';
 
 import { Inflate } from 'pako';
 
-import { StreamReader } from 'warcio';
+import { AsyncIterReader } from 'warcio';
 
 
 // ===========================================================================
 async function decodeResponse(response, contentEncoding, transferEncoding, noRW) {
 
   // use the streaming decoder if gzip only and no rewriting
-  if (response.stream && noRW &&
+  if (response.reader && noRW &&
       ((contentEncoding === "gzip" && !transferEncoding) || 
       (!contentEncoding && transferEncoding === "gzip"))) {
-    response.setContent(new StreamReader(response.stream));
+    response.setContent(new AsyncIterReader(response.reader));
     return response;
   }
 

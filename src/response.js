@@ -1,4 +1,4 @@
-import { StreamReader } from 'warcio';
+import { BaseAsyncIterReader, AsyncIterReader } from 'warcio';
 
 const decoder = new TextDecoder("utf-8");
 
@@ -6,7 +6,7 @@ class ArchiveResponse
 {
 
   static fromResponse({url, response, date, noRW, isLive}) {
-    const payload = new StreamReader(response.body.getReader(), false);
+    const payload = new AsyncIterReader(response.body.getReader(), false);
     const status = response.status;
     const statusText = response.statusText;
     const headers = response.headers;
@@ -15,11 +15,11 @@ class ArchiveResponse
   }
 
   constructor({payload, status, statusText, headers, url, date, extraOpts = null, noRW = false, isLive = false}) {
-    this.stream = null;
+    this.reader = null;
     this.buffer = null;
 
-    if (payload && payload.read) {
-      this.stream = payload;
+    if (payload && payload[Symbol.asyncIterator]) {
+      this.reader = payload;
     } else {
       this.buffer = payload;
     }
@@ -44,28 +44,28 @@ class ArchiveResponse
       return this.buffer;
     }
 
-    this.buffer = await this.stream.readFully();
+    this.buffer = await this.reader.readFully();
     return this.buffer;
   }
 
   async setContent(content) {
-    if (content.read) {
-      this.stream = content;
+    if (content instanceof BaseAsyncIterReader) {
+      this.reader = content;
       this.buffer = null;
     } else if (content.getReader) {
-      this.stream = new StreamReader(content.getReader());
+      this.reader = new AsyncIterReader(content.getReader());
       this.buffer = null;
     } else {
-      this.stream = null;
+      this.reader = null;
       this.buffer = content;
     }
   }
 
-  async* iterChunks() {
+  async* [Symbol.asyncIterator]() {
     if (this.buffer) {
       yield this.buffer;
-    } else if (this.stream) {
-      yield* this.stream.iterChunks();
+    } else if (this.reader) {
+      yield* this.reader;
     }
   }
 
@@ -76,8 +76,8 @@ class ArchiveResponse
 
     if (this.buffer) {
       length = this.buffer.length;
-    } else if (this.stream) {
-      //length = this.stream.length;
+    } else if (this.reader) {
+      //length = this.reader.length;
       length = Number(this.headers.get("content-length"));
 
       // if length is not known, keep as 200
@@ -99,9 +99,9 @@ class ArchiveResponse
     if (this.buffer) {
       this.buffer = this.buffer.slice(start, end + 1);
 
-    } else if (this.stream) {
+    } else if (this.reader) {
       if (start !== 0 || end !== (length - 1)) {
-        this.stream.setLimitSkip(end - start + 1, start);
+        this.reader.setLimitSkip(end - start + 1, start);
       }
     }
 
@@ -115,7 +115,7 @@ class ArchiveResponse
   }
 
   makeResponse() {
-    const body = this.stream ? streamingReader(this.stream) : this.buffer;
+    const body = this.reader ? this.reader.getReadableStream() : this.buffer;
 
     const response = new Response(body, {status: this.status,
                                          statusText: this.statusText,
@@ -123,31 +123,6 @@ class ArchiveResponse
     response.date = this.date;
     return response;
   }
-}
-
-
-// ===========================================================================
-function streamingReader(stream) {
-  let count = 0;
-
-  return new ReadableStream({
-    start(controller) {
-    },
-
-    pull(controller) {
-      return stream.read().then((res) => {
-        if (!res.value) {
-          controller.close();
-          return;
-        }
-        controller.enqueue(res.value);
-      });
-    },
-
-    cancel() {
-      console.warn("stream canceled!");
-    }
-  });
 }
 
 

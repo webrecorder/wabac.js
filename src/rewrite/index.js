@@ -482,7 +482,7 @@ class Rewriter {
       }
     });
 
-    for await (const chunk of response.iterChunks()) {
+    for await (const chunk of response) {
       buff.push(chunk);
       hasData = true;
     }

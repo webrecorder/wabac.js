@@ -2,14 +2,14 @@ import { tsToDate } from './utils';
 import { isPage } from './warcloader';
 
 
-const BATCH_SIZE = 1000;
+const BATCH_SIZE = 3000;
 
 
 // ===========================================================================
 class CDXLoader
 {
-  constructor(stream) {
-    this.stream = stream;
+  constructor(reader) {
+    this.reader = reader;
   }
 
   async load(db) {
@@ -22,7 +22,7 @@ class CDXLoader
 
     const promises = [];
 
-    for await (const origLine of this.stream.iterLines()) {
+    for await (const origLine of this.reader.iterLines()) {
       let cdx;
       let timestamp;
       let line = origLine.trimEnd();
