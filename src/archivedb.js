@@ -1,10 +1,11 @@
 "use strict";
 
-import { openDB } from 'idb/with-async-ittr.js';
+import { openDB, deleteDB } from 'idb/with-async-ittr.js';
 import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage } from './utils';
 import { fuzzyMatcher, fuzzyCompareUrls } from './fuzzymatcher';
 import { STATUS_CODES } from 'http';
 import { ArchiveResponse } from './response';
+import { getTS } from './utils';
 
 
 // ===========================================================================
@@ -38,10 +39,15 @@ class ArchiveDB {
     pageStore.createIndex("url", "url");
     pageStore.createIndex("date", "date");
 
+    const listStore = db.createObjectStore("pageLists", { keyPath: "id", autoIncrement: true});
+
+    const curatedPages = db.createObjectStore("curatedPages", { keyPath: "id", autoIncrement: true});
+    curatedPages.createIndex("listPages", ["list", "pos"]);
+
     const urlStore = db.createObjectStore("resources", { keyPath: ["url", "ts"] });
     urlStore.createIndex("pageId", "pageId");
     //urlStore.createIndex("ts", "ts");
-    urlStore.createIndex("pageMime", ["page", "mime"]);
+    urlStore.createIndex("mimeUrl", ["mime", "url"]);
 
     const payload = db.createObjectStore("payload", { keyPath: "digest", unique: true});
     const digestRef = db.createObjectStore("digestRef", { keyPath: "digest", unique: true});
@@ -63,7 +69,17 @@ class ArchiveDB {
   close() {
     if (this.db) {
       this.db.close();
+      this.db = null;
     }
+  }
+
+  async delete() {
+    this.close();
+    await deleteDB(this.name, {
+      blocked(reason) {
+        console.log("Unable to delete: " + reason);
+      }
+    });
   }
 
   async addPage(data) {
@@ -71,6 +87,27 @@ class ArchiveDB {
       data.id = this.newPageId();
     }
     return await this.db.put("pages", data);
+  }
+
+  async addPageList(data) {
+    const listData = {};
+    listData.title = data.title;
+    listData.desc = data.desc;
+    listData.slug = data.slug;
+
+    return await this.db.put("pageLists", listData);
+  }
+
+  async addCuratedPage(listId, pos, data) {
+    const pageData = {};
+    pageData.pos = pos;
+    pageData.list  = listId;
+    pageData.title = data.title;
+    pageData.url = data.url;
+    pageData.date = tsToDate(data.timestamp).toISOString();
+    pageData.page = data.id;
+
+    return await this.db.put("curatedPages", pageData);
   }
 
   //from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
@@ -349,9 +386,67 @@ class ArchiveDB {
     return result.result;
   }
 
+  resJson(res) {
+    const date = new Date(res.ts).toISOString();
+    return {
+      url: res.url,
+      date: date,
+      ts: getTS(date),
+      mime: res.mime,
+      status: res.status
+    }
+  }
 
   async resourcesByPage(pageId) {
     return this.db.getAllFromIndex("resources", "pageId", pageId);
+  }
+
+  async resourcesByUrlAndMime(url, mimes, count = 1000, prefix = true, fromUrl = "", fromTs = "") {
+    // if doing local mime filtering, need to remove count
+    const queryCount = mimes ? null : count;
+
+    const fullResults = await this.db.getAll("resources",
+      this.getLookupRange(url, prefix ? "prefix" : "exact", fromUrl, fromTs), queryCount);
+
+    mimes = mimes.split(",");
+    const results = [];
+
+    for (const res of fullResults) {
+      for (const mime of mimes) {
+        if (!mime || (res.mime && res.mime.startsWith(mime))) {
+          results.push(this.resJson(res));
+          if (results.length === count) {
+            return results;
+          }
+          break;
+        }
+      }
+    }
+
+    return results;
+  }
+
+  async resourcesByMime(mimes, count = 100, fromMime = "", fromUrl = "") {
+    mimes = mimes.split(",");
+    const results = [];
+    const lastChar = String.fromCharCode(0xFFFF);
+
+    const mimeStart = lastChar;
+
+    for (const mime of mimes) {
+      const start = (fromMime ? [fromMime,  fromUrl] : [mime, ""]);
+      const mimeEnd = mime + lastChar;
+
+      const range = IDBKeyRange.bound(start, [mimeEnd], true, true);
+
+      const fullResults = await this.db.getAllFromIndex("resources", "mimeUrl", range, count);
+      
+      for (const res of fullResults) {
+        results.push(this.resJson(res));
+      }
+    }
+
+    return results;
   }
 
   async deletePageResources(pageId) {
@@ -402,21 +497,39 @@ class ArchiveDB {
     return size;
   }
 
-  getLookupRange(url, type) {
+  getLookupRange(url, type, fromUrl, fromTs) {
+    let lower;
+    let upper;
+
     switch (type) {
       case "prefix":
-        let upper = url;
-        upper = upper.slice(0, -1) + String.fromCharCode(url.charCodeAt(url.length - 1) + 1);
-        return IDBKeyRange.bound([url], [upper], false, true);
+        upper = url.slice(0, -1) + String.fromCharCode(url.charCodeAt(url.length - 1) + 1);
+        lower = [url];
+        upper = [upper];
+        break;
 
       case "host":
         const origin = new URL(url).origin;
-        return IDBKeyRange.bound([origin + "/"], [origin + "0"], false, true);
+        lower = [origin + "/"];
+        upper = [origin + "0"];
+        break;
 
       case "exact":
       default:
-        return IDBKeyRange.bound([url], [url + "!"], false, true);
+        lower = [url];
+        upper = [url + "!"];
     }
+
+    let inclusive;
+
+    if (fromUrl) {
+      lower = [fromUrl, fromTs || ""];
+      inclusive = true;
+    } else {
+      inclusive = false;
+    }
+
+    return IDBKeyRange.bound(lower, upper, inclusive, true);
   }
 }
 

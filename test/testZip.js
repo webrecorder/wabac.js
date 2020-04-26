@@ -12,6 +12,8 @@ import serveStatic from 'serve-static';
 
 import { ZipRangeReader } from '../src/ziparchive';
 
+import { createReader } from '../src/loaders';
+
 import { WARCParser } from 'warcio';
 
 
@@ -52,23 +54,23 @@ test('test range', async t => {
 
 
 test('load test.zip entries', async t => {
-  const zipreader = new ZipRangeReader(t.context.baseUrl + "/example.zip");
+  const zipreader = new ZipRangeReader(createReader(t.context.baseUrl + "/example.zip"));
 
   const entries = await zipreader.load();
 
   t.deepEqual(entries, {
-    'collection.yaml': { deflate: true, uncompressedSize: 389, compressedSize: 188, localEntryOffset: 0 },
-    'indexes/index.cdxj': { deflate: true, uncompressedSize: 1025, compressedSize: 443, localEntryOffset: 327 },
-    'warcs/httpbin-resource.warc.gz': { deflate: false, uncompressedSize: 465, compressedSize: 465, localEntryOffset: 910 },
-    'warcs/example-iana.org-chunked.warc': { deflate: false, uncompressedSize: 8831, compressedSize: 8831, localEntryOffset: 1463 },
-    'warcs/example.warc.gz': { deflate: false, uncompressedSize: 3816, compressedSize: 3816, localEntryOffset: 10387 },
-    'warcs/iana.warc.gz': { deflate: false, uncompressedSize: 786828, compressedSize: 786828, localEntryOffset: 14282 }
+    'collection.yaml': { deflate: true, uncompressedSize: 389, compressedSize: 188, localEntryOffset: 0, filename: 'collection.yaml' },
+    'indexes/index.cdxj': { deflate: true, uncompressedSize: 1025, compressedSize: 443, localEntryOffset: 327, filename: 'indexes/index.cdxj' },
+    'warcs/httpbin-resource.warc.gz': { deflate: false, uncompressedSize: 465, compressedSize: 465, localEntryOffset: 910, filename: 'warcs/httpbin-resource.warc.gz' },
+    'warcs/example-iana.org-chunked.warc': { deflate: false, uncompressedSize: 8831, compressedSize: 8831, localEntryOffset: 1463, filename:  'warcs/example-iana.org-chunked.warc' },
+    'warcs/example.warc.gz': { deflate: false, uncompressedSize: 3816, compressedSize: 3816, localEntryOffset: 10387, filename: 'warcs/example.warc.gz' },
+    'warcs/iana.warc.gz': { deflate: false, uncompressedSize: 786828, compressedSize: 786828, localEntryOffset: 14282, filename: 'warcs/iana.warc.gz' }
   });
 });
 
 
 test('load test.zip file fully', async t => {
-  const zipreader = new ZipRangeReader(t.context.baseUrl + "/example.zip");
+  const zipreader = new ZipRangeReader(createReader(t.context.baseUrl + "/example.zip"));
 
   const reader = await zipreader.loadFile('indexes/index.cdxj');
 
@@ -86,7 +88,7 @@ org,iana,www)/ 20140126200624 {"url":"http://www.iana.org/","mime":"text/html","
 
 
 test('load test.zip WARC.GZ record', async t => {
-  const zipreader = new ZipRangeReader(t.context.baseUrl + "/example.zip");
+  const zipreader = new ZipRangeReader(createReader(t.context.baseUrl + "/example.zip"));
 
   const reader = await zipreader.loadWARC('example.warc.gz', 784, 1228);
 
@@ -104,7 +106,7 @@ test('load test.zip WARC.GZ record', async t => {
 });
 
 test('load test.zip WARC record', async t => {
-  const zipreader = new ZipRangeReader(t.context.baseUrl + "/example.zip");
+  const zipreader = new ZipRangeReader(createReader(t.context.baseUrl + "/example.zip"));
 
   const reader = await zipreader.loadWARC('example-iana.org-chunked.warc', 405, 7970);
 

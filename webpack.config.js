@@ -4,21 +4,22 @@ const webpack = require('webpack');
 module.exports = {
   mode: 'production',
   entry: {
-    'sw': './src/main.js',
-    'page': './page-build.js'
+    'sw': './src/sw.js',
   },
-  //devtool: 'inline-source-map',
   output: {
-    path: __dirname,
+    path: path.join(__dirname, 'dist'),
     filename: '[name].js',
     libraryTarget: 'global',
-    globalObject: 'self'
+    globalObject: 'self',
+    publicPath: '/dist/'
   },
 
   devServer: {
     compress: true,
     port: 9990,
+    headers: {'Service-Worker-Allowed': '/'},
     open: false,
-    staticOptions: { acceptRanges: true },
-  }
+    publicPath: '/dist/'
+  },
 };
+

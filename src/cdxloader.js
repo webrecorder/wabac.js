@@ -1,33 +1,96 @@
 import { tsToDate } from './utils';
-import { isPage } from './warcloader';
+import { WARCLoader } from './warcloader';
+
+import { CDXIndexer } from 'warcio';
 
 
 const BATCH_SIZE = 3000;
 
 
 // ===========================================================================
-class CDXLoader
+class CDXFromWARCLoader extends WARCLoader
 {
   constructor(reader) {
-    this.reader = reader;
+    super(reader);
+    this.cdxindexer = null;
+
+    this.batch = [];
+    this.count = 0;
   }
 
+  index(record, parser) {
+    if (record.warcType === "warcinfo") {
+      this.parseWarcInfo(record);
+      return;
+    }
+
+    if (record.warcType === "request") {
+      return;
+    }
+
+    if (!this.cdxindexer) {
+      this.cdxindexer = new CDXIndexer({}, null);
+    }
+
+    const cdx = this.cdxindexer.indexRecord(record, parser, "");
+
+    if (cdx) {
+      this.addCdx(cdx);
+    }
+  }
+
+  indexDone() {
+    if (this.batch.length > 0) {
+      this.promises.push(this.db.addResources(this.batch));
+    }
+
+    console.log(`Indexed ${this.count += this.batch.length} records`);
+  }
+
+  addCdx(cdx) {
+    const { url, mime, digest } = cdx;
+
+    const status = Number(cdx.status) || 200;
+
+    const date = tsToDate(cdx.timestamp);
+    const ts = date.getTime();
+
+    //if (this.detectPages && isPage(url, status, mime)) {
+    //  const title = url;
+    //  promises.push(this.db.addPage({url, date: date.toISOString(), title}));
+    //}
+
+    const source = {"path": cdx.filename,
+                    "start": Number(cdx.offset),
+                    "length": Number(cdx.length)};
+
+    const entry = {url, ts, status, digest: "sha1:" + digest, mime, loaded: false, source};
+    //console.log("Indexing: " + JSON.stringify(entry));
+
+    //promises.push(this.db.addResource(entry));
+    //await this.db.addResource(entry);
+    if (this.batch.length >= BATCH_SIZE) {
+      this.promises.push(this.db.addResources(this.batch));
+      this.batch = [];
+      console.log(`Read ${this.count += BATCH_SIZE} records`);
+    }
+
+    this.batch.push(entry);
+  }
+}
+
+// ===========================================================================
+class CDXLoader extends CDXFromWARCLoader
+{
   async load(db) {
     const start = new Date().getTime();
 
     this.db = db;
 
-    let count = 0;
-    let batch = [];
-
-    const promises = [];
-
     for await (const origLine of this.reader.iterLines()) {
       let cdx;
       let timestamp;
       let line = origLine.trimEnd();
-
-      //console.log("Indexing: " + line);
 
       if (!line.startsWith("{")) {
         const inx = line.indexOf(" {");
@@ -45,48 +108,18 @@ class CDXLoader
         continue;
       }
 
-      const { url, mime, digest } = cdx;
-
-      const status = Number(cdx.status) || 200;
-
-      const date = tsToDate(timestamp);
-      const ts = date.getTime();
-
-      if (isPage(url, status, mime)) {
-        const title = url;
-        promises.push(this.db.addPage({url, date: date.toISOString(), title}));
-      }
-
-      const source = {"path": cdx.filename,
-                      "start": Number(cdx.offset),
-                      "length": Number(cdx.length)};
-
-      const entry = {url, ts, status, digest: "sha1:" + digest, mime, loaded: false, source};
-      //console.log("Indexing: " + JSON.stringify(entry));
-
-      //promises.push(this.db.addResource(entry));
-      //await this.db.addResource(entry);
-      if (batch.length >= BATCH_SIZE) {
-        await this.db.addResources(batch);
-        batch = [];
-        console.log(`Read ${count += BATCH_SIZE} records`);
-      }
-
-      batch.push(entry);
+      cdx.timestamp = timestamp;
+      this.addCdx(cdx);
     }
 
-    if (batch.length > 0) {
-      promises.push(this.db.addResources(batch));
-    }
+    this.indexDone();
 
-    await Promise.all(promises);
-
-    console.log(`Indexed ${count += batch.length} records`);
+    await Promise.all(this.promises);
 
     console.log(new Date().getTime() - start);
   }
 }
 
 
-export { CDXLoader };
+export { CDXLoader, CDXFromWARCLoader };
 

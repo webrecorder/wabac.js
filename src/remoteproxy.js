@@ -93,20 +93,44 @@ class RemoteProxySource {
 
 // ===========================================================================
 class LiveAccess {
+  constructor(prefix) {
+    this.prefix = prefix || "";
+  }
+
   async getAllPages() {
     return [];
   }
 
   async getResource(request, prefix, event) {
-    const response = await fetch(request.url,
-              {method:  request.request.method,
+
+    const headers = new Headers(request.request.headers);
+    let referrer = request.request.referrer;
+    const inx = referrer.indexOf("/http", prefix.length - 1);
+    if (inx > 0) {
+      referrer = referrer.slice(inx + 1);
+      headers.set("X-Proxy-Referer", referrer);
+    }
+
+    let url = request.url;
+
+    if (url.startsWith("//")) {
+      try {
+        url = new URL(referrer).protocol + url;
+      } catch(e) {
+        url = "https:" + url;
+      }
+    }
+
+    const response = await fetch(this.prefix + url,
+              {method: request.request.method,
                body: request.request.body,
-               headers: request.request.headers,
-               //mode: request.request.mode,
+               headers,
                credentials: request.request.credentials,
+               mode: 'cors',
+               redirect: 'follow'
               });
 
-    return ArchiveResponse.fromResponse({url: request.url,
+    return ArchiveResponse.fromResponse({url,
             response,
             date: new Date(),
             noRW: false,

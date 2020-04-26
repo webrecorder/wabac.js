@@ -40,8 +40,6 @@ const baseRules = new DomainSpecificRuleSet(RxRewriter);
 // ===========================================================================
 class Rewriter {
   constructor(baseUrl, prefix, headInsertFunc = null, useBaseRules = false, decode = true) {
-    this.baseUrl = baseUrl;
-
     this.prefix = prefix || "";
 
     this.dsRules = useBaseRules ? baseRules : jsRules;
@@ -52,8 +50,13 @@ class Rewriter {
     this.schemeRelPrefix = this.prefix.slice(url.protocol.length);
 
     this.scheme = url.protocol;
+    this.baseUrl = this.checkUrlScheme(baseUrl);
 
     this.headInsertFunc = headInsertFunc;
+  }
+
+  checkUrlScheme(baseUrl) {
+    return baseUrl.startsWith("//") ? this.scheme + baseUrl : baseUrl;
   }
 
   getRewriteMode(request, response, url = "", mime = null) {
@@ -327,7 +330,7 @@ class Rewriter {
   }
 
   async rewriteHtml(response) {
-    if (!response.buffer && !response.stream) {
+    if (!response.buffer && !response.reader) {
       //console.warn("Missing response body for: " + response.url);
       return response;
     }
@@ -416,10 +419,7 @@ class Rewriter {
         case "base":
           const newBase = this.getAttr(startTag.attrs, "href");
           if (newBase && newBase.startsWith(this.prefix)) {
-            this.baseUrl = newBase.slice(this.prefix.length);
-            if (this.baseUrl.startsWith("//")) {
-              this.baseUrl = this.scheme + this.baseUrl;
-            }
+            this.baseUrl = this.checkUrlScheme(newBase.slice(this.prefix.length));
           }
           break;
 

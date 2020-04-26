@@ -1,4 +1,5 @@
 import { BaseAsyncIterReader, AsyncIterReader } from 'warcio';
+import { isNullBodyStatus } from './utils';
 
 const decoder = new TextDecoder("utf-8");
 
@@ -6,10 +7,27 @@ class ArchiveResponse
 {
 
   static fromResponse({url, response, date, noRW, isLive}) {
-    const payload = new AsyncIterReader(response.body.getReader(), false);
-    const status = response.status;
+    const payload = response.body ? new AsyncIterReader(response.body.getReader(), false) : null;
+    const status = Number(response.headers.get("x-redirect-status") || response.status);
     const statusText = response.statusText;
-    const headers = response.headers;
+    let headers = response.headers;
+
+    const cookie = (headers.get("x-proxy-set-cookie"));
+    if (cookie) {
+      const cookies = [];
+      cookie.split(",").forEach((c) => {
+        const cval = c.split(";", 1)[0].trim();
+        if (cval.indexOf("=") > 0) {
+          cookies.push(cval);
+        }
+      });
+
+      if (cookies.length) {
+        headers = new Headers(headers);
+        headers.set("x-wabac-preset-cookie", cookies.join(";"));
+        console.log("cookies", cookies.join(";"));
+      }
+    }
 
     return new ArchiveResponse({payload, status, statusText, headers, url, date, noRW, isLive});
   }
@@ -115,7 +133,10 @@ class ArchiveResponse
   }
 
   makeResponse() {
-    const body = this.reader ? this.reader.getReadableStream() : this.buffer;
+    let body = null;
+    if (!isNullBodyStatus(this.status)) {
+      body = this.reader ? this.reader.getReadableStream() : this.buffer;
+    }
 
     const response = new Response(body, {status: this.status,
                                          statusText: this.statusText,

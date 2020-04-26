@@ -1,28 +1,54 @@
 "use strict";
 
-import { Collection } from './collection.js';
+import { Collection } from './collection';
+import { CollectionLoader } from './loaders';
 
-import { ArchiveDB } from './archivedb.js';
-import { RemoteArchiveDB } from './remotearchivedb';
-import { ZipRemoteArchiveDB } from './ziparchive';
-
-import { HARLoader } from './harloader';
-import { WBNLoader } from './wbnloader';
-import { WARCLoader } from './warcloader';
-import { CDXLoader } from './cdxloader';
-
-import { RemoteProxySource, LiveAccess } from './remoteproxy';
-
-import { AsyncIterReader } from 'warcio';
-
-//import { LiveCache } from './live.js';
 import { notFound, isAjaxRequest } from './utils.js';
 import { StatsTracker } from './statstracker.js';
 
-import { deleteDB, openDB } from 'idb/with-async-ittr.js';
+import { API } from './api.js';
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
+
+
+// ===========================================================================
+class SWCollections extends CollectionLoader
+{
+  constructor(prefixes) {
+    super();
+    this.prefixes = prefixes;
+    this.colls = null;
+    this.inited = null;
+  }
+
+  _createCollection(opts) {
+    return new Collection(opts, this.prefixes);
+  }
+
+  loadAll(dbColl) {
+    this.colls = {};
+    this.inited = super.loadAll(dbColl);
+    return this.inited;
+  }
+
+  async getColl(name) {
+    if (!this.colls[name]) {
+      this.colls[name] = await this.loadColl(name);
+    }
+    return this.colls[name];
+  }
+
+  async deleteColl(name) {
+    if (this.colls[name]) {
+      await this.colls[name].store.delete();
+    }
+
+    await super.deleteColl(name);
+    delete this.colls[name];
+    return true;
+  }
+}
 
 
 // ===========================================================================
@@ -42,8 +68,16 @@ class SWReplay {
 
     this.staticPrefix = this.prefix + "static";
 
-    this.collections = {};
-    this._init_wait = this.initAllColls(sp.get("dbColl"));
+    const prefixes = {static: this.staticPrefix,
+                      root: this.prefix,
+                      main: this.replayPrefix
+                     };
+
+    this.collections = new SWCollections(prefixes);
+    this.collections.loadAll(sp.get("dbColl"));
+
+    this.api = new API(this.collections);
+    this.apiPrefix = this.replayPrefix + "api/";
 
     this.allowRewrittenCache = sp.get("allowCache") ? true : false;
 
@@ -63,259 +97,14 @@ class SWReplay {
     });
 
     self.addEventListener("message", (event) => {
-      this._handleMessage(event);
-    });
-  }
-
-  async initAllColls(dbColls) {
-    this.colldb = await openDB("collDB", 1, {
-      upgrade: (db, oldV, newV, tx) => {
-        db.createObjectStore("colls", {keyPath: "name"});
+      if (event.data.msg_type === "reload_all") {
+        this.collections.loadAll();
       }
     });
-
-    if (dbColls) {
-      for (const extraColl of dbColls.split(",")) {
-        const parts = extraColl.split(":");
-        if (parts.length === 2) {
-          const config = {dbname: parts[1], sourceName: parts[1], decode: false};
-          const collData = {name: parts[0], type: "archive", config};
-          console.log("Adding Coll: " + JSON.stringify(collData));
-          await this.colldb.put("colls", collData);
-        }
-      }
-    }
-
-    // live -- can only work if CORS disabled, eg. in extensions
-    //await this.colldb.put("colls", {name: "live", type: "live", config: {}});
-
-    const allColls = await this.colldb.getAll("colls");
-
-    for (const data of allColls) {
-      await this.loadColl(data);
-    }
-
-    return true;
-  }
-
-  async loadColl(data, db) {
-    let store = null;
-
-    switch (data.type) {
-      case "archive":
-        store = db ? db : new ArchiveDB(data.config.dbname);
-        break;
-
-      case "remotewarc":
-        store = db ? db : new RemoteArchiveDB(data.config.dbname, data.config.remotePrefix);
-        break;
-
-      case "remotezip":
-        store = db ? db : new ZipRemoteArchiveDB(data.config.dbname, data.config.remoteUrl);
-        break;
-
-      case "remoteproxy":
-        store = new RemoteProxySource(data.config);
-        break;
-
-      case "live":
-        store = new LiveAccess();
-        break;
-    }
-
-    if (!store) {
-      console.log("no store found: " + data.type);
-      return null;
-    }
-
-    if (store.initing) {
-      await store.initing;
-    }
-
-    const name = data.name;
-    const config = data.config;
-
-    const staticPrefix = this.staticPrefix;
-    const prefix = this.replayPrefix;
-    const rootPrefix = this.prefix;
-
-    const coll = new Collection({name, store, prefix, rootPrefix, staticPrefix, config});
-    this.collections[name] = coll;
-    return coll;
-  }
-
-  async addCollection(data) {
-    await this._init_wait;
-
-    const name = data.name;
-
-    let decode = false;
-    let type = null;
-    let config = {root: false};
-    let db = null;
-
-    if (data.files) {
-      // TODO: multiple files
-      const file = data.files[0];
-
-      let loader = null;
-      let resp = null;
-
-      if (file.url) {
-        type = "archive";
-        config.dbname = "db:" + name;
-        config.sourceName = file.name;
-
-        if (file.name.endsWith(".wacz") || file.name.endsWith(".zip")) {
-          config.remoteUrl = file.url;
-          db = new ZipRemoteArchiveDB(config.dbname, config.remoteUrl);
-          type = "remotezip";
-          decode = true;
-          // is its own loader
-          loader = db;
-        } else {
-          resp = await self.fetch(file.url);
-        }
-
-        if (file.name.endsWith(".har")) {
-          loader = new HARLoader(await resp.json());
-
-        } else if (file.name.endsWith(".warc") || file.name.endsWith(".warc.gz")) {
-          loader = new WARCLoader(await resp.body);
-          decode = true;
-
-        } else if (file.name.endsWith(".wbn")) {
-          loader = new WBNLoader(await resp.arrayBuffer());
-
-        } else if (file.name.endsWith(".cdxj") || file.name.endsWith(".cdx")) {
-          config.remotePrefix = data.remotePrefix || file.url.slice(0, file.url.lastIndexOf("/") + 1);
-          loader = new CDXLoader(new AsyncIterReader(resp.body.getReader()));
-          decode = true;
-          type = "remotewarc";
-          db = new RemoteArchiveDB(config.dbname, config.remotePrefix);
-
-        } else if (!type) {
-          return null;
-        }
-
-        if (!db) {
-          db = new ArchiveDB(config.dbname);
-        }
-        await db.initing;
-        await loader.load(db);
-      }
-      
-    } else if (data.remote) {
-      type = "remoteproxy";
-      config = data.remote;
-      config.sourceName = config.replayPrefix;
-    } else {
-      return null;
-    }
-
-    config.decode = decode;
-
-    const collData = {name, type, config};
-    await this.colldb.add("colls", collData);
-    return await this.loadColl(collData, db);
-  }
-
-  async hasCollection(name) {
-    await this._init_wait;
-
-    return this.collections[name] != undefined;
-  }
-
-  async deleteCollection(name) {
-    if (!await this.hasCollection(name)) {
-      return false;
-    }
-
-    if (this.collections[name].config.dbname) {
-      this.collections[name].store.close();
-      await deleteDB(this.collections[name].config.dbname, {
-        blocked(reason) {
-          console.log("Unable to delete: " + reason);
-        }
-      });
-    }
-
-    await this.colldb.delete("colls", name);
-    delete this.collections[name];
-    self.caches.delete(CACHE_PREFIX + name);
-    return true;
-  }
-
-  async _handleMessage(event) {
-    switch (event.data.msg_type) {
-      case "addColl":
-      {
-        const name = event.data.name; 
-        let coll = null;
-
-        if (await this.hasCollection(name)) {
-          if (!event.data.skipExisting) {
-            await this.deleteCollection(name);
-            coll = await this.addCollection(event.data);
-          } else {
-            coll = this.collections[name];
-          }
-        } else {
-          coll = await this.addCollection(event.data);
-        }
-
-        if (!coll) {
-          return;
-        }
-
-        event.source.postMessage({
-          "msg_type": "collAdded",
-          "prefix": coll.prefix,
-          "name": name
-        });
-
-        this.doListAll(event.source);
-        break;
-      }
-
-      case "removeColl":
-      {
-        const name = event.data.name;
-
-        if (await this.hasCollection(name)) {
-          await this.deleteCollection(name);
-          this.doListAll(event.source);
-        }
-        break;
-      }
-
-      case "listAll":
-        this.doListAll(event.source);
-        break;
-    }
-  }
-
-  async doListAll(source) {
-    const msgData = [];
-    for (const coll of Object.values(this.collections)) {
-      if (!coll || !coll.store) {
-        continue;
-      }
-
-      const pageList = await coll.store.getAllPages();
-  
-      msgData.push({
-        "name": coll.name,
-        "prefix": coll.appPrefix,
-        "pageList": pageList,
-        "sourceName": coll.config.sourceName
-      });
-    }
-    source.postMessage({ "msg_type": "listAll", "colls": msgData });
   }
 
   async defaultFetch(request) {
-    let opts = {};
+    const opts = {};
     if (request.cache === 'only-if-cached' && request.mode !== 'same-origin') {
       opts.cache = 'default';
     }
@@ -323,7 +112,7 @@ class SWReplay {
   }
 
   async getResponseFor(request, event) {
-    await this._init_wait;
+    await this.collections.inited;
 
     // if not within replay prefix, just pass through
     if (!request.url.startsWith(this.replayPrefix)) {
@@ -333,6 +122,10 @@ class SWReplay {
       }
 
       return await this.defaultFetch(request);
+    }
+
+    if (request.url.startsWith(this.apiPrefix)) {
+      return await this.api.apiResponse(request.url.slice(this.apiPrefix.length), request.method)
     }
 
     let response = null;
@@ -354,24 +147,11 @@ class SWReplay {
       response = null;
     }
 
-/*
-    if (isGet) {
-      try {
-        response = await this.defaultFetch(request);
-        if (response && response.status < 400) {
-          return response;
-        }
-      } catch (e) {
-        response = null;
-      }
-    }
-*/
-    for (const coll of Object.values(this.collections)) {
-      response = await coll.handleRequest(request, event);
-      if (!response) {
-        continue;
-      }
+    const collId = request.url.slice(this.replayPrefix.length).split("/", 1)[0];
 
+    const coll = await this.collections.getColl(collId);
+
+    if (coll && (response = await coll.handleRequest(request, event))) {
       if (this.stats) {
         this.stats.updateStats(response.date, response.status, request, event);
       }

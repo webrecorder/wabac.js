@@ -1,6 +1,6 @@
 import { AsyncIterReader } from 'warcio';
 import { RemoteArchiveDB } from './remotearchivedb';
-import { SingleRecordWARCLoader, WARCInfoOnlyWARCLoader } from './warcloader';
+import { WARCInfoOnlyWARCLoader } from './warcloader';
 import { CDXLoader } from './cdxloader';
 import { getTS } from './utils';
 
@@ -8,38 +8,98 @@ import { getTS } from './utils';
 // ===========================================================================
 class ZipRemoteArchiveDB extends RemoteArchiveDB
 {
-  constructor(name, remoteUrl) {
-    super(name, remoteUrl);
-    this.zipreader = new ZipRangeReader(remoteUrl);
+  constructor(name, sourceReader) {
+    super(name, sourceReader.url);
+    this.zipreader = new ZipRangeReader(sourceReader);
   }
 
-  async load(db) {
+  _initDB(db, oldV, newV, tx) {
+    super._initDB(db, oldV, newV, tx);
+
+    const ziplStore = db.createObjectStore("ziplines", { keyPath: "prefix" });
+
+    const zipFiles = db.createObjectStore("zipEntries", { keyPath: "filename"});
+  }
+
+  async init() {
+    await super.init();
+
+    await this.loadZipEntries();
+  }
+
+  async loadZipEntries() {
+    const entriesList = await this.db.getAll("zipEntries");
+    if (!entriesList.length) {
+      return;
+    }
+
+    const entries = {};
+    for (const entry of entriesList) {
+      entries[entry.filename] = entry;
+    }
+
+    this.zipreader.entries = entries;
+  }
+
+  async saveZipEntries(entries) {
+    const tx = this.db.transaction("zipEntries", "readwrite");
+
+    for (const entry of Object.values(entries)) {
+      tx.store.put(entry);
+    }
+
+    await tx.done;
+  }
+
+  async loadZipIndex(reader) {
+    for await (const line of reader.iterLines()) {
+      let [prefix, filename, offset, length] = line.split('\t');
+      offset = Number(offset);
+      length = Number(length);
+
+      await this.db.put("ziplines", {prefix, filename, offset, length, loaded: false});
+    }
+  }
+
+  async load(db, progressUpdate, totalSize) {
     if (db !== this) {
       console.error("wrong db");
       return;
     }
 
-    await this.zipreader.load();
+    const entries = await db.zipreader.load();
 
-    const cdxloaders = [];
-    for (const filename of Object.keys(this.zipreader.entries)) {
+    await db.saveZipEntries(entries);
+
+    const indexloaders = [];
+    let metadata;
+
+    for (const filename of Object.keys(entries)) {
+
       if (filename.endsWith(".cdx") || filename.endsWith(".cdxj")) {
-        const reader = await this.zipreader.loadFile(filename);
-        const loader = new CDXLoader(reader);
-        cdxloaders.push(loader.load(db));
+        // For regular cdx
         console.log("Loading CDX " + filename);
-      } else if (filename.endsWith(".idx")) {
-        await this.loadZipIndex(await this.zipreader.loadFile(filename));
-      } else if (filename.endsWith(".warc.gz") || filename.endsWith(".warc")) {
 
+        indexloaders.push(new CDXLoader(reader).load(await db.zipreader.loadFile(filename)));
+
+      } else if (filename.endsWith(".idx")) {
+        // For compressed indices
+        console.log("Loading IDX " + filename);
+
+        indexloaders.push(db.loadZipIndex(await db.zipreader.loadFile(filename)));
+
+      } else if (filename.endsWith(".warc.gz") || filename.endsWith(".warc")) {
+        // for WR metadata at beginning of WARCS
         const abort = new AbortController();
-        const reader = await this.zipreader.loadFile(filename, {signal: abort.signal, unzip: true});
+        const reader = await db.zipreader.loadFile(filename, {signal: abort.signal, unzip: true});
         const warcinfoLoader = new WARCInfoOnlyWARCLoader(reader, abort);
-        await warcinfoLoader.load(this);
+        const entryTotal = db.zipreader.getCompressedSize(filename);
+        metadata = await warcinfoLoader.load(db, progressUpdate, entryTotal);
       }
     }
 
-    await Promise.all(cdxloaders);
+    await Promise.all(indexloaders);
+    return metadata || {};
   }
 
   async loadSource(source) {
@@ -60,23 +120,6 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
     return await this.zipreader.loadWARC(filename, offset, length);
   }
 
-
-  _initDB(db, oldV, newV, tx) {
-    super._initDB(db, oldV, newV, tx);
-
-    const ziplStore = db.createObjectStore("ziplines", { keyPath: "prefix" });
-  }
-
-  async loadZipIndex(reader) {
-    for await (const line of reader.iterLines()) {
-      let [prefix, filename, offset, length] = line.split('\t');
-      offset = Number(offset);
-      length = Number(length);
-
-      await this.db.put("ziplines", {prefix, filename, offset, length, loaded: false});
-    }
-  }
-
   getSurt(url) {
     try {
       const urlObj = new URL(url);
@@ -94,13 +137,7 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
     }
   }
 
-  async lookupUrl(url, datetime, skip = 0) {
-    let result = await super.lookupUrl(url, datetime, skip);
-
-    if (result) {
-      return result;
-    }
-
+  async loadFromZiplines(url, datetime) {
     const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
     const surt = this.getSurt(url);
 
@@ -125,15 +162,12 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
       values.push(cursor.value);
     }
 
-    console.log(values);
-
     await tx.done;
 
     const cdxloaders = [];
 
     for (const zipblock of values) {
       if (zipblock.loaded) {
-        console.log('already loaded');
         continue;
       }
 
@@ -148,120 +182,35 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
 
     await Promise.all(cdxloaders);
 
-    if (cdxloaders.length > 0) {
+    return cdxloaders.length > 0;
+  }
+
+  async lookupUrl(url, datetime, skip = 0) {
+    let result = await super.lookupUrl(url, datetime, skip);
+
+    if (result) {
+      return result;
+    }
+
+    if (await this.loadFromZiplines(url, datetime)) {
       result = await super.lookupUrl(url, datetime, skip);
     }
 
     return result;
   }
-}
 
+  async resourcesByUrlAndMime(url, ...args) {
+    let results = await super.resourcesByUrlAndMime(url, ...args);
 
-// ===========================================================================
-class HttpRangeLoader
-{
-  constructor(url) {
-    this.url = url;
-    this.length = null;
-  }
-
-  async getLength() {
-    if (this.length === null) {
-      try {
-        const resp = await fetch(this.url, {"method": "HEAD"});
-        this.length = resp.headers.get("Content-Length");
-      } catch(e) {
-        const abort = new AbortController();
-        const signal = abort.signal;
-        const resp = await fetch(this.url, {signal});
-        this.length = resp.headers.get("Content-Length");
-        abort.abort();
-      }
-    }
-    return this.length;
-  }
-
-  async getRange(offset, length, streaming = false, signal) {
-    if (this.length === null) {
-      await this.getLength();
+    if (results.length > 0) {
+      return results;
     }
 
-    const options = {signal, headers: {
-      "Range": `bytes=${offset}-${offset + length - 1}`
-    }};
-
-    let resp = null;
-
-    try {
-      resp = await fetch(this.url, options);
-    } catch(e) {
-      console.log(e);
+    if (await this.loadFromZiplines(url, "")) {
+      results = await super.resourcesByUrlAndMime(url, ...args);
     }
 
-    if (streaming) {
-      return resp.body;
-    } else {
-      return new Uint8Array(await resp.arrayBuffer());
-    }
-  } 
-}
-
-
-// ===========================================================================
-class BlobLoader
-{
-  constructor(url) {
-    this.url = url;
-    this.blob = null;
-  }
-
-  async getLength() {
-    if (!this.blob) {
-      const resp = await fetch(this.url);
-      this.blob = await resp.blob();
-    }
-    return this.blob.size;
-  }
-
-  async getRange(offset, length, streaming = false, signal) {
-    if (!this.blob) {
-      await this.getLength();
-    }
-
-    const blobChunk = this.blob.slice(offset, offset + length, "application/octet-stream");
-
-    if (streaming) {
-      return blobChunk.stream ? blobChunk.stream() : this.getReadableStream(blobChunk);
-    } else {
-      try {
-        const ab = blobChunk.arrayBuffer ? await blobChunk.arrayBuffer() : await this.getArrayBuffer(blobChunk);
-        return new Uint8Array(ab);
-      } catch(e) {
-        console.log("error reading blob", e);
-        return null;
-      }
-    }
-  }
-
-  getArrayBuffer(blob) {
-    return new Promise((resolve) => {
-      let fr = new FileReader();
-      fr.onloadend = () => {
-        resolve(fr.result);
-      };
-      fr.readAsArrayBuffer(blob);
-    });
-  }
-
-  async getReadableStream(blob) {
-    const ab = await this.getArrayBuffer(blob);
-
-    return new ReadableStream({
-      start(controller) {
-        controller.enqueue(new Uint8Array(ab));
-        controller.close();
-      }
-    });
+    return results;
   }
 }
 
@@ -274,29 +223,20 @@ const MAX_INT16 = 0xFFFF;
 // ===========================================================================
 class ZipRangeReader
 {
-  constructor(url) {
-    if (self.location) {
-      url = new URL(url, self.location.href).href;
-    }
-
-    if (url.startsWith("blob:")) {
-      this.loader = new BlobLoader(url);
-    } else if (url.startsWith("http:") || url.startsWith("https:")) {
-      this.loader = new HttpRangeLoader(url);
-    } else {
-      throw new Error("Invalid URL: " + url);
-    }
-
-    this.entries = null;
+  constructor(loader, entries = null) {
+    this.loader = loader;
+    this.entries = entries;
   }
 
   async load() {
-    const totalLength = await this.loader.getLength();
-    const length = (MAX_INT16 + 23);
-    const start = totalLength - length;
-    const endChunk = await this.loader.getRange(start, length);
+    if (!this.entries) {
+      const totalLength = await this.loader.getLength();
+      const length = (MAX_INT16 + 23);
+      const start = totalLength - length;
+      const endChunk = await this.loader.getRange(start, length);
 
-    this.entries = this._loadEntries(endChunk, start);
+      this.entries = this._loadEntries(endChunk, start);
+    }
     return this.entries;
   }
 
@@ -421,6 +361,7 @@ class ZipRangeReader
 
       if (!directory) {
         entries[filename] = {
+          filename,
           deflate,
           uncompressedSize,
           compressedSize,
@@ -452,6 +393,20 @@ class ZipRangeReader
     }
 
     return await this.loadFile(name, {offset, length, unzip: true});
+  }
+
+  getCompressedSize(name) {
+    if (this.entries === null) {
+      return -1;
+    }
+
+    const entry = this.entries[name];
+
+    if (!entry) {
+      return -1;
+    }
+
+    return entry.compressedSize;
   }
 
   async loadFile(name, {offset = 0, length = -1, signal = null, unzip = false} = {}) {

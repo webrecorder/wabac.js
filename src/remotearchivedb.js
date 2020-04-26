@@ -21,7 +21,16 @@ class RemoteArchiveDB extends ArchiveDB
     } else if (typeof(source) === "object") {
       const { start, length } = source;
       const headers = new Headers();
-      const url = source.url ? source.url : new URL(source.path, this.remoteUrlPrefix).href;
+
+      let url;
+
+      if (url) {
+        url = source.url;
+      } else if (source.path) {
+        url = new URL(source.path, this.remoteUrlPrefix).href;
+      } else {
+        url = this.remoteUrlPrefix;
+      }
 
       headers.set("Range", `bytes=${start}-${start + length - 1}`);
       response = await self.fetch(url, {headers});

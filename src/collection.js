@@ -2,44 +2,36 @@
 
 import { Rewriter } from './rewrite';
 
-import { getTS, getSecondsStr, notFound, digestMessage } from './utils.js';
+import { getTS, getSecondsStr, notFound } from './utils.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
+
 class Collection {
-  constructor(opts) {
-    const { name, store, prefix, rootPrefix, staticPrefix, config } = opts;
+  constructor(opts, prefixes) {
+    const { name, store, config } = opts;
 
     this.name = name;
     this.store = store;
     this.config = config;
+    this.metadata = this.config.metadata ? this.config.metadata : {};
 
-    this.rootPrefix = rootPrefix || prefix;
+    this.rootPrefix = prefixes.root || prefixes.main;
 
-    this.prefix = prefix + this.name + "/";
+    this.prefix = prefixes.main + this.name + "/";
 
     // support root collection hashtag nav
     if (this.config.root) {
-      this.appPrefix = prefix + "#/";
+      this.appPrefix = prefixes.main + "#/";
       this.isRoot = true;
     } else {
       this.appPrefix = this.prefix;
       this.isRoot = false;
     }
 
-    this.staticPrefix = staticPrefix;
-  }
-
-  async redirectToBlob(request, responseOpts) {
-    const acceptDT = request.headers.get('Accept-Datetime');
-    const datetime = acceptDT ? new Date(acceptDT) : new Date();
-    const requestTS = getTS(datetime.toISOString());
-
-    const blobId = await digestMessage(await request.text(), "SHA-256");
-
-    return Response.redirect(this.prefix + requestTS + '/blob:' + blobId);
+    this.staticPrefix = prefixes.static;
   }
 
   async handleRequest(request, event) {
@@ -63,10 +55,6 @@ class Collection {
 
     // pageList
     if (wbUrlStr == "") {
-      if (request.method === 'POST') {
-        return this.redirectToBlob(request, responseOpts);
-      }
-
       content = '<html><body><h2>Available Pages</h2><ul>'
 
       const pages = await this.store.getAllPages();

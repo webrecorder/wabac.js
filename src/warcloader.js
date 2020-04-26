@@ -14,6 +14,8 @@ class WARCLoader {
     this._lastRecord = null;
 
     this.promises = [];
+
+    this.metadata = {};
   }
 
   parseWarcInfo(record) {
@@ -22,24 +24,55 @@ class WARCLoader {
 
     // Webrecorder-style metadata
     for (const line of text.split("\n")) {
-      if (line.startsWith("json-metadata:")) {
-        try {
-          const json = JSON.parse(line.slice("json-metadata:".length));
+      if (!line.startsWith("json-metadata:")) {
+        continue;
+      }
+      
+      try {
+        const json = JSON.parse(line.slice("json-metadata:".length));
 
-          const pages = json.pages || [];
+        if (json.type === "collection") {
+          this.metadata.desc = json.desc;
+          this.metadata.title = json.title;
+        }
 
-          for (const page of pages) {
-            const url = page.url;
-            const title = page.title || page.url;
-            const id = page.id;
-            const date = tsToDate(page.timestamp).toISOString();
-            this.addPage({url, date, title, id});
-            this.anyPages = true;
+        const pages = json.pages || [];
+        const lists = json.lists || [];
+
+        for (const page of pages) {
+          const url = page.url;
+          const title = page.title || page.url;
+          const id = page.id;
+          const date = tsToDate(page.timestamp).toISOString();
+          this.addPage({url, date, title, id});
+          this.anyPages = true;
+        }
+
+        for (const list of lists) {
+          // Skip WR private lists..
+          if (list.public) {
+            this.promises.push(this.addList(list));
           }
+        }
 
-        } catch (e) { }
+      } catch (e) { 
+        console.log("Page Add Error", e);
       }
     }
+  }
+
+  async addList(list) {
+    const listId = await this.db.addPageList(list);
+
+    const bookmarkPromises = [];
+
+    let pos = 0;
+
+    for (const bookmark of list.bookmarks) {
+      bookmarkPromises.push(this.db.addCuratedPage(listId, pos++, bookmark));
+    }
+
+    return Promise.all(bookmarkPromises);
   }
 
   addPage(page) {
@@ -246,12 +279,20 @@ class WARCLoader {
     return null;
   }
 
-  async load(db) {
+  async load(db, progressUpdate, totalSize) {
     this.db = db;
 
     const parser = new WARCParser(this.reader);
 
+    let lastUpdate = 0, updateTime = 0;
+
     for await (const record of parser) {
+      updateTime = new Date().getTime();
+      if ((updateTime - lastUpdate) > 500) {
+        progressUpdate(Math.round((parser.offset / totalSize) * 95.0));
+        lastUpdate = updateTime;
+      }
+
       const skipMode = this.filterRecord(record);
       if (skipMode === "done") {
         if (this.abort) {
@@ -262,13 +303,19 @@ class WARCLoader {
         continue;
       }
       await record.readFully();
-      this.index(record);
+      this.index(record, parser);
     }
 
     this.indexDone();
 
+    progressUpdate(95);
+
     await Promise.all(this.promises);
     this.promises = [];
+
+    progressUpdate(100);
+
+    return this.metadata;
   }
 }
 
