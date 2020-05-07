@@ -48,6 +48,14 @@ class SWCollections extends CollectionLoader
     delete this.colls[name];
     return true;
   }
+
+  async updateAuth(name, headers) {
+    if (this.colls[name] && this.colls[name].store.updateAuth) {
+      this.colls[name].store.updateAuth(headers);
+    }
+
+    await super.updateAuth(name, headers);
+  }
 }
 
 
@@ -93,6 +101,12 @@ class SWReplay {
     });
 
     self.addEventListener('fetch', (event) => {
+      // if not within replay prefix, just pass through
+      if (!event.request.url.startsWith(this.replayPrefix)) {
+        event.respondWith(this.defaultFetch(event.request));
+        return;
+      }
+
       event.respondWith(this.getResponseFor(event.request, event));
     });
 
@@ -103,30 +117,24 @@ class SWReplay {
     });
   }
 
-  async defaultFetch(request) {
+  defaultFetch(request) {
     const opts = {};
     if (request.cache === 'only-if-cached' && request.mode !== 'same-origin') {
       opts.cache = 'default';
     }
-    return await self.fetch(request, opts);
+    return self.fetch(request);
   }
 
   async getResponseFor(request, event) {
-    await this.collections.inited;
-
-    // if not within replay prefix, just pass through
-    if (!request.url.startsWith(this.replayPrefix)) {
-
-      if (this.stats && request.url.startsWith(this.prefix + "stats.json")) {
+    // API
+    if (request.url.startsWith(this.apiPrefix)) {
+      if (this.stats && request.url.startsWith(this.apiPrefix + "stats.json")) {
         return await this.stats.getStats(event);
       }
-
-      return await this.defaultFetch(request);
+      return await this.api.apiResponse(request.url.slice(this.apiPrefix.length), request.method, request);
     }
 
-    if (request.url.startsWith(this.apiPrefix)) {
-      return await this.api.apiResponse(request.url.slice(this.apiPrefix.length), request.method)
-    }
+    await this.collections.inited;
 
     let response = null;
 

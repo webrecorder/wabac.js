@@ -50,19 +50,20 @@ class API {
       'coll': ':coll',
       'urls': ':coll/urls',
       'deleteColl': [':coll', 'DELETE'],
+      'updateAuth': [':coll/updateAuth', 'POST'],
       'curated': ':coll/curatedPages',
     });
 
     this.collections = collections;
   }
 
-  async apiResponse(url, method) {
-    const response = await this.handleApi(url, method);
+  async apiResponse(url, method, request) {
+    const response = await this.handleApi(url, method, request);
     const status = response.error ? 404 : 200;
     return this.makeResponse(response, status);
   }
 
-  async handleApi(url, method) {
+  async handleApi(url, method, request) {
     let params = this.router.match(url, method);
     let coll;
     let total;
@@ -92,6 +93,10 @@ class API {
           return {error: "collection_not_found"};
         }
         return await this.listAll();
+
+      case "updateAuth":
+        const requestJSON = await request.json();
+        return {"success": await this.collections.updateAuth(params.coll, requestJSON.headers)};
 
       case "urls":
         coll = await this.collections.getColl(params.coll);

@@ -2,7 +2,7 @@
 
 import { Rewriter } from './rewrite';
 
-import { getTS, getSecondsStr, notFound } from './utils.js';
+import { getTS, getSecondsStr, notFound, AuthNeeded } from './utils.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
@@ -108,10 +108,26 @@ class Collection {
                    "timestamp": requestTS};
 
     // exact or fuzzy match
-    let response = await this.store.getResource(query, this.prefix, event);
+    let response = null;
+    
+    try {
+      response = await this.store.getResource(query, this.prefix, event);
+    } catch (e) {
+      if (e instanceof AuthNeeded) {
+        if (this.config.sourceId) {
+          const errParams = new URLSearchParams({
+            source: this.config.sourceId,
+            redirUrl: request.url,
+            autherr: true}).toString();
+          return Response.redirect(`/?${errParams}`);
+        }
+      }
+    }
 
     if (!response) {
-      const msg = `<p>Sorry, the URL <b>${requestURL}</b> is not in this archive.</p><p><a href="${requestURL}">Try Live Version?</a></p>`;
+      const msg = `
+      <p>Sorry, the URL <b>${requestURL}</b> is not in this archive.</p>
+      <p><a target="_blank" href="${requestURL}">Try Live Version?</a></p>`;
       return notFound(request, msg);
     }
 
@@ -139,6 +155,11 @@ class Collection {
   }
 
   makeTopFrame(url, requestTS, isLive) {
+    if (this.config.sourceId) {
+      const locParams = new URLSearchParams({url, ts: requestTS, view: "replay"}).toString();
+      return Response.redirect(`/?source=${this.config.sourceId}#${locParams}`);
+    }
+
     const content = `
 <!DOCTYPE html>
 <html>

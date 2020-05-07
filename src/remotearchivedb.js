@@ -1,16 +1,22 @@
 import { ArchiveDB } from './archivedb';
 import { SingleRecordWARCLoader } from './warcloader';
+import { AuthNeeded } from './utils';
 import { BaseAsyncIterReader } from 'warcio';
 
 
 // ===========================================================================
 class RemoteArchiveDB extends ArchiveDB
 {
-  constructor(name, remoteUrlPrefix) {
+  constructor(name, remoteUrlPrefix, headers) {
     super(name);
 
     this.remoteUrlPrefix = remoteUrlPrefix;
     this.useRefCounts = false;
+    this.headers = headers;
+  }
+
+  updateHeaders(headers) {
+    this.headers = headers;
   }
 
   async loadSource(source) {
@@ -20,7 +26,7 @@ class RemoteArchiveDB extends ArchiveDB
       response = await self.fetch(source);
     } else if (typeof(source) === "object") {
       const { start, length } = source;
-      const headers = new Headers();
+      const headers =  new Headers(this.headers);
 
       let url;
 
@@ -34,6 +40,9 @@ class RemoteArchiveDB extends ArchiveDB
 
       headers.set("Range", `bytes=${start}-${start + length - 1}`);
       response = await self.fetch(url, {headers});
+      if (response.status === 401 || response.statusText === 403) {
+        throw new AuthNeeded(url);
+      }
     } else {
       return null;
     }
@@ -129,6 +138,9 @@ class RemoteArchiveDB extends ArchiveDB
 
       cdx.respHeaders = remote.respHeaders;
       cdx.digest = digest;
+      if (remote.extraOpts) {
+        cdx.extraOpts = remote.extraOpts;
+      }
 
       tx.store.put(cdx);
       await tx.done;

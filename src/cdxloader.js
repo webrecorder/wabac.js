@@ -18,6 +18,10 @@ class CDXFromWARCLoader extends WARCLoader
     this.count = 0;
   }
 
+  filterRecord(record) {
+    return record.warcType === "warcinfo" ? null : "skipContent";
+  }
+
   index(record, parser) {
     if (record.warcType === "warcinfo") {
       this.parseWarcInfo(record);

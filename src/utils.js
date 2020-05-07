@@ -110,6 +110,11 @@ function notFound(request, msg) {
   return new Response(content, initOpt);
 }
 
+class AuthNeeded
+{
+
+}
+
 
 export { startsWithAny, getTS, tsToDate, tsToSec, getSecondsStr, digestMessage,
-         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest };
+         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, AuthNeeded };

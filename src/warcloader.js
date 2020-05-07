@@ -1,6 +1,6 @@
 import { makeHeaders, tsToDate } from './utils.js';
 
-import { WARCParser } from 'warcio';
+import { WARCParser, AsyncIterReader } from 'warcio';
 
 
 // ===========================================================================
@@ -19,6 +19,9 @@ class WARCLoader {
   }
 
   parseWarcInfo(record) {
+    if (!record.payload) {
+      return;
+    }
     var dec = new TextDecoder("utf-8");
     const text = dec.decode(record.payload);
 
@@ -287,6 +290,10 @@ class WARCLoader {
     let lastUpdate = 0, updateTime = 0;
 
     for await (const record of parser) {
+      if (!record.warcType) {
+        console.log("skip empty record");
+        continue;
+      }
       updateTime = new Date().getTime();
       if ((updateTime - lastUpdate) > 500) {
         progressUpdate(Math.round((parser.offset / totalSize) * 95.0));
@@ -302,7 +309,10 @@ class WARCLoader {
       } else if (skipMode === "skip") {
         continue;
       }
-      await record.readFully();
+
+      if (skipMode !== "skipContent") {
+        await record.readFully();
+      }
       this.index(record, parser);
     }
 

@@ -16,6 +16,10 @@ import { deleteDB, openDB } from 'idb/with-async-ittr.js';
 import { AsyncIterReader } from 'warcio';
 
 
+// Threshold size for switching to range requests 
+const MAX_FULL_DOWNLOAD_SIZE = 25000000;
+
+
 // ===========================================================================
 class CollectionLoader
 {
@@ -88,6 +92,16 @@ class CollectionLoader
     await this.colldb.delete("colls", name);
   }
 
+  async updateAuth(name, newHeaders) {
+    const data = await this.colldb.get("colls", name);
+    if (!data) {
+      return false;
+    }
+    data.config.headers = newHeaders;
+    await this.colldb.put("colls", data);
+    return true;
+  }
+
   async _initColl(data) {
     let store = null;
 
@@ -97,7 +111,7 @@ class CollectionLoader
         break;
 
       case "remotewarc":
-        store = new RemoteArchiveDB(data.config.dbname, data.config.remotePrefix);
+        store = new RemoteArchiveDB(data.config.dbname, data.config.remotePrefix, data.config.headers);
         break;
 
       case "remotezip":
@@ -276,15 +290,23 @@ class WorkerLoader extends CollectionLoader
         }
 
         if (!sourceReader.isValid) {
-          progressUpdate(0, `Sorry, this URL could not be loaded. Make sure this is a valid URL (Status ${resp.status} - ${resp.statusText})`);
+          const text = sourceReader.length <= 1000 ? await resp.text() : "";
+          progressUpdate(0, `\
+Sorry, this URL could not be loaded.
+Make sure this is a valid URL and you have access to this file.
+Status: ${resp.status} ${resp.statusText}
+Error Details:
+${text}`);
           return;
         }
+
+        const contentLength = sourceReader.length;
         
         if (config.sourceName.endsWith(".har")) {
           loader = new HARLoader(await resp.json());
 
         } else if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
-          if (!sourceReader.supportsRange) {
+          if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !sourceReader.supportsRange) {
             loader = new WARCLoader(resp.body);
           } else {
             loader = new CDXFromWARCLoader(resp.body);
@@ -313,7 +335,6 @@ class WorkerLoader extends CollectionLoader
         }
         await db.initing;
 
-        const contentLength = sourceReader.length;
         config.metadata = await loader.load(db, progressUpdate, contentLength);
         if (!config.metadata.size) {
           config.metadata.size = contentLength;
@@ -486,7 +507,7 @@ class BlobReader
     const signal = abort.signal;
     response = await fetch(this.url, {signal});
 
-    return {response, abort};
+    return {response, abort: abort.abort};
   }
 
   async getLength() {
