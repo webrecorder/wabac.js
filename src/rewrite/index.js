@@ -165,16 +165,20 @@ class Rewriter {
     return response;
   }
 
-  normalizeUrl(url) {
-    try {
-      return new URL(url).href;
-    } catch (e) {
-      if (url.startsWith("//")) {
-        return new URL("https:" + url).href.slice(6);
+  normalizeBaseUrl(url, absUrl) {
+    // not an absolute url, ensure it has slash
+    if (url && absUrl != url) {
+      try {
+        return new URL(url).href;
+      } catch (e) {
+        if (url.startsWith("//")) {
+          url = new URL("https:" + url).href;
+          return url.slice("https:".length);
+        }
       }
-
-      return url;
     }
+
+    return url;
   }
 
   isRewritableUrl(url) {
@@ -294,7 +298,16 @@ class Rewriter {
       }
 
       else if (tag.tagName === "base" && name === "href") {
-        attr.value = this.rewriteUrl(this.normalizeUrl(attr.value));
+        try {
+
+          // set internal base to full url
+          this.baseUrl = new URL(attr.value, this.baseUrl).href;
+
+          // rewrite url, keeping relativeness intact
+          attr.value = this.rewriteUrl(this.normalizeBaseUrl(attr.value, this.baseUrl));
+        } catch (e) {
+          console.warn("Invalid <base>: " + attr.value);
+        }
       }
 
       else if (tag.tagName === "script" && name === "src") {
@@ -416,13 +429,6 @@ class Rewriter {
       rwStream.emitStartTag(startTag);
 
       switch (startTag.tagName) {
-        case "base":
-          const newBase = this.getAttr(startTag.attrs, "href");
-          if (newBase && newBase.startsWith(this.prefix)) {
-            this.baseUrl = this.checkUrlScheme(newBase.slice(this.prefix.length));
-          }
-          break;
-
         case "script":
           if (startTag.selfClosing) {
             break;

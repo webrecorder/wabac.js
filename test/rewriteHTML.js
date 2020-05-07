@@ -86,6 +86,10 @@ test('BASE tag', rewriteHtml,
   '<base href="http://example.com"/>',
   '<base href="http://localhost:8080/prefix/20201226101010/http://example.com/"/>');
 
+test('BASE tag', rewriteHtml,
+  '<base href="//example.com?foo"/>',
+  '<base href="//localhost:8080/prefix/20201226101010///example.com/?foo"/>');
+
 // Base relative
 test('BASE tag', rewriteHtml,
   '<base href="static/"/><img src="image.gif"/>',
