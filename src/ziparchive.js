@@ -4,6 +4,8 @@ import { WARCInfoOnlyWARCLoader } from './warcloader';
 import { CDXLoader } from './cdxloader';
 import { getTS } from './utils';
 
+import yaml from 'js-yaml';
+
 
 // ===========================================================================
 class ZipRemoteArchiveDB extends RemoteArchiveDB
@@ -25,6 +27,10 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
     await super.init();
 
     await this.loadZipEntries();
+  }
+
+  updateHeaders(headers) {
+    this.zipreader.loader.headers = headers;
   }
 
   async loadZipEntries() {
@@ -74,13 +80,17 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
     const indexloaders = [];
     let metadata;
 
-    for (const filename of Object.keys(entries)) {
+    if (entries["metadata.yaml"]) {
+      metadata = await this.loadMetadata(await db.zipreader.loadFile("metadata.yaml"));
+    }
 
+    for (const filename of Object.keys(entries)) {
       if (filename.endsWith(".cdx") || filename.endsWith(".cdxj")) {
         // For regular cdx
         console.log("Loading CDX " + filename);
 
-        indexloaders.push(new CDXLoader(reader).load(await db.zipreader.loadFile(filename)));
+        const reader = await db.zipreader.loadFile(filename);
+        indexloaders.push(new CDXLoader(reader).load(db));
 
       } else if (filename.endsWith(".idx")) {
         // For compressed indices
@@ -88,7 +98,7 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
 
         indexloaders.push(db.loadZipIndex(await db.zipreader.loadFile(filename)));
 
-      } else if (filename.endsWith(".warc.gz") || filename.endsWith(".warc")) {
+      } else if (!metadata && (filename.endsWith(".warc.gz") || filename.endsWith(".warc"))) {
         // for WR metadata at beginning of WARCS
         const abort = new AbortController();
         const reader = await db.zipreader.loadFile(filename, {signal: abort.signal, unzip: true});
@@ -100,6 +110,60 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
 
     await Promise.all(indexloaders);
     return metadata || {};
+  }
+
+  async loadMetadata(reader) {
+    const text = new TextDecoder().decode(await reader.readFully());
+    const fullMetadata = yaml.safeLoad(text);
+    console.log(fullMetadata);
+
+    const metadata = {desc: fullMetadata.desc, title: fullMetadata.title};
+
+    const promises = [];
+
+    // All pages
+    const pages = fullMetadata.pages || [];
+
+    for (const page of pages) {
+      const url = page.url;
+      const title = page.title || page.url;
+      const id = page.id;
+      const date = page.datetime;
+      promises.push(this.addPage({url, date, title, id}));
+    }
+
+    // Curated Pages
+    const pageLists = fullMetadata.pageLists || [];
+
+    for (const list of pageLists) {
+      if (!list.show) {
+        continue;
+      }
+
+      const listId = await this.addPageList(list);
+
+      const tx = this.db.transaction("curatedPages", "readwrite");
+
+      let pos = 0;
+
+      for (const data of list.pages) {
+        const pageData = {};
+        pageData.pos = pos++;
+        pageData.list  = listId;
+        pageData.title = data.title;
+        pageData.url = data.url;
+        pageData.date = data.datetime;
+        pageData.page = data.id;
+
+        tx.store.put(pageData);
+      }
+
+      promises.push(tx.done);
+    }
+
+    await Promise.all(promises);
+
+    return metadata;
   }
 
   async loadSource(source) {
@@ -143,7 +207,7 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
 
     const prefix = surt + " " + timestamp;
 
-    const tx = this.db.transaction("ziplines", "readwrite");
+    const tx = this.db.transaction("ziplines", "readonly");
 
     const values = [];
 
