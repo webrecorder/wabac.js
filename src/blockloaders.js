@@ -67,7 +67,7 @@ class HttpRangeLoader
     if (this.length === null) {
       const {response, abort} = await this.doInitialFetch(true);
       if (abort) {
-        abort();
+        abort.abort();
       }
     }
     return this.length;

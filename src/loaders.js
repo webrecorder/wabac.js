@@ -114,7 +114,7 @@ class CollectionLoader
 
       case "remotewarc":
         if (data.config.singleFile) {
-          const sourceLoader = createLoader(data.config.loadUrl, data.config.headers, data.config.size, data.config.extra);
+          const sourceLoader = createLoader(data.config.loadUrl || data.config.sourceUrl, data.config.headers, data.config.size, data.config.extra);
           store = new RemoteArchiveDB(data.config.dbname, sourceLoader);
         } else {
           store = new RemoteArchiveDB(data.config.dbname, data.config.remotePrefix, data.config.headers);
@@ -122,7 +122,7 @@ class CollectionLoader
         break;
 
       case "remotezip":
-        const sourceLoader = createLoader(data.config.loadUrl, data.config.headers, data.config.extra);
+        const sourceLoader = createLoader(data.config.loadUrl || data.config.sourceUrl, data.config.headers, data.config.extra);
         store = new ZipRemoteArchiveDB(data.config.dbname, sourceLoader);
         break;
 
