@@ -2,6 +2,7 @@ import { makeHeaders, tsToDate } from './utils.js';
 
 import { WARCParser } from 'warcio';
 
+const BATCH_SIZE = 1000;
 
 // ===========================================================================
 class WARCLoader {
@@ -16,6 +17,9 @@ class WARCLoader {
     this.promises = [];
 
     this.metadata = {};
+
+    this.batch = [];
+    this.count = 0;
   }
 
   parseWarcInfo(record) {
@@ -42,40 +46,19 @@ class WARCLoader {
         const pages = json.pages || [];
         const lists = json.lists || [];
 
-        for (const page of pages) {
-          const url = page.url;
-          const title = page.title || page.url;
-          const id = page.id;
-          const date = tsToDate(page.timestamp).toISOString();
-          this.addPage({url, date, title, id});
+        if (pages && pages.length) {
+          this.promises.push(this.db.addPages(pages));
           this.anyPages = true;
         }
 
-        for (const list of lists) {
-          // Skip WR private lists..
-          if (list.public) {
-            this.promises.push(this.addList(list));
-          }
+        if (lists && lists.length) {
+          this.promises.push(this.db.addCuratedPageLists(lists, "bookmarks", "public"));
         }
 
       } catch (e) { 
-        console.log("Page Add Error", e);
+        console.log("Page Add Error", e.toString());
       }
     }
-  }
-
-  async addList(list) {
-    const listId = await this.db.addPageList(list);
-
-    const bookmarkPromises = [];
-
-    let pos = 0;
-
-    for (const bookmark of list.bookmarks) {
-      bookmarkPromises.push(this.db.addCuratedPage(listId, pos++, bookmark));
-    }
-
-    return Promise.all(bookmarkPromises);
   }
 
   addPage(page) {
@@ -83,7 +66,15 @@ class WARCLoader {
   }
 
   addResource(res) {
-    this.promises.push(this.db.addResource(res));
+    //this.promises.push(this.db.addResource(res));
+
+    if (this.batch.length >= BATCH_SIZE) {
+      this.promises.push(this.db.addResources(this.batch));
+      this.batch = [];
+      console.log(`Read ${this.count += BATCH_SIZE} records`);
+    }
+
+    this.batch.push(res);
   }
 
   index(record) {
@@ -318,6 +309,13 @@ class WARCLoader {
         }
         
         this.index(record, parser);
+
+        try {
+          await Promise.all(this.promises);
+        } catch (e) {
+          console.warn(e.toString());
+        }
+        this.promises = [];
       }
     } catch(e) {
       progressUpdate(Math.round((parser.offset / totalSize) * 95.0),
@@ -330,12 +328,27 @@ class WARCLoader {
 
     progressUpdate(95);
 
-    await Promise.all(this.promises);
-    this.promises = [];
+    await this.finishIndexing();
 
     progressUpdate(100);
 
     return this.metadata;
+  }
+
+  async finishIndexing() {
+    if (this.batch.length > 0) {
+      this.promises.push(this.db.addResources(this.batch));
+    }
+
+    console.log(`Indexed ${this.count += this.batch.length} records`);
+
+    try {
+      await Promise.all(this.promises);
+    } catch (e) {
+      console.warn(e);
+    }
+
+    this.promises = [];
   }
 }
 

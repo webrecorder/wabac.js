@@ -119,49 +119,19 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
 
     const metadata = {desc: fullMetadata.desc, title: fullMetadata.title};
 
-    const promises = [];
-
     // All pages
     const pages = fullMetadata.pages || [];
 
-    for (const page of pages) {
-      const url = page.url;
-      const title = page.title || page.url;
-      const id = page.id;
-      const date = page.datetime;
-      promises.push(this.addPage({url, date, title, id}));
+    if (pages && pages.length) {
+      await this.addPages(pages);
     }
 
     // Curated Pages
     const pageLists = fullMetadata.pageLists || [];
 
-    for (const list of pageLists) {
-      if (!list.show) {
-        continue;
-      }
-
-      const listId = await this.addPageList(list);
-
-      const tx = this.db.transaction("curatedPages", "readwrite");
-
-      let pos = 0;
-
-      for (const data of list.pages) {
-        const pageData = {};
-        pageData.pos = pos++;
-        pageData.list  = listId;
-        pageData.title = data.title;
-        pageData.url = data.url;
-        pageData.date = data.datetime;
-        pageData.page = data.id;
-
-        tx.store.put(pageData);
-      }
-
-      promises.push(tx.done);
+    if (pageLists && pageLists.length) {
+      await this.addCuratedPageLists(pageLists, "pages", "show");
     }
-
-    await Promise.all(promises);
 
     return metadata;
   }

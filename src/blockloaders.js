@@ -1,7 +1,7 @@
 // ===========================================================================
 function createLoader(url, headers, size, extra) {
-  if (url.startsWith("blob:")) {
-    return new BlobLoader(url);
+  if (url.startsWith("blob:") || url.startsWith("file:")) {
+    return new BlobLoader(url, null, extra);
   } else if (url.startsWith("http:") || url.startsWith("https:")) {
     return new HttpRangeLoader(url, headers, size);
   } else if (url.startsWith("googledrive:")) {
@@ -213,8 +213,8 @@ class GoogleDriveLoader
 // ===========================================================================
 class BlobLoader
 {
-  constructor(url, blob = null) {
-    this.url = url;
+  constructor(url, blob = null, extra) {
+    this.url = (extra && extra.blobUrl) || url;
     this.blob = blob;
   }
 

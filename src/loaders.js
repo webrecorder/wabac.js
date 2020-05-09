@@ -53,15 +53,15 @@ class CollectionLoader
       }
     }
 
-    // live -- can only work if CORS disabled, eg. in extensions
-    await this.colldb.put("colls", {name: "live", type: "live",
-      config: {prefix: "https://cf-worker.webrecorder.workers.dev/proxy/"}});
+    try {
+      const allColls = await this.listAll();
 
-    const allColls = await this.listAll();
-
-    const promises = allColls.map((data) => this._initColl(data));
-
-    await Promise.all(promises);
+      const promises = allColls.map((data) => this._initColl(data));
+  
+      await Promise.all(promises);
+    } catch (e) {
+      console.warn(e.toString());
+    }
 
     return true;
   }
@@ -370,7 +370,7 @@ ${text}`);
 
     const collData = {name, type, config};
     await this.colldb.add("colls", collData);
-    //return await this.loadColl(collData, db);
+    return true;
   }
 
   async deleteCollection(name) {

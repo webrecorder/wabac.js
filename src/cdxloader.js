@@ -13,9 +13,6 @@ class CDXFromWARCLoader extends WARCLoader
   constructor(reader) {
     super(reader);
     this.cdxindexer = null;
-
-    this.batch = [];
-    this.count = 0;
   }
 
   filterRecord(record) {
@@ -44,11 +41,7 @@ class CDXFromWARCLoader extends WARCLoader
   }
 
   indexDone() {
-    if (this.batch.length > 0) {
-      this.promises.push(this.db.addResources(this.batch));
-    }
 
-    console.log(`Indexed ${this.count += this.batch.length} records`);
   }
 
   addCdx(cdx) {
@@ -118,9 +111,7 @@ class CDXLoader extends CDXFromWARCLoader
 
     this.indexDone();
 
-    await Promise.all(this.promises);
-
-    console.log(new Date().getTime() - start);
+    await this.finishIndexing();
   }
 }
 

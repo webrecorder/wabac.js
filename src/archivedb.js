@@ -47,7 +47,7 @@ class ArchiveDB {
     const urlStore = db.createObjectStore("resources", { keyPath: ["url", "ts"] });
     urlStore.createIndex("pageId", "pageId");
     //urlStore.createIndex("ts", "ts");
-    urlStore.createIndex("mimeUrl", ["mime", "url"]);
+    urlStore.createIndex("mimeStatusUrl", ["mime", "status", "url"]);
 
     const payload = db.createObjectStore("payload", { keyPath: "digest", unique: true});
     const digestRef = db.createObjectStore("digestRef", { keyPath: "digest", unique: true});
@@ -89,7 +89,32 @@ class ArchiveDB {
     return await this.db.put("pages", data);
   }
 
-  async addPageList(data) {
+  async addPages(pages) {
+    const tx = this.db.transaction("pages", "readwrite");
+
+    for (const page of pages) {
+      const url = page.url;
+      const title = page.title || page.url;
+      const id = page.id || this.newPageId();
+      let date = page.datetime;
+
+      if (!date && page.timestamp) {
+        date = tsToDate(page.timestamp).toISOString();
+      }
+
+      //console.log("id", id, date, title, url);
+
+      tx.store.put({url, date, title, id});
+    }
+
+    try {
+      await tx.done;
+    } catch(e) {
+      console.warn("addPages tx", e.toString());
+    }
+  }
+
+  async addCPageList(data) {
     const listData = {};
     listData.title = data.title;
     listData.desc = data.desc;
@@ -98,17 +123,41 @@ class ArchiveDB {
     return await this.db.put("pageLists", listData);
   }
 
-  async addCuratedPage(listId, pos, data) {
-    const pageData = {};
-    pageData.pos = pos;
-    pageData.list  = listId;
-    pageData.title = data.title;
-    pageData.url = data.url;
-    pageData.date = tsToDate(data.timestamp).toISOString();
-    pageData.page = data.id;
+  async addCuratedPageLists(pageLists, pageKey = "pages", filter) {
+    for (const list of pageLists) {
+      if (filter && !list[filter]) {
+        continue;
+      }
 
-    return await this.db.put("curatedPages", pageData);
+      const listId = await this.addCPageList(list);
+
+      const tx = this.db.transaction("curatedPages", "readwrite");
+
+      let pos = 0;
+
+      const pages = list[pageKey] || [];
+
+      for (const data of pages) {
+        const pageData = {};
+        pageData.pos = pos++;
+        pageData.list  = listId;
+        pageData.title = data.title;
+        pageData.url = data.url;
+        pageData.date = data.datetime || tsToDate(data.timestamp).toISOString();
+        pageData.page = data.id;
+
+        tx.store.put(pageData);
+      }
+
+      try {
+        await tx.done;
+      } catch(e) {
+        console.warn("addCuratedPageLists tx", e.toString());
+      }
+    }
   }
+
+  
 
   //from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
   newPageId() {
@@ -176,7 +225,7 @@ class ArchiveDB {
     const revisits = [];
     const regulars = [];
 
-    //let tx = this.db.transaction(["digestRef", "payload"], "readwrite");
+    let dtx = this.db.transaction(["digestRef", "payload"], "readwrite");
 
     for (const data of datas) {
       if (data.mime === "warc/revisit") {
@@ -185,10 +234,12 @@ class ArchiveDB {
         regulars.push(data);
       }
 
-      //await this.dedupResource(data, tx);
+      if (this.useRefCounts) {
+        await this.dedupResource(data, dtx);
+      }
     }
 
-    //await tx.done;
+    await dtx.done;
 
     const tx = this.db.transaction("resources", "readwrite");
 
@@ -434,12 +485,12 @@ class ArchiveDB {
     const mimeStart = lastChar;
 
     for (const mime of mimes) {
-      const start = (fromMime ? [fromMime,  fromUrl] : [mime, ""]);
+      const start = (fromMime ? [fromMime, 0, fromUrl] : [mime, 0, ""]);
       const mimeEnd = mime + lastChar;
 
       const range = IDBKeyRange.bound(start, [mimeEnd], true, true);
 
-      const fullResults = await this.db.getAllFromIndex("resources", "mimeUrl", range, count);
+      const fullResults = await this.db.getAllFromIndex("resources", "mimeStatusUrl", range, count);
       
       for (const res of fullResults) {
         results.push(this.resJson(res));
