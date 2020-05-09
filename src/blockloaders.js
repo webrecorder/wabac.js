@@ -213,8 +213,8 @@ class GoogleDriveLoader
 // ===========================================================================
 class BlobLoader
 {
-  constructor(url, blob = null, extra) {
-    this.url = (extra && extra.blobUrl) || url;
+  constructor(url, blob = null) {
+    this.url = url;
     this.blob = blob;
   }
 
@@ -238,7 +238,7 @@ class BlobLoader
     const signal = abort.signal;
     response = await fetch(this.url, {signal});
 
-    return {response, abort: abort.abort};
+    return {response, abort};
   }
 
   async getLength() {

@@ -1,7 +1,7 @@
 import { tsToDate } from './utils';
 import { WARCLoader } from './warcloader';
 
-import { CDXIndexer } from 'warcio';
+import { CDXIndexer, AsyncIterReader } from 'warcio';
 
 
 const BATCH_SIZE = 3000;
@@ -10,8 +10,8 @@ const BATCH_SIZE = 3000;
 // ===========================================================================
 class CDXFromWARCLoader extends WARCLoader
 {
-  constructor(reader) {
-    super(reader);
+  constructor(reader, abort, id) {
+    super(reader, abort, id);
     this.cdxindexer = null;
   }
 
@@ -80,11 +80,15 @@ class CDXFromWARCLoader extends WARCLoader
 class CDXLoader extends CDXFromWARCLoader
 {
   async load(db) {
-    const start = new Date().getTime();
-
     this.db = db;
 
-    for await (const origLine of this.reader.iterLines()) {
+    let reader = this.reader;
+
+    if (!reader.iterLines) {
+      reader = new AsyncIterReader(this.reader);
+    }
+
+    for await (const origLine of reader.iterLines()) {
       let cdx;
       let timestamp;
       let line = origLine.trimEnd();

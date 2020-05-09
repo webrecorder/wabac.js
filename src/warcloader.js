@@ -1,4 +1,4 @@
-import { makeHeaders, tsToDate } from './utils.js';
+import { makeHeaders, tsToDate, Canceled } from './utils.js';
 
 import { WARCParser } from 'warcio';
 
@@ -6,9 +6,10 @@ const BATCH_SIZE = 1000;
 
 // ===========================================================================
 class WARCLoader {
-  constructor(reader, abort = null) {
+  constructor(reader, abort = null, loadId = null) {
     this.reader = reader;
     this.abort = abort;
+    this.loadId = loadId;
 
     this.anyPages = false;
 
@@ -286,6 +287,16 @@ class WARCLoader {
           console.log("skip empty record");
           continue;
         }
+
+        if (self.interruptLoads && this.loadId && self.interruptLoads[this.loadId]) {
+          progressUpdate(Math.round((parser.offset / totalSize) * 95.0), "Loading Canceled");
+          self.interruptLoads[this.loadId]();
+          if (this.abort) {
+            this.abort.abort();
+          }
+          throw new Canceled();
+        }
+
         updateTime = new Date().getTime();
         if ((updateTime - lastUpdate) > 500) {
           progressUpdate(Math.round((parser.offset / totalSize) * 95.0));
@@ -318,6 +329,10 @@ class WARCLoader {
         this.promises = [];
       }
     } catch(e) {
+      if (e instanceof Canceled) {
+        throw e;
+      }
+      
       progressUpdate(Math.round((parser.offset / totalSize) * 95.0),
         `Sorry there was an error downloading. Please try again (${e})`);
 

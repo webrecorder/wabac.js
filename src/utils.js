@@ -115,6 +115,11 @@ class AuthNeeded
 
 }
 
+class Canceled
+{
+
+}
+
 
 export { startsWithAny, getTS, tsToDate, tsToSec, getSecondsStr, digestMessage,
-         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, AuthNeeded };
+         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, AuthNeeded, Canceled };

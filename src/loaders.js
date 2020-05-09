@@ -15,11 +15,11 @@ import { RemoteProxySource, LiveAccess } from './remoteproxy';
 
 import { deleteDB, openDB } from 'idb/with-async-ittr.js';
 
-import { AsyncIterReader } from 'warcio';
-
 
 // Threshold size for switching to range requests 
 const MAX_FULL_DOWNLOAD_SIZE = 25000000;
+
+self.interruptLoads = {};
 
 
 // ===========================================================================
@@ -114,7 +114,7 @@ class CollectionLoader
 
       case "remotewarc":
         if (data.config.singleFile) {
-          const sourceLoader = createLoader(data.config.sourceUrl, data.config.headers, data.config.size, data.config.extra);
+          const sourceLoader = createLoader(data.config.loadUrl, data.config.headers, data.config.size, data.config.extra);
           store = new RemoteArchiveDB(data.config.dbname, sourceLoader);
         } else {
           store = new RemoteArchiveDB(data.config.dbname, data.config.remotePrefix, data.config.headers);
@@ -122,7 +122,7 @@ class CollectionLoader
         break;
 
       case "remotezip":
-        const sourceLoader = createLoader(data.config.sourceUrl, data.config.headers, data.config.extra);
+        const sourceLoader = createLoader(data.config.loadUrl, data.config.headers, data.config.extra);
         store = new ZipRemoteArchiveDB(data.config.dbname, sourceLoader);
         break;
 
@@ -222,6 +222,21 @@ class WorkerLoader extends CollectionLoader
         break;
       }
 
+      case "cancelLoad":
+      {
+        const name = event.data.name;
+
+        const p = new Promise((resolve) => self.interruptLoads[name] = resolve);
+
+        await p;
+
+        await this.deleteCollection(name);
+
+        delete self.interruptLoads[name];
+
+        break;
+      }
+
       case "removeColl":
       {
         const name = event.data.name;
@@ -270,20 +285,34 @@ class WorkerLoader extends CollectionLoader
 
       let loader = null;
       let resp = null;
+      let abort = null;
 
       if (file.sourceUrl) {
         type = "archive";
         config.dbname = "db:" + name;
-        const sourceUrl = new URL(file.sourceUrl, self.location.href).href;
 
-        config.sourceUrl = sourceUrl;
+        let sourceUrl = config.sourceUrl;
+
+        let loadUrl = file.loadUrl || file.sourceUrl;
+
+        if (!loadUrl.match(/[\w]+:\/\//)) {
+          loadUrl = new URL(loadUrl, self.location.href).href;
+          if (!file.loadUrl) {
+            sourceUrl = loadUrl;
+          }
+        }
+
+        config.loadUrl = loadUrl;
+        config.sourceUrl = file.sourceUrl;
+
         config.sourceName = file.name || sourceUrl;
-        config.displayName = file.displayName || config.sourceName;
+        config.sourceName = config.sourceName.slice(config.sourceName.lastIndexOf("/") + 1);
+
         config.headers = file.headers;
         config.size = typeof(file.size) === "number" ? file.size : null;
         config.extra = file.extra;
 
-        const sourceLoader = createLoader(sourceUrl, file.headers, file.size, config.extra);
+        const sourceLoader = createLoader(loadUrl, file.headers, file.size, config.extra);
 
         if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
           db = new ZipRemoteArchiveDB(config.dbname, sourceLoader);
@@ -298,6 +327,7 @@ class WorkerLoader extends CollectionLoader
         } else {
           const result = await sourceLoader.doInitialFetch();
           resp = result.response;
+          abort = result.abort;
         }
 
         if (!sourceLoader.isValid) {
@@ -318,11 +348,11 @@ ${text}`);
 
         } else if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
           if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !sourceLoader.supportsRange) {
-            loader = new WARCLoader(resp.body);
+            loader = new WARCLoader(resp.body, abort, name);
           } else {
-            loader = new CDXFromWARCLoader(resp.body);
+            loader = new CDXFromWARCLoader(resp.body, abort, name);
             type = "remotewarc";
-            config.remotePrefix = file.sourceUrl;
+            config.remotePrefix = loadUrl;
             config.singleFile = true;
             db = new RemoteArchiveDB(config.dbname, sourceLoader);
           }
@@ -332,12 +362,11 @@ ${text}`);
           loader = new WBNLoader(await resp.arrayBuffer());
 
         } else if (config.sourceName.endsWith(".cdxj") || config.sourceName.endsWith(".cdx")) {
-          config.remotePrefix = data.remotePrefix || file.sourceUrl.slice(0, file.sourceUrl.lastIndexOf("/") + 1);
-          loader = new CDXLoader(new AsyncIterReader(resp.body.getReader()));
+          config.remotePrefix = data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
+          loader = new CDXLoader(resp.body, abort, name);
           decode = true;
           type = "remotewarc";
           db = new RemoteArchiveDB(config.dbname, config.remotePrefix);
-
         }
 
         if (!loader) {
@@ -350,7 +379,12 @@ ${text}`);
         }
         await db.initing;
 
-        config.metadata = await loader.load(db, progressUpdate, contentLength);
+        try {
+          config.metadata = await loader.load(db, progressUpdate, contentLength);
+        } catch (e) {
+          return false;
+        }
+
         if (!config.metadata.size) {
           config.metadata.size = contentLength;
         }
@@ -374,19 +408,17 @@ ${text}`);
   }
 
   async deleteCollection(name) {
-    const result = await this.colldb.getKey("colls", name);
-    if (!result) {
-      return false;
-    }
+    const dbname = "db:" + name;
 
     try {
-      await deleteDB(result.config.dbname, {
+      await deleteDB(dbname, {
         blocked(reason) {
           console.log("Unable to delete: " + reason);
         }
       });
     } catch (e) {
       console.warn(e);
+      return false;
     }
 
     /*

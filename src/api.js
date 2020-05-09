@@ -70,8 +70,8 @@ class API {
       "title": metadata.title || "",
       "desc": metadata.desc || "",
       "size": metadata.size || 0,
-      "displayName": coll.config.displayName,
-      "sourceUrl": coll.config.sourceId || coll.config.sourceUrl,
+      "filename": coll.config.sourceName,
+      "sourceUrl": coll.config.sourceUrl,
       "id": coll.name,
       "onDemand": coll.config.onDemand
     }
