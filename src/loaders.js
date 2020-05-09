@@ -9,6 +9,8 @@ import { WBNLoader } from './wbnloader';
 import { WARCLoader } from './warcloader';
 import { CDXLoader, CDXFromWARCLoader } from './cdxloader';
 
+import { createLoader } from './blockloaders';
+
 import { RemoteProxySource, LiveAccess } from './remoteproxy';
 
 import { deleteDB, openDB } from 'idb/with-async-ittr.js';
@@ -111,12 +113,17 @@ class CollectionLoader
         break;
 
       case "remotewarc":
-        store = new RemoteArchiveDB(data.config.dbname, data.config.remotePrefix, data.config.headers);
+        if (data.config.singleFile) {
+          const sourceLoader = createLoader(data.config.sourceUrl, data.config.headers, data.config.size, data.config.extra);
+          store = new RemoteArchiveDB(data.config.dbname, sourceLoader);
+        } else {
+          store = new RemoteArchiveDB(data.config.dbname, data.config.remotePrefix, data.config.headers);
+        }
         break;
 
       case "remotezip":
-        const sourceReader = createReader(data.config.sourceUrl, data.config.headers);
-        store = new ZipRemoteArchiveDB(data.config.dbname, sourceReader);
+        const sourceLoader = createLoader(data.config.sourceUrl, data.config.headers, data.config.extra);
+        store = new ZipRemoteArchiveDB(data.config.dbname, sourceLoader);
         break;
 
       case "remoteproxy":
@@ -186,21 +193,24 @@ class WorkerLoader extends CollectionLoader
           });
         };
 
+        let res;
+
         if (await this.hasCollection(name)) {
           if (!event.data.skipExisting) {
             await this.deleteCollection(name);
-            await this.addCollection(event.data, progressUpdate);
+            res = await this.addCollection(event.data, progressUpdate);
           } else {
+            res = true;
             //coll = this.collections[name];
             //return;
           }
         } else {
-          await this.addCollection(event.data, progressUpdate);
+          res = await this.addCollection(event.data, progressUpdate);
         }
 
-        // if (!coll) {
-        //   return;
-        // }
+        if (!res) {
+          return;
+        }
 
         client.postMessage({
           "msg_type": "collAdded",
@@ -267,30 +277,31 @@ class WorkerLoader extends CollectionLoader
         const sourceUrl = new URL(file.sourceUrl, self.location.href).href;
 
         config.sourceUrl = sourceUrl;
-        config.sourceId = file.sourceId || sourceUrl;
         config.sourceName = file.name || sourceUrl;
         config.displayName = file.displayName || config.sourceName;
         config.headers = file.headers;
+        config.size = typeof(file.size) === "number" ? file.size : null;
+        config.extra = file.extra;
 
-        const sourceReader = createReader(sourceUrl, file.headers);
+        const sourceLoader = createLoader(sourceUrl, file.headers, file.size, config.extra);
 
         if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
-          db = new ZipRemoteArchiveDB(config.dbname, sourceReader);
+          db = new ZipRemoteArchiveDB(config.dbname, sourceLoader);
           type = "remotezip";
           decode = true;
           // is its own loader
           loader = db;
 
           // do HEAD request only
-          const result = await sourceReader.doInitialFetch(true);
+          const result = await sourceLoader.doInitialFetch(true);
           resp = result.response;
         } else {
-          const result = await sourceReader.doInitialFetch();
+          const result = await sourceLoader.doInitialFetch();
           resp = result.response;
         }
 
-        if (!sourceReader.isValid) {
-          const text = sourceReader.length <= 1000 ? await resp.text() : "";
+        if (!sourceLoader.isValid) {
+          const text = sourceLoader.length <= 1000 ? await resp.text() : "";
           progressUpdate(0, `\
 Sorry, this URL could not be loaded.
 Make sure this is a valid URL and you have access to this file.
@@ -300,19 +311,20 @@ ${text}`);
           return;
         }
 
-        const contentLength = sourceReader.length;
+        const contentLength = sourceLoader.length;
         
         if (config.sourceName.endsWith(".har")) {
           loader = new HARLoader(await resp.json());
 
         } else if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
-          if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !sourceReader.supportsRange) {
+          if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !sourceLoader.supportsRange) {
             loader = new WARCLoader(resp.body);
           } else {
             loader = new CDXFromWARCLoader(resp.body);
             type = "remotewarc";
             config.remotePrefix = file.sourceUrl;
-            db = new RemoteArchiveDB(config.dbname, config.remotePrefix);
+            config.singleFile = true;
+            db = new RemoteArchiveDB(config.dbname, sourceLoader);
           }
           decode = true;
 
@@ -326,8 +338,11 @@ ${text}`);
           type = "remotewarc";
           db = new RemoteArchiveDB(config.dbname, config.remotePrefix);
 
-        } else if (!type) {
-          return null;
+        }
+
+        if (!loader) {
+          progressUpdate(0, `The ${config.sourceName} is not a known archive format that could be loaded.`);
+          return;
         }
 
         if (!db) {
@@ -346,10 +361,12 @@ ${text}`);
       config = data.remote;
       config.sourceName = config.replayPrefix;
     } else {
+      progressUpdate(0, `Invalid Load Request`)
       return null;
     }
 
     config.decode = decode;
+    config.onDemand = (type === "remotewarc" || type === "remotezip");
 
     const collData = {name, type, config};
     await this.colldb.add("colls", collData);
@@ -389,175 +406,5 @@ ${text}`);
   }
 }
 
-// ===========================================================================
-function createReader(url, headers) {
-  if (url.startsWith("blob:")) {
-    return new BlobReader(url);
-  } else if (url.startsWith("http:") || url.startsWith("https:")) {
-    return new HttpRangeReader(url, headers);
-  } else {
-    throw new Error("Invalid URL: " + url);
-  }
-}
 
-
-// ===========================================================================
-class HttpRangeReader
-{
-  constructor(url, headers, length = null, supportsRange = false) {
-    this.url = url;
-    this.headers = headers || {};
-    this.length = length;
-    this.supportsRange = supportsRange;
-    this.isValid = false;
-  }
-
-  async doInitialFetch(tryHead) {
-    this.headers["Range"] = "bytes=0-";
-    this.isValid = false;
-    let abort = null;
-    let response = null;
-
-    if (tryHead) {
-      try {
-        response = await fetch(this.url, {headers: this.headers, method: "HEAD"});
-        if (response.status === 200 || response.status == 206) {
-          this.supportsRange = (response.status === 206);
-          this.isValid = true;
-          this.length = Number(response.headers.get("Content-Length"));
-        }
-      } catch(e) {
-
-      }
-    }
-
-    if (!this.isValid) {
-      abort = new AbortController();
-      const signal = abort.signal;
-      response = await fetch(this.url, {headers: this.headers, signal});
-      this.supportsRange = (response.status === 206);
-      this.isValid = (response.status === 206 || response.status === 200);
-      this.length = Number(response.headers.get("Content-Length"));
-    }
-
-    return {response, abort};
-  }
-
-  async getLength() {
-    if (this.length === null) {
-      const {response, abort} = await this.doInitialFetch(true);
-      if (abort) {
-        abort();
-      }
-    }
-    return this.length;
-  }
-
-  async getRange(offset, length, streaming = false, signal) {
-    if (this.length === null) {
-      await this.getLength();
-    }
-
-    const options = {signal, headers: {
-      "Range": `bytes=${offset}-${offset + length - 1}`
-    }};
-
-    let resp = null;
-
-    try {
-      resp = await fetch(this.url, options);
-    } catch(e) {
-      console.log(e);
-    }
-
-    if (streaming) {
-      return resp.body;
-    } else {
-      return new Uint8Array(await resp.arrayBuffer());
-    }
-  } 
-}
-
-
-// ===========================================================================
-class BlobReader
-{
-  constructor(url, blob = null) {
-    this.url = url;
-    this.blob = blob;
-  }
-
-  get supportsRange() {
-    return false;
-  }
-
-  get length() {
-    return (this.blob ? this.blob.size : 0);
-  }
-
-  get isValid() {
-    return !!this.blob;
-  }
-
-  async doInitialFetch() {
-    let response = await fetch(this.url);
-    this.blob = await response.blob();
-
-    const abort = new AbortController();
-    const signal = abort.signal;
-    response = await fetch(this.url, {signal});
-
-    return {response, abort: abort.abort};
-  }
-
-  async getLength() {
-    if (!this.blob) {
-      let response = await fetch(this.url);
-      this.blob = await response.blob();
-    }
-    return this.blob.size;
-  }
-
-  async getRange(offset, length, streaming = false, signal) {
-    if (!this.blob) {
-      await this.getLength();
-    }
-
-    const blobChunk = this.blob.slice(offset, offset + length, "application/octet-stream");
-
-    if (streaming) {
-      return blobChunk.stream ? blobChunk.stream() : this.getReadableStream(blobChunk);
-    } else {
-      try {
-        const ab = blobChunk.arrayBuffer ? await blobChunk.arrayBuffer() : await this.getArrayBuffer(blobChunk);
-        return new Uint8Array(ab);
-      } catch(e) {
-        console.log("error reading blob", e);
-        return null;
-      }
-    }
-  }
-
-  getArrayBuffer(blob) {
-    return new Promise((resolve) => {
-      let fr = new FileReader();
-      fr.onloadend = () => {
-        resolve(fr.result);
-      };
-      fr.readAsArrayBuffer(blob);
-    });
-  }
-
-  async getReadableStream(blob) {
-    const ab = await this.getArrayBuffer(blob);
-
-    return new ReadableStream({
-      start(controller) {
-        controller.enqueue(new Uint8Array(ab));
-        controller.close();
-      }
-    });
-  }
-}
-
-export { CollectionLoader, WorkerLoader, createReader };
+export { CollectionLoader, WorkerLoader };

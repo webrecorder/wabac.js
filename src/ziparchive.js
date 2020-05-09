@@ -10,9 +10,9 @@ import yaml from 'js-yaml';
 // ===========================================================================
 class ZipRemoteArchiveDB extends RemoteArchiveDB
 {
-  constructor(name, sourceReader) {
-    super(name, sourceReader.url);
-    this.zipreader = new ZipRangeReader(sourceReader);
+  constructor(name, sourceLoader) {
+    super(name, sourceLoader);
+    this.zipreader = new ZipRangeReader(sourceLoader);
   }
 
   _initDB(db, oldV, newV, tx) {

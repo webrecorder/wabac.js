@@ -1,6 +1,6 @@
 import { makeHeaders, tsToDate } from './utils.js';
 
-import { WARCParser, AsyncIterReader } from 'warcio';
+import { WARCParser } from 'warcio';
 
 
 // ===========================================================================
@@ -289,31 +289,41 @@ class WARCLoader {
 
     let lastUpdate = 0, updateTime = 0;
 
-    for await (const record of parser) {
-      if (!record.warcType) {
-        console.log("skip empty record");
-        continue;
-      }
-      updateTime = new Date().getTime();
-      if ((updateTime - lastUpdate) > 500) {
-        progressUpdate(Math.round((parser.offset / totalSize) * 95.0));
-        lastUpdate = updateTime;
-      }
-
-      const skipMode = this.filterRecord(record);
-      if (skipMode === "done") {
-        if (this.abort) {
-          this.abort.abort();
+    try {
+      for await (const record of parser) {
+        if (!record.warcType) {
+          console.log("skip empty record");
+          continue;
         }
-        break;
-      } else if (skipMode === "skip") {
-        continue;
-      }
+        updateTime = new Date().getTime();
+        if ((updateTime - lastUpdate) > 500) {
+          progressUpdate(Math.round((parser.offset / totalSize) * 95.0));
+          lastUpdate = updateTime;
+        }
 
-      if (skipMode !== "skipContent") {
-        await record.readFully();
+        const skipMode = this.filterRecord(record);
+        if (skipMode === "done") {
+          if (this.abort) {
+            this.abort.abort();
+          }
+          break;
+        } else if (skipMode === "skip") {
+          continue;
+        }
+
+        if (skipMode === "skipContent") {
+          await record.skipFully();
+        } else {
+          await record.readFully();
+        }
+        
+        this.index(record, parser);
       }
-      this.index(record, parser);
+    } catch(e) {
+      progressUpdate(Math.round((parser.offset / totalSize) * 95.0),
+        `Sorry there was an error downloading. Please try again (${e})`);
+
+      console.warn(e);
     }
 
     this.indexDone();

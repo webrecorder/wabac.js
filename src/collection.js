@@ -114,13 +114,20 @@ class Collection {
       response = await this.store.getResource(query, this.prefix, event);
     } catch (e) {
       if (e instanceof AuthNeeded) {
-        if (this.config.sourceId) {
-          const errParams = new URLSearchParams({
-            source: this.config.sourceId,
-            redirUrl: request.url,
-            autherr: true}).toString();
-          return Response.redirect(`/?${errParams}`);
+        //const client = await self.clients.get(event.clientId || event.resultingClientId);
+        const clients = await self.clients.matchAll({ "type": "window" });
+        for (const client of clients) {
+          const url = new URL(client.url);
+          if (url.searchParams.get("source") === this.config.sourceId) {
+            client.postMessage({
+              source: this.config.sourceId,
+              coll: this.name,
+              type: "authneeded"
+            });
+          }
         }
+
+        return notFound(request, `<p>Sorry, this URL requires authentication from the source.</p>`);
       }
     }
 

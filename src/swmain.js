@@ -50,8 +50,8 @@ class SWCollections extends CollectionLoader
   }
 
   async updateAuth(name, headers) {
-    if (this.colls[name] && this.colls[name].store.updateAuth) {
-      this.colls[name].store.updateAuth(headers);
+    if (this.colls[name] && this.colls[name].store.updateHeaders) {
+      this.colls[name].store.updateHeaders(headers);
     }
 
     await super.updateAuth(name, headers);
@@ -122,7 +122,7 @@ class SWReplay {
     if (request.cache === 'only-if-cached' && request.mode !== 'same-origin') {
       opts.cache = 'default';
     }
-    return self.fetch(request);
+    return self.fetch(request, opts);
   }
 
   async getResponseFor(request, event) {

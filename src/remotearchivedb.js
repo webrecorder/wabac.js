@@ -3,51 +3,59 @@ import { SingleRecordWARCLoader } from './warcloader';
 import { AuthNeeded } from './utils';
 import { BaseAsyncIterReader } from 'warcio';
 
+import { createLoader } from './blockloaders';
+
 
 // ===========================================================================
 class RemoteArchiveDB extends ArchiveDB
 {
-  constructor(name, remoteUrlPrefix, headers) {
+  constructor(name, remotePrefixOrLoader, headers) {
     super(name);
 
-    this.remoteUrlPrefix = remoteUrlPrefix;
+    if (typeof(remotePrefixOrLoader) === "string") {
+      this.remoteUrlPrefix = remotePrefixOrLoader;
+      this.headers = headers;
+      this.loader = null;
+    } else {
+      this.loader = remotePrefixOrLoader;
+      this.headers = null;
+      this.remoteUrlPrefix = null;
+    }
+
     this.useRefCounts = false;
-    this.headers = headers;
   }
 
   updateHeaders(headers) {
-    this.headers = headers;
+    if (this.loader) {
+      this.loader.headers = headers;
+    } else {
+      this.headers = headers; 
+    }
   }
 
   async loadSource(source) {
-    let response = null;
+    const { start, length } = source;
 
-    if (typeof(source) === "string") {
-      response = await self.fetch(source);
-    } else if (typeof(source) === "object") {
-      const { start, length } = source;
-      const headers =  new Headers(this.headers);
+    let loader = null;
 
-      let url;
-
-      if (url) {
-        url = source.url;
-      } else if (source.path) {
-        url = new URL(source.path, this.remoteUrlPrefix).href;
-      } else {
-        url = this.remoteUrlPrefix;
-      }
-
-      headers.set("Range", `bytes=${start}-${start + length - 1}`);
-      response = await self.fetch(url, {headers});
-      if (response.status === 401 || response.statusText === 403) {
-        throw new AuthNeeded(url);
-      }
+    if (this.loader) {
+      loader = this.loader;
     } else {
-      return null;
+      const headers =  new Headers(this.headers);
+      const url = new URL(source.path, this.remoteUrlPrefix).href;
+
+      loader = createLoader(url, headers);
     }
 
-    return response.body;
+    try {
+      return await loader.getRange(start, length, true);
+    } catch (e) {
+      if (e.status === 401 || e.status === 403) {
+        throw new AuthNeeded(url);
+      }
+    }
+
+    return null;
   }
 
   async loadPayload(cdx, depth = 0) {
@@ -226,7 +234,10 @@ class PayloadBufferingReader extends BaseAsyncIterReader
 
     this.fullbuff = BaseAsyncIterReader.concatChunks(this.chunks, this.size);
 
-    if (this.commit) {
+    // if limit is not 0, didn't consume expected amount... something likely wrong
+    if (this.reader.limit !== 0) {
+      console.warn(`Expected payload not consumed, ${this.reader.limit} bytes left`);
+    } else if (this.commit) {
       await this.db.commitPayload(this.fullbuff, this.digest);
     }
 

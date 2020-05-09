@@ -63,6 +63,20 @@ class API {
     return this.makeResponse(response, status);
   }
 
+  getCollData(coll) {
+    const metadata = coll.config.metadata ? coll.config.metadata : {};
+
+    return {
+      "title": metadata.title || "",
+      "desc": metadata.desc || "",
+      "size": metadata.size || 0,
+      "displayName": coll.config.displayName,
+      "sourceUrl": coll.config.sourceId || coll.config.sourceUrl,
+      "id": coll.name,
+      "onDemand": coll.config.onDemand
+    }
+  }
+
   async handleApi(url, method, request) {
     let params = this.router.match(url, method);
     let coll;
@@ -80,13 +94,9 @@ class API {
           return {error: "collection_not_found"};
         }
         const lists = await coll.store.db.getAll("pageLists");
-        return {"lists": lists || [],
-                "desc": coll.metadata.desc || "",
-                "title": coll.metadata.title || "",
-                "size": coll.metadata.size || 0,
-                "sourceId": coll.config.sourceId,
-                "displayName": coll.config.displayName
-               }
+        const data = this.getCollData(coll);
+        data.lists = lists || [];
+        return data;
 
       case "deleteColl":
         if (!await this.collections.deleteColl(params.coll)) {
@@ -141,18 +151,10 @@ class API {
     const response = await this.collections.listAll();
     const collections = [];
     response.forEach((coll) => {
-      const metadata = coll.config.metadata ? coll.config.metadata : {};
       if (coll.type === "live" || coll.type === "remoteproxy") {
         return;
       }
-      collections.push({
-        "title": metadata.title || "",
-        "desc": metadata.desc || "",
-        "size": metadata.size || 0,
-        "displayName": coll.config.displayName,
-        "sourceId": coll.config.sourceId,
-        "id": coll.name
-      });
+      collections.push(this.getCollData(coll));
     });
 
     return {"colls": collections};
