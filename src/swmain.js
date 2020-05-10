@@ -68,13 +68,14 @@ class SWReplay {
 
     const sp = new URLSearchParams(self.location.search);
 
-    const replayPrefixPath = sp.get("replayPrefix");
+    const replayPrefixPath = sp.get("replayPrefix") || "wabac";
 
     if (replayPrefixPath) {
       this.replayPrefix += replayPrefixPath + "/";
     }
 
-    this.staticPrefix = this.prefix + "static";
+    this.staticPrefix = this.prefix + "static/";
+    this.distPrefix = this.prefix + "dist/";
 
     const prefixes = {static: this.staticPrefix,
                       root: this.prefix,
@@ -101,9 +102,26 @@ class SWReplay {
     });
 
     self.addEventListener('fetch', (event) => {
-      // if not within replay prefix, just pass through
-      if (!event.request.url.startsWith(this.replayPrefix)) {
+      const url = event.request.url;
+
+      // if not on our domain, just pass through (loading handled in local worker)
+      if (!url.startsWith(this.prefix)) {
         event.respondWith(this.defaultFetch(event.request));
+        return;
+      }
+
+      // current domain, but not replay, check if should cache ourselves
+      if (!url.startsWith(this.replayPrefix)) {
+        // only cache: root page, ourself, staticPrefix and distPrefix
+        if (url === this.prefix ||
+            url === self.location.href || 
+            url.startsWith(this.prefix + "?") || 
+            url.startsWith(this.staticPrefix) || 
+            url.startsWith(this.distPrefix)) {
+          event.respondWith(this.handleOffline(event.request));
+        } else {
+          event.respondWith(this.defaultFetch(event.request));
+        }
         return;
       }
 
@@ -115,6 +133,8 @@ class SWReplay {
         this.collections.loadAll();
       }
     });
+
+    this.ensureCached(["/", "/static/wombat.js", "/static/wombatWorkers.js"]);
   }
 
   defaultFetch(request) {
@@ -123,6 +143,57 @@ class SWReplay {
       opts.cache = 'default';
     }
     return self.fetch(request, opts);
+  }
+
+  async ensureCached(urls) {
+    const cache = await caches.open('wabac-offline');
+
+    for (let url of urls) {
+      url = new URL(url, self.location.href).href;
+      let response = await cache.match(url, {ignoreSearch: true});
+      if (response) {
+        continue;
+      }
+
+      //console.log(`Auto Cacheing: ${url}`);
+      try {
+        response = await this.defaultFetch(url);
+        await cache.put(url, response);
+      } catch(e) {
+        console.warn(`Failed to Auto Cache: ${url}`, e);
+      }
+    }
+  }
+
+  async handleOffline(request) {
+    let response = null;
+    
+    const cache = await caches.open('wabac-offline');
+
+    try {
+      response = await this.defaultFetch(request);
+
+    } catch(e) {
+      response = await cache.match(request, {ignoreSearch: true});
+      if (!response) {
+        response = notFound(request, "Sorry, this url was not caches for offline use");
+      }
+      return response;
+    }
+
+    if (request.url.startsWith(this.prefix + "?")) {
+      return response;
+    }
+
+    if (response.status === 200) {
+      const cacheResponse = response.clone();
+      await cache.put(request, cacheResponse);
+      //console.log(`Cached: ${request.method} ${request.url}`);
+    } else {
+      console.warn(`Not Cacheing ${request.url} - Status ${response.status}`);
+    }
+
+    return response;
   }
 
   async getResponseFor(request, event) {

@@ -50,14 +50,20 @@ class HttpRangeLoader
       this.isValid = (response.status === 206 || response.status === 200);
     }
 
-    this.length = response.headers.get("Content-Length");
-    if (!this.length && response.status === 206) {
-      let range = response.headers.get("Content-Range");
-      range = range.split("/");
-      if (range.length === 2){
-        this.length = range[1];
+    if (this.length === null) {
+      this.length = response.headers.get("Content-Length");
+      if (!this.length && response.status === 206) {
+        let range = response.headers.get("Content-Range");
+        if (range) {
+          range = range.split("/");
+          if (range.length === 2){
+            this.length = range[1];
+          }
+        }
       }
     }
+
+    
     this.length = Number(this.length || "0");
 
     return {response, abort};
@@ -103,8 +109,8 @@ class HttpRangeLoader
 // ===========================================================================
 class GoogleDriveLoader
 {
-  constructor(sourceId, headers, size, extra) {
-    this.fileId = sourceId.slice("googledrive://".length);
+  constructor(sourceUrl, headers, size, extra) {
+    this.fileId = sourceUrl.slice("googledrive://".length);
     this.apiUrl = `https://www.googleapis.com/drive/v3/files/${this.fileId}?alt=media`;
 
     this.headers = headers;

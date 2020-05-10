@@ -118,9 +118,9 @@ class Collection {
         const clients = await self.clients.matchAll({ "type": "window" });
         for (const client of clients) {
           const url = new URL(client.url);
-          if (url.searchParams.get("source") === this.config.sourceId) {
+          if (url.searchParams.get("source") === this.config.sourceUrl) {
             client.postMessage({
-              source: this.config.sourceId,
+              source: this.config.sourceUrl,
               coll: this.name,
               type: "authneeded"
             });
@@ -162,9 +162,9 @@ class Collection {
   }
 
   makeTopFrame(url, requestTS, isLive) {
-    if (this.config.sourceId) {
+    if (this.config.sourceUrl) {
       const locParams = new URLSearchParams({url, ts: requestTS, view: "replay"}).toString();
-      return Response.redirect(`/?source=${this.config.sourceId}#${locParams}`);
+      return Response.redirect(`/?source=${this.config.sourceUrl}#${locParams}`);
     }
 
     const content = `
@@ -182,14 +182,14 @@ html, body
 }
 
 </style>
-<script src='${this.staticPrefix}/wb_frame.js'> </script>
+<script src='${this.staticPrefix}wb_frame.js'> </script>
 
 <script>
 window.home = "${this.rootPrefix}";
 </script>
 
-<script src='${this.staticPrefix}/default_banner.js'> </script>
-<link rel='stylesheet' href='${this.staticPrefix}/default_banner.css'/>
+<script src='${this.staticPrefix}default_banner.js'> </script>
+<link rel='stylesheet' href='${this.staticPrefix}default_banner.css'/>
 
 </head>
 <body style="margin: 0px; padding: 0px;">
@@ -260,13 +260,13 @@ body {
   wbinfo.is_live = ${isLive ? 'true' : 'false'};
   wbinfo.coll = "${coll}";
   wbinfo.proxy_magic = "";
-  wbinfo.static_prefix = "${this.staticPrefix}/";
+  wbinfo.static_prefix = "${this.staticPrefix}";
   wbinfo.enable_auto_fetch = true;
   wbinfo.presetCookie = ${presetCookieStr};
 </script>
-<script src='${this.staticPrefix}/wombat.js'> </script>
+<script src='${this.staticPrefix}wombat.js'> </script>
 <script>
-  wbinfo.wombat_ts = "${timestamp}";
+  wbinfo.wombat_ts = "${requestTS}";
   wbinfo.wombat_sec = "${seconds}";
   wbinfo.wombat_scheme = "${scheme}";
   wbinfo.wombat_host = "${urlParsed.host}";

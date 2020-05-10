@@ -318,7 +318,7 @@ class ZipRangeReader
 
       entriesLeft = this.getUint64(view, viewOffset + 32, true);
       offset = this.getUint64(view, viewOffset + 48, true);
-      zip64 = true;
+      //zip64 = true;
     }
 
     if (dataStartOffset) {
