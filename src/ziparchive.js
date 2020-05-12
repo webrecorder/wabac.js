@@ -2,9 +2,10 @@ import { AsyncIterReader } from 'warcio';
 import { RemoteArchiveDB } from './remotearchivedb';
 import { WARCInfoOnlyWARCLoader } from './warcloader';
 import { CDXLoader } from './cdxloader';
-import { getTS } from './utils';
+import { getTS, notFound } from './utils';
 
 import yaml from 'js-yaml';
+import { LiveAccess } from './remoteproxy';
 
 
 // ===========================================================================
@@ -13,6 +14,8 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
   constructor(name, sourceLoader) {
     super(name, sourceLoader);
     this.zipreader = new ZipRangeReader(sourceLoader);
+
+    this.externalSources = new Map();
   }
 
   _initDB(db, oldV, newV, tx) {
@@ -217,6 +220,23 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
     await Promise.all(cdxloaders);
 
     return cdxloaders.length > 0;
+  }
+
+  async getResource(request, rwPrefix, event) {
+    if (this.externalSources.size) {
+      for (const [name, external] of this.externalSources.entries()) {
+        if (request.url.startsWith(name)) {
+          try {
+            return await external.getResource(request, rwPrefix, event);
+          } catch(e) {
+            console.log(e);
+            return new Response("Upstream Error", {status: 503});
+          }
+        }
+      }
+    }
+
+    return await super.getResource(request, rwPrefix, event);
   }
 
   async lookupUrl(url, datetime, skip = 0) {

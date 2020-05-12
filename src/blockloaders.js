@@ -1,3 +1,5 @@
+import { AuthNeeded } from "./utils";
+
 // ===========================================================================
 function createLoader(url, headers, size, extra) {
   if (url.startsWith("blob:") || url.startsWith("file:")) {
@@ -64,7 +66,7 @@ class HttpRangeLoader
     }
 
     
-    this.length = Number(this.length || "0");
+    this.length = Number(this.length || 0);
 
     return {response, abort};
   }
@@ -95,7 +97,11 @@ class HttpRangeLoader
     }
 
     if (resp.status != 206) {
-      throw new RangeError(this.url, resp.status);
+      if (resp.status === 401 || resp.status === 403) {
+        throw new AuthNeededError(this.url, resp.status);
+      } else {
+        throw new RangeError(this.url, resp.status);
+      }
     }
 
     if (streaming) {

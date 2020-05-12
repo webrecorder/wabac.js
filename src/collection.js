@@ -2,7 +2,7 @@
 
 import { Rewriter } from './rewrite';
 
-import { getTS, getSecondsStr, notFound, AuthNeeded } from './utils.js';
+import { getTS, getSecondsStr, notFound, AuthNeededError } from './utils.js';
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
@@ -113,7 +113,7 @@ class Collection {
     try {
       response = await this.store.getResource(query, this.prefix, event);
     } catch (e) {
-      if (e instanceof AuthNeeded) {
+      if (e instanceof AuthNeededError) {
         //const client = await self.clients.get(event.clientId || event.resultingClientId);
         const clients = await self.clients.matchAll({ "type": "window" });
         for (const client of clients) {
@@ -266,7 +266,7 @@ body {
 </script>
 <script src='${this.staticPrefix}wombat.js'> </script>
 <script>
-  wbinfo.wombat_ts = "${requestTS}";
+  wbinfo.wombat_ts = "${isLive ? timestamp : requestTS}";
   wbinfo.wombat_sec = "${seconds}";
   wbinfo.wombat_scheme = "${scheme}";
   wbinfo.wombat_host = "${urlParsed.host}";

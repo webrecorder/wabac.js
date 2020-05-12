@@ -93,8 +93,10 @@ class RemoteProxySource {
 
 // ===========================================================================
 class LiveAccess {
-  constructor(prefix) {
+  constructor(prefix, proxyPathOnly = false, isLive = true) {
     this.prefix = prefix || "";
+    this.proxyPathOnly = proxyPathOnly;
+    this.isLive = isLive;
   }
 
   async getAllPages() {
@@ -121,7 +123,16 @@ class LiveAccess {
       }
     }
 
-    const response = await fetch(this.prefix + url,
+    let fetchUrl;
+
+    if (this.proxyPathOnly) {
+      const parsedUrl = new URL(url);
+      fetchUrl = this.prefix + parsedUrl.pathname + parsedUrl.search;
+    } else {
+      fetchUrl = this.prefix + url;
+    }
+
+    const response = await fetch(fetchUrl,
               {method: request.request.method,
                body: request.request.body,
                headers,
@@ -134,7 +145,7 @@ class LiveAccess {
             response,
             date: new Date(),
             noRW: false,
-            isLive: true
+            isLive: this.isLive,
            });
   }
 }

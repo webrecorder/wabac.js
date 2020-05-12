@@ -110,7 +110,17 @@ function notFound(request, msg) {
   return new Response(content, initOpt);
 }
 
-class AuthNeeded
+
+// ===========================================================================
+class RangeError
+{
+  constructor(url, status) {
+    this.url = url;
+    this.status = status;
+  }
+}
+
+class AuthNeededError extends RangeError
 {
 
 }
@@ -122,4 +132,4 @@ class Canceled
 
 
 export { startsWithAny, getTS, tsToDate, tsToSec, getSecondsStr, digestMessage,
-         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, AuthNeeded, Canceled };
+         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, RangeError, AuthNeededError, Canceled };

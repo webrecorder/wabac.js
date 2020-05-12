@@ -318,13 +318,17 @@ class ArchiveDB {
     const skip = this.repeatTracker ? this.repeatTracker.getSkipCount(event, url, request.method) : 0;
 
     if (url.startsWith("//")) {
+      const useHttp = false;
       result = await this.lookupUrl("https:" + url, datetime, skip);
       if (!result) {
         result = await this.lookupUrl("http:" + url, datetime, skip);
-        url = "http:" + url;
-      } else {
-        url = "https:" + url;
+        // use http if found or if referrer contains an http replay path
+        // otherwise, default to https
+        if (result || request.request.referrer.indexOf("/http://", 2) > 0) {
+          useHttp = true;
+        }
       }
+      url = (useHttp ? "http:" : "https:") + url;
     } else {
       result = await this.lookupUrl(url, datetime, skip);
     }

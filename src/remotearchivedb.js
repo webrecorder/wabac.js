@@ -1,6 +1,5 @@
 import { ArchiveDB } from './archivedb';
 import { SingleRecordWARCLoader } from './warcloader';
-import { AuthNeeded } from './utils';
 import { BaseAsyncIterReader } from 'warcio';
 
 import { createLoader } from './blockloaders';
@@ -47,15 +46,7 @@ class RemoteArchiveDB extends ArchiveDB
       loader = createLoader(url, headers);
     }
 
-    try {
-      return await loader.getRange(start, length, true);
-    } catch (e) {
-      if (e.status === 401 || e.status === 403) {
-        throw new AuthNeeded(url);
-      }
-    }
-
-    return null;
+    return await loader.getRange(start, length, true);
   }
 
   async loadPayload(cdx, depth = 0) {
