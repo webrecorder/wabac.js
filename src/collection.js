@@ -141,10 +141,10 @@ class Collection {
     if (!response.noRW) {
       const headInsertFunc = () => {
         const presetCookie = response.headers.get("x-wabac-preset-cookie");
-        return this.makeHeadInsert(response.url, requestTS, response.date, presetCookie, response.isLive);
+        return this.makeHeadInsert(requestURL, requestTS, response.date, presetCookie, response.isLive);
       };
 
-      const rewriter = new Rewriter(response.url, this.prefix + requestTS + mod + "/", headInsertFunc, false, this.config.decode);
+      const rewriter = new Rewriter(requestURL, this.prefix + requestTS + mod + "/", headInsertFunc, false, this.config.decode);
 
       const csp = mod !== "id_" ? DEFAULT_CSP : null;
       const noRewrite = mod === "id_" || mod === "wkrf_";

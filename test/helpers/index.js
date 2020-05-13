@@ -22,7 +22,7 @@ async function doRewrite({content, contentType, url = "https://example.com/some/
   const payload = encoder.encode(content);
   const resp = new ArchiveResponse({payload, headers: new Headers({"Content-Type": contentType}), date});
 
-  const res = await RW.rewrite(resp, new Request("https://example.com/"), "", false);
+  const res = await RW.rewrite(resp, new Request(url), "", false);
 
   return await res.getText();
 }

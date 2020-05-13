@@ -4,7 +4,7 @@ import { Readable } from 'stream';
 
 import RewritingStream from 'parse5-html-rewriting-stream';
 
-import { startsWithAny, isAjaxRequest } from '../utils.js';
+import { startsWithAny, containsAny, isAjaxRequest } from '../utils.js';
 
 import { decodeResponse } from './decoder';
 
@@ -24,9 +24,16 @@ const META_REFRESH_REGEX = /([\d.]+\s*;\s*url\s*=\s*)(.+)(\s*)/mi;
 
 const NO_WOMBAT_REGEX = /WB_wombat_/g;
 
-const JSONP_REGEX = /(?:^[ \t]*(?:(?:\/\*[^\*]*\*\/)|(?:\/\/[^\n]+[\n])))*[ \t]*(\w+)\(\{/m;
+//const JSONP_REGEX = /^(?:[ \t]*(?:(?:\/\*[^\*]*\*\/)|(?:\/\/[^\n]+[\n])))*[ \t]*(\w+)\(\{/m;
+const JSONP_REGEX = /^(?:\s*(?:(?:\/\*[^\*]*\*\/)|(?:\/\/[^\n]+[\n])))*\s*(\w+)\(\{/;
 
 const JSONP_CALLBACK_REGEX = /[?].*callback=([^&]+)/;
+
+const JSONP_CONTAINS = [
+  'callback=jQuery',
+  'callback=jsonp',
+  '.json?'
+];
 
 const DOT_POST_MSG_REGEX = /(.postMessage\s*\()/;
 
@@ -71,7 +78,7 @@ class Rewriter {
           return "css";
 
         case "script":
-          return "js";
+          return containsAny(url, JSONP_CONTAINS) ? "jsonp" : "js";
       }
     }
 
@@ -82,6 +89,9 @@ class Rewriter {
       case "text/javascript":
       case "application/javascript":
       case "application/x-javascript":
+        if (containsAny(url, JSONP_CONTAINS)) {
+          return "jsonp";
+        }
         return url.endsWith(".json") ? "json" : "js";
 
       case "application/json":
@@ -143,6 +153,10 @@ class Rewriter {
 
       case "json":
         rwFunc = this.rewriteJSON;
+        break;
+
+      case "jsonp":
+        rwFunc = this.rewriteJSONP;
         break;
 
       case "hls":
@@ -558,9 +572,9 @@ class Rewriter {
 
   // JSON
   rewriteJSON(text, isAjax) {
-    if (!isAjax) {
-      text = this.rewriteJSONP(text);
-    }
+    //if (!isAjax) {
+    text = this.rewriteJSONP(text);
+    //}
 
     const dsRewriter = baseRules.getRewriter(this.baseUrl);
 
@@ -585,7 +599,7 @@ class Rewriter {
       return text;
     }
 
-    return callback[1] + text.slice(text.indexOf(josnM[1]) + jsonM[1].length);
+    return callback[1] + text.slice(text.indexOf(jsonM[1]) + jsonM[1].length);
   }
 
   //Headers

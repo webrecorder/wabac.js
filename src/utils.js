@@ -1,7 +1,17 @@
 
 function startsWithAny(value, iter) {
-  for (let str of iter) {
+  for (const str of iter) {
     if (value.startsWith(str)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function containsAny(value, iter) {
+  for (const str of iter) {
+    if (value.indexOf(str) >= 0) {
       return true;
     }
   }
@@ -131,5 +141,5 @@ class Canceled
 }
 
 
-export { startsWithAny, getTS, tsToDate, tsToSec, getSecondsStr, digestMessage,
+export { startsWithAny, containsAny, getTS, tsToDate, tsToSec, getSecondsStr, digestMessage,
          isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, RangeError, AuthNeededError, Canceled };
