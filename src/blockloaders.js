@@ -1,4 +1,4 @@
-import { AuthNeeded } from "./utils";
+import { AuthNeededError } from "./utils";
 
 // ===========================================================================
 function createLoader(url, headers, size, extra) {
@@ -303,14 +303,4 @@ class BlobLoader
   }
 }
 
-
-// ===========================================================================
-class RangeError
-{
-  constructor(url, status) {
-    this.url = url;
-    this.status = status;
-  }
-}
-
-export { createLoader, RangeError }
+export { createLoader }
