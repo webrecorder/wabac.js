@@ -11,11 +11,17 @@ import { LiveAccess } from './remoteproxy';
 // ===========================================================================
 class ZipRemoteArchiveDB extends RemoteArchiveDB
 {
-  constructor(name, sourceLoader) {
+  constructor(name, sourceLoader, extraConfig = null) {
     super(name, sourceLoader);
     this.zipreader = new ZipRangeReader(sourceLoader);
 
     this.externalSources = new Map();
+
+    if (extraConfig && extraConfig.es) {
+      for (const [prefix, externalPath] of Object.entries(extraConfig.es)) {
+        this.externalSources.set(prefix, new LiveAccess(externalPath, true, false));
+      }
+    }
   }
 
   _initDB(db, oldV, newV, tx) {

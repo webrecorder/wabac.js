@@ -105,12 +105,21 @@ class LiveAccess {
 
   async getResource(request, prefix, event) {
 
-    const headers = new Headers(request.request.headers);
-    let referrer = request.request.referrer;
-    const inx = referrer.indexOf("/http", prefix.length - 1);
-    if (inx > 0) {
-      referrer = referrer.slice(inx + 1);
-      headers.set("X-Proxy-Referer", referrer);
+    let headers;
+    let credentials;
+
+    if (this.isLive) {
+      headers = new Headers(request.request.headers);
+      let referrer = request.request.referrer;
+      const inx = referrer.indexOf("/http", prefix.length - 1);
+      if (inx > 0) {
+        referrer = referrer.slice(inx + 1);
+        headers.set("X-Proxy-Referer", referrer);
+      }
+      credentials = request.request.credentials;
+    } else {
+      headers = new Headers();
+      credentials = 'omit';
     }
 
     let url = request.url;
@@ -136,7 +145,7 @@ class LiveAccess {
               {method: request.request.method,
                body: request.request.body,
                headers,
-               credentials: request.request.credentials,
+               credentials,
                mode: 'cors',
                redirect: 'follow'
               });

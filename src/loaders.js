@@ -123,7 +123,7 @@ class CollectionLoader
 
       case "remotezip":
         const sourceLoader = createLoader(data.config.loadUrl || data.config.sourceUrl, data.config.headers, data.config.extra);
-        store = new ZipRemoteArchiveDB(data.config.dbname, sourceLoader);
+        store = new ZipRemoteArchiveDB(data.config.dbname, sourceLoader, data.config.extraConfig);
         break;
 
       case "remoteproxy":
@@ -131,7 +131,7 @@ class CollectionLoader
         break;
 
       case "live":
-        store = new LiveAccess(data.config.prefix);
+        store = new LiveAccess(data.config.prefix, data.config.proxyPathOnly, data.config.isLive);
         break;
     }
 
@@ -195,20 +195,26 @@ class WorkerLoader extends CollectionLoader
 
         let res;
 
-        if (await this.hasCollection(name)) {
-          if (!event.data.skipExisting) {
-            await this.deleteCollection(name);
-            res = await this.addCollection(event.data, progressUpdate);
+        try {
+          if (await this.hasCollection(name)) {
+            if (!event.data.skipExisting) {
+              await this.deleteCollection(name);
+              res = await this.addCollection(event.data, progressUpdate);
+            } else {
+              res = true;
+              //coll = this.collections[name];
+              //return;
+            }
           } else {
-            res = true;
-            //coll = this.collections[name];
-            //return;
+            res = await this.addCollection(event.data, progressUpdate);
           }
-        } else {
-          res = await this.addCollection(event.data, progressUpdate);
-        }
-
-        if (!res) {
+  
+          if (!res) {
+            return;
+          }
+        } catch (e) {
+          console.warn(e);
+          progressUpdate(0, "An unexpected error occured: " + e.toString());
           return;
         }
 
@@ -291,31 +297,27 @@ class WorkerLoader extends CollectionLoader
         type = "archive";
         config.dbname = "db:" + name;
 
-        let sourceUrl = config.sourceUrl;
-
         let loadUrl = file.loadUrl || file.sourceUrl;
 
         if (!loadUrl.match(/[\w]+:\/\//)) {
           loadUrl = new URL(loadUrl, self.location.href).href;
-          if (!file.loadUrl) {
-            sourceUrl = loadUrl;
-          }
         }
 
         config.loadUrl = loadUrl;
         config.sourceUrl = file.sourceUrl;
 
-        config.sourceName = file.name || sourceUrl;
+        config.sourceName = file.name || file.sourceUrl;
         config.sourceName = config.sourceName.slice(config.sourceName.lastIndexOf("/") + 1);
 
         config.headers = file.headers;
         config.size = typeof(file.size) === "number" ? file.size : null;
         config.extra = file.extra;
+        config.extraConfig = data.extraConfig;
 
         const sourceLoader = createLoader(loadUrl, file.headers, file.size, config.extra);
 
         if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
-          db = new ZipRemoteArchiveDB(config.dbname, sourceLoader);
+          db = new ZipRemoteArchiveDB(config.dbname, sourceLoader, config.extraConfig);
           type = "remotezip";
           decode = true;
           // is its own loader
