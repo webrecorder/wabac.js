@@ -16,8 +16,10 @@ const DEFAULT_RULES =
    "replace": "",
   },
 
-  {"match": /\/\/.*(?:gcs-vimeo|vod)\.akamized\.net\.*([/\d]+\.mp4)$/,
-   "replace": "video.vimeo.net$1"
+  {"match": /\/\/.*(?:gcs-vimeo|vod|vod-progressive)\.akamaized\.net.*(\/[\d]+)\/[\d]+(.mp4)/,
+   "replace": "//video.vimeo.net$1$2",
+   "split": ".net",
+   "last": true
   },
 
   {"match": /(\.(?:php|js|webm|mp4))\?.*/i,
@@ -57,9 +59,21 @@ class FuzzyMatcher {;
     this.rules = rules || DEFAULT_RULES;
   }
 
-  *fuzzyUrls(url) {
+  *fuzzyUrls(url, includeSearchData = false) {
+    const origUrl = url;
     if (url.indexOf("?") === -1) {
       url += "?";
+    }
+
+    function doYield(fuzzyUrl, rule) {
+      if (!includeSearchData) {
+        return fuzzyUrl;
+      }
+
+      const split = rule.split || "?";
+      const inx = origUrl.indexOf(split);
+      const prefix = inx > 0 ? origUrl.slice(0, inx + split.length) : origUrl;
+      return [fuzzyUrl, {prefix, rule, fuzzyUrl}];
     }
 
     for (const rule of this.rules) {
@@ -73,10 +87,12 @@ class FuzzyMatcher {;
         const newUrl = url.replace(rule.match, rule.replace);
 
         if (newUrl != url) {
-          yield newUrl;
+          yield doYield(newUrl, rule);
           url = newUrl;
         }
-        //break;
+        if (rule.last) {
+          break;
+        }
 
       } else if (rule.args !== undefined) {
         
@@ -87,7 +103,7 @@ class FuzzyMatcher {;
         for (let args of rule.args) {
           const newUrl = this.getQueryUrl(url, args);
           if (url != newUrl) {
-            yield newUrl;
+            yield doYield(newUrl, rule);
           }
         }
         break;
@@ -96,7 +112,7 @@ class FuzzyMatcher {;
         const results = url.match(rule.replaceQuery);
         const newUrl = this.getQueryUrl(url, results ? results.join("") : "");
         if (newUrl != url) {
-          yield newUrl;
+          yield doYield(newUrl, rule);
         }
         break;
       }
@@ -157,7 +173,31 @@ class FuzzyMatcher {;
   }
 }
 
-function fuzzyCompareUrls(reqUrl, results) {
+
+function fuzzyCompareUrls(reqUrl, results, data) {
+  // if no special rule with custom split, search by best-match query
+  if (!data || !data.rule || !data.rule.replace || !data.rule.split) {
+    // search by best-match query
+    return fuzzyBestMatchQuery(reqUrl, results);
+  }
+
+  const fuzzyUrl = data.fuzzyUrl.endsWith("?") ? data.fuzzyUrl.slice(0, -1) : data.fuzzyUrl;
+  const match = data.rule.match;
+  const replace = data.rule.replace;
+
+  // find best match by regex
+  for (const result of results) {
+    const url = (typeof result === "string" ? result : result.url);
+
+    if (fuzzyUrl === url.replace(match, replace)) {
+      return {"score": 1.0, result};
+    }
+  }
+
+  return {"score": 0, "result": null};
+}
+
+function fuzzyBestMatchQuery(reqUrl, results, rule) {
   try {
     reqUrl = new URL(reqUrl);
   } catch (e) {

@@ -333,17 +333,20 @@ class ArchiveDB {
       result = await this.lookupUrl(url, datetime, skip);
     }
 
+    let fuzzySearchData;
+
     if (!result) {
-      for await (const fuzzyUrl of fuzzyMatcher.fuzzyUrls(url)) {
+      for await (const [fuzzyUrl, fuzzyData] of fuzzyMatcher.fuzzyUrls(url, true)) {
         result = await this.lookupUrl(fuzzyUrl);
         if (result) {
           break;
         }
+        fuzzySearchData = fuzzyData;
       }
     }
 
     if (!result && this.fuzzyPrefixSearch) {
-      result = await this.lookupQueryPrefix(url);
+      result = await this.lookupQueryPrefix(url, fuzzySearchData);
     }
 
     // check if redirect
@@ -419,14 +422,14 @@ class ArchiveDB {
   }
 
   // experimental
-  async lookupQueryPrefix(url) {
+  async lookupQueryPrefix(url, fuzzySearchData) {
     const tx = this.db.transaction("resources", "readonly");
 
     let results = [];
 
-    let urlNoQ = url.split("?", 1)[0] + "?";
+    //const urlForFuzzy = url.split(splitKey, 1)[0] + splitKey;
 
-    for await (const cursor of tx.store.iterate(this.getLookupRange(urlNoQ, "prefix"))) {
+    for await (const cursor of tx.store.iterate(this.getLookupRange(fuzzySearchData.prefix, "prefix"))) {
       results.push(cursor.value);
     }
 
@@ -434,7 +437,7 @@ class ArchiveDB {
       return null;
     }
 
-    const result = fuzzyCompareUrls(url, results);
+    const result = fuzzyCompareUrls(url, results, fuzzySearchData);
     //if (result) {
       //console.log(`Fuzz: ${result.result.url} <-> ${url}`);
     //}
