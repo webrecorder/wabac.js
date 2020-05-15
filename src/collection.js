@@ -139,9 +139,9 @@ class Collection {
     }
 
     if (!response.noRW) {
-      const headInsertFunc = () => {
+      const headInsertFunc = (url) => {
         const presetCookie = response.headers.get("x-wabac-preset-cookie");
-        return this.makeHeadInsert(requestURL, requestTS, response.date, presetCookie, response.isLive);
+        return this.makeHeadInsert(url, requestTS, response.date, presetCookie, response.isLive);
       };
 
       const rewriter = new Rewriter(requestURL, this.prefix + requestTS + mod + "/", headInsertFunc, false, this.config.decode);

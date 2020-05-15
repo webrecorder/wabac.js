@@ -52,12 +52,13 @@ class Rewriter {
     this.dsRules = useBaseRules ? baseRules : jsRules;
     this.decode = decode;
 
-    const url = new URL(this.prefix);
-    this.relPrefix = url.pathname;
-    this.schemeRelPrefix = this.prefix.slice(url.protocol.length);
+    const prefixUrl = new URL(this.prefix);
+    this.relPrefix = prefixUrl.pathname;
+    this.schemeRelPrefix = this.prefix.slice(prefixUrl.protocol.length);
+    this.scheme = prefixUrl.protocol;
 
-    this.scheme = url.protocol;
     this.baseUrl = this.checkUrlScheme(baseUrl);
+    this.url = this.baseUrl;
 
     this.headInsertFunc = headInsertFunc;
   }
@@ -420,7 +421,7 @@ class Rewriter {
 
     const addInsert = () => {
       if (!insertAdded && hasData && this.headInsertFunc) {
-        const headInsert = this.headInsertFunc();
+        const headInsert = this.headInsertFunc(this.url);
         if (headInsert) {
           rwStream.emitRaw(headInsert);
         }
