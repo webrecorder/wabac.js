@@ -52,6 +52,7 @@ class API {
       'deleteColl': [':coll', 'DELETE'],
       'updateAuth': [':coll/updateAuth', 'POST'],
       'curated': ':coll/curatedPages',
+      'pages': ':coll/pages'
     });
 
     this.collections = collections;
@@ -129,6 +130,13 @@ class API {
         }
 
         return {urls};
+
+      case "pages":
+        coll = await this.collections.getColl(params.coll);
+        if (!coll) {
+          return {error: "collection_not_found"};
+        }
+        return {"pages": await coll.store.getAllPages(100)};
 
       case "curated":
         coll = await this.collections.getColl(params.coll);
