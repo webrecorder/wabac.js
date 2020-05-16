@@ -13,7 +13,8 @@
     "path-parser": "^6.1.0",
     "unescape-js": "^1.1.4",
     "warcio": "^1.1.3",
-    "wbn": "^0.0.3"
+    "wbn": "^0.0.3",
+    "wombat": "github:webrecorder/wombat"
   },
   "devDependencies": {
     "@titelmedia/node-fetch": "^3.0.1",
@@ -21,6 +22,7 @@
     "esm": "^3.2.25",
     "fake-indexeddb": "^3.0.0",
     "nyc": "^15.0.1",
+    "raw-loader": "^4.0.1",
     "test-listen": "^1.1.0",
     "web-streams-node": "^0.4.0",
     "webpack": "^4.41.2",

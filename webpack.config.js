@@ -4,6 +4,8 @@ const webpack = require('webpack');
 module.exports = {
   mode: 'production',
   entry: {
+    'wombat': 'wombat/src/wbWombat.js',
+    'wombatWorkers': 'wombat/src/wombatWorkers.js',
     'sw': './src/sw.js',
   },
   output: {
@@ -21,5 +23,14 @@ module.exports = {
     open: false,
     publicPath: '/dist/'
   },
+
+  module: {
+      rules: [
+      {
+        test: /(dist\/wombat.js|src\/wombatWorkers.js)$/i,
+        loaders: 'raw-loader',
+      }
+      ]
+  }
 };
 

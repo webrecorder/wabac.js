@@ -8,6 +8,9 @@ import { StatsTracker } from './statstracker.js';
 
 import { API } from './api.js';
 
+import WOMBAT from '../dist/wombat.js';
+import WOMBAT_WORKERS from 'wombat/src/wombatWorkers.js';
+
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 
@@ -82,6 +85,10 @@ class SWReplay {
                       main: this.replayPrefix
                      };
 
+    this.staticData = new Map();
+    this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
+    this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
+
     this.collections = new SWCollections(prefixes);
     this.collections.loadAll(sp.get("dbColl"));
 
@@ -102,30 +109,7 @@ class SWReplay {
     });
 
     self.addEventListener('fetch', (event) => {
-      const url = event.request.url;
-
-      // if not on our domain, just pass through (loading handled in local worker)
-      if (!url.startsWith(this.prefix)) {
-        event.respondWith(this.defaultFetch(event.request));
-        return;
-      }
-
-      // current domain, but not replay, check if should cache ourselves
-      if (!url.startsWith(this.replayPrefix)) {
-        // only cache: root page, ourself, staticPrefix and distPrefix
-        if (url === this.prefix ||
-            url === self.location.href || 
-            url.startsWith(this.prefix + "?") || 
-            url.startsWith(this.staticPrefix) || 
-            url.startsWith(this.distPrefix)) {
-          event.respondWith(this.handleOffline(event.request));
-        } else {
-          event.respondWith(this.defaultFetch(event.request));
-        }
-        return;
-      }
-
-      event.respondWith(this.getResponseFor(event.request, event));
+      event.respondWith(this.handleFetch(event));
     });
 
     self.addEventListener("message", (event) => {
@@ -133,8 +117,38 @@ class SWReplay {
         this.collections.loadAll();
       }
     });
+  }
 
-    this.ensureCached(["/", "/static/wombat.js", "/static/wombatWorkers.js"]);
+  handleFetch(event) {
+    const url = event.request.url;
+
+    // if not on our domain, just pass through (loading handled in local worker)
+    if (!url.startsWith(this.prefix)) {
+      return this.defaultFetch(event.request);
+    }
+
+    for (const staticPath of this.staticData.keys()) {
+      if (staticPath === url) {
+        const { content, type} = this.staticData.get(staticPath);
+        return new Response(content, {headers: {"Content-Type": type}});
+      }
+    }
+
+    // current domain, but not replay, check if should cache ourselves
+    if (!url.startsWith(this.replayPrefix)) {
+      // only cache: root page, ourself, staticPrefix and distPrefix
+      if (url === this.prefix ||
+          url === self.location.href || 
+          url.startsWith(this.prefix + "?") || 
+          url.startsWith(this.staticPrefix) || 
+          url.startsWith(this.distPrefix)) {
+        return this.handleOffline(event.request);
+      } else {
+        return this.defaultFetch(event.request);
+      }
+    }
+
+    return this.getResponseFor(event.request, event);
   }
 
   defaultFetch(request) {
