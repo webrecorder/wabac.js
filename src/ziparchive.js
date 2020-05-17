@@ -15,11 +15,22 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
     super(name, sourceLoader);
     this.zipreader = new ZipRangeReader(sourceLoader);
 
-    this.externalSources = new Map();
+    this.externalSources = [];
+    this.fuzzyUrlRules = [];
 
-    if (extraConfig && extraConfig.es) {
-      for (const [prefix, externalPath] of Object.entries(extraConfig.es)) {
-        this.externalSources.set(prefix, new LiveAccess(externalPath, true, false));
+    if (extraConfig) {
+      if (extraConfig.es) {
+        for (const [prefix, externalPath] of extraConfig.es) {
+          const external = new LiveAccess(externalPath, true, false);
+          this.externalSources.push({prefix, external});
+        }
+      }
+
+      if (extraConfig.fuzzy) {
+        for (const [matchStr, replace] of extraConfig.fuzzy) {
+          const match = new RegExp(matchStr);
+          this.fuzzyUrlRules.push({match, replace});
+        }
       }
     }
   }
@@ -229,9 +240,9 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
   }
 
   async getResource(request, rwPrefix, event) {
-    if (this.externalSources.size) {
-      for (const [name, external] of this.externalSources.entries()) {
-        if (request.url.startsWith(name)) {
+    if (this.externalSources.length) {
+      for (const {prefix, external} of this.externalSources) {
+        if (request.url.startsWith(prefix)) {
           try {
             return await external.getResource(request, rwPrefix, event);
           } catch(e) {
@@ -242,7 +253,26 @@ class ZipRemoteArchiveDB extends RemoteArchiveDB
       }
     }
 
-    return await super.getResource(request, rwPrefix, event);
+    let res = await super.getResource(request, rwPrefix, event);
+
+    if (res) {
+      return res;
+    }
+
+    if (this.fuzzyUrlRules.length) {
+      for (const {match, replace} of this.fuzzyUrlRules) {
+        const newUrl = request.url.replace(match, replace);
+        if (newUrl && newUrl !== request.url) {
+          request.url = newUrl;
+          res = await super.getResource(request, rwPrefix, event);
+          if (res) {
+            return res;
+          }
+        }
+      }
+    }
+
+    return null;
   }
 
   async lookupUrl(url, datetime, skip = 0) {
