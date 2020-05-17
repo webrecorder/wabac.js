@@ -1,5 +1,9 @@
 import { AuthNeededError } from "./utils";
 
+// todo: make configurable
+const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
+
+
 // ===========================================================================
 function createLoader(url, headers, size, extra) {
   if (url.startsWith("blob:") || url.startsWith("file:")) {
@@ -65,6 +69,18 @@ class HttpRangeLoader
       }
     }
 
+    if (this.length === null) {
+      // attempt to get length via proxy
+      try {
+        const resp = await fetch(`${HELPER_PROXY}/c/${this.url}`);
+        const json = await resp.json();
+        if (json.size) {
+          this.length = json.size;
+        }
+      } catch (e) { 
+        console.log("Error fetching from helper: " + e.toString());
+      }
+    }
     
     this.length = Number(this.length || 0);
 
@@ -204,7 +220,7 @@ class GoogleDriveLoader
 
   async refreshPublicUrl() {
     try {
-      const resp = await fetch(`https://gdrive-proxy.webrecorder.workers.dev/g/${this.fileId}`);
+      const resp = await fetch(`${HELPER_PROXY}/g/${this.fileId}`);
       const json = await resp.json();
       if (json.url) {
         this.publicUrl = json.url;

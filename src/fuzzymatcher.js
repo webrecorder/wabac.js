@@ -22,8 +22,13 @@ const DEFAULT_RULES =
    "last": true
   },
 
+  {"match": /\/\/.*(player.vimeo.com\/video\/[\d]+)\?.*/i,
+   "replace": "$1"
+  },
+
   {"match": /(\.(?:php|js|webm|mp4))\?.*/i,
-   "replace": "$1"},
+   "replace": "$1"
+  },
 
   {"match": /(www\.)?youtube(-nocookie)?\.com\/get_video_info/i,
    "args": [["video_id", "html5"]],
@@ -51,6 +56,10 @@ const DEFAULT_RULES =
   {"match": /plus\.googleapis\.com\/u\/\/0\/_\/widget\/render\/comments/i,
    "args": [["href", "stream_id", "substream_id"]]
   },
+
+  {"match": /[?].*/,
+   "replace": "?"
+  }
 ];
 
 // ===========================================================================

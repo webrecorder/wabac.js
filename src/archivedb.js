@@ -315,7 +315,7 @@ class ArchiveDB {
 
     let result = null;
 
-    const skip = this.repeatTracker ? this.repeatTracker.getSkipCount(event, url, request.method) : 0;
+    const skip = this.repeatTracker ? this.repeatTracker.getSkipCount(event, url, request.request.method) : 0;
 
     if (url.startsWith("//")) {
       const useHttp = false;
@@ -345,7 +345,7 @@ class ArchiveDB {
       }
     }
 
-    if (!result && this.fuzzyPrefixSearch) {
+    if (!result && fuzzySearchData && this.fuzzyPrefixSearch) {
       result = await this.lookupQueryPrefix(url, fuzzySearchData);
     }
 

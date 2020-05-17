@@ -343,6 +343,13 @@ ${text}`);
           return;
         }
 
+        if (!sourceLoader.length) {
+          progressUpdate(0, `\
+Sorry, this URL could not be loaded because the size of the file is not accessible.
+Make sure this is a valid URL and you have access to this file.`);
+          return;
+        }
+
         const contentLength = sourceLoader.length;
         
         if (config.sourceName.endsWith(".har")) {
