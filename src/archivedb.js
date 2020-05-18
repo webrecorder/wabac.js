@@ -3,7 +3,7 @@
 import { openDB, deleteDB } from 'idb/with-async-ittr.js';
 import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage } from './utils';
 import { fuzzyMatcher, fuzzyCompareUrls } from './fuzzymatcher';
-import { STATUS_CODES } from 'http';
+import { getStatusText } from 'http-status-codes';
 import { ArchiveResponse } from './response';
 import { getTS } from './utils';
 
@@ -363,7 +363,7 @@ class ArchiveDB {
     }
 
     const status = result.status;
-    const statusText = result.statusText || STATUS_CODES[status];
+    const statusText = result.statusText || getStatusText(status);
 
     const payload = !isNullBodyStatus(status) ? await this.loadPayload(result) : null;
 

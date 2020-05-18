@@ -6,10 +6,11 @@
   "dependencies": {
     "brotli": "github:foliojs/brotli.js",
     "fast-xml-parser": "^3.15.1",
+    "http-status-codes": "^1.4.0",
     "idb": "^5.0.1",
     "js-yaml": "^3.13.1",
     "pako": "^1.0.10",
-    "parse5-html-rewriting-stream": "^5.1.0",
+    "parse5-html-rewriting-stream": "^6.0.0",
     "path-parser": "^6.1.0",
     "unescape-js": "^1.1.4",
     "warcio": "^1.1.3",
