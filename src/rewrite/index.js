@@ -46,10 +46,12 @@ const baseRules = new DomainSpecificRuleSet(RxRewriter);
 
 // ===========================================================================
 class Rewriter {
-  constructor(baseUrl, prefix, headInsertFunc = null, useBaseRules = false, decode = true) {
+  constructor({baseUrl, prefix, headInsertFunc = null, urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
     this.prefix = prefix || "";
 
-    this.dsRules = useBaseRules ? baseRules : jsRules;
+    this.urlRewrite = urlRewrite;
+    this.contentRewrite = contentRewrite;
+    this.dsRules = urlRewrite && !useBaseRules ? jsRules : baseRules;
     this.decode = decode;
 
     const prefixUrl = new URL(this.prefix);
@@ -112,16 +114,12 @@ class Rewriter {
     return null;
   }
 
-  async rewrite(response, request, csp, noRewrite = false) {
-    const rewriteMode = noRewrite ? null : this.getRewriteMode(request, response, this.baseUrl);
+  async rewrite(response, request) {
+    const rewriteMode = this.contentRewrite ? this.getRewriteMode(request, response, this.baseUrl) : null;
 
     const isAjax = isAjaxRequest(request);
 
-    const headers = this.rewriteHeaders(response.headers, !noRewrite, rewriteMode !== null);
-
-    if (csp) {
-      headers.append("Content-Security-Policy", csp);
-    }
+    const headers = this.rewriteHeaders(response.headers, this.urlRewrite, !!rewriteMode);
 
     const encoding = response.headers.get("content-encoding");
     const te = response.headers.get('transfer-encoding');
@@ -139,13 +137,15 @@ class Rewriter {
 
     switch (rewriteMode) {
       case "html":
-        if (!isAjax) {
+        if (!isAjax && this.urlRewrite) {
           return await this.rewriteHtml(response);
         }
         break;
 
       case "css":
-        rwFunc = this.rewriteCSS;
+        if (this.urlRewrite) {
+          rwFunc = this.rewriteCSS;
+        }
         break;
 
       case "js":
@@ -169,11 +169,11 @@ class Rewriter {
         break;
     }
 
-    let content = null;
+    const opts = {isAjax, response};
 
     if (rwFunc) {
       let text = await response.getText();
-      text = rwFunc.call(this, text, isAjax, response.extraOpts);
+      text = rwFunc.call(this, text, opts);
       response.setContent(text);
     }
 
@@ -280,7 +280,7 @@ class Rewriter {
 
       // js attrs
       if (name.startsWith("on") && value.startsWith("javascript:") && name.slice(2, 3) != "-") {
-        attr.value = "javascript:" + this.rewriteJS(value.slice("javascript:".length), false, true);
+        attr.value = "javascript:" + this.rewriteJS(value.slice("javascript:".length), {}, true);
       }
       // css attrs
       else if (name === "style") {
@@ -530,13 +530,14 @@ class Rewriter {
   }
 
   // JS
-  rewriteJS(text, isAjax, inline) {
-    const dsRules = isAjax ? baseRules : this.dsRules;
+  rewriteJS(text, opts, inline) {
+    const noUrlProxyRewrite = (!this.urlRewrite || (opts && opts.isAjax));
+    const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
 
     // optimize: if default rewriter, only rewrite if contains JS props
     if (dsRewriter === dsRules.defaultRewriter) {
-      if (isAjax) {
+      if (noUrlProxyRewrite) {
         return text;
       }
 
@@ -572,7 +573,7 @@ class Rewriter {
   }
 
   // JSON
-  rewriteJSON(text, isAjax) {
+  rewriteJSON(text) {
     //if (!isAjax) {
     text = this.rewriteJSONP(text);
     //}

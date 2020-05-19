@@ -17,7 +17,7 @@ dashOutputOpts.format = true;
 test('DASH', async t => {
   const content = await fs.readFile(path.join(__dirname, "data", "sample_dash.mpd"), "utf-8");
 
-  const result = await doRewrite({content, contentType: "application/dash+xml", url: 'http://example.com/path/manifest.mpd'});
+  const result = await doRewrite({content, contentType: "application/dash+xml", url: 'http://example.com/path/manifest.mpd', isLive: true});
 
   const expected = `\
 <?xml version='1.0' encoding='UTF-8'?>
@@ -44,7 +44,7 @@ test('DASH', async t => {
   </Period>
 </MPD>`;
 
-  t.is(result, expected, result);
+  t.is(result, expected);
 });
 
 
@@ -56,7 +56,8 @@ test('FB DASH', async t => {
 
   const result = await doRewrite({content,
       contentType: "text/javascript", 
-      url: "http://facebook.com/example/dash/manifest.js"});
+      url: "http://facebook.com/example/dash/manifest.js",
+      isLive: true});
 
   const res = JSON.parse(result);
 

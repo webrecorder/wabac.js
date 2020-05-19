@@ -216,6 +216,8 @@ class WARCLoader {
       cl = record.warcContentLength;
     }
 
+    let referrer = null;
+
     if (reqRecord && reqRecord.httpHeaders.headers) {
       try {
         const reqHeaders = new Headers(reqRecord.httpHeaders.headers);
@@ -223,6 +225,7 @@ class WARCLoader {
         if (cookie) {
           headers.set("x-wabac-preset-cookie", cookie);
         }
+        referrer = reqRecord.httpHeaders.headers.get("Referer");
       } catch(e) {
         console.warn(e);
       }
@@ -259,7 +262,7 @@ class WARCLoader {
     const payload = record.payload;
     const reader = payload ? null : record.reader;
 
-    const entry = {url, ts, status, mime, respHeaders, digest, payload, reader};
+    const entry = {url, ts, status, mime, respHeaders, digest, payload, reader, referrer};
 
     if (record.warcHeader("WARC-JSON-Metadata")) {
       try {

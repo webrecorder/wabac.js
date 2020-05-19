@@ -6,47 +6,13 @@ import { createLoader } from './blockloaders';
 
 
 // ===========================================================================
-class RemoteArchiveDB extends ArchiveDB
+class OnDemandPayloadArchiveDB extends ArchiveDB
 {
-  constructor(name, remotePrefixOrLoader, headers) {
+  constructor(name, noCache = false) {
     super(name);
-
-    if (typeof(remotePrefixOrLoader) === "string") {
-      this.remoteUrlPrefix = remotePrefixOrLoader;
-      this.headers = headers;
-      this.loader = null;
-    } else {
-      this.loader = remotePrefixOrLoader;
-      this.headers = null;
-      this.remoteUrlPrefix = null;
-    }
+    this.noCache = noCache;
 
     this.useRefCounts = false;
-  }
-
-  updateHeaders(headers) {
-    if (this.loader) {
-      this.loader.headers = headers;
-    } else {
-      this.headers = headers; 
-    }
-  }
-
-  async loadSource(source) {
-    const { start, length } = source;
-
-    let loader = null;
-
-    if (this.loader) {
-      loader = this.loader;
-    } else {
-      const headers =  new Headers(this.headers);
-      const url = new URL(source.path, this.remoteUrlPrefix).href;
-
-      loader = createLoader(url, headers);
-    }
-
-    return await loader.getRange(start, length, true);
   }
 
   async loadPayload(cdx, depth = 0) {
@@ -81,6 +47,7 @@ class RemoteArchiveDB extends ArchiveDB
       return null;
     }
 
+    // Revisit
     if (remote.origURL) {
       const origResult = await this.lookupUrl(remote.origURL, remote.origTS);
       if (!origResult) {
@@ -107,18 +74,10 @@ class RemoteArchiveDB extends ArchiveDB
 
       return payload;
     }
-/*
-    if (remote.reader) {
-      if (getRewriteMode({url: cdx.url, mime: cdx.mime}) || cdx.source && (cdx.source.length && cdx.source.length < 100000)) { 
-        remote.payload = await remote.reader.readFully();
-      } else {
-        console.log(`Keep reader for ${cdx.url} size ${cdx.source.length}`);
-      }
-    }
-*/
+
     const digest = remote.digest;
 
-    if (remote.reader && digest) {
+    if (!this.noCache && remote.reader && digest) {
       remote.reader = new PayloadBufferingReader(this, remote.reader, digest, cdx.url);
     }
 
@@ -128,32 +87,30 @@ class RemoteArchiveDB extends ArchiveDB
       return null;
     }
 
-    try {
-      const tx = this.db.transaction("resources", "readwrite");
+    if (!this.noCache) {
+      try {
+        const tx = this.db.transaction("resources", "readwrite");
 
-      if (payload) {
-        await this.commitPayload(digest);
+        if (payload) {
+          await this.commitPayload(digest);
+        }
+
+        cdx.respHeaders = remote.respHeaders;
+        cdx.digest = digest;
+        if (remote.extraOpts) {
+          cdx.extraOpts = remote.extraOpts;
+        }
+
+        tx.store.put(cdx);
+        await tx.done;
+
+      } catch (e) {
+        console.warn(`Resource Update Error: ${cdx.url}`);
+        console.warn(e);
       }
-
-      cdx.respHeaders = remote.respHeaders;
-      cdx.digest = digest;
-      if (remote.extraOpts) {
-        cdx.extraOpts = remote.extraOpts;
-      }
-
-      tx.store.put(cdx);
-      await tx.done;
-
-    } catch (e) {
-      console.warn(`Resource Update Error: ${cdx.url}`);
-      console.warn(e);
     }
 
-    if (payload) {
-      return payload;
-    }
-
-    return remote.reader;
+    return payload ? payload : remote.reader;
   }
 
   async commitPayload(payload, digest) {
@@ -181,6 +138,54 @@ class RemoteArchiveDB extends ArchiveDB
     } catch (e) {
       console.warn('Payload Commit Error: ' + e);
     }
+  }
+}
+
+
+// ===========================================================================
+class RemoteSourceArchiveDB extends OnDemandPayloadArchiveDB
+{
+  constructor(name, loader, noCache = false) {
+    super(name, noCache);
+
+    this.loader = loader;
+  }
+
+  updateHeaders(headers) {
+    this.loader.headers = headers;
+  }
+
+  async loadSource(source) {
+    const { start, length } = source;
+
+    return await this.loader.getRange(start, length, true);
+  }
+}
+
+
+// ===========================================================================
+class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB
+{
+  constructor(name, remoteUrlPrefix, headers, noCache = false) {
+    super(name, noCache);
+
+    this.remoteUrlPrefix = remoteUrlPrefix;
+    this.headers = headers;
+  }
+
+  updateHeaders(headers) {
+    this.headers = headers; 
+  }
+
+  async loadSource(source) {
+    const { start, length } = source;
+
+    const headers =  new Headers(this.headers);
+    const url = new URL(source.path, this.remoteUrlPrefix).href;
+
+    const loader = createLoader(url, headers);
+
+    return await loader.getRange(start, length, true);
   }
 }
 
@@ -243,5 +248,5 @@ class PayloadBufferingReader extends BaseAsyncIterReader
 }
 
 
-export { RemoteArchiveDB };
+export { OnDemandPayloadArchiveDB, RemotePrefixArchiveDB, RemoteSourceArchiveDB };
 

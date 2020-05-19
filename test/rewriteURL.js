@@ -4,7 +4,7 @@ import test from 'ava';
 import { Rewriter } from '../src/rewrite';
 
 function rewriteUrl(t, url, baseUrl, prefix, expected) {
-  t.is(new Rewriter(baseUrl, prefix).rewriteUrl(url), expected);
+  t.is(new Rewriter({baseUrl, prefix}).rewriteUrl(url), expected);
 }
 
 rewriteUrl.title = (providedTitle = 'URL', url, baseUrl, prefix, expected) => `${providedTitle}: Rewriter(${prefix}${baseUrl}).RW(${url}) => ${expected}`.trim();

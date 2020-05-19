@@ -144,12 +144,27 @@ class Collection {
         return this.makeHeadInsert(url, requestTS, response.date, presetCookie, response.isLive);
       };
 
-      const rewriter = new Rewriter(requestURL, this.prefix + requestTS + mod + "/", headInsertFunc, false, this.config.decode);
-
-      const csp = mod !== "id_" ? DEFAULT_CSP : null;
       const noRewrite = mod === "id_" || mod === "wkrf_";
+      const prefix = this.prefix + requestTS + mod + "/";
 
-      response = await rewriter.rewrite(response, request, csp, noRewrite);
+      const rewriteOpts = {
+        baseUrl: requestURL,
+        prefix,
+        headInsertFunc,
+        urlRewrite: !noRewrite,
+        contentRewrite: !noRewrite,
+        decode: this.config.decode
+      };
+
+      const rewriter = new Rewriter(rewriteOpts);
+
+
+
+      response = await rewriter.rewrite(response, request);
+
+      if (mod !== "id_") {
+        response.headers.append("Content-Security-Policy", DEFAULT_CSP);
+      }
     }
 
     const range = request.headers.get("range");

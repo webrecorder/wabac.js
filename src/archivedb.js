@@ -318,7 +318,7 @@ class ArchiveDB {
     const skip = this.repeatTracker ? this.repeatTracker.getSkipCount(event, url, request.request.method) : 0;
 
     if (url.startsWith("//")) {
-      const useHttp = false;
+      let useHttp = false;
       result = await this.lookupUrl("https:" + url, datetime, skip);
       if (!result) {
         result = await this.lookupUrl("http:" + url, datetime, skip);
@@ -488,8 +488,6 @@ class ArchiveDB {
     mimes = mimes.split(",");
     const results = [];
     const lastChar = String.fromCharCode(0xFFFF);
-
-    const mimeStart = lastChar;
 
     for (const mime of mimes) {
       const start = (fromMime ? [fromMime, 0, fromUrl] : [mime, 0, ""]);

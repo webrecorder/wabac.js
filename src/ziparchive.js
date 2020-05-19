@@ -1,5 +1,5 @@
 import { AsyncIterReader } from 'warcio';
-import { RemoteArchiveDB } from './remotearchivedb';
+import { RemoteSourceArchiveDB } from './remotearchivedb';
 import { WARCInfoOnlyWARCLoader } from './warcloader';
 import { CDXLoader } from './cdxloader';
 import { getTS, notFound } from './utils';
@@ -9,10 +9,10 @@ import { LiveAccess } from './remoteproxy';
 
 
 // ===========================================================================
-class ZipRemoteArchiveDB extends RemoteArchiveDB
+class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 {
-  constructor(name, sourceLoader, extraConfig = null) {
-    super(name, sourceLoader);
+  constructor(name, sourceLoader, extraConfig = null, noCache = false) {
+    super(name, sourceLoader, noCache);
     this.zipreader = new ZipRangeReader(sourceLoader);
 
     this.externalSources = [];

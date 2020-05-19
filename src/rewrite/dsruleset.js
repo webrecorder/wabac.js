@@ -55,7 +55,7 @@ function ruleRewriteFBDash(string) {
     bestIds = [];
   }
 
-  const newDashManifest = rewriteDASH(dashManifest, bestIds) + "\n";
+  const newDashManifest = rewriteDASH(dashManifest, null, bestIds) + "\n";
 
   if (bestIds != null && !bestIds.length) {
     return string;

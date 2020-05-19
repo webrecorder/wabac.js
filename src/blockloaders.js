@@ -8,7 +8,7 @@ const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
 function createLoader(url, headers, size, extra) {
   if (url.startsWith("blob:") || url.startsWith("file:")) {
     return new BlobLoader(url, null, extra);
-  } else if (url.startsWith("http:") || url.startsWith("https:")) {
+  } else if (url.startsWith("http:") || url.startsWith("https:") || url.startsWith("filex:")) {
     return new HttpRangeLoader(url, headers, size);
   } else if (url.startsWith("googledrive:")) {
     return new GoogleDriveLoader(url, headers, size, extra);

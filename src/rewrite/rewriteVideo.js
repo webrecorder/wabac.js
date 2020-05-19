@@ -2,20 +2,49 @@
 
 import XMLParser from 'fast-xml-parser';
 
+// orig pywb defaults
+const OLD_DEFAULT_MAX_BAND = 2000000;
+const OLD_DEFAULT_MAX_RES = 1280 * 720;
+
+// lower defaults
 const DEFAULT_MAX_BAND = 1000000;
 const DEFAULT_MAX_RES = 860 * 480;
-//const DEFAULT_MAX_BAND = 2000000;
-//const DEFAULT_MAX_RES = 1280 * 720;
+
+
+// ===========================================================================
+function getMaxResAndBand(opts = {}) {
+  // read opts from warc, if any
+  let maxRes, maxBand;
+
+  const extraOpts = (opts && opts.response && opts.response.extraOpts)
+
+  if (extraOpts) {
+    maxRes = extraOpts.adaptive_max_resolution;
+    maxBand = extraOpts.adaptive_max_bandwidth;
+    if (maxRes && maxBand) {
+      return {maxRes, maxBand};
+    }
+  }
+
+  const isReplay = opts && opts.response && !opts.response.isLive;
+  
+  // if not replay, or unknown, use new lower setting
+  if (!isReplay) {
+    return {maxRes: DEFAULT_MAX_RES, maxBand: DEFAULT_MAX_BAND};
+  } else {
+  // use existing pywb defaults
+    return {maxRes: OLD_DEFAULT_MAX_RES, maxBand: OLD_DEFAULT_MAX_BAND};
+  }
+}
 
 
 // ===========================================================================
 //HLS
-function rewriteHLS(text, isAjax, extraOpts) {
+function rewriteHLS(text, opts) {
   const EXT_INF = /#EXT-X-STREAM-INF:(?:.*[,])?BANDWIDTH=([\d]+)/;
   const EXT_RESOLUTION = /RESOLUTION=([\d]+)x([\d]+)/;
 
-  const maxRes = extraOpts && extraOpts["adaptive_max_resolution"] || DEFAULT_MAX_RES;
-  const maxBand = extraOpts && extraOpts["adaptive_max_bandwidth"] || DEFAULT_MAX_BAND;
+  const { maxRes, maxBand} = getMaxResAndBand(opts);
 
   let indexes = [];
   let count = 0;
@@ -71,9 +100,9 @@ function rewriteHLS(text, isAjax, extraOpts) {
 const dashOutputOpts = {ignoreAttributes: false, ignoreNameSpace: false, format: false, supressEmptyNode: true};
 
 
-function rewriteDASH(text, bestIds) {
+function rewriteDASH(text, opts, bestIds) {
   try {
-    return _rewriteDASH(text, bestIds);
+    return _rewriteDASH(text, opts, bestIds);
   } catch (e) {
     console.log(e);
     return text;
@@ -81,12 +110,11 @@ function rewriteDASH(text, bestIds) {
 }
 
 
-function _rewriteDASH(text, bestIds) {
+function _rewriteDASH(text, opts, bestIds) {
   const options = dashOutputOpts;
   const root = XMLParser.parse(text, options);
 
-  const maxRes = DEFAULT_MAX_RES;
-  const maxBand = DEFAULT_MAX_BAND;
+  const { maxRes, maxBand} = getMaxResAndBand(opts);
 
   let best = null;
   let bestRes = 0;

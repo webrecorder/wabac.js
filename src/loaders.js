@@ -1,7 +1,7 @@
 "use strict";
 
 import { ArchiveDB } from './archivedb.js';
-import { RemoteArchiveDB } from './remotearchivedb';
+import { RemoteSourceArchiveDB, RemotePrefixArchiveDB } from './remotearchivedb';
 import { ZipRemoteArchiveDB } from './ziparchive';
 
 import { HARLoader } from './harloader';
@@ -113,17 +113,30 @@ class CollectionLoader
         break;
 
       case "remotewarc":
+      {
         if (data.config.singleFile) {
           const sourceLoader = createLoader(data.config.loadUrl || data.config.sourceUrl, data.config.headers, data.config.size, data.config.extra);
-          store = new RemoteArchiveDB(data.config.dbname, sourceLoader);
+          store = new RemoteSourceArchiveDB(data.config.dbname, sourceLoader, data.config.noCache);
         } else {
-          store = new RemoteArchiveDB(data.config.dbname, data.config.remotePrefix, data.config.headers);
+          store = new RemotePrefixArchiveDB(data.config.dbname, data.config.remotePrefix, data.config.headers, data.config.noCache);
         }
         break;
+      }
+
+      case "remotesource":
+      {
+        const sourceLoader = createLoader(data.config.loadUrl, data.config.headers, data.config.size, data.config.extra);
+        store = new RemoteSourceArchiveDB(data.config.dbname, sourceLoader, data.config.noCache);
+        break;
+      }
+
+      case "remoteprefix":
+        store = new RemotePrefixArchiveDB(data.config.dbname, data.config.remotePrefix, data.config.headers, data.config.noCache);
+        break;        
 
       case "remotezip":
         const sourceLoader = createLoader(data.config.loadUrl || data.config.sourceUrl, data.config.headers, data.config.extra);
-        store = new ZipRemoteArchiveDB(data.config.dbname, sourceLoader, data.config.extraConfig);
+        store = new ZipRemoteArchiveDB(data.config.dbname, sourceLoader, data.config.extraConfig, data.config.noCache);
         break;
 
       case "remoteproxy":
@@ -313,11 +326,12 @@ class WorkerLoader extends CollectionLoader
         config.size = typeof(file.size) === "number" ? file.size : null;
         config.extra = file.extra;
         config.extraConfig = data.extraConfig;
+        config.noCache = loadUrl.startsWith("filex:") || data.noCache;
 
         const sourceLoader = createLoader(loadUrl, file.headers, file.size, config.extra);
 
         if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
-          db = new ZipRemoteArchiveDB(config.dbname, sourceLoader, config.extraConfig);
+          db = new ZipRemoteArchiveDB(config.dbname, sourceLoader, config.extraConfig, config.noCache);
           type = "remotezip";
           decode = true;
           // is its own loader
@@ -340,6 +354,9 @@ Make sure this is a valid URL and you have access to this file.
 Status: ${resp.status} ${resp.statusText}
 Error Details:
 ${text}`);
+          if (abort) {
+            abort.abort();
+          }
           return;
         }
 
@@ -347,6 +364,9 @@ ${text}`);
           progressUpdate(0, `\
 Sorry, this URL could not be loaded because the size of the file is not accessible.
 Make sure this is a valid URL and you have access to this file.`);
+          if (abort) {
+            abort.abort();
+          }
           return;
         }
 
@@ -360,10 +380,8 @@ Make sure this is a valid URL and you have access to this file.`);
             loader = new WARCLoader(resp.body, abort, name);
           } else {
             loader = new CDXFromWARCLoader(resp.body, abort, name);
-            type = "remotewarc";
-            config.remotePrefix = loadUrl;
-            config.singleFile = true;
-            db = new RemoteArchiveDB(config.dbname, sourceLoader);
+            type = "remotesource";
+            db = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
           }
           decode = true;
 
@@ -374,12 +392,15 @@ Make sure this is a valid URL and you have access to this file.`);
           config.remotePrefix = data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
           loader = new CDXLoader(resp.body, abort, name);
           decode = true;
-          type = "remotewarc";
-          db = new RemoteArchiveDB(config.dbname, config.remotePrefix);
+          type = "remoteprefix";
+          db = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
         }
 
         if (!loader) {
           progressUpdate(0, `The ${config.sourceName} is not a known archive format that could be loaded.`);
+          if (abort) {
+            abort.abort();
+          }
           return;
         }
 
