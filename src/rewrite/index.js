@@ -7,6 +7,7 @@ import RewritingStream from 'parse5-html-rewriting-stream';
 import { startsWithAny, containsAny, isAjaxRequest } from '../utils.js';
 
 import { decodeResponse } from './decoder';
+import { ArchiveResponse } from '../response';
 
 import { rewriteDASH, rewriteHLS } from './rewriteVideo';
 
@@ -35,8 +36,6 @@ const JSONP_CONTAINS = [
   '.json?'
 ];
 
-const DOT_POST_MSG_REGEX = /(.postMessage\s*\()/;
-
 const DATA_RW_PROTOCOLS = ["http://", "https://", "//"];
 
 // JS Rewriters
@@ -46,27 +45,30 @@ const baseRules = new DomainSpecificRuleSet(RxRewriter);
 
 // ===========================================================================
 class Rewriter {
-  constructor({baseUrl, prefix, headInsertFunc = null, urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
-    this.prefix = prefix || "";
-
+  constructor({baseUrl, prefix, responseUrl, headInsertFunc = null, urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
     this.urlRewrite = urlRewrite;
     this.contentRewrite = contentRewrite;
     this.dsRules = urlRewrite && !useBaseRules ? jsRules : baseRules;
     this.decode = decode;
 
-    const prefixUrl = new URL(this.prefix);
-    this.relPrefix = prefixUrl.pathname;
-    this.schemeRelPrefix = this.prefix.slice(prefixUrl.protocol.length);
-    this.scheme = prefixUrl.protocol;
+    this.prefix = prefix || "";
+    if (this.prefix && urlRewrite) {
+      const parsed = new URL(this.prefix);
+      this.relPrefix = parsed.pathname;
+      this.schemeRelPrefix = this.prefix.slice(parsed.protocol.length);
+    }
 
-    this.baseUrl = this.checkUrlScheme(baseUrl);
-    this.url = this.baseUrl;
+    // response url always has a scheme, should be specified if baseUrl may not..
+    const parsed = new URL(responseUrl || baseUrl);
+    this.scheme = parsed.protocol;
+
+    if (baseUrl.startsWith("//")) {
+      baseUrl = this.scheme + baseUrl;
+    }
+
+    this.url = this.baseUrl = baseUrl;
 
     this.headInsertFunc = headInsertFunc;
-  }
-
-  checkUrlScheme(baseUrl) {
-    return baseUrl.startsWith("//") ? this.scheme + baseUrl : baseUrl;
   }
 
   getRewriteMode(request, response, url = "", mime = null) {
@@ -209,6 +211,10 @@ class Rewriter {
   }
 
   rewriteUrl(url, forceAbs = false) {
+    if (!this.urlRewrite) {
+      return url;
+    }
+
     var origUrl = url;
 
     url = url.trim();
@@ -758,5 +764,5 @@ class Rewriter {
   }
 }
 
-export { Rewriter, baseRules, jsRules };
+export { Rewriter, ArchiveResponse, baseRules, jsRules };
 

@@ -149,6 +149,7 @@ class Collection {
 
       const rewriteOpts = {
         baseUrl: requestURL,
+        responseUrl: response.url,
         prefix,
         headInsertFunc,
         urlRewrite: !noRewrite,
@@ -157,8 +158,6 @@ class Collection {
       };
 
       const rewriter = new Rewriter(rewriteOpts);
-
-
 
       response = await rewriter.rewrite(response, request);
 
