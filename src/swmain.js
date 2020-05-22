@@ -136,12 +136,9 @@ class SWReplay {
 
     // current domain, but not replay, check if should cache ourselves
     if (!url.startsWith(this.replayPrefix)) {
-      // only cache: root page, ourself, staticPrefix and distPrefix
-      if (url === this.prefix ||
-          url === self.location.href || 
-          url.startsWith(this.prefix + "?") || 
-          url.startsWith(this.staticPrefix) || 
-          url.startsWith(this.distPrefix)) {
+      const parsedUrl = new URL(url);
+      // only cache: urls in the root directory (no more slashes)
+      if (parsedUrl.pathname.indexOf("/", 1) < 0) {
         return this.handleOffline(event.request);
       } else {
         return this.defaultFetch(event.request);

@@ -6,9 +6,9 @@ const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
 
 // ===========================================================================
 function createLoader(url, headers, size, extra) {
-  if (url.startsWith("blob:") || url.startsWith("file:")) {
+  if (url.startsWith("blob:")) {
     return new BlobLoader(url, null, extra);
-  } else if (url.startsWith("http:") || url.startsWith("https:") || url.startsWith("filex:")) {
+  } else if (url.startsWith("http:") || url.startsWith("https:") || url.startsWith("file:")) {
     return new HttpRangeLoader(url, headers, size);
   } else if (url.startsWith("googledrive:")) {
     return new GoogleDriveLoader(url, headers, size, extra);

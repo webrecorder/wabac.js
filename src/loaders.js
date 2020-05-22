@@ -237,7 +237,7 @@ class WorkerLoader extends CollectionLoader
           "name": name
         });
 
-        this.doListAll(client);
+        //this.doListAll(client);
         break;
       }
 
