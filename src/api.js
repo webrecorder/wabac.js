@@ -74,6 +74,7 @@ class API {
       "filename": coll.config.sourceName,
       "sourceUrl": coll.config.sourceUrl,
       "id": coll.name,
+      "ctime": coll.config.ctime,
       "onDemand": coll.config.onDemand
     }
   }

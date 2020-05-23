@@ -69,13 +69,13 @@ function rewriteHLS(text, opts) {
     const m2 = line.match(EXT_RESOLUTION);
     const currRes = m2 ? Number(m2[1]) * Number(m2[2]) : 0;
 
-    if (maxRes && currRes) {
-      if (currRes > bestRes && currRes < maxRes) {
+    if (currRes && maxRes) {
+      if (currRes <= maxRes && currRes > bestRes) {
         bestRes = currRes;
         bestBand = currBand;
         bestIndex = count;
       }
-    } else if (currBand > bestBand && currBand <= maxBand) {
+    } else if (currBand <= maxBand && currBand > bestBand) {
       bestRes = currRes;
       bestBand = currBand;
       bestIndex = count;

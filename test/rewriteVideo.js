@@ -91,7 +91,7 @@ test('HLS DEFAULT MAX', async t => {
   const contentType = 'application/vnd.apple.mpegurl';
   const url = 'http://example.com/path/master.m3u8';
 
-  const result = await doRewrite({content, contentType, url});
+  const result = await doRewrite({content, contentType, url, isLive: true});
 
 
   const expected = `\
@@ -99,6 +99,23 @@ test('HLS DEFAULT MAX', async t => {
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="WebVTT",NAME="English",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="https://example.com/subtitles/"
 #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=610000,RESOLUTION=640x360,CODECS="avc1.66.30, mp4a.40.2",SUBTITLES="WebVTT"
 http://example.com/video_1.m3u8`;
+
+  t.is(result, expected, result);
+});
+
+
+test('HLS DEFAULT OLD REPLAY MAX', async t => {
+  const content = await fs.readFile(path.join(__dirname, "data", "sample_hls.m3u8"), "utf-8");
+  const contentType = 'application/vnd.apple.mpegurl';
+  const url = 'http://example.com/path/master.m3u8';
+
+  const result = await doRewrite({content, contentType, url, isLive: false});
+
+  const expected = `\
+#EXTM3U
+#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="WebVTT",NAME="English",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="https://example.com/subtitles/"
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=2505000,RESOLUTION=1280x720,CODECS="avc1.77.30, mp4a.40.2",SUBTITLES="WebVTT"
+http://example.com/video_5.m3u8`;
 
   t.is(result, expected, result);
 });

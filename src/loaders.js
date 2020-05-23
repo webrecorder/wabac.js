@@ -431,6 +431,7 @@ Make sure this is a valid URL and you have access to this file.`);
 
     config.decode = decode;
     config.onDemand = (type === "remotewarc" || type === "remotezip");
+    config.ctime = new Date().getTime();
 
     const collData = {name, type, config};
     await this.colldb.add("colls", collData);
