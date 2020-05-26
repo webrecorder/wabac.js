@@ -67,10 +67,18 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
 
       cdx.respHeaders = origResult.respHeaders;
       cdx.mime = origResult.mime;
-      // don't store in resources db
-      delete cdx.payload;
 
-      await this.db.put("resources", cdx);
+      if (origResult.extraOpts) {
+        cdx.extraOpts = origResult.extraOpts;
+      }
+
+      // update revisit data if cacheing
+      if (!this.noCache) {
+        // don't store in resources db
+        delete cdx.payload;
+
+        await this.db.put("resources", cdx);
+      }
 
       return payload;
     }
@@ -87,26 +95,31 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       return null;
     }
 
-    if (!this.noCache) {
-      try {
-        const tx = this.db.transaction("resources", "readwrite");
+    // Update payload if cacheing
+    try {
+      if (payload && !this.noCache) {
+        await this.commitPayload(digest);
+      }
+    } catch(e) {
+      console.warn(`Payload Update Error: ${cdx.url}`);
+      console.warn(e);
+    }
 
-        if (payload) {
-          await this.commitPayload(digest);
+    // Update resources if headers or digest missing
+    if (!cdx.respHeaders || !cdx.digest) {
+      cdx.respHeaders = remote.respHeaders;
+      cdx.digest = digest;
+      if (remote.extraOpts) {
+        cdx.extraOpts = remote.extraOpts;
+      }
+
+      if (!this.noCache) {
+        try {
+          await this.db.put("resources", cdx);
+        } catch (e) {
+          console.warn(`Resource Update Error: ${cdx.url}`);
+          console.warn(e);
         }
-
-        cdx.respHeaders = remote.respHeaders;
-        cdx.digest = digest;
-        if (remote.extraOpts) {
-          cdx.extraOpts = remote.extraOpts;
-        }
-
-        tx.store.put(cdx);
-        await tx.done;
-
-      } catch (e) {
-        console.warn(`Resource Update Error: ${cdx.url}`);
-        console.warn(e);
       }
     }
 

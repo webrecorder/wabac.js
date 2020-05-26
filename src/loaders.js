@@ -326,7 +326,7 @@ class WorkerLoader extends CollectionLoader
         config.size = typeof(file.size) === "number" ? file.size : null;
         config.extra = file.extra;
         config.extraConfig = data.extraConfig;
-        config.noCache = loadUrl.startsWith("filex:") || data.noCache;
+        config.noCache = loadUrl.startsWith("file:") || file.noCache;
 
         const sourceLoader = createLoader(loadUrl, file.headers, file.size, config.extra);
 
@@ -430,7 +430,7 @@ Make sure this is a valid URL and you have access to this file.`);
     }
 
     config.decode = decode;
-    config.onDemand = (type === "remotewarc" || type === "remotezip");
+    config.onDemand = type !== "archive";
     config.ctime = new Date().getTime();
 
     const collData = {name, type, config};
