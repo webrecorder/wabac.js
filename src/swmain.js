@@ -64,7 +64,7 @@ class SWCollections extends CollectionLoader
 
 // ===========================================================================
 class SWReplay {
-  constructor() {
+  constructor(staticData = null) {
     this.prefix = self.registration ? self.registration.scope : '';
 
     this.replayPrefix = this.prefix;
@@ -85,7 +85,7 @@ class SWReplay {
                       main: this.replayPrefix
                      };
 
-    this.staticData = new Map();
+    this.staticData = staticData || new Map();
     this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
     this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
 
@@ -127,25 +127,30 @@ class SWReplay {
       return this.defaultFetch(event.request);
     }
 
+    // handle replay / api
+    if (url.startsWith(this.replayPrefix)) {
+      return this.getResponseFor(event.request, event);
+    }
+
+    // current domain, but not replay, check if should cache ourselves or serve static data
+    const parsedUrl = new URL(url);
+    parsedUrl.search = "";
+    parsedUrl.hash = "";
+    const urlOnly = parsedUrl.href;
+
     for (const staticPath of this.staticData.keys()) {
-      if (staticPath === url) {
+      if (staticPath === urlOnly) {
         const { content, type} = this.staticData.get(staticPath);
         return new Response(content, {headers: {"Content-Type": type}});
       }
     }
 
-    // current domain, but not replay, check if should cache ourselves
-    if (!url.startsWith(this.replayPrefix)) {
-      const parsedUrl = new URL(url);
-      // only cache: urls in the root directory (no more slashes)
-      if (parsedUrl.pathname.indexOf("/", 1) < 0) {
-        return this.handleOffline(event.request);
-      } else {
-        return this.defaultFetch(event.request);
-      }
+    // only cache: urls in the root directory (no more slashes)
+    if (parsedUrl.pathname.indexOf("/", 1) < 0) {
+      return this.handleOffline(event.request);
+    } else {
+      return this.defaultFetch(event.request);
     }
-
-    return this.getResponseFor(event.request, event);
   }
 
   defaultFetch(request) {
