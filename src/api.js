@@ -95,9 +95,11 @@ class API {
         if (!coll) {
           return {error: "collection_not_found"};
         }
-        const lists = await coll.store.db.getAll("pageLists");
         const data = this.getCollData(coll);
-        data.lists = lists || [];
+        const numLists = await coll.store.db.count("pageLists");
+        const numPages = await coll.store.db.count("pages");
+        data.numLists = numLists;
+        data.numPages = numPages;
         return data;
 
       case "deleteColl":
@@ -137,7 +139,7 @@ class API {
         if (!coll) {
           return {error: "collection_not_found"};
         }
-        return {"pages": await coll.store.getAllPages(100)};
+        return {"pages": await coll.store.getAllPages()};
 
       case "curated":
         coll = await this.collections.getColl(params.coll);
@@ -149,7 +151,8 @@ class API {
         count = Number(params._query.get("count") || 100);
         total = await coll.store.db.count("curatedPages");
         const curatedPages = await coll.store.db.getAll("curatedPages", IDBKeyRange.lowerBound(offset, false), count);
-        return {total, curatedPages};
+        const lists = await coll.store.db.getAll("pageLists");
+        return {total, curatedPages, lists};
 
       default:
         return {"error": "not_found"};
@@ -159,6 +162,7 @@ class API {
   async listAll() {
     const response = await this.collections.listAll();
     const collections = [];
+
     response.forEach((coll) => {
       if (coll.type === "live" || coll.type === "remoteproxy") {
         return;
