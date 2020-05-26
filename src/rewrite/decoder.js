@@ -18,9 +18,20 @@ async function decodeResponse(response, contentEncoding, transferEncoding, noRW)
     return response;
   }
 
- const origContent = new Uint8Array(await response.getBuffer());
-  let content = origContent;
+  const origContent = new Uint8Array(await response.getBuffer());
 
+  const content = await decodeContent(origContent, contentEncoding, transferEncoding);
+
+  if (origContent !== content) {
+    response.setContent(content);
+  }
+
+  return response;
+}
+
+
+// ===========================================================================
+async function decodeContent(content, contentEncoding, transferEncoding) {
   try {
     if (transferEncoding === "chunked") {
       content = dechunkArrayBuffer(content);
@@ -47,11 +58,7 @@ async function decodeResponse(response, contentEncoding, transferEncoding, noRW)
     console.log("Content-Encoding Ignored: " + e);
   }
 
-  if (origContent !== content) {
-    response.setContent(content);
-  }
-
-  return response;
+  return content;
 }
 
 
@@ -106,6 +113,6 @@ function dechunkArrayBuffer(data) {
   return data.subarray(0, writeOffset);
 }
 
-export { decodeResponse };
+export { decodeResponse, decodeContent };
 
 

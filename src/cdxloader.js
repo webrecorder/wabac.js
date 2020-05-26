@@ -16,16 +16,31 @@ class CDXFromWARCLoader extends WARCLoader
   }
 
   filterRecord(record) {
-    return record.warcType === "warcinfo" ? null : "skipContent";
+    switch (record.warcType) {
+      case "warcinfo":
+      case "revisit":
+        return null;
+
+      case "request":
+        return "skipContent";
+    }
+
+    const url = record.warcTargetURI;
+    const ts = new Date(record.warcDate).getTime();
+
+    if (this.pageMap[ts + "/" + url]) {
+      record._isPage = true;
+      return null;
+    }
   }
 
   index(record, parser) {
-    if (record.warcType === "warcinfo") {
-      this.parseWarcInfo(record);
-      return;
+    if (record._isPage) {
+      return super.index(record, parser);
     }
 
-    if (record.warcType === "request") {
+    if (record.warcType === "warcinfo") {
+      this.parseWarcInfo(record);
       return;
     }
 
@@ -38,10 +53,6 @@ class CDXFromWARCLoader extends WARCLoader
     if (cdx) {
       this.addCdx(cdx);
     }
-  }
-
-  indexDone() {
-
   }
 
   addCdx(cdx) {

@@ -1,6 +1,8 @@
-import { makeHeaders, tsToDate, Canceled } from './utils.js';
+import { makeHeaders, Canceled, tsToDate } from './utils.js';
 
 import { WARCParser } from 'warcio';
+
+import { extractText } from './extract.js';
 
 const BATCH_SIZE = 1000;
 
@@ -21,6 +23,10 @@ class WARCLoader {
 
     this.batch = [];
     this.count = 0;
+
+    this.pageMap = {};
+    this.pages = [];
+    this.lists = [];
   }
 
   parseWarcInfo(record) {
@@ -44,16 +50,20 @@ class WARCLoader {
           this.metadata.title = json.title;
         }
 
-        const pages = json.pages || [];
-        const lists = json.lists || [];
+        if (json.pages && json.pages.length) {
+          this.pages = this.pages.concat(json.pages);
 
-        if (pages && pages.length) {
-          this.promises.push(this.db.addPages(pages));
+          for (const page of json.pages) {
+            page.ts = tsToDate(page.timestamp).getTime();
+            this.pageMap[page.ts + "/" + page.url] = {page};
+          }
+          //this.promises.push(this.db.addPages(pages));
           this.anyPages = true;
         }
 
-        if (lists && lists.length) {
-          this.promises.push(this.db.addCuratedPageLists(lists, "bookmarks", "public"));
+        if (json.lists && json.lists.length) {
+          this.lists = this.lists.concat(json.lists);
+        //  this.promises.push(this.db.addCuratedPageLists(lists, "bookmarks", "public"));
         }
 
       } catch (e) { 
@@ -264,6 +274,14 @@ class WARCLoader {
 
     const entry = {url, ts, status, mime, respHeaders, digest, payload, reader, referrer};
 
+    if (this.pageMap[ts + "/" + url] && payload && mime.startsWith("text/")) {
+      this.pageMap[ts + "/" + url].textPromise = extractText(
+        url, payload, 
+        headers.get("content-encoding"),
+        headers.get("transfer-encoding")
+      );
+    }
+
     if (record.warcHeader("WARC-JSON-Metadata")) {
       try {
         entry.extraOpts = JSON.parse(record.warcHeader("WARC-JSON-Metadata"));
@@ -359,6 +377,23 @@ class WARCLoader {
     }
 
     console.log(`Indexed ${this.count += this.batch.length} records`);
+
+    if (this.pages.length) {
+      for (const {page, textPromise} of Object.values(this.pageMap)) {
+        if (textPromise) {
+          try {
+            page.text = await textPromise;
+          } catch (e) {
+            console.warn("Error adding text: " + e.toString());
+          }
+        }
+      }
+      this.promises.push(this.db.addPages(this.pages));
+    }
+
+    if (this.lists.length) {
+      this.promises.push(this.db.addCuratedPageLists(this.lists, "bookmarks", "public"));
+    }
 
     try {
       await Promise.all(this.promises);

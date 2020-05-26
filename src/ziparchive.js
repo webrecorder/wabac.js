@@ -38,9 +38,11 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
   _initDB(db, oldV, newV, tx) {
     super._initDB(db, oldV, newV, tx);
 
-    const ziplStore = db.createObjectStore("ziplines", { keyPath: "prefix" });
+    if (!oldV) {
+      const ziplStore = db.createObjectStore("ziplines", { keyPath: "prefix" });
 
-    const zipFiles = db.createObjectStore("zipEntries", { keyPath: "filename"});
+      const zipFiles = db.createObjectStore("zipEntries", { keyPath: "filename"});
+    }
   }
 
   async init() {

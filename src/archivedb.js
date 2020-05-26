@@ -17,7 +17,6 @@ class ArchiveDB {
     const { minDedupSize } = opts;
     this.minDedupSize = Number.isInteger(minDedupSize) ? minDedupSize : 1024;
 
-    this.initing = this.init();
     this.version = 1;
 
     this.useRefCounts = true;
@@ -25,6 +24,8 @@ class ArchiveDB {
     this.allowRepeats = true;
     this.repeatTracker = this.allowRepeats ? new RepeatTracker() : null;
     this.fuzzyPrefixSearch = true;
+
+    this.initing = this.init();
   }
 
   async init() {
@@ -35,22 +36,24 @@ class ArchiveDB {
   }
 
   _initDB(db, oldV, newV, tx) {
-    const pageStore = db.createObjectStore("pages", { keyPath: "id" });
-    pageStore.createIndex("url", "url");
-    pageStore.createIndex("date", "date");
+    if (!oldV) {
+      const pageStore = db.createObjectStore("pages", { keyPath: "id" });
+      pageStore.createIndex("url", "url");
+      pageStore.createIndex("ts", "ts");
 
-    const listStore = db.createObjectStore("pageLists", { keyPath: "id", autoIncrement: true});
+      const listStore = db.createObjectStore("pageLists", { keyPath: "id", autoIncrement: true});
 
-    const curatedPages = db.createObjectStore("curatedPages", { keyPath: "id", autoIncrement: true});
-    curatedPages.createIndex("listPages", ["list", "pos"]);
+      const curatedPages = db.createObjectStore("curatedPages", { keyPath: "id", autoIncrement: true});
+      curatedPages.createIndex("listPages", ["list", "pos"]);
 
-    const urlStore = db.createObjectStore("resources", { keyPath: ["url", "ts"] });
-    urlStore.createIndex("pageId", "pageId");
-    //urlStore.createIndex("ts", "ts");
-    urlStore.createIndex("mimeStatusUrl", ["mime", "status", "url"]);
+      const urlStore = db.createObjectStore("resources", { keyPath: ["url", "ts"] });
+      urlStore.createIndex("pageId", "pageId");
+      //urlStore.createIndex("ts", "ts");
+      urlStore.createIndex("mimeStatusUrl", ["mime", "status", "url"]);
 
-    const payload = db.createObjectStore("payload", { keyPath: "digest", unique: true});
-    const digestRef = db.createObjectStore("digestRef", { keyPath: "digest", unique: true});
+      const payload = db.createObjectStore("payload", { keyPath: "digest", unique: true});
+      const digestRef = db.createObjectStore("digestRef", { keyPath: "digest", unique: true});
+    }
 
     //const fuzzyStore = db.createObjectStore("fuzzy", { keyPath: "key" });
   }
@@ -82,29 +85,33 @@ class ArchiveDB {
     });
   }
 
-  async addPage(data) {
-    if (!data.id) {
-      data.id = this.newPageId();
+  async addPage(page, tx) {
+    const url = page.url;
+    const title = page.title || page.url;
+    const id = page.id || this.newPageId();
+    let ts = page.ts;
+
+    if (!ts && (page.date || page.datetime)) {
+      ts = new Date(page.date || page.datetime).getTime();
     }
-    return await this.db.put("pages", data);
+
+    const p = {url, ts, title, id};
+    if (page.text) {
+      p.text = page.text;
+    }
+    if (tx) {
+      tx.store.put(p);
+      return p.id;
+    } else {
+      return await this.db.put("pages", p);
+    }
   }
 
   async addPages(pages) {
     const tx = this.db.transaction("pages", "readwrite");
 
     for (const page of pages) {
-      const url = page.url;
-      const title = page.title || page.url;
-      const id = page.id || this.newPageId();
-      let date = page.datetime;
-
-      if (!date && page.timestamp) {
-        date = tsToDate(page.timestamp).toISOString();
-      }
-
-      //console.log("id", id, date, title, url);
-
-      tx.store.put({url, date, title, id});
+      this.addPage(page);
     }
 
     try {
@@ -165,7 +172,7 @@ class ArchiveDB {
   }
 
   async getAllPages() {
-    return await this.db.getAllFromIndex("pages", "date");
+    return await this.db.getAll("pages");
   }
 
   async dedupResource(data, tx) {

@@ -1,6 +1,6 @@
 "use strict";
 
-import { Readable } from 'stream';
+import { PassThrough } from 'stream';
 
 import RewritingStream from 'parse5-html-rewriting-stream';
 
@@ -472,7 +472,7 @@ class Rewriter {
     });
 
     rwStream.on('endTag', endTag => {
-      if (endTag.tagName == context) {
+      if (endTag.tagName === context) {
         context = "";
       }
       rwStream.emitEndTag(endTag);
@@ -490,22 +490,18 @@ class Rewriter {
       }
     });
 
-    const buff = new Readable({ encoding: 'utf-8' });
-    buff._read = () => { };
+    const buff = new PassThrough({ encoding: 'utf-8' });
     buff.pipe(rwStream);
     buff.on('end', addInsert);
 
     const encoder = new TextEncoder("utf-8");
 
+    const iter = response[Symbol.asyncIterator]();
+
     const rs = new ReadableStream({
       start(controller) {
-        rwStream.on("data", function (chunk) {
-          controller.enqueue(encoder.encode(chunk));
-        });
-
-        rwStream.on("end", function () {
-          controller.close();
-        });
+        rwStream.on("data", (chunk) => controller.enqueue(encoder.encode(chunk)));
+        rwStream.on("end", () => controller.close());
       }
     });
 
