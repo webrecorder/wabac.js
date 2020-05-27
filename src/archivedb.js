@@ -95,10 +95,7 @@ class ArchiveDB {
       ts = new Date(page.date || page.datetime).getTime();
     }
 
-    const p = {url, ts, title, id};
-    if (page.text) {
-      p.text = page.text;
-    }
+    const p = {...page, url, ts, title, id};
     if (tx) {
       tx.store.put(p);
       return p.id;

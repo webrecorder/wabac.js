@@ -66,11 +66,13 @@ class CollectionLoader
     return true;
   }
 
-  listAll() {
-    return this.colldb.getAll("colls");
+  async listAll() {
+    await this._init_db;
+    return await this.colldb.getAll("colls");
   }
 
   async loadColl(name) {
+    await this._init_db;
     const data = await this.colldb.get("colls", name);
     if (!data) {
       return null;
@@ -80,6 +82,7 @@ class CollectionLoader
   }
 
   async deleteColl(name) {
+    await this._init_db;
     const data = await this.colldb.get("colls", name);
     if (!data) {
       return false;
@@ -95,6 +98,7 @@ class CollectionLoader
   }
 
   async updateAuth(name, newHeaders) {
+    await this._init_db;
     const data = await this.colldb.get("colls", name);
     if (!data) {
       return false;
