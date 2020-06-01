@@ -122,6 +122,14 @@ class WARCLoader {
     }
   }
 
+  shouldIndexMetadataRecord(record) {
+    if (record.warcTargetURI.startsWith("metadata://")) {
+      return true;
+    }
+
+    return false;
+  }
+
   parseRevisitRecord(record) {
     const url = record.warcTargetURI.split("#")[0];
     const date = record.warcDate;
@@ -149,16 +157,25 @@ class WARCLoader {
   }
 
   parseRecords(record, reqRecord) {
-    if (record.warcType === "revisit") {
-      return this.parseRevisitRecord(record);
-    }
+    switch (record.warcType) {
+      case "revisit":
+        return this.parseRevisitRecord(record);
 
-    if (record.warcType !== "response" && record.warcType !== "resource") {
-      return null;
-    }
+      case "resource":
+        reqRecord = null;
+        break;
 
-    if (record.warcType === "resource") {
-      reqRecord = null;
+      case "response":
+        break;
+
+      case "metadata":
+        if (!this.shouldIndexMetadataRecord(record)) {
+          return null;
+        }
+        break;
+
+      default:
+        return null;
     }
 
     const url = record.warcTargetURI.split("#")[0];

@@ -146,7 +146,7 @@ class SWReplay {
     }
 
     // only cache: urls in the root directory (no more slashes)
-    if (parsedUrl.pathname.indexOf("/", 1) < 0) {
+    if ((parsedUrl.protocol == "http:" || parsedUrl.protocol == "https:") && (parsedUrl.pathname.indexOf("/", 1) < 0)) {
       return this.handleOffline(event.request);
     } else {
       return this.defaultFetch(event.request);

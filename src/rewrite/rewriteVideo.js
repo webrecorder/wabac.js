@@ -19,22 +19,30 @@ function getMaxResAndBand(opts = {}) {
   const extraOpts = (opts && opts.response && opts.response.extraOpts)
 
   if (extraOpts) {
-    maxRes = extraOpts.adaptive_max_resolution;
-    maxBand = extraOpts.adaptive_max_bandwidth;
+    maxRes = extraOpts.adaptive_max_resolution || extraOpts.maxRes;
+    maxBand = extraOpts.adaptive_max_bandwidth || extraOpts.maxBand;
     if (maxRes && maxBand) {
       return {maxRes, maxBand};
     }
   }
 
   const isReplay = opts && opts.response && !opts.response.isLive;
+  let res;
   
   // if not replay, or unknown, use new lower setting
   if (!isReplay) {
-    return {maxRes: DEFAULT_MAX_RES, maxBand: DEFAULT_MAX_BAND};
+    res = {maxRes: DEFAULT_MAX_RES, maxBand: DEFAULT_MAX_BAND};
   } else {
   // use existing pywb defaults
-    return {maxRes: OLD_DEFAULT_MAX_RES, maxBand: OLD_DEFAULT_MAX_BAND};
+    res = {maxRes: OLD_DEFAULT_MAX_RES, maxBand: OLD_DEFAULT_MAX_BAND};
   }
+
+  if (opts.save) {
+    opts.save.maxRes = res.maxRes;
+    opts.save.maxBand = res.maxBand;
+  }
+
+  return res;
 }
 
 

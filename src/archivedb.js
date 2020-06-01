@@ -127,7 +127,7 @@ class ArchiveDB {
     return await this.db.put("pageLists", listData);
   }
 
-  async addCuratedPageLists(pageLists, pageKey = "pages", filter) {
+  async addCuratedPageLists(pageLists, pageKey = "pages", filter = "public") {
     for (const list of pageLists) {
       if (filter && !list[filter]) {
         continue;
@@ -145,10 +145,8 @@ class ArchiveDB {
         const pageData = {};
         pageData.pos = pos++;
         pageData.list  = listId;
-        pageData.title = data.title;
-        pageData.url = data.url;
-        pageData.date = data.datetime || tsToDate(data.timestamp).toISOString();
-        pageData.page = data.id;
+        pageData.page = data.page_id;
+        pageData.desc = data.desc;
 
         tx.store.put(pageData);
       }
@@ -494,6 +492,9 @@ class ArchiveDB {
     const lastChar = String.fromCharCode(0xFFFF);
 
     for (const mime of mimes) {
+      if (fromMime && mime < fromMime) {
+        continue;
+      }
       const start = (fromMime ? [fromMime, 0, fromUrl] : [mime, 0, ""]);
       const mimeEnd = mime + lastChar;
 
@@ -507,6 +508,16 @@ class ArchiveDB {
     }
 
     return results;
+  }
+
+  async deletePage(id) {
+    const tx = this.db.transaction("pages", "readwrite");
+    const page = await tx.store.get(id);
+    await tx.store.delete(id);
+
+    const size = await this.deletePageResources(id);
+    return {pageSize: page && page.size || 0,
+            dedupSize: size};
   }
 
   async deletePageResources(pageId) {

@@ -23,6 +23,9 @@ class CDXFromWARCLoader extends WARCLoader
 
       case "request":
         return "skipContent";
+
+      case "metadata":
+        return this.shouldIndexMetadataRecord(record) ? null : "skipContent";
     }
 
     const url = record.warcTargetURI;

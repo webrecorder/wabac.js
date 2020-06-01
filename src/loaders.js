@@ -108,6 +108,18 @@ class CollectionLoader
     return true;
   }
 
+  async updateSize(name, size, dedupSize) {
+    await this._init_db;
+    const data = await this.colldb.get("colls", name);
+    if (!data) {
+      return false;
+    }
+
+    data.config.loadSize = (data.config.loadSize || 0) + size;
+    data.config.dedupSize = (data.config.dedupSize || 0) + dedupSize;
+    await this.colldb.put("colls", data);
+  }
+
   async _initColl(data) {
     let store = null;
 

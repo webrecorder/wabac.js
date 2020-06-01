@@ -51,8 +51,9 @@ class API {
       'urls': ':coll/urls',
       'deleteColl': [':coll', 'DELETE'],
       'updateAuth': [':coll/updateAuth', 'POST'],
-      'curated': ':coll/curatedPages',
-      'pages': ':coll/pages'
+      'curated': ':coll/curated/:list',
+      'pages': ':coll/pages',
+      'deletePage': [':coll/page/:page', 'DELETE']
     });
 
     this.collections = collections;
@@ -96,10 +97,16 @@ class API {
           return {error: "collection_not_found"};
         }
         const data = this.getCollData(coll);
-        const numLists = await coll.store.db.count("pageLists");
-        const numPages = await coll.store.db.count("pages");
-        data.numLists = numLists;
-        data.numPages = numPages;
+
+        if (params._query.get("all") === "1") {
+          data.pages = await coll.store.getAllPages();
+          data.lists = await coll.store.db.getAll("pageLists");
+          data.curatedPages = await coll.store.db.getAll("curatedPages");
+        } else {
+          data.numLists = await coll.store.db.count("pageLists");
+          data.numPages = await coll.store.db.count("pages");
+        }
+
         return data;
 
       case "deleteColl":
@@ -139,20 +146,26 @@ class API {
         if (!coll) {
           return {error: "collection_not_found"};
         }
-        return {"pages": await coll.store.getAllPages()};
+        const pages = await coll.store.getAllPages();
+        return {pages};
 
       case "curated":
         coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return {error: "collection_not_found"};
         }
-        // ids are 1-based
-        const offset = Number(params._query.get("offset") || 0) + 1;
-        count = Number(params._query.get("count") || 100);
-        total = await coll.store.db.count("curatedPages");
-        const curatedPages = await coll.store.db.getAll("curatedPages", IDBKeyRange.lowerBound(offset, false), count);
-        const lists = await coll.store.db.getAll("pageLists");
-        return {total, curatedPages, lists};
+        const list = Number(params.list);
+        const curated = await coll.store.db.getAllFromIndex("curatedPages", "listPages", 
+        IDBKeyRange.bound([list], [list + 1]));
+        return {curated};
+
+      case "deletePage":
+        coll = await this.collections.getColl(params.coll);
+        if (!coll) {
+          return {error: "collection_not_found"};
+        }
+        const sizeDeleted = coll.store.deletePage(params.page);
+        return {sizeDeleted};
 
       default:
         return {"error": "not_found"};
