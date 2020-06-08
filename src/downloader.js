@@ -69,7 +69,7 @@ class Downloader
   downloadWARC(filename) {
     const dl = this;
 
-    filename = (filename || "webarchive") + ".warc";
+    filename = (filename || "webarchive").split(".")[0] + ".warc";
 
     const rs = new ReadableStream({
       start(controller) {
@@ -110,7 +110,7 @@ class Downloader
   async downloadWACZ(filename) {
     const zip = new JSZip();
 
-    filename = (filename || "webarchive") + ".wacz";
+    filename = (filename || "webarchive").split(".")[0] + ".wacz";
 
     const metadata = await this.getMetadata();
 
@@ -308,7 +308,11 @@ class Downloader
 
     for (const page of pageIter) {
       const {url, ts, title, id, text, favIconUrl} = page;
-      metadata.pages.push({url, ts, title, id, favIconUrl});
+      const pageData = {url, ts, title, id};
+      if (favIconUrl) {
+        pageData.favIconUrl = favIconUrl;
+      }
+      metadata.pages.push(pageData);
 
       if (page.text) {
         this.textResources.push({url, ts, text});
