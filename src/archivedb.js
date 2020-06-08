@@ -48,6 +48,7 @@ class ArchiveDB {
 
       const urlStore = db.createObjectStore("resources", { keyPath: ["url", "ts"] });
       urlStore.createIndex("pageId", "pageId");
+      //urlStore.createIndex("pageUrlTs", ["pageId", "url", "ts"]);
       //urlStore.createIndex("ts", "ts");
       urlStore.createIndex("mimeStatusUrl", ["mime", "status", "url"]);
 
@@ -60,13 +61,10 @@ class ArchiveDB {
 
   async clearAll() {
     const stores = ["pages", "resources", "payload", "digestRef"];
-    const tx = this.db.transaction(stores, "readwrite");
 
     for (const store of stores) {
-      this.db.clear(store);
+      await this.db.clear(store);
     }
-
-    await tx.done;
   }
 
   close() {
@@ -168,6 +166,17 @@ class ArchiveDB {
 
   async getAllPages() {
     return await this.db.getAll("pages");
+  }
+
+  async getPages(pages) {
+    const results = [];
+    pages.sort();
+
+    for await (const result of this.matchAny("pages", null, pages)) {
+      results.push(result);
+    }
+
+    return results;
   }
 
   async dedupResource(data, tx) {
@@ -318,12 +327,13 @@ class ArchiveDB {
     let result = null;
 
     const skip = this.repeatTracker ? this.repeatTracker.getSkipCount(event, url, request.request.method) : 0;
+    const opts = {skip};
 
     if (url.startsWith("//")) {
       let useHttp = false;
-      result = await this.lookupUrl("https:" + url, datetime, skip);
+      result = await this.lookupUrl("https:" + url, datetime, opts);
       if (!result) {
-        result = await this.lookupUrl("http:" + url, datetime, skip);
+        result = await this.lookupUrl("http:" + url, datetime, opts);
         // use http if found or if referrer contains an http replay path
         // otherwise, default to https
         if (result || request.request.referrer.indexOf("/http://", 2) > 0) {
@@ -332,7 +342,7 @@ class ArchiveDB {
       }
       url = (useHttp ? "http:" : "https:") + url;
     } else {
-      result = await this.lookupUrl(url, datetime, skip);
+      result = await this.lookupUrl(url, datetime, opts);
     }
 
     let fuzzySearchData;
@@ -391,12 +401,8 @@ class ArchiveDB {
     return result.payload;
   }
 
-  async lookupUrl(url, datetime, skip = 0) {
+  async lookupUrl(url, datetime, opts = {}) {
     const tx = this.db.transaction("resources", "readonly");
-
-    if (skip > 0) {
-      //console.log(`Skip ${skip} for ${url}`);
-    }
 
     if (datetime) {
       const res = await tx.store.get([url, datetime]);
@@ -406,6 +412,7 @@ class ArchiveDB {
     }
 
     let lastValue = null;
+    let skip = opts.skip || 0;
 
     for await (const cursor of tx.store.iterate(this.getLookupRange(url))) {
       if (lastValue && cursor.value.ts > datetime) {
@@ -461,6 +468,56 @@ class ArchiveDB {
     return this.db.getAllFromIndex("resources", "pageId", pageId);
   }
 
+  async* resourcesByPages2(pageIds) {
+    pageIds.sort();
+
+    yield* this.matchAny("resources", "pageId", pageIds);
+  }
+
+  async* resourcesByPages(pageIds) {
+    const tx = this.db.transaction("resources", "readonly");
+
+    for await (const cursor of tx.store.iterate()) {
+      if (pageIds.includes(cursor.value.pageId)) {
+        yield cursor.value;
+      }
+    }
+  }
+
+  async* matchAny(storeName, indexName, sortedKeys, subKey) {
+    const tx = this.db.transaction(storeName, "readonly");
+
+    let cursor = indexName ? await tx.store.index(indexName).openCursor() : await tx.store.openCursor();
+
+    let i = 0;
+
+    while (cursor && i < sortedKeys.length) {
+      let currKey, matchKey, matches;
+
+      if (subKey !== undefined) {
+        currKey = cursor.key[subKey];
+        matchKey = sortedKeys[i][subKey];
+        matches = currKey.startsWith(matchKey);
+      } else {
+        currKey = cursor.key;
+        matchKey = sortedKeys[i];
+        matches = currKey === matchKey;
+      }
+
+      if (!matches && currKey > matchKey) {
+        ++i;
+        continue;
+      }
+
+      if (matches) {
+        yield cursor.value;
+        cursor = await cursor.continue();
+      } else {
+        cursor = await cursor.continue(sortedKeys[i]);
+      }
+    }
+  }
+
   async resourcesByUrlAndMime(url, mimes, count = 1000, prefix = true, fromUrl = "", fromTs = "") {
     // if doing local mime filtering, need to remove count
     const queryCount = mimes ? null : count;
@@ -489,25 +546,48 @@ class ArchiveDB {
   async resourcesByMime(mimes, count = 100, fromMime = "", fromUrl = "") {
     mimes = mimes.split(",");
     const results = [];
-    const lastChar = String.fromCharCode(0xFFFF);
+
+    mimes.sort();
+
+    let startKey = [];
 
     for (const mime of mimes) {
       if (fromMime && mime < fromMime) {
         continue;
       }
-      const start = (fromMime ? [fromMime, 0, fromUrl] : [mime, 0, ""]);
-      const mimeEnd = mime + lastChar;
-
-      const range = IDBKeyRange.bound(start, [mimeEnd], true, true);
-
-      const fullResults = await this.db.getAllFromIndex("resources", "mimeStatusUrl", range, count);
-      
-      for (const res of fullResults) {
-        results.push(this.resJson(res));
+      if (fromMime && !startKey.length) {
+        startKey.push([fromMime, 0, fromUrl]);
       }
+      startKey.push([mime, 0, ""]);
+    }
+
+    for await (const result of this.matchAny("resources", "mimeStatusUrl", startKey, 0)) {
+      results.push(this.resJson(result));
     }
 
     return results;
+/*
+    let i = 0;
+    let cursor = await this.db.transaction("resources").store.index("mimeStatusUrl").openCursor();
+
+    while (cursor && i < startKey.length) {
+      const mime = cursor.key[0];
+
+      const matches = mime.startsWith(startKey[i][0]);
+
+      if (!matches && mime > startKey[i][0]) {
+        ++i;
+        continue;
+      }
+
+      if (matches) {
+        results.push(this.resJson(cursor.value));
+        cursor = await cursor.continue();
+      } else {
+        cursor = await cursor.continue(startKey[i]);
+      }
+    }
+*/
   }
 
   async deletePage(id) {

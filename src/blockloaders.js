@@ -20,11 +20,11 @@ function createLoader(url, headers, size, extra) {
 // ===========================================================================
 class HttpRangeLoader
 {
-  constructor(url, headers, length = null, supportsRange = false) {
+  constructor(url, headers, length = null, canLoadOnDemand = false) {
     this.url = url;
     this.headers = headers || {};
     this.length = length;
-    this.supportsRange = supportsRange;
+    this.canLoadOnDemand = canLoadOnDemand;
     this.isValid = false;
   }
 
@@ -40,7 +40,7 @@ class HttpRangeLoader
       try {
         response = await fetch(this.url, {headers, method: "HEAD"});
         if (response.status === 200 || response.status == 206) {
-          this.supportsRange = (response.status === 206);
+          this.canLoadOnDemand = (response.status === 206);
           this.isValid = true;
         }
       } catch(e) {
@@ -52,7 +52,7 @@ class HttpRangeLoader
       abort = new AbortController();
       const signal = abort.signal;
       response = await fetch(this.url, {headers, signal});
-      this.supportsRange = (response.status === 206);
+      this.canLoadOnDemand = (response.status === 206);
       this.isValid = (response.status === 206 || response.status === 200);
     }
 
@@ -134,6 +134,7 @@ class GoogleDriveLoader
   constructor(sourceUrl, headers, size, extra) {
     this.fileId = sourceUrl.slice("googledrive://".length);
     this.apiUrl = `https://www.googleapis.com/drive/v3/files/${this.fileId}?alt=media`;
+    this.canLoadOnDemand = true;
 
     this.headers = headers;
     if (extra && extra.publicUrl) {
@@ -231,10 +232,6 @@ class GoogleDriveLoader
 
     return false;
   }
-
-  get supportsRange() {
-    return true;
-  }
 }
 
 
@@ -244,10 +241,11 @@ class BlobLoader
   constructor(url, blob = null) {
     this.url = url;
     this.blob = blob;
-  }
 
-  get supportsRange() {
-    return false;
+    // This is false since range-request/on-demand loading can initially be supported
+    // blob urls are short-lived and can't be relied on in future sessions
+    // Returning false ensures that the entire archive is buffered locally
+    this.canLoadOnDemand = false;
   }
 
   get length() {

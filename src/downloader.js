@@ -1,0 +1,433 @@
+import JSZip from 'jszip';
+
+import { PassThrough } from 'stream';
+
+import { WARCRecord, WARCSerializer } from 'warcio';
+
+import { getTS } from './utils';
+
+import yaml from 'js-yaml';
+import { Deflate } from 'pako';
+
+
+// ===========================================================================
+const encoder = new TextEncoder();
+
+const EMPTY = new Uint8Array([]);
+
+async function* getPayload(payload) {
+  yield payload;
+}
+
+// ===========================================================================
+class ResumePassThrough extends PassThrough
+{
+  constructor(gen) {
+    super();
+    this.gen = gen;
+  }
+
+  resume() {
+    super.resume();
+
+    if (!this._started) {
+      this.start();
+      this._started = true;
+    }
+  }
+
+  async start() {
+    for await (const chunk of this.gen) {
+      this.push(chunk);
+    }
+
+    this.push(null);
+  }
+}
+
+
+// ===========================================================================
+class Downloader
+{
+  constructor(db, pageList, collId, metadata) {
+    this.db = db;
+    this.pageList = pageList;
+    this.collId = collId;
+    this.metadata = metadata;
+
+    this.offset = 0;
+    this.resources = [];
+    this.textResources = [];
+
+    // compressed index
+    this.indexLines = [];
+    this.linesPerBlock = 2048;
+
+    this.digestsVisted = {};
+  }
+
+  downloadWARC(filename) {
+    const dl = this;
+
+    filename = (filename || "webarchive") + ".warc";
+
+    const rs = new ReadableStream({
+      start(controller) {
+        dl.queueWARC(controller, filename);  
+      }
+    });
+
+    const headers = {
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Type": "application/octet-stream"
+    };
+
+    return new Response(rs, {headers});
+  }
+
+  async queueWARC(controller, filename) {
+    const metadata = await this.getMetadata();
+
+    for await (const chunk of this.generateWARC(filename, metadata)) {
+      controller.enqueue(chunk);
+    }
+
+    for await (const chunk of this.generateTextWARC(filename)) {
+      controller.enqueue(chunk);
+    }
+
+    controller.close();
+  }
+
+  addFile(zip, filename, genOrString, compressed = false) {
+    const data = (typeof(genOrString) === "string") ? genOrString : new ResumePassThrough(genOrString);
+    zip.file(filename, data, {
+      compression: compressed ? 'DEFLATE' : 'STORE',
+      binary: !compressed
+    });
+  }
+
+  async downloadWACZ(filename) {
+    const zip = new JSZip();
+
+    filename = (filename || "webarchive") + ".wacz";
+
+    const metadata = await this.getMetadata();
+
+    this.addFile(zip, "archive/data.warc", this.generateWARC(filename + "#/archive/data.warc"), false);
+    this.addFile(zip, "archive/text.warc", this.generateTextWARC(filename + "#/archive/text.warc"), false);
+
+    if (this.resources.length <= this.linesPerBlock) {
+      this.addFile(zip, "indexes/index.cdx", this.generateCDX(), true);
+    } else {
+      this.addFile(zip, "indexes/index.cdx.gz", this.generateCompressedCDX("index.cdx.gz"), false);
+      this.addFile(zip, "indexes/index.idx", this.generateIDX(), true);
+    }
+
+    this.addFile(zip, "metadata.yaml", yaml.safeDump(metadata, {schema: yaml.JSON_SCHEMA}), true);
+
+    const rs = new ReadableStream({
+      start(controller) {
+        zip.generateInternalStream({type:"uint8array"})
+        .on('data', (data, metadata) => {
+          controller.enqueue(data);
+          //console.log(metadata);
+        })
+        .on('error', (error) => {
+          console.log(error);
+          controller.close();
+        })
+        .on('end', () => {
+          controller.close();
+        })
+        .resume();
+      }
+    });
+
+    const headers = {
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Type": "application/zip"
+    };
+
+    return new Response(rs, {headers});
+  }
+
+  async* generateWARC(filename, metadata)  {
+    try {
+      let offset = 0;
+
+      // if filename provided, add warcinfo
+      if (filename) {
+        const warcinfo = await this.createWARCInfo(filename, metadata);
+        yield warcinfo;
+        offset += warcinfo.length;
+      }
+
+      for (const resource of this.resources) {
+        resource.offset = offset;
+        const chunk = await this.createWARCRecord(resource);
+        if (!chunk) {
+          resource.skipped = true;
+          continue;
+        }
+        yield chunk;
+        offset += chunk.length;
+        resource.length = offset;
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  async* generateTextWARC(filename) {
+    try {
+      let offset = 0;
+
+      // if filename provided, add warcinfo
+      if (filename) {
+        const warcinfo = await this.createWARCInfo(filename);
+        yield warcinfo;
+        offset += warcinfo.length;
+      }
+
+      for (const resource of this.textResources) {
+        resource.offset = offset;
+        const chunk = await this.createTextWARCRecord(resource);
+        yield chunk;
+        offset += chunk.length;
+        resource.length = offset;
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  async* generateCDX(raw = false) {
+    function getCDX(resource, filename, raw) {
+
+      const data = {
+        digest: resource.digest,
+        mime: resource.mime,
+        offset: resource.offset,
+        length: resource.length,
+        filename,
+        status: resource.status
+      }
+
+      const cdx = `${resource.url} ${resource.timestamp} ${JSON.stringify(data)}\n`;
+
+      if (!raw) {
+        return cdx;
+      } else {
+        return [resource, cdx];
+      }
+    }
+
+    try {
+      for await (const resource of this.resources) {
+        if (resource.skipped) {
+          continue;
+        }
+        yield getCDX(resource, "data.warc", raw);
+      }
+
+      for await (const resource of this.textResources) {
+        resource.mime = "text/plain";
+        resource.status = 200;
+        yield getCDX(resource, "text.warc", raw);
+      }
+
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  async* generateCompressedCDX(filename) {
+    let offset = 0;
+
+    let chunkDeflater = null;
+    let count = 0;
+    let key = null;
+
+    const dl = this;
+
+    function finishChunk() {   
+      const data = chunkDeflater.result;
+      const length = data.length;
+  
+      const idx = key + " " + JSON.stringify({offset, length, filename});
+
+      dl.indexLines.push(idx);
+  
+      offset += length;
+  
+      chunkDeflater = null;
+      count = 0;
+      key = null;
+  
+      return data;
+    }
+
+    for await (const [resource, cdx] of this.generateCDX(true)) {
+      if (!chunkDeflater) {
+        chunkDeflater = new Deflate({gzip: true});
+      }
+
+      if (!key) {
+        key = resource.url + " " + resource.timestamp;
+      }
+
+      if (++count === this.linesPerBlock) {
+        chunkDeflater.push(cdx, true);
+        yield finishChunk();
+      } else {
+        chunkDeflater.push(cdx);
+      }
+    }
+
+    if (chunkDeflater) {
+      chunkDeflater.push(EMPTY, true);
+      yield finishChunk();
+    }
+  }
+
+  async getMetadata() {
+    if (this.pageList) {
+      for await (const resource of this.db.resourcesByPages(this.pageList)) {
+        this.resources.push(resource);
+      }
+    } else {
+      this.resources = await this.db.db.getAll("resources");  
+    }
+
+    const metadata = {...this.metadata};
+
+    metadata.pages = [];
+
+    const pageIter = this.pageList ? await this.db.getPages(this.pageList) : await this.db.getAllPages();
+
+    for (const page of pageIter) {
+      const {url, ts, title, id, text, favIconUrl} = page;
+      metadata.pages.push({url, ts, title, id, favIconUrl});
+
+      if (page.text) {
+        this.textResources.push({url, ts, text});
+      }
+    }
+
+    metadata.config = {useSurt: false, decodeResponses: false};
+
+    return metadata;
+  }
+
+  async* generateIDX() {
+    yield this.indexLines.join("\n");
+  }
+
+  async createWARCInfo(filename, metadata) {
+    const warcVersion = "WARC/1.1";
+    const type = "warcinfo";
+
+    const info = {
+      "software": "Webrecorder wabac.js/warcio.js",
+      "format": "WARC File Format 1.1",
+      "isPartOf": this.metadata.title || this.collId,
+    };
+
+    if (metadata) {
+      info["json-metadata"] = JSON.stringify(metadata);
+    }
+
+    const record = await WARCRecord.createWARCInfo({filename, type, warcVersion}, info);
+    const buffer = await WARCSerializer.serialize(record, {gzip: true});
+    return buffer;
+  }
+
+  async createWARCRecord(resource) {
+    const url = resource.url;
+    const date = new Date(resource.ts).toISOString();
+    resource.timestamp = getTS(date);
+    const headers = resource.respHeaders;
+    const warcVersion = "WARC/1.1";
+
+    const pageId = resource.pageId;
+
+    const warcHeaders = {"WARC-Page-ID": pageId};
+
+    if (resource.extraOpts && Object.keys(resource.extraOpts).length) {
+      warcHeaders["WARC-JSON-Metadata"] = JSON.stringify(resource.extraOpts);
+    }
+
+    if (resource.digest) {
+      warcHeaders["WARC-Payload-Digest"] = resource.digest;
+    }
+
+    let payload = null;
+    let type = null;
+
+    let refersToUrl, refersToDate;
+
+    const digestOriginal = this.digestsVisted[resource.digest];
+
+    if (resource.digest && digestOriginal) {
+
+      // if exact resource in a row, and same page, then just skip instead of writing revisit
+      if (url === this.lastUrl && pageId === this.lastPageId) {
+        console.log("Skip Dupe: " + url);
+        return null;
+      }
+
+      type = "revisit";
+      resource.mime = "warc/revisit";
+      payload = EMPTY;
+
+      refersToUrl = digestOriginal.url;
+      refersToDate = digestOriginal.date;
+
+    } else {
+      type = "response";
+      payload = await this.db.loadPayload(resource);
+      if (!payload) {
+        console.log("Skipping No Payload For: " + url, resource);
+        return;
+      }
+      this.digestsVisted[resource.digest] = {url, date};
+    }
+
+    const record = await WARCRecord.create({
+      url, date, type, warcHeaders, headers, warcVersion, refersToUrl, refersToDate}, getPayload(payload));
+
+    const buffer = await WARCSerializer.serialize(record, {gzip: true});
+    if (!resource.digest) {
+      resource.digest = record.warcPayloadDigest;
+    }
+    this.lastPageId = pageId;
+    this.lastUrl = url;
+    return buffer;
+  }
+
+  async createTextWARCRecord(resource) {
+    const date = new Date(resource.ts).toISOString();
+    const timestamp = getTS(date);
+    resource.timestamp = timestamp;
+    const url = `urn:text:${timestamp}/${resource.url}`;
+    resource.url = url;
+
+    const type = "resource";
+    const warcHeaders = {"Content-Type": 'text/plain; charset="UTF-8"'};
+    const warcVersion = "WARC/1.1";
+
+    const payload = getPayload(encoder.encode(resource.text));
+
+    const record = await WARCRecord.create({url, date, warcHeaders, warcVersion, type}, payload);
+
+    const buffer = await WARCSerializer.serialize(record, {gzip: true});
+    if (!resource.digest) {
+      resource.digest = record.warcPayloadDigest;
+    }
+    return buffer;
+  }
+}
+
+export { Downloader };
+

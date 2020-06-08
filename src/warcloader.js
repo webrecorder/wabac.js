@@ -14,6 +14,7 @@ class WARCLoader {
     this.loadId = loadId;
 
     this.anyPages = false;
+    this.detectPages = false;
 
     this._lastRecord = null;
 
@@ -109,10 +110,14 @@ class WARCLoader {
 
     if (record.warcType === "request" && this._lastRecord.warcType === "response") {
       this.indexReqResponse(this._lastRecord, record);
+      this._lastRecord = null;
     } else if (record.warcType === "response" && this._lastRecord.warcType === "request") {
       this.indexReqResponse(record, this._lastRecord);
+      this._lastRecord = null;
+    } else {
+      this.indexReqResponse(this._lastRecord, null);
+      this._lastRecord = record;
     }
-    this._lastRecord = null;
   }
 
   indexDone() {
@@ -299,10 +304,18 @@ class WARCLoader {
       );
     }
 
-    if (record.warcHeader("WARC-JSON-Metadata")) {
+    const extraMetadata = record.warcHeader("WARC-JSON-Metadata");
+
+    if (extraMetadata) {
       try {
-        entry.extraOpts = JSON.parse(record.warcHeader("WARC-JSON-Metadata"));
+        entry.extraOpts = JSON.parse(extraMetadata);
       } catch (e) { }
+    }
+
+    const pageId = record.warcHeader("WARC-Page-ID");
+
+    if (pageId) {
+      entry.pageId = pageId;
     }
 
     return entry;

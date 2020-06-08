@@ -9,6 +9,7 @@
     "http-status-codes": "^1.4.0",
     "idb": "^5.0.1",
     "js-yaml": "^3.13.1",
+    "jszip": "^3.4.0",
     "pako": "^1.0.10",
     "parse5-html-rewriting-stream": "^6.0.0",
     "parse5-sax-parser": "^6.0.0",

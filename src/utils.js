@@ -60,9 +60,9 @@ function getSecondsStr(date) {
 
 async function digestMessage(message, hashtype) {
   const msgUint8 = typeof(message) === "string" ? new TextEncoder().encode(message) : message;
-  const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);           // hash the message
-  const hashArray = Array.from(new Uint8Array(hashBuffer));                     // convert buffer to byte array
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
+  const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);
+  const hashArray = new Uint8Array(hashBuffer);
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   return hashtype + ":" + hashHex;
 }
 

@@ -2,6 +2,8 @@
 
 import { Path } from 'path-parser';
 
+import { Downloader} from './downloader';
+
 
 // ===========================================================================
 class APIRouter {
@@ -53,7 +55,8 @@ class API {
       'updateAuth': [':coll/updateAuth', 'POST'],
       'curated': ':coll/curated/:list',
       'pages': ':coll/pages',
-      'deletePage': [':coll/page/:page', 'DELETE']
+      'deletePage': [':coll/page/:page', 'DELETE'],
+      'downloadPages': ':coll/dl'
     });
 
     this.collections = collections;
@@ -61,6 +64,9 @@ class API {
 
   async apiResponse(url, method, request) {
     const response = await this.handleApi(url, method, request);
+    if (response instanceof Response) {
+      return response;
+    }
     const status = response.error ? 404 : 200;
     return this.makeResponse(response, status);
   }
@@ -164,8 +170,33 @@ class API {
         if (!coll) {
           return {error: "collection_not_found"};
         }
-        const sizeDeleted = coll.store.deletePage(params.page);
-        return {sizeDeleted};
+        const {pageSize, deleteSize} = coll.store.deletePage(params.page);
+
+        this.collections.updateSize(params.coll, pageSize, deleteSize);
+
+        return {pageSize, deleteSize};
+
+      case "downloadPages":
+        coll = await this.collections.getColl(params.coll);
+        if (!coll) {
+          return {error: "collection_not_found"};
+        }
+
+        const pageQ = params._query.get("pages");
+        const pageList = pageQ === "all" ? null : pageQ.split(",");
+
+        const dl = new Downloader(coll.store, pageList, params.coll, coll.config.metadata);
+
+        const format = params._query.get("format") || "wacz";
+        const filename = params._query.get("filename") || "webarchive";
+
+        if (format === "wacz") {
+          return dl.downloadWACZ(filename);
+        } else if (format === "warc") {
+          return dl.downloadWARC(filename);
+        } else {
+          return {"error": "invalid 'format': must be wacz or warc"};
+        }
 
       default:
         return {"error": "not_found"};

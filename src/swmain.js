@@ -100,7 +100,7 @@ class SWReplay {
     this.stats = sp.get("stats") ? new StatsTracker() : null;
 
     self.addEventListener('install', (event) => {
-      event.waitUntil(self.skipWaiting());
+      self.skipWaiting();
     });
 
     self.addEventListener('activate', (event) => {

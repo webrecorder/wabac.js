@@ -152,7 +152,7 @@ class CollectionLoader
 
       case "remotezip":
         const sourceLoader = createLoader(data.config.loadUrl || data.config.sourceUrl, data.config.headers, data.config.extra);
-        store = new ZipRemoteArchiveDB(data.config.dbname, sourceLoader, data.config.extraConfig, data.config.noCache);
+        store = new ZipRemoteArchiveDB(data.config.dbname, sourceLoader, data.config.extraConfig, data.config.noCache, data.config);
         break;
 
       case "remoteproxy":
@@ -310,7 +310,6 @@ class WorkerLoader extends CollectionLoader
   async addCollection(data, progressUpdate) {
     const name = data.name;
 
-    let decode = false;
     let type = null;
     let config = {root: false};
     let db = null;
@@ -332,6 +331,8 @@ class WorkerLoader extends CollectionLoader
           loadUrl = new URL(loadUrl, self.location.href).href;
         }
 
+        config.decode = true;
+        config.onDemand = false;
         config.loadUrl = loadUrl;
         config.sourceUrl = file.sourceUrl;
 
@@ -347,9 +348,8 @@ class WorkerLoader extends CollectionLoader
         const sourceLoader = createLoader(loadUrl, file.headers, file.size, config.extra);
 
         if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
-          db = new ZipRemoteArchiveDB(config.dbname, sourceLoader, config.extraConfig, config.noCache);
+          db = new ZipRemoteArchiveDB(config.dbname, sourceLoader, config.extraConfig, config.noCache, config);
           type = "remotezip";
-          decode = true;
           // is its own loader
           loader = db;
 
@@ -373,7 +373,7 @@ ${text}`);
           if (abort) {
             abort.abort();
           }
-          return;
+          return false;
         }
 
         if (!sourceLoader.length) {
@@ -383,31 +383,31 @@ Make sure this is a valid URL and you have access to this file.`);
           if (abort) {
             abort.abort();
           }
-          return;
+          return false;
         }
 
         const contentLength = sourceLoader.length;
         
         if (config.sourceName.endsWith(".har")) {
           loader = new HARLoader(await resp.json());
+          config.decode = false;
 
         } else if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
-          if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !sourceLoader.supportsRange) {
+          if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !sourceLoader.canLoadOnDemand) {
             loader = new WARCLoader(resp.body, abort, name);
           } else {
             loader = new CDXFromWARCLoader(resp.body, abort, name);
             type = "remotesource";
             db = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
           }
-          decode = true;
 
         } else if (config.sourceName.endsWith(".wbn")) {
           loader = new WBNLoader(await resp.arrayBuffer());
+          config.decode = false;
 
         } else if (config.sourceName.endsWith(".cdxj") || config.sourceName.endsWith(".cdx")) {
           config.remotePrefix = data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
           loader = new CDXLoader(resp.body, abort, name);
-          decode = true;
           type = "remoteprefix";
           db = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
         }
@@ -417,7 +417,7 @@ Make sure this is a valid URL and you have access to this file.`);
           if (abort) {
             abort.abort();
           }
-          return;
+          return false;
         }
 
         if (!db) {
@@ -425,9 +425,12 @@ Make sure this is a valid URL and you have access to this file.`);
         }
         await db.initing;
 
+        config.onDemand = loader.canLoadOnDemand;
+
         try {
           config.metadata = await loader.load(db, progressUpdate, contentLength);
         } catch (e) {
+          progressUpdate(0, `Unexpected Loading Error: ${e.toString()}`);
           return false;
         }
 
@@ -441,12 +444,10 @@ Make sure this is a valid URL and you have access to this file.`);
       config = data.remote;
       config.sourceName = config.replayPrefix;
     } else {
-      progressUpdate(0, `Invalid Load Request`)
-      return null;
+      progressUpdate(0, `Invalid Load Request`);
+      return false;
     }
 
-    config.decode = decode;
-    config.onDemand = type !== "archive";
     config.ctime = new Date().getTime();
 
     const collData = {name, type, config};

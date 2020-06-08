@@ -32,24 +32,27 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       return null;
     }
 
-    if (remote.url != cdx.url) {
+    if (remote.url !== cdx.url) {
       console.log(`Wrong url: expected ${cdx.url}, got ${remote.url}`);
       return null;
     }
 
-    if (remote.ts != cdx.ts) {
-      console.log(`Wrong timestamp: expected ${cdx.ts}, got ${remote.ts}`);
-      return null;
+    if (remote.ts !== cdx.ts) {
+      const rounded = Math.floor(remote.ts / 1000) * 1000;
+      if (rounded !== cdx.ts) {
+        console.log(`Wrong timestamp: expected ${cdx.ts}, got ${remote.ts}`);
+        return null;
+      }
     }
 
-    if (remote.digest != cdx.digest) {
+    if (remote.digest !== cdx.digest) {
       console.log(`Wrong digest: expected ${cdx.digest}, got ${remote.digest}`);
-      return null;
+      //return null;
     }
 
     // Revisit
     if (remote.origURL) {
-      const origResult = await this.lookupUrl(remote.origURL, remote.origTS);
+      const origResult = await this.lookupUrl(remote.origURL, remote.origTS, {noRevisits: true});
       if (!origResult) {
         return null;
       }

@@ -32,6 +32,8 @@ async function decodeResponse(response, contentEncoding, transferEncoding, noRW)
 
 // ===========================================================================
 async function decodeContent(content, contentEncoding, transferEncoding) {
+  const origContent = content;
+
   try {
     if (transferEncoding === "chunked") {
       content = dechunkArrayBuffer(content);
@@ -43,6 +45,11 @@ async function decodeContent(content, contentEncoding, transferEncoding) {
   try {
     if (contentEncoding === "br") {
       content = brotliDecode(content);
+
+      // if ended up with zero-length, probably not valid, just use original
+      if (content.length === 0) {
+        content = origContent;
+      }
 
     } else if (contentEncoding === "gzip" || transferEncoding === "gzip") {
       const inflator = new Inflate();

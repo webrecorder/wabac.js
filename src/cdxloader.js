@@ -59,7 +59,7 @@ class CDXFromWARCLoader extends WARCLoader
   }
 
   addCdx(cdx) {
-    const { url, mime, digest } = cdx;
+    const { url, mime } = cdx;
 
     const status = Number(cdx.status) || 200;
 
@@ -75,7 +75,12 @@ class CDXFromWARCLoader extends WARCLoader
                     "start": Number(cdx.offset),
                     "length": Number(cdx.length)};
 
-    const entry = {url, ts, status, digest: "sha1:" + digest, mime, loaded: false, source};
+    let { digest } = cdx;
+    if (digest.indexOf(":") === -1) {
+      digest = "sha1:" + digest;
+    }
+
+    const entry = {url, ts, status, digest, mime, loaded: false, source};
     //console.log("Indexing: " + JSON.stringify(entry));
 
     //promises.push(this.db.addResource(entry));
@@ -104,6 +109,7 @@ class CDXLoader extends CDXFromWARCLoader
 
     for await (const origLine of reader.iterLines()) {
       let cdx;
+      let urlkey;
       let timestamp;
       let line = origLine.trimEnd();
 
@@ -112,7 +118,7 @@ class CDXLoader extends CDXFromWARCLoader
         if (inx < 0) {
           continue;
         }
-        timestamp = line.split(" ", 2)[1];
+        [urlkey, timestamp] = line.split(" ", 2);
         line = line.slice(inx);
       }
 
@@ -124,6 +130,9 @@ class CDXLoader extends CDXFromWARCLoader
       }
 
       cdx.timestamp = timestamp;
+      if (!cdx.url) {
+        cdx.url = urlkey;
+      }
       this.addCdx(cdx);
     }
 
