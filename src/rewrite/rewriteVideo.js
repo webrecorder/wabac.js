@@ -37,7 +37,7 @@ function getMaxResAndBand(opts = {}) {
     res = {maxRes: OLD_DEFAULT_MAX_RES, maxBand: OLD_DEFAULT_MAX_BAND};
   }
 
-  if (opts.save) {
+  if (opts && opts.save) {
     opts.save.maxRes = res.maxRes;
     opts.save.maxBand = res.maxBand;
   }

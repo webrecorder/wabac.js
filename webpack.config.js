@@ -30,7 +30,11 @@ module.exports = {
         test: /(dist\/wombat.js|src\/wombatWorkers.js)$/i,
         loaders: 'raw-loader',
       }
-      ]
-  }
+    ]
+  },
+
+  plugins: [
+    new webpack.BannerPlugin('[name].js is part of Webrecorder project. Copyright Webrecorder Software, 2020. Licensed under the Affero General Public License v3.')
+  ],
 };
 
