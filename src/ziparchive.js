@@ -3,9 +3,10 @@ import { RemoteSourceArchiveDB } from './remotearchivedb';
 import { WARCInfoOnlyWARCLoader, WARCLoader } from './warcloader';
 import { CDXLoader } from './cdxloader';
 import { getTS, notFound } from './utils';
+import { LiveAccess } from './remoteproxy';
 
 import yaml from 'js-yaml';
-import { LiveAccess } from './remoteproxy';
+import { csv2jsonAsync } from 'json-2-csv';
 
 
 // ===========================================================================
@@ -146,8 +147,8 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     const indexloaders = [];
     let metadata;
 
-    if (entries["metadata.yaml"]) {
-      metadata = await this.loadMetadata(await db.zipreader.loadFile("metadata.yaml"));
+    if (entries["webarchive.yaml"]) {
+      metadata = await this.loadMetadata(entries, await db.zipreader.loadFile("webarchive.yaml"));
     }
 
     for (const filename of Object.keys(entries)) {
@@ -193,7 +194,17 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     return metadata || {};
   }
 
-  async loadMetadata(reader) {
+  async loadPagesCSV(reader) {
+    const csv = new TextDecoder().decode(await reader.readFully());
+
+    const pages = await csv2jsonAsync(csv);
+
+    if (pages && pages.length) {
+      await this.addPages(pages);
+    }
+  }
+
+  async loadMetadata(entries, reader) {
     const text = new TextDecoder().decode(await reader.readFully());
     const root = yaml.safeLoad(text);
 
@@ -213,6 +224,10 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 
     if (pages && pages.length) {
       await this.addPages(pages);
+    } else {
+      if (entries["pages.csv"]) {
+        await this.loadPagesCSV(await this.zipreader.loadFile("pages.csv"));
+      }
     }
 
     // Curated Pages

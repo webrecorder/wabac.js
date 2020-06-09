@@ -1622,6 +1622,11 @@ decompress-response@^3.3.0:
   dependencies:
     mimic-response "^1.0.0"
 
+deeks@2.2.5:
+  version "2.2.5"
+  resolved "https://registry.yarnpkg.com/deeks/-/deeks-2.2.5.tgz#3d19371479a1d45a6da49734b580475f7c721d9e"
+  integrity sha512-a4N/8uC+OGAmr0pmqaF6ZikBIO3c4cLqLARoOkI0qFH/FXL2rcbvh/fUZmKhdEH0fDbwU5WblV+mn4o8sc9y/A==
+
 deep-equal@^1.0.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/deep-equal/-/deep-equal-1.1.1.tgz#b5c98c942ceffaf7cb051e24e1434a25a2e6076a"
@@ -1795,6 +1800,11 @@ dns-txt@^2.0.2:
   integrity sha1-uR2Ab10nGI5Ks+fRB9iBocxGQrY=
   dependencies:
     buffer-indexof "^1.0.0"
+
+doc-path@2.0.3:
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/doc-path/-/doc-path-2.0.3.tgz#f816c494b99e304dd8e9a98cd00f6cab472931bd"
+  integrity sha512-Wex5OlidOT7esfbuLxtUiDHnG2er5UaKzMbUW2Ns9nRrsx+DmEXdHwXb0+jp+FTKmjE9i6bgrwRakT+YcobjEg==
 
 domain-browser@^1.1.1:
   version "1.2.0"
@@ -3260,6 +3270,14 @@ jsesc@^2.5.1:
   version "2.5.2"
   resolved "https://registry.yarnpkg.com/jsesc/-/jsesc-2.5.2.tgz#80564d2e483dacf6e8ef209650a67df3f0c283a4"
   integrity sha512-OYu7XEzjkCQ3C5Ps3QIZsQfNpqoJyZZA99wd9aWd05NCtC5pWOkShK2mkL6HXQR6/Cy2lbNdPlZBpuQHXE63gA==
+
+json-2-csv@^3.7.1:
+  version "3.7.1"
+  resolved "https://registry.yarnpkg.com/json-2-csv/-/json-2-csv-3.7.1.tgz#d9d6e7e92df882df9e0e5a6560466f0e0a0ac495"
+  integrity sha512-AX7ZpKfyXBcAk1GAd8h8bKlLtxhnOdRcXf6EFYogpqIwZCtBGOt/XbIvjgOUFd3wAdnDEqX/wi3VnTZM+ywOZg==
+  dependencies:
+    deeks "2.2.5"
+    doc-path "2.0.3"
 
 json-buffer@3.0.0:
   version "3.0.0"

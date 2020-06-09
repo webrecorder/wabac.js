@@ -143,7 +143,7 @@ class ArchiveDB {
         const pageData = {};
         pageData.pos = pos++;
         pageData.list  = listId;
-        pageData.page = data.page_id;
+        pageData.page = data.page || data.page_id || data.pageId;
         pageData.desc = data.desc;
 
         tx.store.put(pageData);
@@ -155,6 +155,26 @@ class ArchiveDB {
         console.warn("addCuratedPageLists tx", e.toString());
       }
     }
+  }
+
+  async getAllCuratedByList() {
+    const allLists = await this.db.getAll("pageLists");
+
+    const tx = this.db.transaction("curatedPages", "readonly");
+
+    for await (const cursor of tx.store.index("listPages").iterate()) {
+      const list = allLists[cursor.value.list - 1];
+      if (!list) {
+        continue;
+      }
+      list.show = true;
+      if (!list.pages) {
+        list.pages = [];
+      }
+      list.pages.push(cursor.value);
+    }
+
+    return allLists;
   }
 
   

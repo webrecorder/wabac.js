@@ -2,12 +2,15 @@ import JSZip from 'jszip';
 
 import { PassThrough } from 'stream';
 
+import yaml from 'js-yaml';
+import { Deflate } from 'pako';
+
+import { json2csvAsync } from 'json-2-csv';
+
 import { WARCRecord, WARCSerializer } from 'warcio';
 
 import { getTS } from './utils';
 
-import yaml from 'js-yaml';
-import { Deflate } from 'pako';
 
 
 // ===========================================================================
@@ -114,6 +117,12 @@ class Downloader
 
     const metadata = await this.getMetadata();
 
+    const pages = metadata.pages;
+    delete metadata.pages;
+    this.addFile(zip, "pages.csv", await json2csvAsync(pages), true);
+
+    this.addFile(zip, "webarchive.yaml", yaml.safeDump(metadata, {skipInvalid: true}), true);
+
     this.addFile(zip, "archive/data.warc", this.generateWARC(filename + "#/archive/data.warc"), false);
     this.addFile(zip, "archive/text.warc", this.generateTextWARC(filename + "#/archive/text.warc"), false);
 
@@ -123,8 +132,6 @@ class Downloader
       this.addFile(zip, "indexes/index.cdx.gz", this.generateCompressedCDX("index.cdx.gz"), false);
       this.addFile(zip, "indexes/index.idx", this.generateIDX(), true);
     }
-
-    this.addFile(zip, "metadata.yaml", yaml.safeDump(metadata, {schema: yaml.JSON_SCHEMA}), true);
 
     const rs = new ReadableStream({
       start(controller) {
@@ -308,7 +315,8 @@ class Downloader
 
     for (const page of pageIter) {
       const {url, ts, title, id, text, favIconUrl} = page;
-      const pageData = {url, ts, title, id};
+      const date = new Date(ts).toISOString();
+      const pageData = {title, url, date, id};
       if (favIconUrl) {
         pageData.favIconUrl = favIconUrl;
       }
@@ -319,9 +327,21 @@ class Downloader
       }
     }
 
+    metadata.pageLists = await this.db.getAllCuratedByList();
+
     metadata.config = {useSurt: false, decodeResponses: false};
 
     return metadata;
+  }
+
+  async getLists() {
+    try {
+      const lists = await this.db.getAllCuratedByList();
+      console.log(lists);
+      return yaml.safeDump(lists, {skipInvalid: true});
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   async* generateIDX() {
