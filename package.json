@@ -1,6 +1,6 @@
 {
   "name": "wabac",
-  "version": "1.4.1",
+  "version": "2.0.0",
   "main": "index.js",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
@@ -16,7 +16,7 @@
     "parse5-sax-parser": "^6.0.0",
     "path-parser": "^6.1.0",
     "unescape-js": "^1.1.4",
-    "warcio": "^1.1.3",
+    "warcio": "^1.2.0",
     "wbn": "^0.0.3",
     "wombat": "github:webrecorder/wombat"
   },
