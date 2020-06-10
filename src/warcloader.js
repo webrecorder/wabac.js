@@ -350,7 +350,7 @@ class WARCLoader {
 
         updateTime = new Date().getTime();
         if ((updateTime - lastUpdate) > 500) {
-          progressUpdate(Math.round((parser.offset / totalSize) * 95.0));
+          progressUpdate(Math.round((parser.offset / totalSize) * 95.0), null, parser.offset, totalSize);
           lastUpdate = updateTime;
         }
 
@@ -385,7 +385,8 @@ class WARCLoader {
       }
       
       progressUpdate(Math.round((parser.offset / totalSize) * 95.0),
-        `Sorry there was an error downloading. Please try again (${e})`);
+        `Sorry there was an error downloading. Please try again (${e})`,
+        parser.offset, totalSize);
 
       console.warn(e);
     }
