@@ -31,7 +31,7 @@ class ArchiveDB {
   async init() {
     this.db = await openDB(this.name, this.version, {
       upgrade: (db, oldV, newV, tx) => this._initDB(db, oldV, newV, tx),
-      blocking: (e) => { if (e.newVersion === null) { this.close(); }}
+      blocking: (e) => { if (!e || e.newVersion === null) { this.close(); }}
     });
   }
 
