@@ -340,7 +340,7 @@ class WARCLoader {
         }
 
         if (self.interruptLoads && this.loadId && self.interruptLoads[this.loadId]) {
-          progressUpdate(Math.round((parser.offset / totalSize) * 95.0), "Loading Canceled");
+          progressUpdate(Math.round((parser.offset / totalSize) * 95.0), "Loading Canceled", parser.offset, totalSize);
           self.interruptLoads[this.loadId]();
           if (this.abort) {
             this.abort.abort();

@@ -143,7 +143,15 @@ class ArchiveDB {
         const pageData = {};
         pageData.pos = pos++;
         pageData.list  = listId;
-        pageData.page = data.page || data.page_id || data.pageId;
+        const type = typeof(data.page);
+        // only store page id, if WR-style page object, reference the id
+        if (type === "string") {
+          pageData.page = data.page;
+        } else if (type === "object") {
+          pageData.page = data.page.id;
+        } else {
+          pageData.page = data.page_id || data.pageId;
+        }
         pageData.desc = data.desc;
 
         tx.store.put(pageData);
@@ -199,28 +207,9 @@ class ArchiveDB {
     return results;
   }
 
-  async dedupResource(data, tx) {
-    const ownTx = !tx;
-
-    const payload = data.payload;
-    const size = (payload ? payload.length : 0);
-
-    let digest = data.digest;
-
-    if (!digest && (!payload || size < this.minDedupSize)) {
-      return false;
-    }
-
-    if (!digest) {
-      digest = await digestMessage(payload, "sha-256");
-    }
-
-    if (!tx) {
-      tx = this.db.transaction(["digestRef", "payload"], "readwrite");
-    }
-
+  async dedupResource(digest, payload, tx) {
     const digestRefStore = tx.objectStore("digestRef");
-    const ref = await digestRefStore.get(digest);
+    const ref = digest ? await digestRefStore.get(digest) : false;
     let added = true;
 
     if (ref) {
@@ -232,22 +221,12 @@ class ArchiveDB {
       try {
         tx.objectStore("payload").add({digest, payload});
         const count = 1;
+        const size = payload.length;
         digestRefStore.put({digest, count, size});
       } catch (e) {
         console.log(e);
       }
     }
-
-    if (ownTx) {
-      try {
-        await tx.done;
-      } catch(e) {
-        console.log("Payload Add Failed: " + e);
-      }
-    }
-
-    delete data.payload;
-    data.digest = digest;
 
     return added;
   }
@@ -265,12 +244,17 @@ class ArchiveDB {
         regulars.push(data);
       }
 
-      if (this.useRefCounts) {
-        await this.dedupResource(data, dtx);
+      if (this.useRefCounts && data.digest && data.payload) {
+        await this.dedupResource(data.digest, data.payload, dtx);
+        delete data.payload;
       }
     }
 
-    await dtx.done;
+    try {
+      await dtx.done;
+    } catch(e) {
+      console.log("Payload Bulk Add Failed: " + e);
+    }
 
     const tx = this.db.transaction("resources", "readwrite");
 
@@ -308,9 +292,24 @@ class ArchiveDB {
   }
 
   async addResource(data) {
-    let result = null;
+    let added = false;
 
-    let added = await this.dedupResource(data);
+    if (data.payload && data.payload.length > this.minDedupSize) {
+      if (!data.digest) {
+        data.digest = await digestMessage(payload, "sha-256");
+      }
+      const tx = this.db.transaction(["digestRef", "payload"], "readwrite");
+
+      added = await this.dedupResource(data.digest, data.payload, tx);
+
+      try {
+        await tx.done;
+      } catch(e) {
+        console.log("Payload Add Failed: " + e);
+      }
+
+      delete data.payload;
+    }
 
     // only add revisit if not a dupe
     // don't allow revisits to override regular responses

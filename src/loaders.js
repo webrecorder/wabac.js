@@ -211,14 +211,15 @@ class WorkerLoader extends CollectionLoader
       case "addColl":
       {
         const name = event.data.name; 
-        let coll = null;
 
-        const progressUpdate = (percent, error) => {
+        const progressUpdate = (percent, error, currentSize, totalSize) => {
           client.postMessage({
             "msg_type": "collProgress",
             name,
             percent,
-            error
+            error,
+            currentSize,
+            totalSize
           });
         };
 
@@ -318,8 +319,6 @@ class WorkerLoader extends CollectionLoader
       const file = data.file;
 
       let loader = null;
-      let resp = null;
-      let abort = null;
 
       if (file.sourceUrl) {
         type = "archive";
@@ -345,7 +344,9 @@ class WorkerLoader extends CollectionLoader
         config.extraConfig = data.extraConfig;
         config.noCache = loadUrl.startsWith("file:") || file.noCache;
 
-        const sourceLoader = createLoader(loadUrl, file.headers, file.size, config.extra);
+        const sourceLoader = createLoader(loadUrl, file.headers, file.size, config.extra, file.blob);
+
+        let tryHeadOnly = false;
 
         if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
           db = new ZipRemoteArchiveDB(config.dbname, sourceLoader, config.extraConfig, config.noCache, config);
@@ -354,20 +355,18 @@ class WorkerLoader extends CollectionLoader
           loader = db;
 
           // do HEAD request only
-          const result = await sourceLoader.doInitialFetch(true);
-          resp = result.response;
-        } else {
-          const result = await sourceLoader.doInitialFetch();
-          resp = result.response;
-          abort = result.abort;
+          tryHeadOnly = true;
         }
+        
+        let {abort, response, stream} = await sourceLoader.doInitialFetch(tryHeadOnly);
+        stream = stream || response.body;
 
         if (!sourceLoader.isValid) {
-          const text = sourceLoader.length <= 1000 ? await resp.text() : "";
+          const text = sourceLoader.length <= 1000 ? await response.text() : "";
           progressUpdate(0, `\
 Sorry, this URL could not be loaded.
 Make sure this is a valid URL and you have access to this file.
-Status: ${resp.status} ${resp.statusText}
+Status: ${response.status} ${response.statusText}
 Error Details:
 ${text}`);
           if (abort) {
@@ -387,29 +386,31 @@ Make sure this is a valid URL and you have access to this file.`);
         }
 
         const contentLength = sourceLoader.length;
-        
-        if (config.sourceName.endsWith(".har")) {
-          loader = new HARLoader(await resp.json());
-          config.decode = false;
 
-        } else if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
+        if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
           if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !sourceLoader.canLoadOnDemand) {
-            loader = new WARCLoader(resp.body, abort, name);
+            loader = new WARCLoader(stream, abort, name);
           } else {
-            loader = new CDXFromWARCLoader(resp.body, abort, name);
+            loader = new CDXFromWARCLoader(stream, abort, name);
             type = "remotesource";
             db = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
           }
 
-        } else if (config.sourceName.endsWith(".wbn")) {
-          loader = new WBNLoader(await resp.arrayBuffer());
-          config.decode = false;
-
         } else if (config.sourceName.endsWith(".cdxj") || config.sourceName.endsWith(".cdx")) {
           config.remotePrefix = data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
-          loader = new CDXLoader(resp.body, abort, name);
+          loader = new CDXLoader(stream, abort, name);
           type = "remoteprefix";
           db = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
+        
+        } else if (config.sourceName.endsWith(".wbn")) {
+          //todo: fix
+          loader = new WBNLoader(await response.arrayBuffer());
+          config.decode = false;
+
+        } else if (config.sourceName.endsWith(".har")) {
+          //todo: fix
+          loader = new HARLoader(await response.json());
+          config.decode = false;
         }
 
         if (!loader) {
@@ -425,7 +426,7 @@ Make sure this is a valid URL and you have access to this file.`);
         }
         await db.initing;
 
-        config.onDemand = loader.canLoadOnDemand;
+        config.onDemand = sourceLoader.canLoadOnDemand;
 
         try {
           config.metadata = await loader.load(db, progressUpdate, contentLength);

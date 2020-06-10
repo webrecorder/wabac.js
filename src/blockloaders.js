@@ -5,9 +5,9 @@ const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
 
 
 // ===========================================================================
-function createLoader(url, headers, size, extra) {
+function createLoader(url, headers, size, extra, blob) {
   if (url.startsWith("blob:")) {
-    return new BlobLoader(url, null, extra);
+    return new BlobLoader(url, blob);
   } else if (url.startsWith("http:") || url.startsWith("https:") || url.startsWith("file:")) {
     return new HttpRangeLoader(url, headers, size);
   } else if (url.startsWith("googledrive:")) {
@@ -256,15 +256,21 @@ class BlobLoader
     return !!this.blob;
   }
 
-  async doInitialFetch() {
-    let response = await fetch(this.url);
-    this.blob = await response.blob();
+  async doInitialFetch(tryHead) {
+    if (!this.blob) {
+      const response = await fetch(this.url);
+      this.blob = await response.blob();
+    }
 
-    const abort = new AbortController();
-    const signal = abort.signal;
-    response = await fetch(this.url, {signal});
+    const response = new Response();
 
-    return {response, abort};
+    let stream = null;
+    
+    if (!tryHead) {
+      stream = this.blob.stream ? this.blob.stream() : await this.getReadableStream(this.blob);
+    }
+    
+    return {response, stream};
   }
 
   async getLength() {
@@ -283,7 +289,7 @@ class BlobLoader
     const blobChunk = this.blob.slice(offset, offset + length, "application/octet-stream");
 
     if (streaming) {
-      return blobChunk.stream ? blobChunk.stream() : this.getReadableStream(blobChunk);
+      return blobChunk.stream ? blobChunk.stream() : await this.getReadableStream(blobChunk);
     } else {
       try {
         const ab = blobChunk.arrayBuffer ? await blobChunk.arrayBuffer() : await this.getArrayBuffer(blobChunk);
