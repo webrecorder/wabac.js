@@ -1,5 +1,5 @@
 {
-  "name": "wabac",
+  "name": "@webrecorder/wabac",
   "version": "2.0.0",
   "main": "index.js",
   "license": "AGPL-3.0-or-later",
@@ -33,6 +33,9 @@
     "webpack-cli": "^3.3.2",
     "webpack-dev-server": "^3.10.3"
   },
+  "files": [
+    "src/*"
+  ],
   "scripts": {
     "build": "webpack --mode production",
     "build-dev": "webpack --mode development",
