@@ -201,7 +201,7 @@ class WARCLoader {
         return null;
       }
 
-      if (reqRecord && reqRecord.httpHeaders.verb === "OPTIONS") {
+      if (reqRecord && reqRecord.httpHeaders.method === "OPTIONS") {
         return null;
       }
  
