@@ -7,7 +7,7 @@ const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
 // ===========================================================================
 function createLoader(url, headers, size, extra, blob) {
   if (url.startsWith("blob:")) {
-    return new BlobLoader(url, blob);
+    return new BlobLoader(url, blob, size);
   } else if (url.startsWith("http:") || url.startsWith("https:") || url.startsWith("file:")) {
     return new HttpRangeLoader(url, headers, size);
   } else if (url.startsWith("googledrive:")) {
@@ -238,9 +238,10 @@ class GoogleDriveLoader
 // ===========================================================================
 class BlobLoader
 {
-  constructor(url, blob = null) {
+  constructor(url, blob = null, size = null) {
     this.url = url;
     this.blob = blob;
+    this.size = this.blob ? this.blob.size : size;
 
     // This is false since range-request/on-demand loading can initially be supported
     // blob urls are short-lived and can't be relied on in future sessions
@@ -249,7 +250,7 @@ class BlobLoader
   }
 
   get length() {
-    return (this.blob ? this.blob.size : 0);
+    return this.size;
   }
 
   get isValid() {
@@ -274,16 +275,33 @@ class BlobLoader
   }
 
   async getLength() {
-    if (!this.blob) {
+    if (!this.blob && !this.blob.size) {
       let response = await fetch(this.url);
       this.blob = await response.blob();
+      this.size = this.blob.size;
     }
-    return this.blob.size;
+    return this.size;
   }
 
   async getRange(offset, length, streaming = false, signal) {
+
     if (!this.blob) {
-      await this.getLength();
+      const headers = new Headers();
+      headers.set("Range", `bytes=${offset}-${offset + length - 1}`);
+
+      const response = await fetch(this.url, {headers});
+
+      // if a range was returned, just use that
+      if (response.headers.get("content-range")) {
+        if (streaming) {
+          return response.body;
+        } else {
+          return new Uint8Array(await response.arrayBuffer());
+        }
+      }
+
+      //otherwise, we need to store full blob, then slice
+      this.blob = await response.blob();
     }
 
     const blobChunk = this.blob.slice(offset, offset + length, "application/octet-stream");

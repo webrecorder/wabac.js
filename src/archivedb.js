@@ -296,7 +296,7 @@ class ArchiveDB {
 
     if (data.payload && data.payload.length > this.minDedupSize) {
       if (!data.digest) {
-        data.digest = await digestMessage(payload, "sha-256");
+        data.digest = await digestMessage(data.payload, "sha-256");
       }
       const tx = this.db.transaction(["digestRef", "payload"], "readwrite");
 

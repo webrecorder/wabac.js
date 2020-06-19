@@ -128,7 +128,8 @@ class WARCLoader {
   }
 
   shouldIndexMetadataRecord(record) {
-    if (record.warcTargetURI.startsWith("metadata://")) {
+    const targetURI = record.warcTargetURI;
+    if (targetURI && targetURI.startsWith("metadata://")) {
       return true;
     }
 

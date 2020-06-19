@@ -2,7 +2,7 @@
 
 const DEFAULT_RULES = 
 [
-  {"match": /[?&](_|cb|\w*cache\w*)=[\d]+(?=$|&)/i,
+  {"match": /[?&](_|cb|_ga|\w*cache\w*)=[\d.-]+(?=$|&)/i,
    "replace": ""},
 
   {"match": /([?&])utm_[^=]+=[^&]+(?=&|$)/g,

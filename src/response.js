@@ -135,7 +135,7 @@ class ArchiveResponse
   makeResponse() {
     let body = null;
     if (!isNullBodyStatus(this.status)) {
-      body = this.reader ? this.reader.getReadableStream() : this.buffer;
+      body = this.buffer || !this.reader ? this.buffer : this.reader.getReadableStream();
     }
 
     const response = new Response(body, {status: this.status,

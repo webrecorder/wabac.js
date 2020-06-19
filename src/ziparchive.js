@@ -25,19 +25,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     sourceLoader.canLoadOnDemand = true;
 
     if (extraConfig) {
-      if (extraConfig.es) {
-        for (const [prefix, externalPath] of extraConfig.es) {
-          const external = new LiveAccess(externalPath, true, false);
-          this.externalSources.push({prefix, external});
-        }
-      }
-
-      if (extraConfig.fuzzy) {
-        for (const [matchStr, replace] of extraConfig.fuzzy) {
-          const match = new RegExp(matchStr);
-          this.fuzzyUrlRules.push({match, replace});
-        }
-      }
+      this.initConfig(extraConfig);
     }
   }
 
@@ -204,17 +192,33 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     }
   }
 
+  initConfig(config) {
+    if (config.decodeResponses !== undefined) {
+      this.fullConfig.decode = config.decodeResponses;
+    }
+    if (config.useSurt !== undefined) {
+      this.useSurt = config.useSurt;
+    }
+    if (config.es) {
+      for (const [prefix, externalPath] of config.es) {
+        const external = new LiveAccess(externalPath, true, false);
+        this.externalSources.push({prefix, external});
+      }
+    }
+    if (config.fuzzy) {
+      for (const [matchStr, replace] of config.fuzzy) {
+        const match = new RegExp(matchStr);
+        this.fuzzyUrlRules.push({match, replace});
+      }
+    }
+  }
+
   async loadMetadata(entries, reader) {
     const text = new TextDecoder().decode(await reader.readFully());
     const root = yaml.safeLoad(text);
 
     if (root.config !== undefined) {
-      if (root.config.decodeResponses !== undefined) {
-        this.fullConfig.decode = root.config.decodeResponses;
-      }
-      if (root.config.useSurt !== undefined) {
-        this.useSurt = root.config.useSurt;
-      }
+      this.initConfig(root.config);
     }
 
     const metadata = {desc: root.desc, title: root.title};
