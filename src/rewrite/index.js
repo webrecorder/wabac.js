@@ -341,6 +341,15 @@ class Rewriter {
         }
       }
 
+      else if (tag.tagName === "object" && name === "data") {
+        const type = this.getAttr(tag.attrs, "type");
+
+        if (type === "application/pdf") {
+          attr.name = "src";
+          tag.tagName = "iframe";
+        }
+      }
+
       else if (name === "href" || name === "src") {
         attr.value = this.rewriteUrl(attr.value);
       }

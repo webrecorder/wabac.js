@@ -176,9 +176,17 @@ class Collection {
   }
 
   makeTopFrame(url, requestTS, isLive) {
-    if (this.config.sourceUrl) {
+    let baseUrl = null;
+
+    if (this.config.extraConfig && this.config.extraConfig.baseUrl) {
+      baseUrl = this.config.extraConfig.baseUrl;
+    } else if (this.config.sourceUrl) {
+      baseUrl = `/?source=${this.config.sourceUrl}`;
+    }
+
+    if (baseUrl) {
       const locParams = new URLSearchParams({url, ts: requestTS, view: "replay"}).toString();
-      return Response.redirect(`/?source=${this.config.sourceUrl}#${locParams}`);
+      return Response.redirect(baseUrl + "#" + locParams);
     }
 
     const content = `

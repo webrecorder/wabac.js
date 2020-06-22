@@ -76,7 +76,7 @@ class CDXFromWARCLoader extends WARCLoader
                     "length": Number(cdx.length)};
 
     let { digest } = cdx;
-    if (digest.indexOf(":") === -1) {
+    if (digest && digest.indexOf(":") === -1) {
       digest = "sha1:" + digest;
     }
 

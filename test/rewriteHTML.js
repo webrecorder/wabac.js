@@ -288,6 +288,9 @@ test('script', rewriteHtml,
   '<script src="https://example.com/some/path/js/func.js"></script>',
   '<script src="http://localhost:8080/prefix/20201226101010/https://example.com/some/path/js/func.js"></script>');
 
+test('object pdf', rewriteHtml,
+  '<object type="application/pdf" data="https://example.com/some/file.pdf">',
+  '<iframe type="application/pdf" src="https://example.com/some/file.pdf">');
 
 
 /*

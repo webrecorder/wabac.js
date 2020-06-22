@@ -334,8 +334,8 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
           try {
             return await external.getResource(request, rwPrefix, event);
           } catch(e) {
-            console.log(e);
-            return new Response("Upstream Error", {status: 503});
+            console.warn("Upstream Error", e);
+            //return new Response("Upstream Error", {status: 503});
           }
         }
       }
