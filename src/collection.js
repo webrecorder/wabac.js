@@ -4,6 +4,8 @@ import { Rewriter } from './rewrite';
 
 import { getTS, getSecondsStr, notFound, AuthNeededError } from './utils.js';
 
+import { ArchiveResponse } from './response';
+
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
@@ -111,7 +113,11 @@ class Collection {
     let response = null;
     
     try {
-      response = await this.store.getResource(query, this.prefix, event);
+      if (requestURL.startsWith("srcdoc:")) {
+        response = this.getSrcDocResponse(requestURL, requestURL.slice("srcdoc:".length));
+      } else {
+        response = await this.store.getResource(query, this.prefix, event);
+      }
     } catch (e) {
       if (e instanceof AuthNeededError) {
         //const client = await self.clients.get(event.clientId || event.resultingClientId);
@@ -173,6 +179,15 @@ class Collection {
     }
 
     return response.makeResponse();
+  }
+
+  getSrcDocResponse(url, base64str) {
+    const payload = new TextEncoder().encode(decodeURIComponent(atob(base64str)));
+    const status = 200;
+    const statusText = "OK";
+    const headers = new Headers({"Content-Type": "text/html"});
+    const date = new Date();
+    return new ArchiveResponse({payload, status, statusText, headers, url, date});
   }
 
   makeTopFrame(url, requestTS, isLive) {
@@ -285,6 +300,7 @@ body {
   wbinfo.static_prefix = "${this.staticPrefix}";
   wbinfo.enable_auto_fetch = true;
   wbinfo.presetCookie = ${presetCookieStr};
+  wbinfo.isSW = true;
 </script>
 <script src='${this.staticPrefix}wombat.js'> </script>
 <script>

@@ -264,6 +264,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 
   getSurt(url) {
     try {
+      url = url.replace(/www\d*\./, '');
       const urlObj = new URL(url);
 
       const hostParts = urlObj.hostname.split(".").reverse();
@@ -293,15 +294,11 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     const key = IDBKeyRange.upperBound(surt + " " + timestamp, true);
 
     for await (const cursor of tx.store.iterate(key, "prev")) {
-      values.push(cursor.value);
-      break;
-    }
-
-    // add matches for range, if any
-    const rangeKey = IDBKeyRange.bound(surt + " " + timestamp, surt + "!", false, true);
-
-    for await (const cursor of tx.store.iterate(rangeKey)) {
-      values.push(cursor.value);
+      // add to beginning as processing entries in reverse here
+      values.unshift(cursor.value);
+      if (!cursor.value.prefix.split(" ")[0].startsWith(surt)) {
+        break;
+      }
     }
 
     await tx.done;
