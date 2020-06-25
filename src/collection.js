@@ -115,6 +115,8 @@ class Collection {
     try {
       if (requestURL.startsWith("srcdoc:")) {
         response = this.getSrcDocResponse(requestURL, requestURL.slice("srcdoc:".length));
+      } else if (requestURL.startsWith("blob:")) {
+        response = await this.getBlobResponse(requestURL);
       } else {
         response = await this.store.getResource(query, this.prefix, event);
       }
@@ -187,6 +189,21 @@ class Collection {
     const statusText = "OK";
     const headers = new Headers({"Content-Type": "text/html"});
     const date = new Date();
+    return new ArchiveResponse({payload, status, statusText, headers, url, date});
+  }
+
+  async getBlobResponse(url) {
+    const resp = await fetch(url);
+
+    const status = resp.status;
+    const statusText = resp.statusText;
+    const headers = new Headers(resp.headers);
+    if (headers.get("content-type") === "application/xhtml+xml") {
+      headers.set("content-type", "text/html");
+    }
+    const date = new Date();
+    const payload = new Uint8Array(await resp.arrayBuffer());
+
     return new ArchiveResponse({payload, status, statusText, headers, url, date});
   }
 
