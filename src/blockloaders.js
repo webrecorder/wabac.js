@@ -40,7 +40,7 @@ class HttpRangeLoader
       try {
         response = await fetch(this.url, {headers, method: "HEAD"});
         if (response.status === 200 || response.status == 206) {
-          this.canLoadOnDemand = (response.status === 206);
+          this.canLoadOnDemand = ((response.status === 206) || response.headers.get("Accept-Ranges") === "bytes");
           this.isValid = true;
         }
       } catch(e) {
@@ -52,7 +52,7 @@ class HttpRangeLoader
       abort = new AbortController();
       const signal = abort.signal;
       response = await fetch(this.url, {headers, signal});
-      this.canLoadOnDemand = (response.status === 206);
+      this.canLoadOnDemand = ((response.status === 206) || response.headers.get("Accept-Ranges") === "bytes");
       this.isValid = (response.status === 206 || response.status === 200);
     }
 
