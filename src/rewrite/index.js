@@ -269,7 +269,9 @@ class Rewriter {
 
     for (let v of value.split(SRCSET_REGEX)) {
       if (v) {
-        rv.push(this.rewriteUrl(v.trim()));
+        const parts = v.trim().split(" ");
+        parts[0] = this.rewriteUrl(parts[0]);
+        rv.push(parts.join(" "));
       }
     }
 

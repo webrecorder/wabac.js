@@ -220,16 +220,14 @@ test('srcset', rewriteHtml,
   '<img srcset="http://localhost:8080/prefix/20201226101010/http://example.com/123,foo 2w">');
 
 // srcset attrib: comma-containing absolute url and relative url, separated by comma and space
-// pywb diff: %20 encoding for space in url
 test('srcset', rewriteHtml,
   '<img srcset="http://example.com/123,foo, /bar,bar 2w">',
-  '<img srcset="http://localhost:8080/prefix/20201226101010/http://example.com/123,foo, /prefix/20201226101010/https://example.com/bar,bar%202w">');
+  '<img srcset="http://localhost:8080/prefix/20201226101010/http://example.com/123,foo, /prefix/20201226101010/https://example.com/bar,bar 2w">');
 
 // srcset attrib: comma-containing relative url and absolute url, separated by comma and space
-// pywb diff: %20 encoding for space in url
 test('srcset', rewriteHtml,
   '<img srcset="/bar,bar 2w, http://example.com/123,foo">',
-  '<img srcset="/prefix/20201226101010/https://example.com/bar,bar%202w, http://localhost:8080/prefix/20201226101010/http://example.com/123,foo">');
+  '<img srcset="/prefix/20201226101010/https://example.com/bar,bar 2w, http://localhost:8080/prefix/20201226101010/http://example.com/123,foo">');
 
 // srcset attrib: absolute urls with descriptors, separated by comma (no space)
 test('srcset', rewriteHtml,
