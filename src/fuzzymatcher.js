@@ -219,6 +219,11 @@ function fuzzyBestMatchQuery(reqUrl, results, rule) {
   const reqQuery = new URLSearchParams(reqUrl.search);
 
   for (const result of results) {
+    // skip 204s from fuzzy matching (todo: reexamine)
+    if (result.mime === 204) {
+      continue;
+    }
+
     let url = (typeof result === "string" ? result : result.url);
 
     try {

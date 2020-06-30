@@ -197,11 +197,6 @@ class WARCLoader {
     if (record.httpHeaders) {
       status = Number(record.httpHeaders.statusCode) || 200;
 
-      // skip empty responses
-      if (status === 204) {
-        return null;
-      }
-
       if (reqRecord && reqRecord.httpHeaders.method === "OPTIONS") {
         return null;
       }
