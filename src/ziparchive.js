@@ -1,8 +1,8 @@
 import { AsyncIterReader } from 'warcio';
-import { RemoteSourceArchiveDB } from './remotearchivedb';
+import { RemoteSourceArchiveDB, SingleRecordWARCLoader } from './remotearchivedb';
 import { WARCInfoOnlyWARCLoader, WARCLoader } from './warcloader';
 import { CDXLoader } from './cdxloader';
-import { getTS, notFound } from './utils';
+import { getTS } from './utils';
 import { LiveAccess } from './remoteproxy';
 
 import yaml from 'js-yaml';
@@ -91,8 +91,14 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     this.db.clear("ziplines")
   }
 
-  async loadZipIndex(reader) {
+  async loadZiplinesIndex(reader, progressUpdate, totalSize) {
+    let currOffset = 0;
+
+    let lastUpdate = 0, updateTime = 0;
+    
     for await (const line of reader.iterLines()) {
+      currOffset += line.length;
+
       let entry;
 
       if (line.indexOf("\t") > 0) {
@@ -116,6 +122,12 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 
         entry = {prefix, filename, offset, length, loaded: false};
 
+      }
+
+      updateTime = new Date().getTime();
+      if ((updateTime - lastUpdate) > 500) {
+        progressUpdate(Math.round((currOffset / totalSize) * 100.0), null, currOffset, totalSize);
+        lastUpdate = updateTime;
       }
 
       await this.db.put("ziplines", entry);
@@ -154,7 +166,9 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
           // For compressed indices
           console.log("Loading IDX " + filename);
 
-          indexloaders.push(db.loadZipIndex(await db.zipreader.loadFile(filename)));
+          const entryTotal = db.zipreader.getCompressedSize(filename);
+
+          indexloaders.push(db.loadZiplinesIndex(await db.zipreader.loadFile(filename), progressUpdate, entryTotal));
         }
 
       } else if (filename.endsWith(".warc.gz") || filename.endsWith(".warc")) {
@@ -244,10 +258,12 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     return metadata;
   }
 
-  async loadSource(source) {
+  async loadRecordFromSource(cdx) {
     let filename;
     let offset = 0;
     let length = -1;
+
+    const source = cdx.source;
 
     if (typeof(source) === "string") {
       filename = source;
@@ -259,7 +275,12 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
       return null;
     }
 
-    return await this.zipreader.loadWARC(filename, offset, length);
+    let loader = null;
+   
+    const fileStream = await this.zipreader.loadFileCheckDirs(filename, offset, length);
+    loader = new SingleRecordWARCLoader(fileStream);
+
+    return await loader.load();
   }
 
   getSurt(url) {
@@ -282,21 +303,26 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 
   async loadFromZiplines(url, datetime) {
     const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
+
+    let prefix;
+    let checkPrefix;
+
     const surt = this.useSurt ? this.getSurt(url) : url;
 
-    const prefix = surt + " " + timestamp;
+    prefix = surt + " " + timestamp;
+    checkPrefix = surt;
 
     const tx = this.db.transaction("ziplines", "readonly");
 
     const values = [];
 
     // and first match
-    const key = IDBKeyRange.upperBound(surt + " " + timestamp, true);
+    const key = IDBKeyRange.upperBound(prefix, true);
 
     for await (const cursor of tx.store.iterate(key, "prev")) {
       // add to beginning as processing entries in reverse here
       values.unshift(cursor.value);
-      if (!cursor.value.prefix.split(" ")[0].startsWith(surt)) {
+      if (!cursor.value.prefix.split(" ")[0].startsWith(checkPrefix)) {
         break;
       }
     }
@@ -313,6 +339,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
       const filename = "indexes/" + zipblock.filename;
       const params = {offset: zipblock.offset, length: zipblock.length, unzip: true}
       const reader = await this.zipreader.loadFile(filename, params);
+
       cdxloaders.push(new CDXLoader(reader).load(this));
 
       zipblock.loaded = true;
@@ -554,7 +581,7 @@ class ZipRangeReader
     return entries;
   }
 
-  async loadWARC(name, offset, length) {
+  async loadFileCheckDirs(name, offset, length) {
     if (this.entries === null) {
       await this.load();
     }

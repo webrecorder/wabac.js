@@ -15,6 +15,14 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
     this.useRefCounts = false;
   }
 
+  async loadRecordFromSource(cdx) {
+    const responseStream = await this.loadSource(cdx.source);
+
+    const loader = new SingleRecordWARCLoader(responseStream);
+
+    return await loader.load();
+  }
+
   async loadPayload(cdx, depth = 0) {
     let payload = await super.loadPayload(cdx);
     if (payload) {
@@ -23,9 +31,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       }
     }
 
-    const responseStream = await this.loadSource(cdx.source);
-
-    const remote = await new SingleRecordWARCLoader(responseStream).load();
+    const remote = await this.loadRecordFromSource(cdx);
  
     if (!remote) {
       console.log(`No WARC Record Loaded for: ${cdx.url}`);
@@ -101,7 +107,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
     // Update payload if cacheing
     try {
       if (payload && !this.noCache) {
-        await this.commitPayload(digest);
+        await this.commitPayload(payload, digest);
       }
     } catch(e) {
       console.warn(`Payload Update Error: ${cdx.url}`);
@@ -130,7 +136,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
   }
 
   async commitPayload(payload, digest) {
-    if (!payload) {
+    if (!payload || payload.length === 0) {
       return;
     }
 
@@ -264,5 +270,5 @@ class PayloadBufferingReader extends BaseAsyncIterReader
 }
 
 
-export { OnDemandPayloadArchiveDB, RemotePrefixArchiveDB, RemoteSourceArchiveDB };
+export { OnDemandPayloadArchiveDB, RemotePrefixArchiveDB, RemoteSourceArchiveDB, SingleRecordWARCLoader };
 
