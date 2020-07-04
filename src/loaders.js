@@ -14,6 +14,7 @@ import { createLoader } from './blockloaders';
 import { RemoteProxySource, LiveAccess } from './remoteproxy';
 
 import { deleteDB, openDB } from 'idb/with-async-ittr.js';
+import { Canceled } from './utils.js';
 
 
 // Threshold size for switching to range requests 
@@ -431,7 +432,9 @@ Make sure this is a valid URL and you have access to this file.`);
         try {
           config.metadata = await loader.load(db, progressUpdate, contentLength);
         } catch (e) {
-          progressUpdate(0, `Unexpected Loading Error: ${e.toString()}`);
+          if (!(e instanceof Canceled)) {
+            progressUpdate(0, `Unexpected Loading Error: ${e.toString()}`);
+          }
           return false;
         }
 
