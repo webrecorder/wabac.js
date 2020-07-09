@@ -295,6 +295,9 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
       }
       surt += ")";
       surt += urlObj.pathname;
+      if (urlObj.search) {
+        surt += urlObj.search;
+      }
       return surt.toLowerCase();
     } catch (e) {
       return url;
@@ -309,7 +312,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 
     const surt = this.useSurt ? this.getSurt(url) : url;
 
-    prefix = surt + " " + timestamp;
+    prefix = surt + " 9";
     checkPrefix = surt;
 
     const tx = this.db.transaction("ziplines", "readonly");
@@ -317,7 +320,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     const values = [];
 
     // and first match
-    const key = IDBKeyRange.upperBound(prefix, true);
+    const key = IDBKeyRange.upperBound(prefix, false);
 
     for await (const cursor of tx.store.iterate(key, "prev")) {
       // add to beginning as processing entries in reverse here
