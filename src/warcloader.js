@@ -4,11 +4,14 @@ import { WARCParser } from 'warcio';
 
 import { extractText } from './extract.js';
 
-const BATCH_SIZE = 1000;
+import { BaseParser } from './baseparser';
+
 
 // ===========================================================================
-class WARCLoader {
+class WARCLoader extends BaseParser {
   constructor(reader, abort = null, loadId = null) {
+    super();
+    
     this.reader = reader;
     this.abort = abort;
     this.loadId = loadId;
@@ -18,12 +21,7 @@ class WARCLoader {
 
     this._lastRecord = null;
 
-    this.promises = [];
-
     this.metadata = {};
-
-    this.batch = [];
-    this.count = 0;
 
     this.pageMap = {};
     this.pages = [];
@@ -71,22 +69,6 @@ class WARCLoader {
         console.log("Page Add Error", e.toString());
       }
     }
-  }
-
-  addPage(page) {
-    this.promises.push(this.db.addPage(page));
-  }
-
-  addResource(res) {
-    //this.promises.push(this.db.addResource(res));
-
-    if (this.batch.length >= BATCH_SIZE) {
-      this.promises.push(this.db.addResources(this.batch));
-      this.batch = [];
-      console.log(`Read ${this.count += BATCH_SIZE} records`);
-    }
-
-    this.batch.push(res);
   }
 
   index(record) {
@@ -398,13 +380,7 @@ class WARCLoader {
     return this.metadata;
   }
 
-  async finishIndexing() {
-    if (this.batch.length > 0) {
-      this.promises.push(this.db.addResources(this.batch));
-    }
-
-    console.log(`Indexed ${this.count += this.batch.length} records`);
-
+  async _finishLoad() {
     if (this.pages.length) {
       for (const {page, textPromise} of Object.values(this.pageMap)) {
         if (textPromise) {
@@ -421,14 +397,6 @@ class WARCLoader {
     if (this.lists.length) {
       this.promises.push(this.db.addCuratedPageLists(this.lists, "bookmarks", "public"));
     }
-
-    try {
-      await Promise.all(this.promises);
-    } catch (e) {
-      console.warn(e);
-    }
-
-    this.promises = [];
   }
 }
 

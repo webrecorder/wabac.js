@@ -263,13 +263,13 @@ class BlobLoader
       this.blob = await response.blob();
     }
 
-    const response = new Response();
-
     let stream = null;
     
     if (!tryHead) {
       stream = this.blob.stream ? this.blob.stream() : await this.getReadableStream(this.blob);
     }
+
+    const response = new Response(stream);
     
     return {response, stream};
   }

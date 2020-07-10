@@ -296,6 +296,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
       surt += ")";
       surt += urlObj.pathname;
       if (urlObj.search) {
+        urlObj.searchParams.sort();
         surt += urlObj.search;
       }
       return surt.toLowerCase();

@@ -1,12 +1,15 @@
+import { BaseParser } from "./baseparser";
+
 
 // ===========================================================================
-class HARLoader {
+class HARLoader extends BaseParser {
   constructor(string_or_har) {
+    super();
     this.har = string_or_har;
     this.pageRefs = {};
   }
 
-  load(db) {
+  async load(db) {
     this.db = db;
     if (typeof this.har === "string") {
       this.har = JSON.parse(this.har);
@@ -16,7 +19,9 @@ class HARLoader {
 
     this.parsePages(this.har);
 
-    return Promise.resolve(true);
+    await this.finishIndexing();
+
+    return {};
   }
 
   parsePages(har) {
@@ -37,13 +42,14 @@ class HARLoader {
       const date = page.startedDateTime;
 
       //this.pageList.push({ "timestamp": getTS(page.startedDateTime), "title": title, "url": url });
-      this.db.addPage({url, date, title});
+      this.addPage({url, date, title});
     }
   }
 
   parseEntries(har) {
     for (const entry of har.log.entries) {
       if (!entry.response.content || !entry.response.content.text) {
+        console.log("Skipping: " + entry.request.url);
         continue;
       }
 
@@ -55,14 +61,22 @@ class HARLoader {
         payload = entry.response.content.text;
       }
 
+      console.log("Added: " + entry.request.url);
+
       const ts = new Date(entry.startedDateTime).getTime();
 
-      this.db.addResource({url: entry.request.url,
+      const respHeaders = {};
+
+      for (const {name, value} of entry.response.headers) {
+        respHeaders[name] = value;
+      }
+
+      this.addResource({url: entry.request.url,
                            ts,
                            status: entry.response.status,
                            //statusText: entry.response.statusText,
-                           respHeaders: entry.response.headers,
-                           reqHeaders: entry.request.headers,
+                           respHeaders,
+                           //reqHeaders,
                            payload});
 
       if (entry.pageref && !this.pageRefs[entry.pageref]) {
