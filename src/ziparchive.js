@@ -95,6 +95,8 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     let currOffset = 0;
 
     let lastUpdate = 0, updateTime = 0;
+
+    let batch = [];
     
     for await (const line of reader.iterLines()) {
       currOffset += line.length;
@@ -130,7 +132,19 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
         lastUpdate = updateTime;
       }
 
-      await this.db.put("ziplines", entry);
+      batch.push(entry);
+    }
+
+    const tx = this.db.transaction("ziplines", "readwrite");
+
+    for (const entry of batch) {
+      tx.store.put(entry);
+    }
+
+    try {
+      await tx.done;
+    } catch (e) {
+      console.log("Error loading ziplines index: ", e);
     }
   }
 
