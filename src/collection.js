@@ -118,6 +118,13 @@ class Collection {
       } else if (requestURL.startsWith("blob:")) {
         response = await this.getBlobResponse(requestURL);
       } else {
+
+        response = this.checkSlash(requestURL, requestTS, mod);
+
+        if (response) {
+          return response;
+        }
+
         response = await this.store.getResource(query, this.prefix, event);
       }
     } catch (e) {
@@ -181,6 +188,22 @@ class Collection {
     }
 
     return response.makeResponse();
+  }
+
+  checkSlash(requestURL, requestTS, mod) {
+    try {
+      const parsed = new URL(requestURL);
+      if (parsed.pathname === "/" && parsed.href !== requestURL) {
+        let redirectUrl = this.prefix + requestTS + mod;
+        if (requestTS || mod) {
+          redirectUrl += "/";
+        }
+        redirectUrl += parsed.href;
+        return Response.redirect(redirectUrl, 301);
+      }
+    } catch (e) {}
+
+    return null;
   }
 
   getSrcDocResponse(url, base64str) {
