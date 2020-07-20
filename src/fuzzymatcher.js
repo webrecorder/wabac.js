@@ -30,6 +30,10 @@ const DEFAULT_RULES =
    "replace": "$1"
   },
 
+  {"match": /(\/\/.*www\.youtube\.com\/embed\/[^?]+)[?].*/i,
+   "replace": "$1"
+  },
+
   {"match": /(www\.)?youtube(-nocookie)?\.com\/get_video_info/i,
    "args": [["video_id", "html5"]],
   },
