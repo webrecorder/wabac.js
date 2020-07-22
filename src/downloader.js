@@ -371,7 +371,7 @@ class Downloader
     const url = resource.url;
     const date = new Date(resource.ts).toISOString();
     resource.timestamp = getTS(date);
-    const headers = resource.respHeaders;
+    const httpHeaders = resource.respHeaders;
     const warcVersion = "WARC/1.1";
 
     const pageId = resource.pageId;
@@ -386,7 +386,7 @@ class Downloader
       warcHeaders["WARC-Payload-Digest"] = resource.digest;
     }
 
-    let payload = null;
+    let payload = resource.payload;
     let type = null;
 
     let refersToUrl, refersToDate;
@@ -408,9 +408,26 @@ class Downloader
       refersToUrl = digestOriginal.url;
       refersToDate = digestOriginal.date;
 
+    } else if (resource.origURL && resource.origTS) {
+      return null;
+      if (!resource.digest) {
+        console.log("Skip fuzzy resource with no digest");
+        return null;
+      }
+
+      type = "revisit";
+      resource.mime = "warc/revisit";
+      payload = EMPTY;
+
+      refersToUrl = resource.origURL;
+      refersToDate = resource.origTS;
+
     } else {
       type = "response";
-      payload = await this.db.loadPayload(resource);
+      if (!payload) {
+        payload = await this.db.loadPayload(resource);
+      }
+
       if (!payload) {
         console.log("Skipping No Payload For: " + url, resource);
         return;
@@ -419,7 +436,7 @@ class Downloader
     }
 
     const record = await WARCRecord.create({
-      url, date, type, warcHeaders, headers, warcVersion, refersToUrl, refersToDate}, getPayload(payload));
+      url, date, type, warcHeaders, httpHeaders, warcVersion, refersToUrl, refersToDate}, getPayload(payload));
 
     const buffer = await WARCSerializer.serialize(record, {gzip: true});
     if (!resource.digest) {
