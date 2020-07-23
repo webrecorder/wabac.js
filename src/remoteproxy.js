@@ -21,10 +21,16 @@ class RemoteWARCProxy {
 
   async getResource(request, prefix, event) {
     const { url, headers } = resolveRequestParams(request, prefix);
-    const reqHeaders = headers;
+    let reqHeaders = headers;
 
     if (this.type === "kiwix") {
       let { headers, encodedUrl, date, status, statusText } = await this.resolveHeaders(url);
+
+      if (reqHeaders.has("Range")) {
+        const range = reqHeaders.get("Range");
+        // ensure uppercase range to avoid bug in kiwix-serve
+        reqHeaders = {"Range": range};
+      }
 
       const response = await fetch(this.sourceUrl + "A/" + encodedUrl, {headers: reqHeaders});
 
