@@ -2,8 +2,86 @@ import { tsToDate } from './utils.js';
 
 import { ArchiveResponse } from './response';
 
+import { WARCParser, AsyncIterReader } from 'warcio';
+
 
 const EXTRACT_TS = /(?:([\d]+)[^\/]*\/)?(http.*)/;
+
+
+// ===========================================================================
+class RemoteWARCProxy {
+  constructor(config) {
+    this.sourceUrl = config.sourceUrl;
+    this.type = config.extraConfig && config.extraConfig.sourceType || "kiwix";
+  }
+
+  async getAllPages() {
+    return [];
+  }
+
+  async getResource(request, prefix, event) {
+    const { url, headers } = resolveRequestParams(request, prefix);
+
+    if (this.type === "kiwix") {
+      let { headers, encodedUrl, date } = await this.resolveHeaders(url);
+
+      const response = await fetch(this.sourceUrl + "A/" + encodedUrl);
+
+      const payload = response.body ? new AsyncIterReader(response.body.getReader(), false) : null;
+      const status = Number(response.status);
+      const statusText = response.statusText;
+
+      if (!date) {
+        date = new Date();
+      }
+
+      if (!headers) {
+        headers = new Headers();
+      }
+
+      const isLive = true;
+      const noRW = false;
+
+      return new ArchiveResponse({payload, status, statusText, headers, url, date, noRW, isLive});
+    }
+  }
+
+  async resolveHeaders(url) {
+    // need to escape utf-8, then % encode the entire string
+    let encodedUrl = encodeURI(url);
+    encodedUrl = encodeURIComponent(url);
+
+    let headersResp = await fetch(this.sourceUrl + "H/" + encodedUrl);
+
+    let headers = null;
+    let date = null;
+
+    try {
+      const record = await WARCParser.parse(headersResp.body);
+
+      if (record.warcType === "revisit") {
+        const warcRevisitTarget = record.warcHeaders.headers.get("WARC-Refers-To-Target-URI");
+        if (warcRevisitTarget && warcRevisitTarget !== url) {
+          return await this.resolveHeaders(warcRevisitTarget);
+        }
+      }
+      
+      date = new Date(record.warcDate);
+      if (record.httpHeaders) {
+        headers = record.httpHeaders.headers;
+      } else if (record.warcType === "resource") {
+        headers = new Headers();
+        headers.set("Content-Type", record.warcContentType);
+        headers.set("Content-Length", record.warcContentLength);
+      }
+    } catch (e) {
+      console.warn(e);
+      console.warn("Ignoring headers, error parsing headers response for: " + url);
+    }
+
+    return {encodedUrl, headers, date};
+  }
+}
 
 
 // ===========================================================================
@@ -105,32 +183,7 @@ class LiveAccess {
 
   async getResource(request, prefix, event) {
 
-    let headers;
-    let credentials;
-
-    if (this.isLive) {
-      headers = new Headers(request.request.headers);
-      let referrer = request.request.referrer;
-      const inx = referrer.indexOf("/http", prefix.length - 1);
-      if (inx > 0) {
-        referrer = referrer.slice(inx + 1);
-        headers.set("X-Proxy-Referer", referrer);
-      }
-      credentials = request.request.credentials;
-    } else {
-      headers = new Headers();
-      credentials = 'omit';
-    }
-
-    let url = request.url;
-
-    if (url.startsWith("//")) {
-      try {
-        url = new URL(referrer).protocol + url;
-      } catch(e) {
-        url = "https:" + url;
-      }
-    }
+    const { headers, credentials, url} = resolveRequestParams(request, prefix);
 
     let fetchUrl;
 
@@ -160,4 +213,37 @@ class LiveAccess {
 }
 
 
-export { RemoteProxySource, LiveAccess };
+function resolveRequestParams(request, prefix, isLive = true) {
+  let headers;
+  let referrer;
+  let credentials;
+
+  if (isLive) {
+    headers = new Headers(request.request.headers);
+    referrer = request.request.referrer;
+    const inx = referrer.indexOf("/http", prefix.length - 1);
+    if (inx > 0) {
+      referrer = referrer.slice(inx + 1);
+      headers.set("X-Proxy-Referer", referrer);
+    }
+    credentials = request.request.credentials;
+  } else {
+    headers = new Headers();
+    credentials = 'omit';
+  }
+
+  let url = request.url;
+
+  if (url.startsWith("//")) {
+    try {
+      url = new URL(referrer).protocol + url;
+    } catch(e) {
+      url = "https:" + url;
+    }
+  }
+
+  return {referrer, headers, credentials, url};
+}
+
+
+export { RemoteWARCProxy, RemoteProxySource, LiveAccess };
