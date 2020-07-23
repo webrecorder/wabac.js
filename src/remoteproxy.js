@@ -21,15 +21,14 @@ class RemoteWARCProxy {
 
   async getResource(request, prefix, event) {
     const { url, headers } = resolveRequestParams(request, prefix);
+    const reqHeaders = headers;
 
     if (this.type === "kiwix") {
-      let { headers, encodedUrl, date } = await this.resolveHeaders(url);
+      let { headers, encodedUrl, date, status, statusText } = await this.resolveHeaders(url);
 
-      const response = await fetch(this.sourceUrl + "A/" + encodedUrl);
+      const response = await fetch(this.sourceUrl + "A/" + encodedUrl, {headers: reqHeaders});
 
       const payload = response.body ? new AsyncIterReader(response.body.getReader(), false) : null;
-      const status = Number(response.status);
-      const statusText = response.statusText;
 
       if (!date) {
         date = new Date();
@@ -37,6 +36,14 @@ class RemoteWARCProxy {
 
       if (!headers) {
         headers = new Headers();
+      }
+
+      if (response.status === 206) {
+        status = 206;
+        statusText = "Partial Content";
+        headers.set("Content-Length", response.headers.get("Content-Length"));
+        headers.set("Content-Range", response.headers.get("Content-Range"));
+        headers.set("Accept-Ranges", "bytes");
       }
 
       const isLive = true;
@@ -47,14 +54,18 @@ class RemoteWARCProxy {
   }
 
   async resolveHeaders(url) {
+    const urlNoScheme = url.slice(url.indexOf("//") + 2);
+
     // need to escape utf-8, then % encode the entire string
-    let encodedUrl = encodeURI(url);
-    encodedUrl = encodeURIComponent(url);
+    let encodedUrl = encodeURI(urlNoScheme);
+    encodedUrl = encodeURIComponent(urlNoScheme);
 
     let headersResp = await fetch(this.sourceUrl + "H/" + encodedUrl);
 
     let headers = null;
     let date = null;
+    let status = null;
+    let statusText = null;
 
     try {
       const record = await WARCParser.parse(headersResp.body);
@@ -67,19 +78,29 @@ class RemoteWARCProxy {
       }
       
       date = new Date(record.warcDate);
+
       if (record.httpHeaders) {
         headers = record.httpHeaders.headers;
+        status = Number(record.httpHeaders.statusCode);
+        statusText = record.httpHeaders.statusText;
       } else if (record.warcType === "resource") {
         headers = new Headers();
         headers.set("Content-Type", record.warcContentType);
         headers.set("Content-Length", record.warcContentLength);
+        status = 200;
+        statusText = "OK";
       }
+
+      if (!status) {
+        status = 200;
+      }
+
     } catch (e) {
       console.warn(e);
       console.warn("Ignoring headers, error parsing headers response for: " + url);
     }
 
-    return {encodedUrl, headers, date};
+    return {encodedUrl, headers, date, status, statusText};
   }
 }
 
