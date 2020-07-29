@@ -14,6 +14,14 @@ class RemoteWARCProxy {
     this.sourceUrl = config.sourceUrl;
     this.type = config.extraConfig && config.extraConfig.sourceType || "kiwix";
     this.mainDomains = config.extraConfig.mainDomains || [];
+    this.redirLivePage = null;
+    if (config.extraConfig.redirLiveUrl) {
+      fetch(config.extraConfig.redirLiveUrl).then(async (resp) => {
+        if (resp.status === 200) {
+          this.redirLivePage = await resp.text();
+        }
+      });
+    }
   }
 
   async getAllPages() {
@@ -44,22 +52,9 @@ class RemoteWARCProxy {
       if (!headersData) {
 
         // do auto live redirect if outside mainDomain and navigation event
-        if (this.shouldRedirectLive(request, url)) {
+        if (this.redirLivePage && this.shouldRedirectLive(request, url)) {
           const headers = {"Content-Type": "text/html"};
-          return new Response(`
-<html>
-<head>
-<script>
-if (window.parent === window.top) {
-  window.parent.location.href = "${url}";
-}
-</script>
-</head>
-<body>
-Sorry, file not found.
-</body>
-</html>
-`, {status: 404, headers});
+          return new Response(this.redirLivePage.replace("$URL", url), {status: 404, headers});
         }
 
         return null;
