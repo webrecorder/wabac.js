@@ -306,7 +306,7 @@ class WorkerLoader extends CollectionLoader
     const name = data.name;
 
     let type = null;
-    let config = {root: false};
+    let config = {root: data.root || false};
     let db = null;
 
     const file = data.file;
@@ -319,6 +319,7 @@ class WorkerLoader extends CollectionLoader
     if (file.sourceUrl.startsWith("proxy:")) {
       config.sourceUrl = file.sourceUrl.slice("proxy:".length);
       config.extraConfig = data.extraConfig;
+      config.topTemplateUrl = data.topTemplateUrl;
       type = "remotewarcproxy";
 
     } else {

@@ -13,10 +13,25 @@ class RemoteWARCProxy {
   constructor(config) {
     this.sourceUrl = config.sourceUrl;
     this.type = config.extraConfig && config.extraConfig.sourceType || "kiwix";
+    this.mainDomains = config.extraConfig.mainDomains || [];
   }
 
   async getAllPages() {
     return [];
+  }
+
+  shouldRedirectLive(request, url) {
+    if (request.request.mode !== "navigate") {
+      return false;
+    }
+
+    for (const domain of this.mainDomains) {
+      if (url.startsWith(domain)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   async getResource(request, prefix, event) {
@@ -24,7 +39,20 @@ class RemoteWARCProxy {
     let reqHeaders = headers;
 
     if (this.type === "kiwix") {
-      let { headers, encodedUrl, date, status, statusText } = await this.resolveHeaders(url);
+      const headersData = await this.resolveHeaders(url);
+
+      if (!headersData) {
+
+        // do auto live redirect if outside mainDomain and navigation event
+        if (this.shouldRedirectLive(request, url)) {
+          const headers = {"Content-Type": "text/html"};
+          return new Response(`<script>window.parent.location.href = "${url}";</script>`, {status: 404, headers});
+        }
+
+        return null;
+      }
+
+      let { headers, encodedUrl, date, status, statusText } = headersData;
 
       if (reqHeaders.has("Range")) {
         const range = reqHeaders.get("Range");
@@ -52,7 +80,7 @@ class RemoteWARCProxy {
         headers.set("Accept-Ranges", "bytes");
       }
 
-      const isLive = true;
+      const isLive = false;
       const noRW = false;
 
       return new ArchiveResponse({payload, status, statusText, headers, url, date, noRW, isLive});
@@ -67,6 +95,10 @@ class RemoteWARCProxy {
     encodedUrl = encodeURIComponent(urlNoScheme);
 
     let headersResp = await fetch(this.sourceUrl + "H/" + encodedUrl);
+
+    if (headersResp.status !== 200) {
+      return null;
+    }
 
     let headers = null;
     let date = null;

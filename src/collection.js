@@ -26,7 +26,7 @@ class Collection {
 
     // support root collection hashtag nav
     if (this.config.root) {
-      this.appPrefix = prefixes.main + "#/";
+      this.appPrefix = prefixes.main;// + "#/";
       this.isRoot = true;
     } else {
       this.appPrefix = this.prefix;
@@ -82,6 +82,8 @@ class Collection {
 
     if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:") || wbUrlStr.startsWith("blob:"))) {
       requestURL = wbUrlStr;
+    } else if (!wbUrl && this.isRoot) {
+      requestURL = "https://" + wbUrlStr;
     } else if (!wbUrl) {
       return notFound(request, `Replay URL ${wbUrlStr} not found`);
     } else {
@@ -91,12 +93,12 @@ class Collection {
     }
 
     // force timestamp for root coll
-    if (!requestTS && this.isRoot) {
-      requestTS = "2";
-    }
+    //if (!requestTS && this.isRoot) {
+      //requestTS = "2";
+    //}
 
     if (!mod) {
-      return this.makeTopFrame(requestURL, requestTS);
+      return await this.makeTopFrame(requestURL, requestTS);
     }
 
     const hash = requestURL.indexOf("#");
@@ -151,6 +153,9 @@ class Collection {
       <p>Sorry, the URL <b>${requestURL}</b> is not in this archive.</p>
       <p><a target="_blank" href="${requestURL}">Try Live Version?</a></p>`;
       return notFound(request, msg);
+    } else if (response instanceof Response) {
+      // custom Response, not an ArchiveResponse, just return
+      return response;
     }
 
     if (!response.noRW) {
@@ -183,7 +188,7 @@ class Collection {
 
     const range = request.headers.get("range");
 
-    if (range && response.status === 200) {
+    if (range && response.status === 200 && range != "bytes=0-") {
       response.setRange(range);
     }
 
@@ -230,12 +235,12 @@ class Collection {
     return new ArchiveResponse({payload, status, statusText, headers, url, date});
   }
 
-  makeTopFrame(url, requestTS, isLive) {
+  async makeTopFrame(url, requestTS, isLive) {
     let baseUrl = null;
 
     if (this.config.extraConfig && this.config.extraConfig.baseUrl) {
       baseUrl = this.config.extraConfig.baseUrl;
-    } else if (this.config.sourceUrl) {
+    } else if (!this.isRoot && this.config.sourceUrl) {
       baseUrl = `/?source=${this.config.sourceUrl}`;
     }
 
@@ -244,7 +249,17 @@ class Collection {
       return Response.redirect(baseUrl + "#" + locParams);
     }
 
-    const content = `
+    let content = null;
+
+    if (this.config.topTemplateUrl) {
+      if (!this.config.topTemplate) {
+       const resp = await fetch(this.config.topTemplateUrl);
+       this.config.topTemplate = await resp.text();
+      }
+
+      content = this.config.topTemplate.replace("$URL", url).replace("$TS", requestTS).replace("$PREFIX", this.appPrefix);
+    } else {
+      content = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -284,6 +299,8 @@ window.home = "${this.rootPrefix}";
 </body>
 </html>
 `
+    }
+
     let responseData = {
       "status": 200,
       "statusText": "OK",
@@ -296,7 +313,7 @@ window.home = "${this.rootPrefix}";
   makeHeadInsert(url, requestTS, date, presetCookie, isLive) {
 
     const topUrl = this.appPrefix + requestTS + (requestTS ? "/" : "") + url;
-    const prefix = this.prefix;
+    const prefix = this.isRoot ? this.appPrefix : this.prefix;
     const coll = this.name;
 
     const seconds = getSecondsStr(date);
