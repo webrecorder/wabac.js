@@ -13,12 +13,12 @@ class RemoteWARCProxy {
   constructor(config) {
     this.sourceUrl = config.sourceUrl;
     this.type = config.extraConfig && config.extraConfig.sourceType || "kiwix";
-    this.mainDomains = config.extraConfig.mainDomains || [];
-    this.redirLivePage = null;
-    if (config.extraConfig.redirLiveUrl) {
-      fetch(config.extraConfig.redirLiveUrl).then(async (resp) => {
+    this.notFoundPage = null;
+    if (config.extraConfig && config.extraConfig.notFoundPageUrl) {
+      fetch(config.extraConfig.notFoundPageUrl).then(async (resp) => {
+        // load 'not found' page template
         if (resp.status === 200) {
-          this.redirLivePage = await resp.text();
+          this.notFoundPage = await resp.text();
         }
       });
     }
@@ -26,20 +26,6 @@ class RemoteWARCProxy {
 
   async getAllPages() {
     return [];
-  }
-
-  shouldRedirectLive(request, url) {
-    if (request.request.mode !== "navigate") {
-      return false;
-    }
-
-    for (const domain of this.mainDomains) {
-      if (url.startsWith(domain)) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   async getResource(request, prefix, event) {
@@ -51,16 +37,16 @@ class RemoteWARCProxy {
 
       if (!headersData) {
 
-        // do auto live redirect if outside mainDomain and navigation event
-        if (this.redirLivePage && this.shouldRedirectLive(request, url)) {
+        // use custom error page for navigate events
+        if (this.notFoundPage && request.request.mode === "navigate") {
           const headers = {"Content-Type": "text/html"};
-          return new Response(this.redirLivePage.replace("$URL", url), {status: 404, headers});
+          return new Response(this.notFoundPage.replace("$URL", url), {status: 404, headers});
         }
 
         return null;
       }
 
-      let { headers, encodedUrl, date, status, statusText } = headersData;
+      let { headers, encodedUrl, date, status, statusText, hasPayload } = headersData;
 
       if (reqHeaders.has("Range")) {
         const range = reqHeaders.get("Range");
@@ -68,9 +54,21 @@ class RemoteWARCProxy {
         reqHeaders = {"Range": range};
       }
 
-      const response = await fetch(this.sourceUrl + "A/" + encodedUrl, {headers: reqHeaders});
+      let payload = null;
 
-      const payload = response.body ? new AsyncIterReader(response.body.getReader(), false) : null;
+      let response = null;
+
+      if (hasPayload) {
+        response = await fetch(this.sourceUrl + "A/" + encodedUrl, {headers: reqHeaders});
+
+        if (response.body) {
+          payload = new AsyncIterReader(response.body.getReader(), false);
+        }
+      }
+
+      if (!payload) {
+        payload = new Uint8Array([]);
+      }
 
       if (!date) {
         date = new Date();
@@ -112,6 +110,7 @@ class RemoteWARCProxy {
     let date = null;
     let status = null;
     let statusText = null;
+    let hasPayload = false;
 
     try {
       const record = await WARCParser.parse(headersResp.body);
@@ -129,12 +128,14 @@ class RemoteWARCProxy {
         headers = record.httpHeaders.headers;
         status = Number(record.httpHeaders.statusCode);
         statusText = record.httpHeaders.statusText;
+        hasPayload = record.httpHeaders.headers.get("Content-Length") !== "0";
       } else if (record.warcType === "resource") {
         headers = new Headers();
         headers.set("Content-Type", record.warcContentType);
         headers.set("Content-Length", record.warcContentLength);
         status = 200;
         statusText = "OK";
+        hasPayload = record.warcContentLength > 0;
       }
 
       if (!status) {
@@ -146,7 +147,7 @@ class RemoteWARCProxy {
       console.warn("Ignoring headers, error parsing headers response for: " + url);
     }
 
-    return {encodedUrl, headers, date, status, statusText};
+    return {encodedUrl, headers, date, status, statusText, hasPayload};
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@webrecorder/wabac",
-  "version": "2.1.0-dev.2",
+  "version": "2.1.0-dev.3",
   "main": "index.js",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
@@ -29,7 +29,7 @@
     "raw-loader": "^4.0.1",
     "test-listen": "^1.1.0",
     "web-streams-node": "^0.4.0",
-    "webpack": "^4.41.2",
+    "webpack": "^4.44.0",
     "webpack-cli": "^3.3.2",
     "webpack-dev-server": "^3.10.3"
   },
