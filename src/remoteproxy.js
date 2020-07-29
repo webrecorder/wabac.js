@@ -46,7 +46,20 @@ class RemoteWARCProxy {
         // do auto live redirect if outside mainDomain and navigation event
         if (this.shouldRedirectLive(request, url)) {
           const headers = {"Content-Type": "text/html"};
-          return new Response(`<script>window.parent.location.href = "${url}";</script>`, {status: 404, headers});
+          return new Response(`
+<html>
+<head>
+<script>
+if (window.parent === window.top) {
+  window.parent.location.href = "${url}";
+}
+</script>
+</head>
+<body>
+Sorry, file not found.
+</body>
+</html>
+`, {status: 404, headers});
         }
 
         return null;
