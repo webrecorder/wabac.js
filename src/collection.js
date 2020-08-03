@@ -252,12 +252,9 @@ class Collection {
     let content = null;
 
     if (this.config.topTemplateUrl) {
-      if (!this.config.topTemplate) {
-       const resp = await fetch(this.config.topTemplateUrl);
-       this.config.topTemplate = await resp.text();
-      }
-
-      content = this.config.topTemplate.replace("$URL", url).replace("$TS", requestTS).replace("$PREFIX", this.appPrefix);
+      const resp = await fetch(this.config.topTemplateUrl);
+      const topTemplate = await resp.text();
+      content = topTemplate.replace("$URL", url).replace("$TS", requestTS).replace("$PREFIX", this.appPrefix);
     } else {
       content = `
 <!DOCTYPE html>

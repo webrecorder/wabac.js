@@ -13,15 +13,7 @@ class RemoteWARCProxy {
   constructor(config) {
     this.sourceUrl = config.sourceUrl;
     this.type = config.extraConfig && config.extraConfig.sourceType || "kiwix";
-    this.notFoundPage = null;
-    if (config.extraConfig && config.extraConfig.notFoundPageUrl) {
-      fetch(config.extraConfig.notFoundPageUrl).then(async (resp) => {
-        // load 'not found' page template
-        if (resp.status === 200) {
-          this.notFoundPage = await resp.text();
-        }
-      });
-    }
+    this.notFoundPageUrl = config.extraConfig && config.extraConfig.notFoundPageUrl;
   }
 
   async getAllPages() {
@@ -38,9 +30,14 @@ class RemoteWARCProxy {
       if (!headersData) {
 
         // use custom error page for navigate events
-        if (this.notFoundPage && request.request.mode === "navigate") {
-          const headers = {"Content-Type": "text/html"};
-          return new Response(this.notFoundPage.replace("$URL", url), {status: 404, headers});
+        if (this.notFoundPageUrl && request.request.mode === "navigate") {
+          const resp = await fetch(this.notFoundPageUrl);
+          // load 'not found' page template
+          if (resp.status === 200) {
+            const headers = {"Content-Type": "text/html"};
+            const text = await resp.text();
+            return new Response(text.replace("$URL", url), {status: 404, headers});
+          }
         }
 
         return null;
