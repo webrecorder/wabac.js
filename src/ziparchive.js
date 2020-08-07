@@ -20,6 +20,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     this.fuzzyUrlRules = [];
     this.useSurt = true;
     this.fullConfig = fullConfig;
+    this.textIndex = fullConfig && fullConfig.metadata && fullConfig.metadata.textIndex;
 
     //todo: make this configurable by user?
     sourceLoader.canLoadOnDemand = true;
@@ -51,6 +52,8 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     for (const store of stores) {
       await this.db.clear(store);
     }
+
+    await caches.delete("cache:" + this.name);
   }
 
   async clearAll() {
@@ -239,6 +242,21 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
         this.fuzzyUrlRules.push({match, replace});
       }
     }
+    if (config.textIndex) {
+      this.textIndex = config.textIndex;
+    }
+  }
+
+  async getTextIndex() {
+    const headers = {"Content-Type": "application/ndjson"};
+
+    if (!this.textIndex) {
+      return new Response("", {headers});
+    }
+
+    const reader = await this.zipreader.loadFile(this.textIndex, {unzip: true});
+
+    return new Response(reader.getReadableStream(), {headers});
   }
 
   async loadMetadata(entries, reader) {
@@ -249,7 +267,14 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
       this.initConfig(root.config);
     }
 
-    const metadata = {desc: root.desc, title: root.title};
+    const metadata = {
+      desc: root.desc,
+      title: root.title
+    };
+
+    if (root.textIndex) {
+      metadata.textIndex = root.textIndex;
+    }
 
     // All pages
     const pages = root.pages || [];

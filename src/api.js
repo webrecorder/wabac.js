@@ -55,6 +55,7 @@ class API {
       'updateAuth': [':coll/updateAuth', 'POST'],
       'curated': ':coll/curated/:list',
       'pages': ':coll/pages',
+      'textIndex': ':coll/textIndex',
       'deletePage': [':coll/page/:page', 'DELETE'],
       'downloadPages': ':coll/dl'
     });
@@ -154,6 +155,17 @@ class API {
         }
         const pages = await coll.store.getAllPages();
         return {pages};
+
+      case "textIndex":
+        coll = await this.collections.getColl(params.coll);
+        if (!coll) {
+          return {error: "collection_not_found"};
+        }
+        if (coll.store.getTextIndex) {
+          return await coll.store.getTextIndex();
+        } else {
+          return {};
+        }
 
       case "curated":
         coll = await this.collections.getColl(params.coll);
