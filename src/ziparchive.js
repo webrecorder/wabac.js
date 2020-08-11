@@ -46,14 +46,17 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     await this.loadZipEntries();
   }
 
+  async close() {
+    super.close();
+    caches.delete("cache:" + this.name);
+  }
+
   async clearZipData() {
     const stores = ["zipEntries", "ziplines"];
 
     for (const store of stores) {
       await this.db.clear(store);
     }
-
-    await caches.delete("cache:" + this.name);
   }
 
   async clearAll() {
@@ -100,9 +103,29 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     let lastUpdate = 0, updateTime = 0;
 
     let batch = [];
+    let defaultFilename = "";
     
     for await (const line of reader.iterLines()) {
       currOffset += line.length;
+
+      if (currOffset === line.length) {
+        if (line.startsWith("!meta")) {
+          const inx = line.indexOf(" {");
+          if (inx < 0) {
+            console.warn("Invalid Meta Line: " + line);
+            continue;
+          }
+
+          const indexMetadata = JSON.parse(line.slice(inx));
+          if (indexMetadata.filename) {
+            defaultFilename = indexMetadata.filename;
+          }
+          if (indexMetadata.format !== "cdxj-gzip-1.0") {
+            console.log(`Unknown CDXJ format "${indexMetadata.format}", archive may not parse correctly`);
+          }
+          continue;
+        }
+      }
 
       let entry;
 
@@ -123,7 +146,9 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
           continue;
         }
         const prefix = line.slice(0, inx);
-        const {offset, length, filename} = JSON.parse(line.slice(inx));
+        let {offset, length, filename} = JSON.parse(line.slice(inx));
+
+        filename = filename || defaultFilename;
 
         entry = {prefix, filename, offset, length, loaded: false};
 
@@ -252,6 +277,12 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 
     if (!this.textIndex) {
       return new Response("", {headers});
+    }
+
+    const size = this.zipreader.getCompressedSize(this.textIndex);
+
+    if (size > 0) {
+      headers["Content-Length"] = "" + size;
     }
 
     const reader = await this.zipreader.loadFile(this.textIndex, {unzip: true});
