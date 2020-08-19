@@ -20,6 +20,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     this.fuzzyUrlRules = [];
     this.useSurt = true;
     this.fullConfig = fullConfig;
+    this.textIndex = fullConfig && fullConfig.metadata && fullConfig.metadata.textIndex;
 
     //todo: make this configurable by user?
     sourceLoader.canLoadOnDemand = true;
@@ -43,6 +44,11 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     await super.init();
 
     await this.loadZipEntries();
+  }
+
+  async close() {
+    super.close();
+    caches.delete("cache:" + this.name);
   }
 
   async clearZipData() {
@@ -97,9 +103,29 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     let lastUpdate = 0, updateTime = 0;
 
     let batch = [];
+    let defaultFilename = "";
     
     for await (const line of reader.iterLines()) {
       currOffset += line.length;
+
+      if (currOffset === line.length) {
+        if (line.startsWith("!meta")) {
+          const inx = line.indexOf(" {");
+          if (inx < 0) {
+            console.warn("Invalid Meta Line: " + line);
+            continue;
+          }
+
+          const indexMetadata = JSON.parse(line.slice(inx));
+          if (indexMetadata.filename) {
+            defaultFilename = indexMetadata.filename;
+          }
+          if (indexMetadata.format !== "cdxj-gzip-1.0") {
+            console.log(`Unknown CDXJ format "${indexMetadata.format}", archive may not parse correctly`);
+          }
+          continue;
+        }
+      }
 
       let entry;
 
@@ -120,7 +146,9 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
           continue;
         }
         const prefix = line.slice(0, inx);
-        const {offset, length, filename} = JSON.parse(line.slice(inx));
+        let {offset, length, filename} = JSON.parse(line.slice(inx));
+
+        filename = filename || defaultFilename;
 
         entry = {prefix, filename, offset, length, loaded: false};
 
@@ -239,6 +267,27 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
         this.fuzzyUrlRules.push({match, replace});
       }
     }
+    if (config.textIndex) {
+      this.textIndex = config.textIndex;
+    }
+  }
+
+  async getTextIndex() {
+    const headers = {"Content-Type": "application/ndjson"};
+
+    if (!this.textIndex) {
+      return new Response("", {headers});
+    }
+
+    const size = this.zipreader.getCompressedSize(this.textIndex);
+
+    if (size > 0) {
+      headers["Content-Length"] = "" + size;
+    }
+
+    const reader = await this.zipreader.loadFile(this.textIndex, {unzip: true});
+
+    return new Response(reader.getReadableStream(), {headers});
   }
 
   async loadMetadata(entries, reader) {
@@ -249,7 +298,14 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
       this.initConfig(root.config);
     }
 
-    const metadata = {desc: root.desc, title: root.title};
+    const metadata = {
+      desc: root.desc,
+      title: root.title
+    };
+
+    if (root.textIndex) {
+      metadata.textIndex = root.textIndex;
+    }
 
     // All pages
     const pages = root.pages || [];

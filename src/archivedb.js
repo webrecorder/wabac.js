@@ -582,6 +582,9 @@ class ArchiveDB {
 
     for await (const result of this.matchAny("resources", "mimeStatusUrl", startKey, 0)) {
       results.push(this.resJson(result));
+      if (results.length === count) {
+        break;
+      }
     }
 
     return results;

@@ -28,6 +28,7 @@ class CollectionLoader
 {
   constructor() {
     this.colldb = null;
+    this.root = null;
     this._init_db = this._initDB();
   }
 
@@ -169,6 +170,10 @@ class CollectionLoader
 
     const name = data.name;
     const config = data.config;
+
+    if (data.config.root) {
+      this.root = name;
+    }
 
     return this._createCollection({name, store, config});
   }
