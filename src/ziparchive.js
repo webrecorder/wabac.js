@@ -512,7 +512,7 @@ class ZipRangeReader
   async load(always = false) {
     if (!this.entries || always) {
       const totalLength = await this.loader.getLength();
-      const length = (MAX_INT16 + 23);
+      const length = Math.min(MAX_INT16 + 23, totalLength);
       const start = totalLength - length;
       const endChunk = await this.loader.getRange(start, length);
 
