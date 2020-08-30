@@ -345,7 +345,9 @@ class WorkerLoader extends CollectionLoader
 
         // parse to strip out query and fragment
         try {
-          config.sourceName = new URL(config.sourceName).pathname;
+          if (config.sourceName.match(/https?:\/\//)) {
+            config.sourceName = new URL(config.sourceName).pathname;
+          }
         } catch (e) {
 
         }
