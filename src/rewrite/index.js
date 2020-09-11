@@ -119,7 +119,7 @@ class Rewriter {
   async rewrite(response, request) {
     const rewriteMode = this.contentRewrite ? this.getRewriteMode(request, response, this.baseUrl) : null;
 
-    const isAjax = isAjaxRequest(request);
+    const urlRewrite = this.urlRewrite && !isAjaxRequest(request);
 
     const headers = this.rewriteHeaders(response.headers, this.urlRewrite, !!rewriteMode);
 
@@ -135,11 +135,10 @@ class Rewriter {
     }
 
     let rwFunc = null;
-    let opt = null;
 
     switch (rewriteMode) {
       case "html":
-        if (!isAjax && this.urlRewrite) {
+        if (urlRewrite) {
           return await this.rewriteHtml(response);
         }
         break;
@@ -171,7 +170,11 @@ class Rewriter {
         break;
     }
 
-    const opts = {isAjax, response};
+    const opts = {response};
+
+    if (urlRewrite) {
+      opts.rewriteUrl = url => this.rewriteUrl(url);
+    }
 
     if (rwFunc) {
       let text = await response.getText();
@@ -544,7 +547,7 @@ class Rewriter {
 
   // JS
   rewriteJS(text, opts, inline) {
-    const noUrlProxyRewrite = (!this.urlRewrite || (opts && opts.isAjax));
+    const noUrlProxyRewrite = opts && !opts.rewriteUrl;
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
 
@@ -587,9 +590,7 @@ class Rewriter {
 
   // JSON
   rewriteJSON(text) {
-    //if (!isAjax) {
     text = this.rewriteJSONP(text);
-    //}
 
     const dsRewriter = baseRules.getRewriter(this.baseUrl);
 

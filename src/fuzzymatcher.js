@@ -26,7 +26,7 @@ const DEFAULT_RULES =
    "replace": "$1"
   },
 
-  {"match": /(\.(?:php|js|webm|mp4|gif|jpg|png|css|json))\?.*/i,
+  {"match": /(\.(?:php|js|webm|mp4|gif|jpg|png|css|json|m3u8))\?.*/i,
    "replace": "$1"
   },
 
