@@ -61,6 +61,14 @@ class RemoteWARCProxy {
         if (response.body) {
           payload = new AsyncIterReader(response.body.getReader(), false);
         }
+
+        if (response.status === 206) {
+          status = 206;
+          statusText = "Partial Content";
+          headers.set("Content-Length", response.headers.get("Content-Length"));
+          headers.set("Content-Range", response.headers.get("Content-Range"));
+          headers.set("Accept-Ranges", "bytes");
+        }
       }
 
       if (!payload) {
@@ -73,14 +81,6 @@ class RemoteWARCProxy {
 
       if (!headers) {
         headers = new Headers();
-      }
-
-      if (response.status === 206) {
-        status = 206;
-        statusText = "Partial Content";
-        headers.set("Content-Length", response.headers.get("Content-Length"));
-        headers.set("Content-Range", response.headers.get("Content-Range"));
-        headers.set("Accept-Ranges", "bytes");
       }
 
       const isLive = false;
