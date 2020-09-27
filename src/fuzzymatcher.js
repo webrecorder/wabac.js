@@ -61,6 +61,10 @@ const DEFAULT_RULES =
    "args": [["href", "stream_id", "substream_id"]]
   },
 
+  {"match": /(static.wixstatic.com\/.*\.[\w]+)\/v1\/fill\/w_.*/,
+    "replace": "$1"
+  }
+
   //{"match": /[?].*/,
   // "replace": "?"
   //}

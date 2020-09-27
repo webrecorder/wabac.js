@@ -117,6 +117,8 @@ class Collection {
         response = this.getSrcDocResponse(requestURL, requestURL.slice("srcdoc:".length));
       } else if (requestURL.startsWith("blob:")) {
         response = await this.getBlobResponse(requestURL);
+      } else if (requestURL === "about:blank") {
+        response = await this.getSrcDocResponse(requestURL);
       } else {
 
         response = this.checkSlash(requestURL, requestTS, mod);
@@ -156,7 +158,14 @@ class Collection {
     if (!response.noRW) {
       const headInsertFunc = (url) => {
         const presetCookie = response.headers.get("x-wabac-preset-cookie");
-        return this.makeHeadInsert(url, requestTS, response.date, presetCookie, response.isLive);
+        return this.makeHeadInsert(url, requestTS, response.date, presetCookie, response.isLive, request.referrer);
+      };
+
+      const workerInsertFunc = (text) => {
+        return `
+        (function() { self.importScripts('${this.staticPrefix}wombatWorkers.js');\
+            new WBWombat({'prefix': '${this.prefix + requestTS}/', 'prefixMod': '${this.prefix + requestTS}wkrf_/', 'originalURL': '${requestURL}'});\
+        })();` + text;
       };
 
       const noRewrite = mod === "id_" || mod === "wkrf_";
@@ -167,6 +176,7 @@ class Collection {
         responseUrl: response.url,
         prefix,
         headInsertFunc,
+        workerInsertFunc,
         urlRewrite: !noRewrite,
         contentRewrite: !noRewrite,
         decode: this.config.decode
@@ -207,7 +217,9 @@ class Collection {
   }
 
   getSrcDocResponse(url, base64str) {
-    const payload = new TextEncoder().encode(decodeURIComponent(atob(base64str)));
+    const string = base64str ? decodeURIComponent(atob(base64str)) : "<!DOCTYPE html><html><head></head><body></body></html>";
+    const payload = new TextEncoder().encode(string);
+
     const status = 200;
     const statusText = "OK";
     const headers = new Headers({"Content-Type": "text/html"});
@@ -293,8 +305,7 @@ window.home = "${this.rootPrefix}";
     return new Response(content, responseData);
   }
 
-  makeHeadInsert(url, requestTS, date, presetCookie, isLive) {
-
+  makeHeadInsert(url, requestTS, date, presetCookie, isLive, referrer) {
     const topUrl = this.appPrefix + requestTS + (requestTS ? "/" : "") + url;
     const prefix = this.prefix;
     const coll = this.name;
@@ -305,7 +316,14 @@ window.home = "${this.rootPrefix}";
 
     const urlParsed = new URL(url);
 
-    const scheme = urlParsed.protocol === 'blob:' ? 'https' : urlParsed.protocol.slice(0, -1);
+    let scheme;
+
+    // protocol scheme (for relative urls): if not http/https, try to get actual protocol from referrer
+    if (urlParsed.protocol !== "https:" && urlParsed.protocol !== "http:") {
+      scheme = (referrer && referrer.indexOf("/http://") > 0) ? "http" : "https";
+    } else {
+      scheme = urlParsed.protocol.slice(0, -1);
+    }
 
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
     return `

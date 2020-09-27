@@ -45,7 +45,8 @@ const baseRules = new DomainSpecificRuleSet(RxRewriter);
 
 // ===========================================================================
 class Rewriter {
-  constructor({baseUrl, prefix, responseUrl, headInsertFunc = null, urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
+  constructor({baseUrl, prefix, responseUrl, workerInsertFunc, headInsertFunc = null,
+               urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
     this.urlRewrite = urlRewrite;
     this.contentRewrite = contentRewrite;
     this.dsRules = urlRewrite && !useBaseRules ? jsRules : baseRules;
@@ -69,6 +70,7 @@ class Rewriter {
     this.url = this.baseUrl = baseUrl;
 
     this.headInsertFunc = headInsertFunc;
+    this.workerInsertFunc = workerInsertFunc;
   }
 
   getRewriteMode(request, response, url = "", mime = null) {
@@ -84,6 +86,9 @@ class Rewriter {
 
         case "script":
           return containsAny(url, JSONP_CONTAINS) ? "jsonp" : "js";
+
+        case "worker":
+          return "js-worker";
       }
     }
 
@@ -155,6 +160,10 @@ class Rewriter {
 
       case "json":
         rwFunc = this.rewriteJSON;
+        break;
+
+      case "js-worker":
+        rwFunc = this.workerInsertFunc;
         break;
 
       case "jsonp":
