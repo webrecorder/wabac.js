@@ -48,7 +48,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 
   async close() {
     super.close();
-    caches.delete("cache:" + this.name);
+    caches.delete("cache:" + this.name.slice("db:".length));
   }
 
   async clearZipData() {
