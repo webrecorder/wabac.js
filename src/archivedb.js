@@ -396,7 +396,14 @@ class ArchiveDB {
     const status = result.status;
     const statusText = result.statusText || getStatusText(status);
 
-    const payload = !isNullBodyStatus(status) ? await this.loadPayload(result) : null;
+    let payload = null;
+
+    if (!isNullBodyStatus()) {
+      payload = await this.loadPayload(result);
+      if (!payload) {
+        return null;
+      }
+    }
 
     const headers = makeHeaders(result.respHeaders);
 
@@ -506,7 +513,9 @@ class ArchiveDB {
   async* matchAny(storeName, indexName, sortedKeys, subKey) {
     const tx = this.db.transaction(storeName, "readonly");
 
-    let cursor = indexName ? await tx.store.index(indexName).openCursor() : await tx.store.openCursor();
+    const range = IDBKeyRange.lowerBound(sortedKeys[0], true);
+
+    let cursor = indexName ? await tx.store.index(indexName).openCursor(range) : await tx.store.openCursor(range);
 
     let i = 0;
 
@@ -562,7 +571,7 @@ class ArchiveDB {
     return results;
   }
 
-  async resourcesByMime(mimes, count = 100, fromMime = "", fromUrl = "") {
+  async resourcesByMime(mimes, count = 100, fromMime = "", fromUrl = "", fromStatus = 0) {
     mimes = mimes.split(",");
     const results = [];
 
@@ -570,18 +579,19 @@ class ArchiveDB {
 
     let startKey = [];
 
+    if (fromMime) {
+      startKey.push([fromMime, fromStatus, fromUrl]);
+    }
+
     for (const mime of mimes) {
-      if (fromMime && mime < fromMime) {
-        continue;
+      if (!fromMime || !mime || mime > fromMime) {
+        startKey.push([mime, 0, ""]);
       }
-      if (fromMime && !startKey.length) {
-        startKey.push([fromMime, 0, fromUrl]);
-      }
-      startKey.push([mime, 0, ""]);
     }
 
     for await (const result of this.matchAny("resources", "mimeStatusUrl", startKey, 0)) {
       results.push(this.resJson(result));
+
       if (results.length === count) {
         break;
       }
