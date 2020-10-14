@@ -26,7 +26,11 @@ const DEFAULT_RULES =
    "replace": "$1"
   },
 
-  {"match": /(\.(?:php|js|webm|mp4|gif|jpg|png|css|json))\?.*/i,
+  {"match": /www.\washingtonpost\.com\/wp-apps\/imrs.php/,
+   "args": [["src"]],
+  },
+
+  {"match": /(\.(?:php|js|webm|mp4|gif|jpg|png|css|json|m3u8))\?.*/i,
    "replace": "$1"
   },
 
@@ -60,6 +64,10 @@ const DEFAULT_RULES =
   {"match": /plus\.googleapis\.com\/u\/\/0\/_\/widget\/render\/comments/i,
    "args": [["href", "stream_id", "substream_id"]]
   },
+
+  {"match": /(static.wixstatic.com\/.*\.[\w]+)\/v1\/fill\/w_.*/,
+    "replace": "$1"
+  }
 
   //{"match": /[?].*/,
   // "replace": "?"
@@ -191,7 +199,7 @@ function fuzzyCompareUrls(reqUrl, results, data) {
   // if no special rule with custom split, search by best-match query
   if (!data || !data.rule || !data.rule.replace || !data.rule.split) {
     // search by best-match query
-    return fuzzyBestMatchQuery(reqUrl, results);
+    return fuzzyBestMatchQuery(reqUrl, results, data && data.rule);
   }
 
   const fuzzyUrl = data.fuzzyUrl.endsWith("?") ? data.fuzzyUrl.slice(0, -1) : data.fuzzyUrl;
@@ -217,6 +225,8 @@ function fuzzyBestMatchQuery(reqUrl, results, rule) {
     return 0.0;
   }
 
+  const reqArgs = rule && rule.args ? new Set(rule.args[0]) : null;
+
   let bestTotal = 0;
   let bestResult = null;
 
@@ -237,10 +247,11 @@ function fuzzyBestMatchQuery(reqUrl, results, rule) {
     }
 
     const foundQuery = new URLSearchParams(url.search);
-    let total = getMatch(reqQuery, foundQuery);
-    total += getMatch(foundQuery, reqQuery);
+    let total = getMatch(reqQuery, foundQuery, reqArgs);
+    total += getMatch(foundQuery, reqQuery, reqArgs);
     total /= 2.0;
-    //console.log('total: ' + total + ' ' + result + ' <=> ' + reqUrl);
+
+    //console.log('total: ' + total + ' ' + url.href + ' <=> ' + reqUrl);
 
     if (total > bestTotal) {
       bestTotal = total;
@@ -248,35 +259,45 @@ function fuzzyBestMatchQuery(reqUrl, results, rule) {
     }
   }
 
+  //console.log("best: " + bestResult.url);
 
   return {"score": bestTotal, "result": bestResult};
 }
 
-function getMatch(reqQuery, foundQuery) {
+function getMatch(reqQuery, foundQuery, reqArgs) {
   let score = 1.0;
   let total = 1.0;
 
   for (const [key, value] of reqQuery) {
     const foundValue = foundQuery.get(key);
+
+    // if ksy is required, return 0 to skip this match
+    if (reqArgs && reqArgs.has(key) && foundValue !== value) {
+      return -1;
+    }
+
     let weight;
 
     if (key[0] === '_') {
-      total += 1.0;
-      score += 1.0;
       weight = 1.0;
     } else {
       weight = 10.0;
     }
 
+    const numValue = Number(value);
+    const numFoundValue = Number(foundValue);
+
     total += weight;
 
     if (foundValue === value) {
-      score += weight;
+      score += weight * value.length;
     } else if (foundValue === null) {
       score -= 1.0;
+    } else if (!isNaN(numValue) && !isNaN(numFoundValue)) {
+      score += 10.0 - Math.log(Math.abs(numValue - numFoundValue) + 1);
     } else {
       if (foundValue.length > value.length && foundValue.indexOf(",") >= 0 && foundValue.indexOf(value) >= 0) {
-        score += weight * 0.8;
+        score += weight * value.length * 0.5;
       }
     }
   }

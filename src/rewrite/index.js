@@ -45,7 +45,8 @@ const baseRules = new DomainSpecificRuleSet(RxRewriter);
 
 // ===========================================================================
 class Rewriter {
-  constructor({baseUrl, prefix, responseUrl, headInsertFunc = null, urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
+  constructor({baseUrl, prefix, responseUrl, workerInsertFunc, headInsertFunc = null,
+               urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
     this.urlRewrite = urlRewrite;
     this.contentRewrite = contentRewrite;
     this.dsRules = urlRewrite && !useBaseRules ? jsRules : baseRules;
@@ -69,6 +70,7 @@ class Rewriter {
     this.url = this.baseUrl = baseUrl;
 
     this.headInsertFunc = headInsertFunc;
+    this.workerInsertFunc = workerInsertFunc;
   }
 
   getRewriteMode(request, response, url = "", mime = null) {
@@ -84,6 +86,9 @@ class Rewriter {
 
         case "script":
           return containsAny(url, JSONP_CONTAINS) ? "jsonp" : "js";
+
+        case "worker":
+          return "js-worker";
       }
     }
 
@@ -119,7 +124,7 @@ class Rewriter {
   async rewrite(response, request) {
     const rewriteMode = this.contentRewrite ? this.getRewriteMode(request, response, this.baseUrl) : null;
 
-    const isAjax = isAjaxRequest(request);
+    const urlRewrite = this.urlRewrite && !isAjaxRequest(request);
 
     const headers = this.rewriteHeaders(response.headers, this.urlRewrite, !!rewriteMode);
 
@@ -135,11 +140,10 @@ class Rewriter {
     }
 
     let rwFunc = null;
-    let opt = null;
 
     switch (rewriteMode) {
       case "html":
-        if (!isAjax && this.urlRewrite) {
+        if (urlRewrite) {
           return await this.rewriteHtml(response);
         }
         break;
@@ -158,6 +162,10 @@ class Rewriter {
         rwFunc = this.rewriteJSON;
         break;
 
+      case "js-worker":
+        rwFunc = this.workerInsertFunc;
+        break;
+
       case "jsonp":
         rwFunc = this.rewriteJSONP;
         break;
@@ -171,7 +179,11 @@ class Rewriter {
         break;
     }
 
-    const opts = {isAjax, response};
+    const opts = {response};
+
+    if (urlRewrite) {
+      opts.rewriteUrl = url => this.rewriteUrl(url);
+    }
 
     if (rwFunc) {
       let text = await response.getText();
@@ -544,7 +556,7 @@ class Rewriter {
 
   // JS
   rewriteJS(text, opts, inline) {
-    const noUrlProxyRewrite = (!this.urlRewrite || (opts && opts.isAjax));
+    const noUrlProxyRewrite = opts && !opts.rewriteUrl;
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
 
@@ -587,9 +599,7 @@ class Rewriter {
 
   // JSON
   rewriteJSON(text) {
-    //if (!isAjax) {
     text = this.rewriteJSONP(text);
-    //}
 
     const dsRewriter = baseRules.getRewriter(this.baseUrl);
 

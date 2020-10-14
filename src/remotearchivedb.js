@@ -232,7 +232,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader
   }
 
   setLimitSkip(limit = -1, skip = 0) {
-    if (limit != -1 && skip > 0) {
+    if (limit != -1 || skip > 0) {
       this.commit = false;
     }
     this.reader.setLimitSkip(limit, skip);

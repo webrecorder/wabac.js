@@ -345,6 +345,15 @@ class WorkerLoader extends CollectionLoader
       config.sourceUrl = file.sourceUrl;
 
       config.sourceName = file.name || file.sourceUrl;
+
+      // parse to strip out query and fragment
+      try {
+        if (config.sourceName.match(/https?:\/\//)) {
+          config.sourceName = new URL(config.sourceName).pathname;
+        }
+      } catch (e) {
+
+      }
       config.sourceName = config.sourceName.slice(config.sourceName.lastIndexOf("/") + 1);
 
       config.headers = file.headers;

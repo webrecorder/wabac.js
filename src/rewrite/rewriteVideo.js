@@ -66,6 +66,10 @@ function rewriteHLS(text, opts) {
   for (const line of lines) {
     const m = line.match(EXT_INF);
     if (!m) {
+      // if has rewriteUrl (not-ajax), then rewrite HLS urls
+      if (opts && opts.rewriteUrl && !line.startsWith("#")) {
+        lines[count] = opts.rewriteUrl(line);
+      }
       count += 1;
       continue;
     }

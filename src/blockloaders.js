@@ -57,7 +57,7 @@ class HttpRangeLoader
     }
 
     if (this.length === null) {
-      this.length = response.headers.get("Content-Length");
+      this.length = Number(response.headers.get("Content-Length"));
       if (!this.length && response.status === 206) {
         let range = response.headers.get("Content-Range");
         if (range) {

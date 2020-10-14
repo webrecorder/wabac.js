@@ -145,6 +145,7 @@ class API {
         const fromUrl = params._query.get("fromUrl");
         const fromTs = params._query.get("fromTs");
         const fromMime = params._query.get("fromMime");
+        const fromStatus = Number(params._query.get("fromStatus") || 0);
 
         if (!coll.store.resourcesByMime) {
           return {urls: []}
@@ -153,7 +154,7 @@ class API {
         if (url) {
           urls = await coll.store.resourcesByUrlAndMime(url, mime, count, prefix, fromUrl, fromTs);
         } else {
-          urls = await coll.store.resourcesByMime(mime, count, fromMime, fromUrl);
+          urls = await coll.store.resourcesByMime(mime, count, fromMime, fromUrl, fromStatus);
         }
 
         return {urls};
