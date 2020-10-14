@@ -23,13 +23,17 @@ function getTS(iso) {
   return iso.replace(/[-:T]/g, '').slice(0, 14);
 }
 
+function getTSMillis(iso) {
+  return iso.replace(/[-:.TZ]/g, '');
+}
+
 function tsToDate(ts) {
   if (!ts) {
     return new Date();
   }
 
-  if (ts.length < 14) {
-    ts += "00000101000000".substr(ts.length);
+  if (ts.length < 17) {
+    ts += "00000101000000000".substr(ts.length);
   }
 
   const datestr = (ts.substring(0, 4) + "-" +
@@ -37,7 +41,8 @@ function tsToDate(ts) {
     ts.substring(6, 8) + "T" +
     ts.substring(8, 10) + ":" +
     ts.substring(10, 12) + ":" +
-    ts.substring(12, 14) + "-00:00");
+    ts.substring(12, 14) + "." + 
+    ts.substring(14) + "Z");
 
   return new Date(datestr);
 };
@@ -141,5 +146,5 @@ class Canceled
 }
 
 
-export { startsWithAny, containsAny, getTS, tsToDate, tsToSec, getSecondsStr, digestMessage,
+export { startsWithAny, containsAny, getTS, getTSMillis, tsToDate, tsToSec, getSecondsStr, digestMessage,
          isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, RangeError, AuthNeededError, Canceled };

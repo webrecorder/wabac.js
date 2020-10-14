@@ -231,19 +231,20 @@ class SWReplay {
       return await this.api.apiResponse(request.url.slice(this.apiPrefix.length), request.method, request);
     }
 
+    if (request.method === "POST") {
+      request = await this.toGetRequest(request);
+    }
+
     await this.collections.inited;
 
     let response = null;
-
-    const isGet = (request.method === "GET");
-    const getRequest = (isGet || !this.allowRewrittenCache) ? request : await this.toGetRequest(request);
 
     const isAjax = isAjaxRequest(request);
     const range = request.headers.get('range');
 
     try {
-      if (!range) {
-        response = await self.caches.match(getRequest);
+      if (this.allowRewrittenCache && !range) {
+        response = await self.caches.match(request);
         if (response && !!response.headers.get(IS_AJAX_HEADER) === isAjax) {
           return response;
         }
@@ -299,13 +300,13 @@ class SWReplay {
           query = await request.text();
           break;
 
-        default:
-          query = "____wabac_method=" + request.method.toLowerCase();
-          const buff = await request.arrayBuffer();
-          if (buff.byteLength > 0) {
-            const text = new TextDecoder().decode(buff);
-            query += "&" + btoa(text);
-          }
+        // default:
+        //   query = "____wabac_method=" + request.method.toLowerCase();
+        //   const buff = await request.arrayBuffer();
+        //   if (buff.byteLength > 0) {
+        //     const text = new TextDecoder().decode(buff);
+        //     query += "&" + text;//btoa(text);
+        //   }
       }
     }
 

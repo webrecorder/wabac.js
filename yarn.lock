@@ -3304,6 +3304,11 @@ istanbul-reports@^3.0.2:
     html-escaper "^2.0.0"
     istanbul-lib-report "^3.0.0"
 
+js-levenshtein@^1.1.6:
+  version "1.1.6"
+  resolved "https://registry.yarnpkg.com/js-levenshtein/-/js-levenshtein-1.1.6.tgz#c6cee58eb3550372df8deb85fad5ce66ce01d59d"
+  integrity sha512-X2BB11YZtrRqY4EnQcLX5Rh373zbK4alC1FW7D7MBhL2gtcC17cTnr6DmfHZeS0s2rTHjUTMMHfG7gO8SSdw+g==
+
 js-string-escape@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/js-string-escape/-/js-string-escape-1.0.1.tgz#e2625badbc0d67c7533e9edc1068c587ae4137ef"
@@ -6243,9 +6248,9 @@ widest-line@^3.1.0:
   dependencies:
     string-width "^4.0.0"
 
-"wombat@github:webrecorder/wombat":
+"wombat@github:webrecorder/wombat#post-to-get":
   version "3.0.0"
-  resolved "https://codeload.github.com/webrecorder/wombat/tar.gz/f84ccdacb10ef176b5b5c0e63fc80e4be470da18"
+  resolved "https://codeload.github.com/webrecorder/wombat/tar.gz/3b77ec41c3e28b51da772bebaedcb49e09970e37"
 
 worker-farm@^1.7.0:
   version "1.7.0"

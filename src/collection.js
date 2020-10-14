@@ -195,7 +195,7 @@ class Collection {
 
     const range = request.headers.get("range");
 
-    if (range && response.status === 200 && range != "bytes=0-") {
+    if (range && response.status === 200) {
       response.setRange(range);
     }
 

@@ -1,4 +1,5 @@
-//const FUZZY_PREFIX = "http://fuzzy.example.com/";
+import levenshtein from 'js-levenshtein';
+
 
 const DEFAULT_RULES = 
 [
@@ -53,6 +54,31 @@ const DEFAULT_RULES =
               "keys": ["query_type", "fbid", "v", "cursor", "data"]}]]
   },
 
+  {"match": /facebook\.com\/api\/graphql/i,
+   "args": [["variables", "doc_id"]],
+   "fuzzyArgs": true
+  },
+
+  {"match": /facebook\.com\/api\/graphqlbatch/i,
+   "args": [["batch_name", "queries"], ["batch_name"]]
+  },
+
+  {"match": /facebook\.com\/ajax\/navigation/i,
+   "args": [["route_url", "__user"], ["route_url"]]
+  },
+
+  {"match": /facebook\.com\/ajax\/route-definition/i,
+   "args": [["route_url", "__user"], ["route_url"]]
+  },
+
+  {"match": /facebook\.com\/ajax\/bulk-route-definitions/i,
+   "args": [["route_urls[0]", "__user"], ["route_urls[0]"]]
+  },
+
+  {"match": /facebook\.com\/ajax\/relay-ef/i,
+   "args": [["queries[0]", "__user"], ["queries[0]"]]
+  },
+
   {"match": /facebook\.com\/videos\/vodcomments/i,
    "args": [["eft_id"]],
   },
@@ -67,7 +93,7 @@ const DEFAULT_RULES =
 
   {"match": /(static.wixstatic.com\/.*\.[\w]+)\/v1\/fill\/w_.*/,
     "replace": "$1"
-  }
+  },
 
   //{"match": /[?].*/,
   // "replace": "?"
@@ -225,7 +251,7 @@ function fuzzyBestMatchQuery(reqUrl, results, rule) {
     return 0.0;
   }
 
-  const reqArgs = rule && rule.args ? new Set(rule.args[0]) : null;
+  const reqArgs = rule && rule.args && !rule.fuzzyArgs ? new Set(rule.args[0]) : null;
 
   let bestTotal = 0;
   let bestResult = null;
@@ -296,9 +322,11 @@ function getMatch(reqQuery, foundQuery, reqArgs) {
     } else if (!isNaN(numValue) && !isNaN(numFoundValue)) {
       score += 10.0 - Math.log(Math.abs(numValue - numFoundValue) + 1);
     } else {
-      if (foundValue.length > value.length && foundValue.indexOf(",") >= 0 && foundValue.indexOf(value) >= 0) {
-        score += weight * value.length * 0.5;
-      }
+      // if (foundValue.length > value.length && foundValue.indexOf(",") >= 0 && foundValue.indexOf(value) >= 0) {
+      //   score += weight * value.length * 0.5;
+      // }
+      const minLen = Math.min(foundValue.length, value.length);
+      score += weight * (minLen - levenshtein(foundValue, value));
     }
   }
 

@@ -372,7 +372,9 @@ class ArchiveDB {
         if (result) {
           break;
         }
-        fuzzySearchData = fuzzyData;
+        if (!fuzzySearchData) {
+          fuzzySearchData = fuzzyData;
+        }
       }
     }
 

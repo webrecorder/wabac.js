@@ -8,6 +8,7 @@
     "fast-xml-parser": "^3.15.1",
     "http-status-codes": "^1.4.0",
     "idb": "^5.0.1",
+    "js-levenshtein": "^1.1.6",
     "js-yaml": "^3.13.1",
     "json-2-csv": "^3.7.1",
     "jszip": "^3.4.0",
@@ -18,7 +19,7 @@
     "unescape-js": "^1.1.4",
     "warcio": "^1.2.0",
     "wbn": "^0.0.3",
-    "wombat": "github:webrecorder/wombat"
+    "wombat": "github:webrecorder/wombat#post-to-get"
   },
   "devDependencies": {
     "@titelmedia/node-fetch": "^3.0.1",
