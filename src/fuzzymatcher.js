@@ -1,103 +1,102 @@
 import levenshtein from 'js-levenshtein';
 
+function joinRx(rxStr) {
+  return new RegExp("[?&]" + rxStr.map(x => "(" + x + ")").join("|"), "gi");
+}
+
 
 const DEFAULT_RULES = 
 [
-  {"match": /[?&](_|cb|_ga|\w*cache\w*)=[\d.-]+(?=$|&)/i,
-   "replace": ""},
-
-  {"match": /([?&])utm_[^=]+=[^&]+(?=&|$)/g,
-   "replace": ""},
-
-  {"match": /[?&](callback=jsonp)[^&]+(?=&|$)/i,
-   "replace": "",
-  },
-
-  {"match": /[?&]((?:\w+)=jquery)[\d]+_[\d]+/i,
-   "replace": "",
-  },
-
-  {"match": /\/\/.*(?:gcs-vimeo|vod|vod-progressive)\.akamaized\.net.*(\/[\d]+)\/[\d]+(.mp4)/,
-   "replace": "//video.vimeo.net$1$2",
+  {
+   "match": /\/\/.*gcs-vimeo|vod|vod-progressive\.akamaized\.net.*\/([\d]+)\/[\d]+(.mp4)/,
+   "fuzzyCanonReplace": "//vimeo-cdn.fuzzy.replayweb.page/$1$2",
    "split": ".net",
-   "last": true
   },
-
-  {"match": /\/\/.*(player.vimeo.com\/video\/[\d]+)\?.*/i,
-   "replace": "$1"
+  {
+   "match": /\/\/.*player.vimeo.com\/(video\/[\d]+)\?.*/i,
+   "fuzzyCanonReplace": "//vimeo.fuzzy.replayweb.page/$1"
   },
-
-  {"match": /www.\washingtonpost\.com\/wp-apps\/imrs.php/,
+  {
+   "match": /www.\washingtonpost\.com\/wp-apps\/imrs.php/,
    "args": [["src"]],
   },
-
-  {"match": /(\.(?:php|js|webm|mp4|gif|jpg|png|css|json|m3u8))\?.*/i,
+  {
+    "match": /(static.wixstatic.com\/.*\.[\w]+\/v1\/fill\/)(w_.*)/,
+    "replace": "$1?_args=$2",
+    "split": "/v1/fill"
+  },
+  {
+   "match": /(youtube\.com\/embed\/[^?]+)[?].*/i,
    "replace": "$1"
   },
-
-  {"match": /(\/\/.*www\.youtube\.com\/embed\/[^?]+)[?].*/i,
-   "replace": "$1"
-  },
-
-  {"match": /(www\.)?youtube(-nocookie)?\.com\/get_video_info/i,
+  {
+   "match": /(www\.)?youtube(-nocookie)?\.com\/get_video_info/i,
    "args": [["video_id", "html5"]],
   },
-
-  {"match": /\/\/.*(googlevideo.com\/videoplayback)/i,
-   "replace": "server.$1",
+  {
+   "match": /\/\/.*googlevideo.com\/(videoplayback)/i,
+   "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1",
    "args": [["id", "itag"],
             ["id"]],
+    "fuzzyArgs": true
   },
-
-  {"match": /facebook\.com\/ajax\/pagelet\/generic.php\/photoviewerinitpagelet/i,
+  {
+   "match": /facebook\.com\/ajax\/pagelet\/generic.php\/photoviewerinitpagelet/i,
    "args": [[{"arg": "data",
               "keys": ["query_type", "fbid", "v", "cursor", "data"]}]]
   },
-
-  {"match": /facebook\.com\/api\/graphql/i,
+  // Facebook
+  {
+   "match": /facebook\.com\/api\/graphql/i,
    "args": [["variables", "doc_id"]],
    "fuzzyArgs": true
   },
-
-  {"match": /facebook\.com\/api\/graphqlbatch/i,
+  {
+   "match": /facebook\.com\/api\/graphqlbatch/i,
    "args": [["batch_name", "queries"], ["batch_name"]]
   },
-
-  {"match": /facebook\.com\/ajax\/navigation/i,
+  {
+   "match": /facebook\.com\/ajax\/navigation/i,
    "args": [["route_url", "__user"], ["route_url"]]
   },
-
-  {"match": /facebook\.com\/ajax\/route-definition/i,
+  {
+   "match": /facebook\.com\/ajax\/route-definition/i,
    "args": [["route_url", "__user"], ["route_url"]]
   },
-
-  {"match": /facebook\.com\/ajax\/bulk-route-definitions/i,
+  {
+   "match": /facebook\.com\/ajax\/bulk-route-definitions/i,
    "args": [["route_urls[0]", "__user"], ["route_urls[0]"]]
   },
-
-  {"match": /facebook\.com\/ajax\/relay-ef/i,
+  {
+   "match": /facebook\.com\/ajax\/relay-ef/i,
    "args": [["queries[0]", "__user"], ["queries[0]"]]
   },
-
-  {"match": /facebook\.com\/videos\/vodcomments/i,
+  {
+   "match": /facebook\.com\/videos\/vodcomments/i,
    "args": [["eft_id"]],
   },
   {
     "match": /facebook\.com\/ajax\.*/i,
     "replaceQuery": /([?&][^_]\w+=[^&]+)/g,
   },
-
   {"match": /plus\.googleapis\.com\/u\/\/0\/_\/widget\/render\/comments/i,
    "args": [["href", "stream_id", "substream_id"]]
   },
 
-  {"match": /(static.wixstatic.com\/.*\.[\w]+)\/v1\/fill\/w_.*/,
-    "replace": "$1"
+  // Generic Rules -- should be last
+  {
+    "match": joinRx([
+      "(callback=jsonp)[^&]+(?=&|$)",
+      "((?:\\w+)=jquery)[\\d]+_[\\d]+",
+      "utm_[^=]+=[^&]+(?=&|$)",
+      "(_|cb|_ga|\\w*cache\\w*)=[\\d.-]+(?=$|&)"
+    ]),
+    "replace": ""
   },
-
-  //{"match": /[?].*/,
-  // "replace": "?"
-  //}
+  {
+    "match": /(\.(?:php|js|webm|mp4|gif|jpg|png|css|json|m3u8))\?.*/i,
+    "replace": "$1"
+  }
 ];
 
 // ===========================================================================
@@ -106,235 +105,165 @@ class FuzzyMatcher {;
     this.rules = rules || DEFAULT_RULES;
   }
 
-  *fuzzyUrls(url, includeSearchData = false) {
-    const origUrl = url;
-    if (url.indexOf("?") === -1) {
-      url += "?";
-    }
+  getRuleFor(reqUrl) {
+    let rule;
 
-    function doYield(fuzzyUrl, rule) {
-      if (!includeSearchData) {
-        return fuzzyUrl;
-      }
+    const matchUrl = reqUrl.indexOf("?") === -1 ? reqUrl + "?" : reqUrl;
 
-      const split = rule.split || "?";
-      const inx = origUrl.indexOf(split);
-      const prefix = inx > 0 ? origUrl.slice(0, inx + split.length) : origUrl;
-      return [fuzzyUrl, {prefix, rule, fuzzyUrl}];
-    }
-
-    for (const rule of this.rules) {
-      const matched = url.match(rule.match);
-
-      if (!matched) {
-        continue;
-      }
-
-      if (rule.args === undefined && rule.replace !== undefined) {
-        const newUrl = url.replace(rule.match, rule.replace);
-
-        if (newUrl != url) {
-          yield doYield(newUrl, rule);
-          url = newUrl;
-        }
-        if (rule.last) {
-          break;
-        }
-
-      } else if (rule.args !== undefined) {
-        
-        if (rule.replace !== undefined) {
-          url = url.replace(rule.match, rule.replace);
-        }
-
-        for (let args of rule.args) {
-          const newUrl = this.getQueryUrl(url, args);
-          if (url != newUrl) {
-            yield doYield(newUrl, rule);
-          }
-        }
-        break;
-
-      } else if (rule.replaceQuery) {
-        const results = url.match(rule.replaceQuery);
-        const newUrl = this.getQueryUrl(url, results ? results.join("") : "");
-        if (newUrl != url) {
-          yield doYield(newUrl, rule);
-        }
+    for (const testRule of this.rules) {
+      if (matchUrl.match(testRule.match)) {
+        rule = testRule;
         break;
       }
     }
+
+    let fuzzyCanonUrl = reqUrl;
+
+    if (rule && rule.fuzzyCanonReplace) {
+      fuzzyCanonUrl = reqUrl.replace(rule.match, rule.fuzzyCanonReplace);
+    }
+
+    const split = rule && rule.split || "?";
+    const inx = reqUrl.indexOf(split);
+    const prefix = inx > 0 ? reqUrl.slice(0, inx + split.length) : reqUrl;
+
+    return {prefix, rule, fuzzyCanonUrl};
   }
 
-  getQueryUrl(url, sigArgs) {
-    try {
-      url = new URL(url);
-    } catch (e) {
+  fuzzyCompareUrls(reqUrl, results, matchedRule) {
+    if (!results || !results.length) {
       return null;
     }
 
-    if (typeof(sigArgs) === "string") {
-      url.search = sigArgs;
-      return url.toString();
-    }
+    // if no special rule with custom split, search by best-match query
+    //if (!matchedRule || matchedRule.replace === undefined || matchedRule.match === undefined) {
+      // search by best-match query
+    //}
 
-    const query = new URLSearchParams(url.search);
-    const newQuery = new URLSearchParams();
+    //const fuzzyUrl = data.fuzzyUrl.endsWith("?") ? data.fuzzyUrl.slice(0, -1) : data.fuzzyUrl;
 
-    for (const key of sigArgs) {
-      if (typeof(key) === "string") {
-        const value = query.get(key);
-        if (value) {
-          newQuery.set(key, value);
+    if (matchedRule && matchedRule.replace !== undefined && matchedRule.match !== undefined) {
+      const match = matchedRule.match;
+      const replace = matchedRule.replace;
+      const fuzzyReqUrl = reqUrl.replace(match, replace);
+
+      const newResults = [];
+  
+      // find best match by regex
+      for (const result of results) {
+        const url = (typeof result === "string" ? result : result.url);
+  
+        const fuzzyMatchUrl = url.replace(match, replace);
+
+        if (fuzzyReqUrl === fuzzyMatchUrl) {
+          // exact match, return
+          return result;
         }
-      } else if (typeof(key) === "object") {
-        this.setQueryJsonArg(query, newQuery, key);
+
+        result.fuzzyMatchUrl = fuzzyMatchUrl;
+        newResults.push(result);
+      }
+
+      results = newResults;
+      reqUrl = fuzzyReqUrl;
+    }
+
+    return this.fuzzyBestMatchQuery(reqUrl, results, matchedRule);
+  }
+
+  fuzzyBestMatchQuery(reqUrl, results, rule) {
+    try {
+      reqUrl = new URL(reqUrl);
+    } catch (e) {
+      return 0.0;
+    }
+
+    const reqArgs = rule && rule.args && !rule.fuzzyArgs ? new Set(rule.args[0]) : null;
+
+    let bestTotal = 0;
+    let bestResult = null;
+
+    const reqQuery = new URLSearchParams(reqUrl.search);
+
+    for (const result of results) {
+      // skip 204s from fuzzy matching (todo: reexamine)
+      if (result.mime === 204) {
+        continue;
+      }
+
+      let url = (typeof result === "string" ? result : result.fuzzyMatchUrl || result.url);
+
+      try {
+        url = new URL(url);
+      } catch (e) {
+        continue;
+      }
+
+      const foundQuery = new URLSearchParams(url.search);
+      let total = this.getMatch(reqQuery, foundQuery, reqArgs);
+      total += this.getMatch(foundQuery, reqQuery, reqArgs);
+      total /= 2.0;
+
+      //console.log('total: ' + total + ' ' + url.href + ' <=> ' + reqUrl);
+
+      if (total > bestTotal) {
+        bestTotal = total;
+        bestResult = result;
       }
     }
 
-    url.search = "?" + newQuery.toString();
-    return url.toString();
+    //console.log("best: " + bestResult.url);
+
+    //return {"score": bestTotal, "result": bestResult};
+    return bestResult;
   }
 
-  setQueryJsonArg(query, newQuery, jsonDef) {
-    let currValue;
+  getMatch(reqQuery, foundQuery, reqArgs) {
+    let score = 1.0;
+    let total = 1.0;
 
-    try {
-      currValue = query.get(jsonDef.arg);
-      currValue = JSON.parse(currValue);
-    } catch (e) {
-      console.log("JSON parse error: " + currValue);
-      return;
-    }
+    for (const [key, value] of reqQuery) {
+      const foundValue = foundQuery.get(key);
 
-    let newValue = {};
+      // if ksy is required, return 0 to skip this match
+      if (reqArgs && reqArgs.has(key) && foundValue !== value) {
+        return -1;
+      }
 
-    for (const sigKey of jsonDef.keys) {
-      const res = currValue[sigKey];
-      if (res != undefined) {
-        newValue[sigKey] = res;
+      let weight;
+
+      if (key[0] === '_') {
+        weight = 1.0;
+      } else {
+        weight = 10.0;
+      }
+
+      const numValue = Number(value);
+      const numFoundValue = Number(foundValue);
+
+      total += weight;
+
+      if (foundValue === value) {
+        score += weight * value.length;
+      } else if (foundValue === null) {
+        score -= 1.0;
+      } else if (!isNaN(numValue) && !isNaN(numFoundValue)) {
+        score += 10.0 - Math.log(Math.abs(numValue - numFoundValue) + 1);
+      } else {
+        // if (foundValue.length > value.length && foundValue.indexOf(",") >= 0 && foundValue.indexOf(value) >= 0) {
+        //   score += weight * value.length * 0.5;
+        // }
+        const minLen = Math.min(foundValue.length, value.length);
+        score += weight * (minLen - levenshtein(foundValue, value));
       }
     }
 
-    newQuery.set(jsonDef.arg, JSON.stringify(newValue));
+    const result = score / total;
+    //console.log('score: ' + result + " " + reqQuery + " <-> " + foundQuery);
+    return result;
   }
-}
-
-
-function fuzzyCompareUrls(reqUrl, results, data) {
-  // if no special rule with custom split, search by best-match query
-  if (!data || !data.rule || !data.rule.replace || !data.rule.split) {
-    // search by best-match query
-    return fuzzyBestMatchQuery(reqUrl, results, data && data.rule);
-  }
-
-  const fuzzyUrl = data.fuzzyUrl.endsWith("?") ? data.fuzzyUrl.slice(0, -1) : data.fuzzyUrl;
-  const match = data.rule.match;
-  const replace = data.rule.replace;
-
-  // find best match by regex
-  for (const result of results) {
-    const url = (typeof result === "string" ? result : result.url);
-
-    if (fuzzyUrl === url.replace(match, replace)) {
-      return {"score": 1.0, result};
-    }
-  }
-
-  return {"score": 0, "result": null};
-}
-
-function fuzzyBestMatchQuery(reqUrl, results, rule) {
-  try {
-    reqUrl = new URL(reqUrl);
-  } catch (e) {
-    return 0.0;
-  }
-
-  const reqArgs = rule && rule.args && !rule.fuzzyArgs ? new Set(rule.args[0]) : null;
-
-  let bestTotal = 0;
-  let bestResult = null;
-
-  const reqQuery = new URLSearchParams(reqUrl.search);
-
-  for (const result of results) {
-    // skip 204s from fuzzy matching (todo: reexamine)
-    if (result.mime === 204) {
-      continue;
-    }
-
-    let url = (typeof result === "string" ? result : result.url);
-
-    try {
-      url = new URL(url);
-    } catch (e) {
-      continue;
-    }
-
-    const foundQuery = new URLSearchParams(url.search);
-    let total = getMatch(reqQuery, foundQuery, reqArgs);
-    total += getMatch(foundQuery, reqQuery, reqArgs);
-    total /= 2.0;
-
-    //console.log('total: ' + total + ' ' + url.href + ' <=> ' + reqUrl);
-
-    if (total > bestTotal) {
-      bestTotal = total;
-      bestResult = result;
-    }
-  }
-
-  //console.log("best: " + bestResult.url);
-
-  return {"score": bestTotal, "result": bestResult};
-}
-
-function getMatch(reqQuery, foundQuery, reqArgs) {
-  let score = 1.0;
-  let total = 1.0;
-
-  for (const [key, value] of reqQuery) {
-    const foundValue = foundQuery.get(key);
-
-    // if ksy is required, return 0 to skip this match
-    if (reqArgs && reqArgs.has(key) && foundValue !== value) {
-      return -1;
-    }
-
-    let weight;
-
-    if (key[0] === '_') {
-      weight = 1.0;
-    } else {
-      weight = 10.0;
-    }
-
-    const numValue = Number(value);
-    const numFoundValue = Number(foundValue);
-
-    total += weight;
-
-    if (foundValue === value) {
-      score += weight * value.length;
-    } else if (foundValue === null) {
-      score -= 1.0;
-    } else if (!isNaN(numValue) && !isNaN(numFoundValue)) {
-      score += 10.0 - Math.log(Math.abs(numValue - numFoundValue) + 1);
-    } else {
-      // if (foundValue.length > value.length && foundValue.indexOf(",") >= 0 && foundValue.indexOf(value) >= 0) {
-      //   score += weight * value.length * 0.5;
-      // }
-      const minLen = Math.min(foundValue.length, value.length);
-      score += weight * (minLen - levenshtein(foundValue, value));
-    }
-  }
-
-  const result = score / total;
-  //console.log('score: ' + result + " " + reqQuery + " <-> " + foundQuery);
-  return result;
 }
 
 const fuzzyMatcher = new FuzzyMatcher();
 
-export { FuzzyMatcher, fuzzyMatcher, fuzzyCompareUrls };
+export { FuzzyMatcher, fuzzyMatcher };
