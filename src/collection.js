@@ -22,14 +22,13 @@ class Collection {
 
     this.rootPrefix = prefixes.root || prefixes.main;
 
-    this.prefix = prefixes.main + this.name + "/";
+    this.prefix = prefixes.main;
 
     // support root collection hashtag nav
     if (this.config.root) {
-      this.appPrefix = prefixes.main + "#/";
       this.isRoot = true;
     } else {
-      this.appPrefix = this.prefix;
+      this.prefix += this.name + "/";
       this.isRoot = false;
     }
 
@@ -41,8 +40,6 @@ class Collection {
 
     if (wbUrlStr.startsWith(this.prefix)) {
       wbUrlStr = wbUrlStr.substring(this.prefix.length);
-    } else if (this.isRoot && wbUrlStr.startsWith(this.appPrefix)) {
-      wbUrlStr = wbUrlStr.substring(this.appPrefix.length);
     } else {
       return null;
     }
@@ -62,7 +59,7 @@ class Collection {
       const pages = await this.store.getAllPages();
 
       for (const page of pages) {
-        let href = this.appPrefix;
+        let href = this.prefix;
         if (page.date) {
           href += page.date + "/";
         }
@@ -82,6 +79,8 @@ class Collection {
 
     if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:") || wbUrlStr.startsWith("blob:"))) {
       requestURL = wbUrlStr;
+    } else if (!wbUrl && this.isRoot) {
+      requestURL = "https://" + wbUrlStr;
     } else if (!wbUrl) {
       return notFound(request, `Replay URL ${wbUrlStr} not found`);
     } else {
@@ -91,12 +90,12 @@ class Collection {
     }
 
     // force timestamp for root coll
-    if (!requestTS && this.isRoot) {
-      requestTS = "2";
-    }
+    //if (!requestTS && this.isRoot) {
+      //requestTS = "2";
+    //}
 
     if (!mod) {
-      return this.makeTopFrame(requestURL, requestTS);
+      return await this.makeTopFrame(requestURL, requestTS);
     }
 
     const hash = requestURL.indexOf("#");
@@ -153,6 +152,9 @@ class Collection {
       <p>Sorry, the URL <b>${requestURL}</b> is not in this archive.</p>
       <p><a target="_blank" href="${requestURL}">Try Live Version?</a></p>`;
       return notFound(request, msg);
+    } else if (response instanceof Response) {
+      // custom Response, not an ArchiveResponse, just return
+      return response;
     }
 
     if (!response.noRW) {
@@ -193,7 +195,7 @@ class Collection {
 
     const range = request.headers.get("range");
 
-    if (range && response.status === 200) {
+    if (range && response.status === 200 && range != "bytes=0-") {
       response.setRange(range);
     }
 
@@ -242,12 +244,12 @@ class Collection {
     return new ArchiveResponse({payload, status, statusText, headers, url, date});
   }
 
-  makeTopFrame(url, requestTS, isLive) {
+  async makeTopFrame(url, requestTS, isLive) {
     let baseUrl = null;
 
     if (this.config.extraConfig && this.config.extraConfig.baseUrl) {
       baseUrl = this.config.extraConfig.baseUrl;
-    } else if (this.config.sourceUrl) {
+    } else if (!this.isRoot && this.config.sourceUrl) {
       baseUrl = `/?source=${this.config.sourceUrl}`;
     }
 
@@ -256,7 +258,14 @@ class Collection {
       return Response.redirect(baseUrl + "#" + locParams);
     }
 
-    const content = `
+    let content = null;
+
+    if (this.config.topTemplateUrl) {
+      const resp = await fetch(this.config.topTemplateUrl);
+      const topTemplate = await resp.text();
+      content = topTemplate.replace("$URL", url).replace("$TS", requestTS).replace("$PREFIX", this.prefix);
+    } else {
+      content = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -287,7 +296,7 @@ window.home = "${this.rootPrefix}";
 </div>
 <script>
   var cframe = new ContentFrame({"url": "${url}",
-                                 "app_prefix": "${this.appPrefix}",
+                                 "app_prefix": "${this.prefix}",
                                  "content_prefix": "${this.prefix}",
                                  "request_ts": "${requestTS}",
                                  "iframe": "#replay_iframe"});
@@ -296,6 +305,8 @@ window.home = "${this.rootPrefix}";
 </body>
 </html>
 `
+    }
+
     let responseData = {
       "status": 200,
       "statusText": "OK",
@@ -306,8 +317,8 @@ window.home = "${this.rootPrefix}";
   }
 
   makeHeadInsert(url, requestTS, date, presetCookie, isLive, referrer) {
-    const topUrl = this.appPrefix + requestTS + (requestTS ? "/" : "") + url;
     const prefix = this.prefix;
+    const topUrl = prefix + requestTS + (requestTS ? "/" : "") + url;
     const coll = this.name;
 
     const seconds = getSecondsStr(date);

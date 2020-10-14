@@ -107,8 +107,14 @@ class API {
 
         if (params._query.get("all") === "1") {
           data.pages = await coll.store.getAllPages();
-          data.lists = await coll.store.db.getAll("pageLists");
-          data.curatedPages = await coll.store.db.getAll("curatedPages");
+          if (coll.store.db) {
+            data.lists = await coll.store.db.getAll("pageLists");
+            data.curatedPages = await coll.store.db.getAll("curatedPages");
+          } else {
+            data.lists = [];
+            data.curatedPages = [];
+          }
+
         } else {
           data.numLists = await coll.store.db.count("pageLists");
           data.numPages = await coll.store.db.count("pages");
@@ -140,6 +146,10 @@ class API {
         const fromTs = params._query.get("fromTs");
         const fromMime = params._query.get("fromMime");
         const fromStatus = Number(params._query.get("fromStatus") || 0);
+
+        if (!coll.store.resourcesByMime) {
+          return {urls: []}
+        }
 
         if (url) {
           urls = await coll.store.resourcesByUrlAndMime(url, mime, count, prefix, fromUrl, fromTs);

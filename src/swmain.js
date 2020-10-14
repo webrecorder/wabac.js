@@ -18,11 +18,12 @@ const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 // ===========================================================================
 class SWCollections extends CollectionLoader
 {
-  constructor(prefixes) {
+  constructor(prefixes, root = null) {
     super();
     this.prefixes = prefixes;
     this.colls = null;
     this.inited = null;
+    this.root = root;
   }
 
   _createCollection(opts) {
@@ -71,7 +72,11 @@ class SWReplay {
 
     const sp = new URLSearchParams(self.location.search);
 
-    const replayPrefixPath = sp.get("replayPrefix") || "wabac";
+    let replayPrefixPath = "wabac";
+
+    if (sp.has("replayPrefix")) {
+      replayPrefixPath = sp.get("replayPrefix");
+    }
 
     if (replayPrefixPath) {
       this.replayPrefix += replayPrefixPath + "/";
@@ -89,7 +94,7 @@ class SWReplay {
     this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
     this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
 
-    this.collections = new SWCollections(prefixes);
+    this.collections = new SWCollections(prefixes, sp.get("root"));
     this.collections.loadAll(sp.get("dbColl"));
 
     this.api = new API(this.collections);
@@ -127,8 +132,13 @@ class SWReplay {
       return this.defaultFetch(event.request);
     }
 
+    // special handling when root collection set: pass through any root files, eg. /index.html
+    if (this.collections.root && url.slice(this.prefix.length).indexOf("/") < 0) {
+      return this.defaultFetch(event.request);
+    }
+
     // handle replay / api
-    if (url.startsWith(this.replayPrefix)) {
+    if (url.startsWith(this.replayPrefix) && !url.startsWith(this.staticPrefix)) {
       return this.getResponseFor(event.request, event);
     }
 
@@ -192,7 +202,7 @@ class SWReplay {
     } catch(e) {
       response = await cache.match(request, {ignoreSearch: true});
       if (!response) {
-        response = notFound(request, "Sorry, this url was not caches for offline use");
+        response = notFound(request, "Sorry, this url was not cached for offline use");
       }
       return response;
     }
@@ -242,7 +252,11 @@ class SWReplay {
       response = null;
     }
 
-    const collId = request.url.slice(this.replayPrefix.length).split("/", 1)[0];
+    let collId = this.collections.root;
+
+    if (!collId) {
+      collId = request.url.slice(this.replayPrefix.length).split("/", 1)[0];
+    }
 
     const coll = await this.collections.getColl(collId);
 
