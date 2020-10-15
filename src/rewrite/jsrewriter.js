@@ -28,7 +28,7 @@ class JSRewriter extends RxRewriter {
 
     this.rules = [
       // rewriting 'eval(....)' - invocation
-      [/[^$]\beval\s*\(/, this.addPrefixAfter1(evalStr)],
+      [/[^$,]\beval\s*\(/, this.addPrefixAfter1(evalStr)],
 
       // rewriting 'x = eval' - no invocation
       [/[^$]\beval\b/, this.addPrefixAfter1('WB_wombat_')],
