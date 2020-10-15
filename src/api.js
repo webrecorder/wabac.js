@@ -53,6 +53,7 @@ class API {
       'urls': ':coll/urls',
       'deleteColl': [':coll', 'DELETE'],
       'updateAuth': [':coll/updateAuth', 'POST'],
+      'updateMetadata': [':coll/metadata', 'POST'],
       'curated': ':coll/curated/:list',
       'pages': ':coll/pages',
       'textIndex': ':coll/textIndex',
@@ -93,6 +94,7 @@ class API {
     let total;
     let count;
     let urls;
+    let requestJSON;
 
     switch (params._route) {
       case "index":
@@ -129,8 +131,13 @@ class API {
         return await this.listAll();
 
       case "updateAuth":
-        const requestJSON = await request.json();
+        requestJSON = await request.json();
         return {"success": await this.collections.updateAuth(params.coll, requestJSON.headers)};
+
+      case "updateMetadata":
+        requestJSON = await request.json();
+        const metadata = await this.collections.updateMetadata(params.coll, requestJSON);
+        return {metadata};
 
       case "urls":
         coll = await this.collections.getColl(params.coll);
@@ -211,7 +218,15 @@ class API {
         const dl = new Downloader(coll.store, pageList, params.coll, coll.config.metadata);
 
         const format = params._query.get("format") || "wacz";
-        const filename = params._query.get("filename") || "webarchive";
+        let filename = params._query.get("filename");
+
+        // determine filename from title, if it exists
+        if (!filename && coll.config.metadata.title) {
+          filename = coll.config.metadata.title.toLowerCase().replace(/\s/g, "-");
+        }
+        if (!filename) {
+          filename = "webarchive";
+        }
 
         if (format === "wacz") {
           return dl.downloadWACZ(filename);

@@ -60,6 +60,15 @@ class SWCollections extends CollectionLoader
 
     await super.updateAuth(name, headers);
   }
+
+  async updateMetadata(name, newMetadata) {
+    const metadata = await super.updateMetadata(name, newMetadata);
+    if (this.colls[name] && metadata) {
+      this.colls[name].config.metadata = metadata;
+      this.colls[name].metadata = metadata;
+    }
+    return metadata;
+  }
 }
 
 

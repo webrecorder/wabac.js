@@ -110,6 +110,19 @@ class CollectionLoader
     return true;
   }
 
+  async updateMetadata(name, newMetadata) {
+    await this._init_db;
+    const data = await this.colldb.get("colls", name);
+    if (!data) {
+      return false;
+    }
+    const metadata = data.config.metadata || {};
+    Object.assign(metadata, newMetadata);
+
+    await this.colldb.put("colls", data);
+    return metadata;
+  }
+
   async updateSize(name, size, dedupSize) {
     await this._init_db;
     const data = await this.colldb.get("colls", name);
