@@ -135,13 +135,6 @@ class FuzzyMatcher {;
       return null;
     }
 
-    // if no special rule with custom split, search by best-match query
-    //if (!matchedRule || matchedRule.replace === undefined || matchedRule.match === undefined) {
-      // search by best-match query
-    //}
-
-    //const fuzzyUrl = data.fuzzyUrl.endsWith("?") ? data.fuzzyUrl.slice(0, -1) : data.fuzzyUrl;
-
     if (matchedRule && matchedRule.replace !== undefined && matchedRule.match !== undefined) {
       const match = matchedRule.match;
       const replace = matchedRule.replace;
@@ -238,6 +231,10 @@ class FuzzyMatcher {;
         weight = 10.0;
       }
 
+      if (foundValue !== null) {
+        score += weight * 0.5;
+      }
+
       const numValue = Number(value);
       const numFoundValue = Number(foundValue);
 
@@ -246,7 +243,7 @@ class FuzzyMatcher {;
       if (foundValue === value) {
         score += weight * value.length;
       } else if (foundValue === null) {
-        score -= 1.0;
+        score += 0.0;
       } else if (!isNaN(numValue) && !isNaN(numFoundValue)) {
         score += 10.0 - Math.log(Math.abs(numValue - numFoundValue) + 1);
       } else {
@@ -254,7 +251,10 @@ class FuzzyMatcher {;
         //   score += weight * value.length * 0.5;
         // }
         const minLen = Math.min(foundValue.length, value.length);
-        score += weight * (minLen - levenshtein(foundValue, value));
+        const lev = levenshtein(foundValue, value);
+        if (lev < minLen) {
+          score += weight * (minLen - lev);
+        }
       }
     }
 

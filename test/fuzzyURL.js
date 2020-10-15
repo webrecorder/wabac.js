@@ -1,51 +1,38 @@
 "use strict";
 
 import test from 'ava';
-import { FuzzyMatcher, fuzzyCompareUrls } from '../src/fuzzymatcher';
+import { FuzzyMatcher } from '../src/fuzzymatcher';
 
 const fuzzy = new FuzzyMatcher();
 
-function fuzzyUrls(t, url, expectedResults) {
-  const result = [url];
-
-  for (const res of fuzzy.fuzzyUrls(url)) {
-    result.push(res);
-  }
-
-  t.deepEqual(result.slice(1), expectedResults);
+function fuzzyMatch(t, url, result, expected) {
+  t.deepEqual(fuzzy.fuzzyCompareUrls(url, [result]), result);
 }
 
-function fuzzyMatch(t, url, anotherUrl) {
-  for (const url1 of fuzzy.fuzzyUrls(url)) {
-    for (const url2 of fuzzy.fuzzyUrls(anotherUrl)) {
-      if (url1 === url2) {
-        t.pass('match found!');
-        return;
-      }
-    }
-  }
-
-  t.fail('match not found');
+function fuzzyMatchMany(t, url, results, expected) {
+  t.deepEqual(fuzzy.fuzzyCompareUrls(url, results), expected);
 }
 
-test('simple url', fuzzyUrls,
+
+test('simple url', fuzzyMatch,
   'https://example.com/abc', 
-  [],
+  'https://example.com/abc'
 );
 
-test('no ext, _= timestamp', fuzzyUrls,
+
+test('no ext, _= timestamp', fuzzyMatch,
   'https://example.com/abc?_=1234',
-  ['https://example.com/abc']
+  'https://example.com/abc'
 );
 
-test('allowed ext', fuzzyUrls,
+test('allowed ext', fuzzyMatch,
   'https://example.com/abc.mp4?foo=bar&__123=xyz',
-  ['https://example.com/abc.mp4']
+  'https://example.com/abc.mp4'
 )
 
-test('other ext', fuzzyUrls,
+test('other ext', fuzzyMatch,
   'https://example.com/abc.asp?foo=bar&__123=xyz', 
-  []
+  'https://example.com/abc.asp?foo=bar&__123=xyz'
 )
 
 test('match ga utm', fuzzyMatch,
@@ -73,12 +60,8 @@ test('match yt2', fuzzyMatch,
 
 
 
-function fuzzyMatchScore(t, url, results, expected) {
-  t.deepEqual(fuzzyCompareUrls(url, results).result, expected);
-}
 
-
-test('compare score', fuzzyMatchScore,
+test('compare score', fuzzyMatchMany,
   'https://example.com/?_=123',
   [
    'https://example.com/?_=456',
@@ -89,7 +72,7 @@ test('compare score', fuzzyMatchScore,
 
 
 
-test('compare score 2', fuzzyMatchScore,
+test('compare score 2', fuzzyMatchMany,
   'https://example.com/?a=b',
   [
    'https://example.com/?c=d&_=456',
@@ -104,7 +87,7 @@ test('compare score 2', fuzzyMatchScore,
 );
 
 
-test('compare score 3', fuzzyMatchScore,
+test('compare score 3', fuzzyMatchMany,
   'https://example.com/?v=foo,bar',
   [
    'https://example.com/?v=foo&__=123',
@@ -115,7 +98,7 @@ test('compare score 3', fuzzyMatchScore,
   'https://example.com/?v=bar'
 );
 
-test('compare score 4', fuzzyMatchScore,
+test('compare score 4', fuzzyMatchMany,
   'https://example.com/?param=value',
   [
     'https://example.com/?__a=b&param=value',
