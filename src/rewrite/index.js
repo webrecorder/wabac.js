@@ -291,7 +291,13 @@ class Rewriter {
   }
 
 
-  rewriteAttrs(tag, attrRules) {
+  rewriteTagAndAttrs(tag, attrRules) {
+    const OBJECT_FLASH_DATA_RX = [{
+      "match": /youtube.com\/v\/([^&]+)[&]/,
+      "replace": "youtube.com/embed/$1?"
+    }]
+
+
     const isUrl = (val) => { return startsWithAny(val, DATA_RW_PROTOCOLS); }
 
     for (let attr of tag.attrs) {
@@ -358,9 +364,20 @@ class Rewriter {
       else if (tag.tagName === "object" && name === "data") {
         const type = this.getAttr(tag.attrs, "type");
 
+        // convert object tag to iframe
         if (type === "application/pdf") {
           attr.name = "src";
           tag.tagName = "iframe";
+        } else if (type === "application/x-shockwave-flash") {
+          for (const rule of OBJECT_FLASH_DATA_RX) {
+            const value = attr.value.replace(rule.match, rule.replace);
+            if (value !== attr.value) {
+              attr.name = "src";
+              attr.value = this.rewriteUrl(value);
+              tag.tagName = "iframe";
+              break;
+            }
+          }
         }
       }
 
@@ -447,6 +464,7 @@ class Rewriter {
 
     let context = "";
     let scriptRw = false;
+    let replaceTag = null;
 
     const addInsert = () => {
       if (!insertAdded && hasData && this.headInsertFunc) {
@@ -463,7 +481,9 @@ class Rewriter {
 
       const tagRules = rewriteTags[startTag.tagName];
 
-      this.rewriteAttrs(startTag, tagRules || {});
+      const original = startTag.tagName;
+
+      this.rewriteTagAndAttrs(startTag, tagRules || {});
 
       if (!insertAdded && !["head", "html"].includes(startTag.tagName)) {
         hasData = true;
@@ -490,12 +510,20 @@ class Rewriter {
             context = startTag.tagName;
           }
           break;
+      }
 
+      if (startTag.tagName !== original) {
+        context = original;
+        replaceTag = startTag.tagName;
       }
     });
 
     rwStream.on('endTag', endTag => {
       if (endTag.tagName === context) {
+        if (replaceTag) {
+          endTag.tagName = replaceTag;
+          replaceTag = null;
+        }
         context = "";
       }
       rwStream.emitEndTag(endTag);
