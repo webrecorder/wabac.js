@@ -6248,9 +6248,9 @@ widest-line@^3.1.0:
   dependencies:
     string-width "^4.0.0"
 
-"wombat@github:webrecorder/wombat#post-to-get":
+"wombat@github:webrecorder/wombat":
   version "3.0.0"
-  resolved "https://codeload.github.com/webrecorder/wombat/tar.gz/d163ecb7df4295826fc82112ccad462873543ab0"
+  resolved "https://codeload.github.com/webrecorder/wombat/tar.gz/d547717e1daabc7769b0b2ee562a13baeeec180e"
 
 worker-farm@^1.7.0:
   version "1.7.0"

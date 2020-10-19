@@ -19,7 +19,7 @@
     "unescape-js": "^1.1.4",
     "warcio": "^1.2.0",
     "wbn": "^0.0.3",
-    "wombat": "github:webrecorder/wombat#post-to-get"
+    "wombat": "github:webrecorder/wombat"
   },
   "devDependencies": {
     "@titelmedia/node-fetch": "^3.0.1",
