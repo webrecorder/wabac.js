@@ -182,7 +182,7 @@ class Downloader
 
         yield records[0];
         offset += records[0].length;
-        resource.length = offset;
+        resource.length = records[0].length;
 
         if (records.length > 1) {
           yield records[1];
@@ -210,7 +210,7 @@ class Downloader
         const chunk = await this.createTextWARCRecord(resource);
         yield chunk;
         offset += chunk.length;
-        resource.length = offset;
+        resource.length = chunk.length;
       }
     } catch (e) {
       console.warn(e);
