@@ -217,7 +217,7 @@ class ArchiveDB {
       //digestRefStore.put(ref);
       //return ref.count;
 
-    } else {
+    } else if (payload) {
       try {
         tx.objectStore("payload").add({digest, payload});
         const size = payload.length;
@@ -236,68 +236,64 @@ class ArchiveDB {
     const regulars = [];
 
     const digestRefCount = {};
+    const changedDigests = new Set();
 
     const dtx = this.db.transaction(["digestRef", "payload"], "readwrite");
 
     for (const data of datas) {
       let refCount = 1;
 
-      if (data.mime === "warc/revisit") {
-        revisits.push(data);
-      } else {
-        regulars.push(data);
+      const array = data.mime === "warc/revisit" ? revisits : regulars;
 
-        const fuzzyUrlData = this.getFuzzyUrl(data);
+      array.push(data);
 
-        if (fuzzyUrlData) {
-          regulars.push(fuzzyUrlData);
-          refCount = 2;
-        }
+      const fuzzyUrlData = this.getFuzzyUrl(data);
+
+      if (fuzzyUrlData) {
+        array.push(fuzzyUrlData);
+        refCount = 2;
       }
 
-      if (this.useRefCounts && data.digest && data.payload) {
-        digestRefCount[data.digest] = await this.dedupResource(data.digest, data.payload, dtx, refCount);
+      if (this.useRefCounts && data.digest) {
+        if (!digestRefCount[data.digest]) {
+          digestRefCount[data.digest] = await this.dedupResource(data.digest, data.payload, dtx, refCount);
+        } else {
+          digestRefCount[data.digest].count += refCount;
+          changedDigests.add(data.digest);
+        }
         delete data.payload;
+      }
+    }
+
+    if (this.useRefCounts) {
+      const digestRefStore = dtx.objectStore("digestRef");
+
+      for (const digest of changedDigests) {
+        digestRefStore.put(digestRefCount[digest]);
       }
     }
 
     try {
       await dtx.done;
     } catch(e) {
-      console.log("Payload Bulk Add Failed: " + e);
+      console.error("Payload and Ref Count Bulk Add Failed: ", e);
     }
 
-    const tx = this.db.transaction(["digestRef", "resources"], "readwrite");
-    const resStore = tx.objectStore("resources");
-
-    let changedRefCounts = {};
+    const tx = this.db.transaction("resources", "readwrite");
 
     for (const data of revisits) {
-      if (this.useRefCounts) {
-        let refCount = digestRefCount[data.digest];
-        if (!refCount) {
-          refCount = await tx.objectStore("digestRef").get(data.digest);
-        }
-        if (refCount) {
-          refCount.count++;
-          changedRefCounts[data.digest] = refCount;
-        }
-      }
-      resStore.put(data);
+      tx.store.put(data);
     }
 
     for (const data of regulars) {
-      resStore.put(data);
+      tx.store.put(data);
     }
 
-    if (this.useRefCounts) {
-      const refStore = tx.objectStore("digestRef");
-      for (const value of Object.values(changedRefCounts)) {
-        refStore.put(value);
-      }
+    try {
+      await tx.done;
+    } catch (e) {
+      console.error("Resources Bulk Add Failed", e);
     }
-
-    await tx.done;
   }
 
   getFuzzyUrl(result) {

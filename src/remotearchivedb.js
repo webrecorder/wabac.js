@@ -12,7 +12,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
     super(name);
     this.noCache = noCache;
 
-    this.useRefCounts = false;
+    this.useRefCounts = !noCache;
   }
 
   async loadRecordFromSource(cdx) {
