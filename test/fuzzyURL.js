@@ -13,6 +13,18 @@ function fuzzyMatchMany(t, url, results, expected) {
   t.deepEqual(fuzzy.fuzzyCompareUrls(url, results), expected);
 }
 
+function fuzzyCanonWithArgs(t, url, expected) {
+  const fuzzyCanonUrl = fuzzy.getFuzzyCanonWithArgs(url);
+  t.is(fuzzyCanonUrl, expected);
+}
+
+test('fuzzy canon args yt', fuzzyCanonWithArgs,
+  'https://www.youtube.com/get_video_info?foo=bar&html5=1&video_id=12345678&pn=JiUSOZ2NVdJy1uam&eurl=baz',
+  'https://youtube.fuzzy.replayweb.page/get_video_info?video_id=12345678');
+
+test('fuzzy canon args yt 2', fuzzyCanonWithArgs,
+  'https://blah.blah.boo.googlevideo.com/videoplayback?foo=bar&itag=3&id=12345678&pn=JiUSOZ2NVdJy1uam&eurl=baz',
+  'https://youtube.fuzzy.replayweb.page/videoplayback?id=12345678&itag=3');
 
 test('simple url', fuzzyMatch,
   'https://example.com/abc', 

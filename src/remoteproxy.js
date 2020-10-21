@@ -1,6 +1,7 @@
 import { tsToDate } from './utils.js';
 
 import { ArchiveResponse } from './response';
+import { fuzzyMatcher } from './fuzzymatcher.js';
 
 import { WARCParser, AsyncIterReader } from 'warcio';
 
@@ -25,7 +26,14 @@ class RemoteWARCProxy {
     let reqHeaders = headers;
 
     if (this.type === "kiwix") {
-      const headersData = await this.resolveHeaders(url);
+      let headersData = await this.resolveHeaders(url);
+
+      if (!headersData) {
+        const newUrl = fuzzyMatcher.getFuzzyCanonWithArgs(url);
+        if (newUrl !== url) {
+          headersData = await this.resolveHeaders(newUrl);
+        }
+      }
 
       if (!headersData) {
 

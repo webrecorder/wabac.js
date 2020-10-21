@@ -30,15 +30,16 @@ const DEFAULT_RULES =
    "replace": "$1"
   },
   {
-   "match": /(www\.)?youtube(-nocookie)?\.com\/get_video_info/i,
-   "args": [["video_id", "html5"]],
+   "match": /\/\/(?:www\.)?youtube(?:-nocookie)?\.com\/(get_video_info)/i,
+   "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1",
+   "args": [["video_id"]],
   },
   {
    "match": /\/\/.*googlevideo.com\/(videoplayback)/i,
    "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1",
    "args": [["id", "itag"],
             ["id"]],
-    "fuzzyArgs": true
+   "fuzzyArgs": true
   },
   {
    "match": /facebook\.com\/ajax\/pagelet\/generic.php\/photoviewerinitpagelet/i,
@@ -128,6 +129,23 @@ class FuzzyMatcher {;
     const prefix = inx > 0 ? reqUrl.slice(0, inx + split.length) : reqUrl;
 
     return {prefix, rule, fuzzyCanonUrl};
+  }
+
+  getFuzzyCanonWithArgs(reqUrl) {
+    const { fuzzyCanonUrl, rule } = this.getRuleFor(reqUrl);
+
+    if (rule.args) {
+      const fuzzUrl = new URL(fuzzyCanonUrl);
+      const origUrl = new URL(reqUrl);
+      const query = new URLSearchParams();
+      for (const arg of rule.args[0]) {
+        query.set(arg, origUrl.searchParams.get(arg) || "");
+      }
+      fuzzUrl.search = query.toString();
+      return fuzzUrl.href;
+    }
+
+    return fuzzyCanonUrl;
   }
 
   fuzzyCompareUrls(reqUrl, results, matchedRule) {
