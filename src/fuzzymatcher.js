@@ -132,9 +132,13 @@ class FuzzyMatcher {;
   }
 
   getFuzzyCanonWithArgs(reqUrl) {
-    const { fuzzyCanonUrl, rule } = this.getRuleFor(reqUrl);
+    let { fuzzyCanonUrl, prefix, rule } = this.getRuleFor(reqUrl);
 
-    if (rule.args) {
+    if (fuzzyCanonUrl === reqUrl) {
+      fuzzyCanonUrl = prefix;
+    }
+
+    if (rule && rule.args) {
       const fuzzUrl = new URL(fuzzyCanonUrl);
       const origUrl = new URL(reqUrl);
       const query = new URLSearchParams();
