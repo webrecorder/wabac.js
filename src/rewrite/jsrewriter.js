@@ -37,23 +37,23 @@ class JSRewriter extends RxRewriter {
       [/\.postMessage\b\(/, this.addPrefix('.__WB_pmw(self)')],
 
       // rewriting 'location = ' to custom expression '(...).href =' assignment
-      [/[^$.]\s*\blocation\b\s*[=]\s*(?![=])/, this.addSuffix(checkLoc)],
+      [/[^$.]\s*\blocation\b\s*[=]\s*(?![\s=])/, this.addSuffix(checkLoc)],
 
       // rewriting 'return this'
-      [/\breturn\s+this\b\s*(?![.$])/, this.replaceThis()],
+      [/\breturn\s+this\b\s*(?![\s\w.$])/, this.replaceThis()],
 
       // rewriting 'this.' special properties access on new line, with ; prepended
       // if prev char is '\n', or if prev is not '.' or '$', no semi
       [new RegExp(`[^$.]\\s*\\bthis\\b(?=(?:\\.(?:${propStr})\\b))`), this.replaceThisProp()],
 
       // rewrite '= this' or ', this'
-      [/[=,]\s*\bthis\b\s*(?![:.$])/, this.replaceThis()],
+      [/[=,]\s*\bthis\b\s*(?![\s\w:.$])/, this.replaceThis()],
 
       // rewrite '})(this)'
       [/\}(?:\s*\))?\s*\(this\)/, this.replaceThis()],
 
       // rewrite this in && or || expr?
-      [/[^|&][|&]{2}\s*this\b\s*(?![|&.$](?:[^|&]|$))/, this.replaceThis()],
+      [/[^|&][|&]{2}\s*this\b\s*(?![|\s&.$](?:[^|&]|$))/, this.replaceThis()],
     ];
 
     if (extraRules) {
