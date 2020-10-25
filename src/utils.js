@@ -63,12 +63,16 @@ function getSecondsStr(date) {
   }
 }
 
+function base16(hashBuffer) {
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function digestMessage(message, hashtype) {
   const msgUint8 = typeof(message) === "string" ? new TextEncoder().encode(message) : message;
   const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);
-  const hashArray = new Uint8Array(hashBuffer);
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashtype + ":" + hashHex;
+  return hashtype + ":" + base16(hashBuffer);
+
 }
 
 function makeHeaders(headers) {
@@ -140,11 +144,24 @@ class AuthNeededError extends RangeError
 
 }
 
+class AccessDeniedError extends RangeError
+{
+  constructor(url, resp) {
+    super(url, resp.status);
+    this.resp = resp;
+  }
+}
+
 class Canceled
 {
 
 }
 
+function sleep(millis) {
+  return new Promise((resolve) => setTimeout(resolve, millis));
+}
+
 
 export { startsWithAny, containsAny, getTS, getTSMillis, tsToDate, tsToSec, getSecondsStr, digestMessage,
-         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, RangeError, AuthNeededError, Canceled };
+         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep,
+         RangeError, AuthNeededError, AccessDeniedError, Canceled };

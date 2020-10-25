@@ -1,4 +1,4 @@
-import { AuthNeededError } from "./utils";
+import { AuthNeededError, AccessDeniedError, sleep } from "./utils";
 
 // todo: make configurable
 const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
@@ -113,8 +113,10 @@ class HttpRangeLoader
     }
 
     if (resp.status != 206) {
-      if (resp.status === 401 || resp.status === 403) {
+      if (resp.status === 401) {
         throw new AuthNeededError(this.url, resp.status);
+      } else if (resp.status == 403) {
+        throw new AccessDeniedError(this.url, resp);
       } else {
         throw new RangeError(this.url, resp.status);
       }
@@ -216,7 +218,25 @@ class GoogleDriveLoader
     }
 
     loader = new HttpRangeLoader(this.apiUrl, this.headers, this.length);
-    return await loader.getRange(offset, length, streaming, signal);
+
+    let backoff = 50;
+
+    while (backoff < 2000) {
+      try {
+        return await loader.getRange(offset, length, streaming, signal);
+      } catch(e) {
+        if (e instanceof AccessDeniedError && e.resp.headers.get("content-type").startsWith("application/json")) {
+          const err = await e.resp.json();
+          if (err.error && err.error.errors && err.error.errors[0].reason === "userRateLimitExceeded") {
+            console.log(`Exponential backoff, waiting for: ${backoff}`);
+            await sleep(backoff);
+            backoff *= 2;
+            continue;
+          }
+        }
+        throw e;
+      }
+    }
   }
 
   async refreshPublicUrl() {

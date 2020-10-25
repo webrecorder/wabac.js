@@ -103,11 +103,6 @@ class Collection {
       requestURL = requestURL.substring(0, hash);
     }
 
-    const query = {"url": requestURL,
-                   "method": request.method,
-                   "request": request,
-                   "timestamp": requestTS};
-
     // exact or fuzzy match
     let response = null;
     
@@ -119,14 +114,15 @@ class Collection {
       } else if (requestURL === "about:blank") {
         response = await this.getSrcDocResponse(requestURL);
       } else {
+        const query = {
+          url: requestURL,
+          method: request.method,
+          timestamp: requestTS,
+          mod,
+          request
+        };
 
-        response = this.checkSlash(requestURL, requestTS, mod);
-
-        if (response) {
-          return response;
-        }
-
-        response = await this.store.getResource(query, this.prefix, event);
+        response = await this.getReplayResponse(query, event);
       }
     } catch (e) {
       if (e instanceof AuthNeededError) {
@@ -202,12 +198,12 @@ class Collection {
     return response.makeResponse();
   }
 
-  checkSlash(requestURL, requestTS, mod) {
+  checkSlash({url, timestamp, mod}) {
     try {
-      const parsed = new URL(requestURL);
-      if (parsed.pathname === "/" && parsed.href !== requestURL) {
-        let redirectUrl = this.prefix + requestTS + mod;
-        if (requestTS || mod) {
+      const parsed = new URL(url);
+      if (parsed.pathname === "/" && parsed.href !== url) {
+        let redirectUrl = this.prefix + timestamp + mod;
+        if (timestamp || mod) {
           redirectUrl += "/";
         }
         redirectUrl += parsed.href;
@@ -242,6 +238,30 @@ class Collection {
     const payload = new Uint8Array(await resp.arrayBuffer());
 
     return new ArchiveResponse({payload, status, statusText, headers, url, date});
+  }
+
+  async getReplayResponse(query, event) {
+    let response = this.checkSlash(query);
+
+    if (response) {
+      return response;
+    }
+
+    response = await this.store.getResource(query, this.prefix, event);
+
+    const {request, url} = query;
+
+    // necessary as service worker seem to not be allowed to return a redirect in some circumstances (eg. in extension)
+    if ((request.destination === "video" || request.destination === "audio") && request.mode !== "navigate") {
+      while (response && (response.status >= 301 && response.status < 400)) {
+        const newUrl = new URL(response.headers.get("location"), url);
+        query.url = newUrl.href;
+        console.log(`resolve redirect ${url} -> ${query.url}`);
+        response = await this.store.getResource(query, this.prefix, event);
+      }
+    }
+
+    return response;
   }
 
   async makeTopFrame(url, requestTS, isLive) {

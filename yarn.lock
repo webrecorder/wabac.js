@@ -6329,7 +6329,7 @@ widest-line@^3.1.0:
 
 "wombat@github:webrecorder/wombat":
   version "3.0.0"
-  resolved "https://codeload.github.com/webrecorder/wombat/tar.gz/d547717e1daabc7769b0b2ee562a13baeeec180e"
+  resolved "https://codeload.github.com/webrecorder/wombat/tar.gz/ef6fc154d374aa83f39ec9874726e7ef8f7eb31f"
 
 worker-farm@^1.7.0:
   version "1.7.0"

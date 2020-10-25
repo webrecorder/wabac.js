@@ -86,7 +86,16 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
         // don't store in resources db
         delete cdx.payload;
 
-        await this.db.put("resources", cdx);
+        try {
+          await this.db.put("resources", cdx);
+        } catch(e) {
+          console.log(e);
+        }
+
+        // cache here only if somehow the digests don't match (wrong digest from previous versions?)
+        if (origResult.digest !== remote.digest && !payload[Symbol.asyncIterator]) {
+          await this.commitPayload(payload, remote.digest);
+        }
       }
 
       return payload;
