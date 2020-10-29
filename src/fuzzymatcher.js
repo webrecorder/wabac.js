@@ -26,6 +26,11 @@ const DEFAULT_RULES =
     "split": "/v1/fill"
   },
   {
+    "match": /(twimg.com\/profile_images\/[^/]+\/[^_]+)_([\w]+\.[\w]+)/,
+    "replace": "$1=_args=$2",
+    "split": "_"
+  },
+  {
    "match": /(youtube\.com\/embed\/[^?]+)[?].*/i,
    "replace": "$1"
   },
@@ -125,7 +130,7 @@ class FuzzyMatcher {;
     }
 
     const split = rule && rule.split || "?";
-    const inx = reqUrl.indexOf(split);
+    const inx = reqUrl.lastIndexOf(split);
     const prefix = inx > 0 ? reqUrl.slice(0, inx + split.length) : reqUrl;
 
     return {prefix, rule, fuzzyCanonUrl};
