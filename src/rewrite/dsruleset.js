@@ -33,7 +33,7 @@ const DEFAULT_RULES = [
   },
 
   {
-    contains: ["api.twitter.com/2/"],
+    contains: ["api.twitter.com/2/", "twitter.com/i/api/2/"],
     rxRules: [
       [/"video_info".*?}]}/, ruleRewriteTwitterVideo]
     ]
@@ -82,7 +82,15 @@ function ruleRewriteFBDash(string) {
 }
 
 // ===========================================================================
-function ruleRewriteTwitterVideo(string) {
+function ruleRewriteTwitterVideo(string, opts) {
+  if (!opts) {
+    return string;
+  }
+
+  if (!opts.live && !(opts.response && opts.response.extraOpts && opts.response.extraOpts.rewritten)) {
+    return string;
+  }
+
   const origString = string;
 
   try {

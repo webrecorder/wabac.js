@@ -119,10 +119,9 @@ class JSRewriter extends RxRewriter {
     return buffer + '\n';
   }
 
-  rewrite(text, inline) {
-    let newText = text.replace(this.rx, (match, ...params) => this.doReplace(params));
-    newText = this.firstBuff + newText + this.lastBuff;
-    return inline ? newText.replace(/\n/g, " ") : newText;
+  rewrite(text, opts) {
+    const newText = this.firstBuff + super.rewrite(text, opts) + this.lastBuff;
+    return opts && opts.inline ? newText.replace(/\n/g, " ") : newText;
   }
 }
 

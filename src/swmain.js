@@ -301,7 +301,7 @@ class SWReplay {
   async toGetRequest(request) {
     let query = null;
 
-    const contentType = request.headers.get("Content-Type");
+    const contentType = (request.headers.get("Content-Type") || "").split(";")[0];
 
     if (request.method === "POST" || request.method === "PUT") {
       switch (contentType) {
@@ -309,13 +309,10 @@ class SWReplay {
           query = await request.text();
           break;
 
-        // default:
-        //   query = "____wabac_method=" + request.method.toLowerCase();
-        //   const buff = await request.arrayBuffer();
-        //   if (buff.byteLength > 0) {
-        //     const text = new TextDecoder().decode(buff);
-        //     query += "&" + text;//btoa(text);
-        //   }
+        case "application/json":
+          query = await request.text();
+          query = "__wb_json_data=" + query.replace(/\n/g, "");
+          break;
       }
     }
 

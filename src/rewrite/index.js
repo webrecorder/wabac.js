@@ -306,7 +306,7 @@ class Rewriter {
 
       // js attrs
       if (name.startsWith("on") && value.startsWith("javascript:") && name.slice(2, 3) != "-") {
-        attr.value = "javascript:" + this.rewriteJS(value.slice("javascript:".length), {}, true);
+        attr.value = "javascript:" + this.rewriteJS(value.slice("javascript:".length), {inline: true});
       }
       // css attrs
       else if (name === "style") {
@@ -583,7 +583,7 @@ class Rewriter {
   }
 
   // JS
-  rewriteJS(text, opts, inline) {
+  rewriteJS(text, opts) {
     const noUrlProxyRewrite = opts && !opts.rewriteUrl;
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
@@ -622,17 +622,17 @@ class Rewriter {
       }
     }
 
-    return dsRewriter.rewrite(text, inline);
+    return dsRewriter.rewrite(text, opts);
   }
 
   // JSON
-  rewriteJSON(text) {
+  rewriteJSON(text, opts) {
     text = this.rewriteJSONP(text);
 
     const dsRewriter = baseRules.getRewriter(this.baseUrl);
 
     if (dsRewriter !== baseRules.defaultRewriter) {
-      return dsRewriter.rewrite(text);
+      return dsRewriter.rewrite(text, opts);
     }
 
     return text;
