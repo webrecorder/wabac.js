@@ -1,7 +1,11 @@
 import { AuthNeededError, AccessDeniedError, sleep } from "./utils";
 
+import { AsyncIterReader } from 'warcio';
+
 // todo: make configurable
 const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
+
+const IPFS_CORE_JS = "https://cdn.jsdelivr.net/npm/ipfs-core@0.2.0/dist/index.min.js";
 
 
 // ===========================================================================
@@ -12,6 +16,8 @@ function createLoader(url, headers, size, extra, blob) {
     return new HttpRangeLoader(url, headers, size);
   } else if (url.startsWith("googledrive:")) {
     return new GoogleDriveLoader(url, headers, size, extra);
+  } else if (url.startsWith("ipfs:")) {
+    return new IPFSRangeLoader(url, headers);
   } else {
     throw new Error("Invalid URL: " + url);
   }
@@ -355,6 +361,138 @@ class BlobLoader
     return new ReadableStream({
       start(controller) {
         controller.enqueue(new Uint8Array(ab));
+        controller.close();
+      }
+    });
+  }
+}
+
+// ===========================================================================
+let ipfs = null;
+
+class IPFSRangeLoader
+{
+  constructor(url, headers) {
+    this.url = url;
+
+    let inx = url.lastIndexOf("#");
+    if (inx < 0) {
+      inx = undefined;
+    }
+
+    this.cid = this.url.slice("ipfs://".length, inx);
+
+    this.headers = headers;
+    this.inited = this.init();
+    this.length = null;
+    this.canLoadOnDemand = true;
+
+    this.httpFallback = new HttpRangeLoader("https://ipfs.io/ipfs/" + this.cid);
+  }
+
+  async init() {
+    if (!ipfs) {
+      try {
+        await this.importIPFS(IPFS_CORE_JS);
+
+        ipfs = await self.IpfsCore.create({
+          init: {emptyRepo: true},
+          //preload: {enabled: false},
+        });
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+  }
+
+  async importIPFS(url) {
+    if (self.IpfsCore) {
+      return;
+    }
+    const resp = await fetch(url);
+    eval(await resp.text());
+  }
+
+  async getLength() {
+    if (this.httpFallback) {
+      return await this.httpFallback.getLength();
+    }
+
+    return this.length;
+  }
+
+  async doInitialFetch(tryHead) {
+    await this.inited;
+
+    let status = 206;
+
+    try {
+      for await (const file of ipfs.get(this.cid, {timeout: 20000, preload: false})) {
+        this.length = file.size;
+        this.isValid = (file.type === "file");
+        break;
+      }
+    } catch (e) {
+      console.warn(e);
+      const res = await this.httpFallback.doInitialFetch(tryHead);
+      this.length = this.httpFallback.length;
+      this.isValid = this.httpFallback.isValid;
+      return res;
+    }
+
+    if (!this.isValid) {
+      status = 404;
+    }
+
+    const abort = new AbortController();
+    let body;
+
+    if (tryHead || !this.isValid) {
+      body = new Uint8Array([]);
+    } else {
+      const stream = ipfs.cat(this.cid, {signal: abort.signal});
+      body = this.getReadableStream(stream);
+    }
+
+    const response = new Response(body, {status});
+
+    return {response, abort};
+  }
+
+  async getRange(offset, length, streaming = false, signal = null) {
+    let stream;
+
+    try {
+      stream = ipfs.cat(this.cid, {offset, length, signal});
+    } catch (e) {
+      return await this.httpFallback.getRange(offset, length, streaming, signal);
+    }
+
+    if (streaming) {
+      return this.getReadableStream(stream);
+    } else {
+      const chunks = [];
+      let size = 0;
+
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+        size += chunk.byteLength;
+      }
+
+      return AsyncIterReader.concatChunks(chunks, size);
+    }
+  }
+
+  getReadableStream(stream) {
+    return new ReadableStream({
+      start: async (controller) => {
+        try {
+          for await (const chunk of stream) {
+            controller.enqueue(chunk);
+          }
+        } catch (e) {
+          console.log(e);
+        }
         controller.close();
       }
     });
