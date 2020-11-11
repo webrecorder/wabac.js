@@ -4,8 +4,8 @@ const webpack = require('webpack');
 module.exports = {
   mode: 'production',
   entry: {
-    'wombat': 'wombat/src/wbWombat.js',
-    'wombatWorkers': 'wombat/src/wombatWorkers.js',
+    'wombat': '@webrecorder/wombat/src/wbWombat.js',
+    'wombatWorkers': '@webrecorder/wombat/src/wombatWorkers.js',
     'sw': './src/sw.js',
   },
   output: {
