@@ -1,7 +1,7 @@
 "use strict";
 
 import { Collection } from './collection';
-import { CollectionLoader } from './loaders';
+import { WorkerLoader } from './loaders';
 
 import { notFound, isAjaxRequest } from './utils.js';
 import { StatsTracker } from './statstracker.js';
@@ -16,10 +16,10 @@ const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 
 
 // ===========================================================================
-class SWCollections extends CollectionLoader
+class SWCollections extends WorkerLoader
 {
   constructor(prefixes, root = null) {
-    super();
+    super(self);
     this.prefixes = prefixes;
     this.colls = null;
     this.inited = null;

@@ -139,7 +139,7 @@ class Collection {
           }
         }
 
-        return notFound(request, `<p>Sorry, this URL requires authentication from the source.</p>`);
+        return notFound(request, `<p style="margin: auto">Please wait, this page will reload after authentication...</p>`);
       }
     }
 

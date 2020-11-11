@@ -10,7 +10,8 @@ const DEFAULT_RULES = [
       [/ytplayer.load\(\);/, ruleReplace('ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""; {0}')],
       [/yt\.setConfig.*PLAYER_CONFIG.*args":\s*{/, ruleReplace('{0} "dash": "0", dashmpd: "", ')],
       [/(?:"player":|ytplayer\.config).*"args":\s*{/, ruleReplace('{0}"dash":"0","dashmpd":"",')],
-      [/yt\.setConfig.*PLAYER_VARS.*?{/, ruleReplace('{0}"dash":"0","dashmpd":"",')]
+      [/yt\.setConfig.*PLAYER_VARS.*?{/, ruleReplace('{0}"dash":"0","dashmpd":"",')],
+      [/ytplayer.config={args:\s*{/, ruleReplace('{0}"dash":"0","dashmpd":"",')],
     ]
   },
   {
