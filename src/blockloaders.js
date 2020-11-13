@@ -347,6 +347,7 @@ class BlobCacheLoader
 // ===========================================================================
 self.ipfs = null;
 let initingIPFS = null;
+let ipfsGC = null;
 
 class IPFSRangeLoader
 {
@@ -360,6 +361,15 @@ class IPFSRangeLoader
       init: {emptyRepo: true},
       //preload: {enabled: false},
     });
+  }
+
+  static async runGC() {
+    let count = 0;
+
+    for await (const res of self.ipfs.repo.gc()) {
+      count++;
+    }
+    console.log(`IPFS GC, Removed ${count} blocks`);
   }
 
   constructor({url, headers}) {
@@ -447,6 +457,11 @@ class IPFSRangeLoader
       const ipfs = await this.initIPFS();
 
       const stream = ipfs.cat(this.cid, {offset, length, signal});
+
+      if (ipfsGC) {
+        clearInterval(ipfsGC);
+      }
+      ipfsGC = setInterval(IPFSRangeLoader.runGC, 120000);
 
       if (streaming) {
         return this.getReadableStream(stream);
