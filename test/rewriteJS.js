@@ -54,6 +54,21 @@ test(rewriteJS,
     "(a,b,Q.contains(i[t], this))",
     "(a,b,Q.contains(i[t], _____WB$wombat$check$this$function_____(this)))");
 
+test(rewriteJS,
+    "this. location = http://example.com/",
+    "this. location = ((self.__WB_check_loc && self.__WB_check_loc(location)) || {}).href = http://example.com/");
+
+test(rewriteJS,
+    " eval(a)",
+    " WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).eval(a)");
+
+test(rewriteJS,
+    "x = eval; x(a);",
+    "x = WB_wombat_eval; x(a);");
+
+test(rewriteJS,
+    "window.eval(a)",
+    "window.WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).eval(a)");
 
 // Not Rewritten
 test(rewriteJS, "return this.abc");
@@ -72,6 +87,8 @@ test(rewriteJS, "this. _location = http://example.com/");
 
 test(rewriteJS, "this. alocation = http://example.com/");
 
-test(rewriteJS, "this. location = http://example.com/");
+test(rewriteJS, "this.location = http://example.com/");
 
+test(rewriteJS, "this.$eval(a)");
 
+test(rewriteJS, "x = $eval; x(a);");

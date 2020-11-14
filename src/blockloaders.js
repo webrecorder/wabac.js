@@ -345,7 +345,7 @@ class BlobCacheLoader
 }
 
 // ===========================================================================
-self.ipfs = null;
+let ipfs = null;
 let initingIPFS = null;
 let ipfsGC = null;
 
@@ -357,7 +357,7 @@ class IPFSRangeLoader
       eval(await resp.text());
     }
 
-    self.ipfs = await self.IpfsCore.create({
+    ipfs = await self.IpfsCore.create({
       init: {emptyRepo: true},
       //preload: {enabled: false},
     });
@@ -366,7 +366,7 @@ class IPFSRangeLoader
   static async runGC() {
     let count = 0;
 
-    for await (const res of self.ipfs.repo.gc()) {
+    for await (const res of ipfs.repo.gc()) {
       count++;
     }
     console.log(`IPFS GC, Removed ${count} blocks`);
@@ -390,7 +390,7 @@ class IPFSRangeLoader
   }
 
   async initIPFS() {
-    if (!self.ipfs) {
+    if (!ipfs) {
       try {
         if (!initingIPFS) {
           initingIPFS = IPFSRangeLoader.doInitIPFS();
@@ -403,7 +403,7 @@ class IPFSRangeLoader
       }
     }
 
-    return self.ipfs;
+    return ipfs;
   }
 
   async getLength() {

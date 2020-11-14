@@ -228,6 +228,7 @@ test("Twitter rewrite json", async t => {
     }
   };
 
-  const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: 'https://api.twitter.com/2/some/endpoint'});
+  const extraOpts = {rewritten: true};
+  const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: 'https://api.twitter.com/2/some/endpoint', extraOpts});
   t.deepEqual(JSON.parse(result), expected);
 });
