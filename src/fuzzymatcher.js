@@ -206,8 +206,8 @@ class FuzzyMatcher {;
     const reqQuery = new URLSearchParams(reqUrl.search);
 
     for (const result of results) {
-      // skip 204s from fuzzy matching (todo: reexamine)
-      if (result.mime === 204) {
+      // skip 204s and 304s from fuzzy matching (todo: reexamine)
+      if (result.status === 204 || result.status === 304) {
         continue;
       }
 
@@ -223,6 +223,11 @@ class FuzzyMatcher {;
       let total = this.getMatch(reqQuery, foundQuery, reqArgs);
       total += this.getMatch(foundQuery, reqQuery, reqArgs);
       total /= 2.0;
+
+      // subtract points for non-200 status codes to prefer 200
+      if (result.status > 200) {
+        total -= 0.01 * (result.status - 200);
+      }
 
       //console.log('total: ' + total + ' ' + url.href + ' <=> ' + reqUrl);
 
