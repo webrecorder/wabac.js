@@ -2,7 +2,7 @@ import { AsyncIterReader } from 'warcio';
 import { RemoteSourceArchiveDB, SingleRecordWARCLoader } from './remotearchivedb';
 import { WARCInfoOnlyWARCLoader, WARCLoader } from './warcloader';
 import { CDXLoader } from './cdxloader';
-import { getTS } from './utils';
+import { getTS, MAX_FULL_DOWNLOAD_SIZE } from './utils';
 import { LiveAccess } from './remoteproxy';
 
 import yaml from 'js-yaml';
@@ -180,6 +180,16 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     }
 
     const entries = await db.zipreader.load(true);
+
+    //todo: a bit hacky, store the full arrayBuffer for blob loader
+    // if size less than MAX_FULL_DOWNLOAD_SIZE
+    if (this.fullConfig && this.loader.arrayBuffer &&
+      this.loader.arrayBuffer.byteLength <= MAX_FULL_DOWNLOAD_SIZE) {
+      if (!this.fullConfig.extra) {
+        this.fullConfig.extra = {};
+      }
+      this.fullConfig.extra.arrayBuffer = this.loader.arrayBuffer;
+    }
 
     await db.saveZipEntries(entries);
 

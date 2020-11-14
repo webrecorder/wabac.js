@@ -14,11 +14,7 @@ import { createLoader } from './blockloaders';
 import { RemoteWARCProxy, RemoteProxySource, LiveAccess } from './remoteproxy';
 
 import { deleteDB, openDB } from 'idb/with-async-ittr.js';
-import { Canceled } from './utils.js';
-
-
-// Threshold size for switching to range requests 
-const MAX_FULL_DOWNLOAD_SIZE = 25000000;
+import { Canceled, MAX_FULL_DOWNLOAD_SIZE } from './utils.js';
 
 self.interruptLoads = {};
 
@@ -145,7 +141,12 @@ class CollectionLoader
         break;
 
       case "remotesource":
-        sourceLoader = createLoader(data.config.loadUrl, data.config.headers, data.config.size, data.config.extra);
+        sourceLoader = createLoader({
+          url: data.config.loadUrl,
+          headers: data.config.headers,
+          size: data.config.size,
+          extra: data.config.extra
+        });
         store = new RemoteSourceArchiveDB(data.config.dbname, sourceLoader, data.config.noCache);
         break;
 
@@ -154,7 +155,11 @@ class CollectionLoader
         break;        
 
       case "remotezip":
-        sourceLoader = createLoader(data.config.loadUrl || data.config.sourceUrl, data.config.headers, data.config.extra);
+        sourceLoader = createLoader({
+          url: data.config.loadUrl || data.config.sourceUrl,
+          headers: data.config.headers,
+          extra: data.config.extra
+        });
         store = new ZipRemoteArchiveDB(data.config.dbname, sourceLoader, data.config.extraConfig, data.config.noCache, data.config);
         break;
 
@@ -375,7 +380,13 @@ class WorkerLoader extends CollectionLoader
       config.extraConfig = data.extraConfig;
       config.noCache = loadUrl.startsWith("file:") || file.noCache;
 
-      const sourceLoader = createLoader(loadUrl, file.headers, file.size, config.extra, file.blob);
+      const sourceLoader = createLoader({
+        url: loadUrl,
+        headers: file.headers,
+        size: file.size,
+        extra: config.extra,
+        blob: file.blob
+      });
 
       let tryHeadOnly = false;
 
@@ -477,7 +488,8 @@ Make sure this is a valid URL and you have access to this file.`);
 
     const collData = {name, type, config};
     await this.colldb.add("colls", collData);
-    return true;
+    collData.store = db;
+    return collData;
   }
 
   async deleteCollection(name) {

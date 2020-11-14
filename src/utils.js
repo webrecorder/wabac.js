@@ -1,3 +1,6 @@
+// Threshold size for switching to range requests
+const MAX_FULL_DOWNLOAD_SIZE = 25000000;
+
 
 function startsWithAny(value, iter) {
   for (const str of iter) {
@@ -164,4 +167,4 @@ function sleep(millis) {
 
 export { startsWithAny, containsAny, getTS, getTSMillis, tsToDate, tsToSec, getSecondsStr, digestMessage,
          isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep,
-         RangeError, AuthNeededError, AccessDeniedError, Canceled };
+         RangeError, AuthNeededError, AccessDeniedError, Canceled, MAX_FULL_DOWNLOAD_SIZE };
