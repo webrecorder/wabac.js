@@ -378,7 +378,7 @@ class WorkerLoader extends CollectionLoader
       config.size = typeof(file.size) === "number" ? file.size : null;
       config.extra = file.extra;
       config.extraConfig = data.extraConfig;
-      config.noCache = loadUrl.startsWith("file:") || file.noCache;
+      config.noCache = file.noCache;
 
       const sourceLoader = createLoader({
         url: loadUrl,
@@ -400,8 +400,8 @@ class WorkerLoader extends CollectionLoader
         tryHeadOnly = true;
       }
       
-      let {abort, response, stream} = await sourceLoader.doInitialFetch(tryHeadOnly);
-      stream = stream || response.body;
+      let {abort, response} = await sourceLoader.doInitialFetch(tryHeadOnly);
+      const stream = response.body;
 
       if (!sourceLoader.isValid) {
         const text = sourceLoader.length <= 1000 ? await response.text() : "";

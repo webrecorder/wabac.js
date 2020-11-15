@@ -1,3 +1,5 @@
+import { getStatusText } from "http-status-codes";
+
 // Threshold size for switching to range requests
 const MAX_FULL_DOWNLOAD_SIZE = 25000000;
 
@@ -105,7 +107,7 @@ function isAjaxRequest(request) {
 }
 
 
-function notFound(request, msg) {
+function notFound(request, msg, status = 404) {
   let content;
   let contentType;
 
@@ -124,8 +126,8 @@ function notFound(request, msg) {
   //console.log(`Not Found ${request.destination} - ${msg}`);
 
   const initOpt = {
-    "status": 404,
-    "statusText": "Not Found",
+    "status": status,
+    "statusText": getStatusText(status),
     "headers": { "Content-Type": contentType }
   };
 
@@ -136,9 +138,8 @@ function notFound(request, msg) {
 // ===========================================================================
 class RangeError
 {
-  constructor(url, status) {
-    this.url = url;
-    this.status = status;
+  constructor(info = {}) {
+    this.info = info;
   }
 }
 

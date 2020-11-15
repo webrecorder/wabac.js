@@ -12,16 +12,27 @@ const IPFS_CORE_JS = "https://cdn.jsdelivr.net/npm/ipfs-core@0.2.0/dist/index.mi
 function createLoader(opts) {
   const { url } = opts;
 
-  if (url.startsWith("blob:")) {
-    return new BlobCacheLoader(opts);
-  } else if (url.startsWith("http:") || url.startsWith("https:") || url.startsWith("file:")) {
-    return new HttpRangeLoader(opts);
-  } else if (url.startsWith("googledrive:")) {
-    return new GoogleDriveLoader(opts);
-  } else if (url.startsWith("ipfs:")) {
-    return new IPFSRangeLoader(opts);
-  } else {
-    throw new Error("Invalid URL: " + url);
+  const scheme = url.split(":", 1)[0];
+
+  switch (scheme) {
+    case "blob":
+      return new BlobCacheLoader(opts);
+
+    case "http":
+    case "https":
+      return new HttpRangeLoader(opts);
+
+    case "file":
+      return new FileHandleLoader(opts);
+
+    case "googledrive":
+      return new GoogleDriveLoader(opts);
+
+    case "ipfs":
+      return new IPFSRangeLoader(opts);
+
+    default:
+      throw new Error("Invalid URL: " + url);
   }
 }
 
@@ -121,12 +132,14 @@ class HttpRangeLoader
     }
 
     if (resp.status != 206) {
+      const info = {url: this.url, status: resp.status};
+
       if (resp.status === 401) {
-        throw new AuthNeededError(this.url, resp.status);
+        throw new AuthNeededError(info);
       } else if (resp.status == 403) {
-        throw new AccessDeniedError(this.url, resp);
+        throw new AccessDeniedError(info);
       } else {
-        throw new RangeError(this.url, resp.status);
+        throw new RangeError(info);
       }
     }
 
@@ -307,11 +320,11 @@ class BlobCacheLoader
     this.arrayBuffer = this.blob.arrayBuffer ? await this.blob.arrayBuffer() : await this.getArrayBuffer();
     this.arrayBuffer = new Uint8Array(this.arrayBuffer);
 
-    const response = new Response(tryHead ? null : this.arrayBuffer);
-
     const stream = tryHead ? null : this.getReadableStream(this.arrayBuffer);
 
-    return {response, stream};
+    const response = new Response(stream);
+
+    return {response};
   }
 
   async getRange(offset, length, streaming = false, signal) {
@@ -345,9 +358,76 @@ class BlobCacheLoader
 }
 
 // ===========================================================================
+class FileHandleLoader
+{
+  constructor({blob, size, extra, url})
+  {
+    this.url = url;
+    this.file = blob;
+    this.size = this.blob ? this.blob.size : size;
+
+    this.fileHandle = extra.fileHandle;
+
+    this.canLoadOnDemand = true;
+  }
+
+  get length() {
+    return this.size;
+  }
+
+  get isValid() {
+    return !!this.file;
+  }
+
+  async getLength() {
+    return this.size;
+  }
+
+  async initFileObject() {
+    const options = {mode: "read"};
+
+    const curr = await this.fileHandle.queryPermission(options);
+
+    if (curr !== "granted") {
+      const requested = await this.fileHandle.requestPermission(options);
+
+      if (requested !== "granted") {
+        throw new AuthNeededError({fileHandle: this.fileHandle});
+      }
+    }
+
+    this.file = await this.fileHandle.getFile();
+  }
+
+  async doInitialFetch(tryHead = false) {
+    if (!this.file) {
+      await this.initFileObject();
+    }
+
+    const stream = tryHead ? null : this.file.stream();
+
+    const response = new Response(stream);
+
+    return {response};
+  }
+
+  async getRange(offset, length, streaming = false, signal) {
+    if (!this.file) {
+      await this.initFileObject();
+    }
+
+    const fileSlice = this.file.slice(offset, offset + length);
+
+    return streaming ? fileSlice.stream() : new Uint8Array(await fileSlice.arrayBuffer());
+  }
+}
+
+// ===========================================================================
 let ipfs = null;
 let initingIPFS = null;
 let ipfsGC = null;
+
+const GC_INTERVAL = 600000;
 
 class IPFSRangeLoader
 {
@@ -461,7 +541,7 @@ class IPFSRangeLoader
       if (ipfsGC) {
         clearInterval(ipfsGC);
       }
-      ipfsGC = setInterval(IPFSRangeLoader.runGC, 120000);
+      ipfsGC = setInterval(IPFSRangeLoader.runGC, GC_INTERVAL);
 
       if (streaming) {
         return this.getReadableStream(stream);
