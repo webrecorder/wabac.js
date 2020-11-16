@@ -53,6 +53,7 @@ class API {
       'urls': ':coll/urls',
       'deleteColl': [':coll', 'DELETE'],
       'updateAuth': [':coll/updateAuth', 'POST'],
+      'updateMetadata': [':coll/metadata', 'POST'],
       'curated': ':coll/curated/:list',
       'pages': ':coll/pages',
       'textIndex': ':coll/textIndex',
@@ -93,6 +94,7 @@ class API {
     let total;
     let count;
     let urls;
+    let requestJSON;
 
     switch (params._route) {
       case "index":
@@ -107,8 +109,14 @@ class API {
 
         if (params._query.get("all") === "1") {
           data.pages = await coll.store.getAllPages();
-          data.lists = await coll.store.db.getAll("pageLists");
-          data.curatedPages = await coll.store.db.getAll("curatedPages");
+          if (coll.store.db) {
+            data.lists = await coll.store.db.getAll("pageLists");
+            data.curatedPages = await coll.store.db.getAll("curatedPages");
+          } else {
+            data.lists = [];
+            data.curatedPages = [];
+          }
+
         } else {
           data.numLists = await coll.store.db.count("pageLists");
           data.numPages = await coll.store.db.count("pages");
@@ -123,8 +131,13 @@ class API {
         return await this.listAll();
 
       case "updateAuth":
-        const requestJSON = await request.json();
+        requestJSON = await request.json();
         return {"success": await this.collections.updateAuth(params.coll, requestJSON.headers)};
+
+      case "updateMetadata":
+        requestJSON = await request.json();
+        const metadata = await this.collections.updateMetadata(params.coll, requestJSON);
+        return {metadata};
 
       case "urls":
         coll = await this.collections.getColl(params.coll);
@@ -139,11 +152,16 @@ class API {
         const fromUrl = params._query.get("fromUrl");
         const fromTs = params._query.get("fromTs");
         const fromMime = params._query.get("fromMime");
+        const fromStatus = Number(params._query.get("fromStatus") || 0);
+
+        if (!coll.store.resourcesByMime) {
+          return {urls: []}
+        }
 
         if (url) {
           urls = await coll.store.resourcesByUrlAndMime(url, mime, count, prefix, fromUrl, fromTs);
         } else {
-          urls = await coll.store.resourcesByMime(mime, count, fromMime, fromUrl);
+          urls = await coll.store.resourcesByMime(mime, count, fromMime, fromUrl, fromStatus);
         }
 
         return {urls};
@@ -200,7 +218,15 @@ class API {
         const dl = new Downloader(coll.store, pageList, params.coll, coll.config.metadata);
 
         const format = params._query.get("format") || "wacz";
-        const filename = params._query.get("filename") || "webarchive";
+        let filename = params._query.get("filename");
+
+        // determine filename from title, if it exists
+        if (!filename && coll.config.metadata.title) {
+          filename = coll.config.metadata.title.toLowerCase().replace(/\s/g, "-");
+        }
+        if (!filename) {
+          filename = "webarchive";
+        }
 
         if (format === "wacz") {
           return dl.downloadWACZ(filename);

@@ -1,7 +1,7 @@
 "use strict";
 
 import { Collection } from './collection';
-import { CollectionLoader } from './loaders';
+import { WorkerLoader } from './loaders';
 
 import { notFound, isAjaxRequest } from './utils.js';
 import { StatsTracker } from './statstracker.js';
@@ -9,20 +9,21 @@ import { StatsTracker } from './statstracker.js';
 import { API } from './api.js';
 
 import WOMBAT from '../dist/wombat.js';
-import WOMBAT_WORKERS from 'wombat/src/wombatWorkers.js';
+import WOMBAT_WORKERS from '@webrecorder/wombat/src/wombatWorkers.js';
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 
 
 // ===========================================================================
-class SWCollections extends CollectionLoader
+class SWCollections extends WorkerLoader
 {
-  constructor(prefixes) {
-    super();
+  constructor(prefixes, root = null) {
+    super(self);
     this.prefixes = prefixes;
     this.colls = null;
     this.inited = null;
+    this.root = root;
   }
 
   _createCollection(opts) {
@@ -59,6 +60,15 @@ class SWCollections extends CollectionLoader
 
     await super.updateAuth(name, headers);
   }
+
+  async updateMetadata(name, newMetadata) {
+    const metadata = await super.updateMetadata(name, newMetadata);
+    if (this.colls[name] && metadata) {
+      this.colls[name].config.metadata = metadata;
+      this.colls[name].metadata = metadata;
+    }
+    return metadata;
+  }
 }
 
 
@@ -71,7 +81,11 @@ class SWReplay {
 
     const sp = new URLSearchParams(self.location.search);
 
-    const replayPrefixPath = sp.get("replayPrefix") || "wabac";
+    let replayPrefixPath = "wabac";
+
+    if (sp.has("replayPrefix")) {
+      replayPrefixPath = sp.get("replayPrefix");
+    }
 
     if (replayPrefixPath) {
       this.replayPrefix += replayPrefixPath + "/";
@@ -89,7 +103,7 @@ class SWReplay {
     this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
     this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
 
-    this.collections = new SWCollections(prefixes);
+    this.collections = new SWCollections(prefixes, sp.get("root"));
     this.collections.loadAll(sp.get("dbColl"));
 
     this.api = new API(this.collections);
@@ -127,8 +141,13 @@ class SWReplay {
       return this.defaultFetch(event.request);
     }
 
+    // special handling when root collection set: pass through any root files, eg. /index.html
+    if (this.collections.root && url.slice(this.prefix.length).indexOf("/") < 0) {
+      return this.defaultFetch(event.request);
+    }
+
     // handle replay / api
-    if (url.startsWith(this.replayPrefix)) {
+    if (url.startsWith(this.replayPrefix) && !url.startsWith(this.staticPrefix)) {
       return this.getResponseFor(event.request, event);
     }
 
@@ -192,7 +211,7 @@ class SWReplay {
     } catch(e) {
       response = await cache.match(request, {ignoreSearch: true});
       if (!response) {
-        response = notFound(request, "Sorry, this url was not caches for offline use");
+        response = notFound(request, "Sorry, this url was not cached for offline use");
       }
       return response;
     }
@@ -221,19 +240,20 @@ class SWReplay {
       return await this.api.apiResponse(request.url.slice(this.apiPrefix.length), request.method, request);
     }
 
+    if (request.method === "POST") {
+      request = await this.toGetRequest(request);
+    }
+
     await this.collections.inited;
 
     let response = null;
-
-    const isGet = (request.method === "GET");
-    const getRequest = (isGet || !this.allowRewrittenCache) ? request : await this.toGetRequest(request);
 
     const isAjax = isAjaxRequest(request);
     const range = request.headers.get('range');
 
     try {
-      if (!range) {
-        response = await self.caches.match(getRequest);
+      if (this.allowRewrittenCache && !range) {
+        response = await self.caches.match(request);
         if (response && !!response.headers.get(IS_AJAX_HEADER) === isAjax) {
           return response;
         }
@@ -242,7 +262,11 @@ class SWReplay {
       response = null;
     }
 
-    const collId = request.url.slice(this.replayPrefix.length).split("/", 1)[0];
+    let collId = this.collections.root;
+
+    if (!collId) {
+      collId = request.url.slice(this.replayPrefix.length).split("/", 1)[0];
+    }
 
     const coll = await this.collections.getColl(collId);
 
@@ -277,7 +301,7 @@ class SWReplay {
   async toGetRequest(request) {
     let query = null;
 
-    const contentType = request.headers.get("Content-Type");
+    const contentType = (request.headers.get("Content-Type") || "").split(";")[0];
 
     if (request.method === "POST" || request.method === "PUT") {
       switch (contentType) {
@@ -285,13 +309,10 @@ class SWReplay {
           query = await request.text();
           break;
 
-        default:
-          query = "____wabac_method=" + request.method.toLowerCase();
-          const buff = await request.arrayBuffer();
-          if (buff.byteLength > 0) {
-            const text = new TextDecoder().decode(buff);
-            query += "&" + btoa(text);
-          }
+        case "application/json":
+          query = await request.text();
+          query = "__wb_json_data=" + query.replace(/\n/g, "");
+          break;
       }
     }
 

@@ -22,14 +22,13 @@ class Collection {
 
     this.rootPrefix = prefixes.root || prefixes.main;
 
-    this.prefix = prefixes.main + this.name + "/";
+    this.prefix = prefixes.main;
 
     // support root collection hashtag nav
     if (this.config.root) {
-      this.appPrefix = prefixes.main + "#/";
       this.isRoot = true;
     } else {
-      this.appPrefix = this.prefix;
+      this.prefix += this.name + "/";
       this.isRoot = false;
     }
 
@@ -41,8 +40,6 @@ class Collection {
 
     if (wbUrlStr.startsWith(this.prefix)) {
       wbUrlStr = wbUrlStr.substring(this.prefix.length);
-    } else if (this.isRoot && wbUrlStr.startsWith(this.appPrefix)) {
-      wbUrlStr = wbUrlStr.substring(this.appPrefix.length);
     } else {
       return null;
     }
@@ -62,7 +59,7 @@ class Collection {
       const pages = await this.store.getAllPages();
 
       for (const page of pages) {
-        let href = this.appPrefix;
+        let href = this.prefix;
         if (page.date) {
           href += page.date + "/";
         }
@@ -82,6 +79,8 @@ class Collection {
 
     if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:") || wbUrlStr.startsWith("blob:"))) {
       requestURL = wbUrlStr;
+    } else if (!wbUrl && this.isRoot) {
+      requestURL = "https://" + wbUrlStr;
     } else if (!wbUrl) {
       return notFound(request, `Replay URL ${wbUrlStr} not found`);
     } else {
@@ -91,23 +90,18 @@ class Collection {
     }
 
     // force timestamp for root coll
-    if (!requestTS && this.isRoot) {
-      requestTS = "2";
-    }
+    //if (!requestTS && this.isRoot) {
+      //requestTS = "2";
+    //}
 
     if (!mod) {
-      return this.makeTopFrame(requestURL, requestTS);
+      return await this.makeTopFrame(requestURL, requestTS);
     }
 
     const hash = requestURL.indexOf("#");
     if (hash > 0) {
       requestURL = requestURL.substring(0, hash);
     }
-
-    const query = {"url": requestURL,
-                   "method": request.method,
-                   "request": request,
-                   "timestamp": requestTS};
 
     // exact or fuzzy match
     let response = null;
@@ -117,15 +111,18 @@ class Collection {
         response = this.getSrcDocResponse(requestURL, requestURL.slice("srcdoc:".length));
       } else if (requestURL.startsWith("blob:")) {
         response = await this.getBlobResponse(requestURL);
+      } else if (requestURL === "about:blank") {
+        response = await this.getSrcDocResponse(requestURL);
       } else {
+        const query = {
+          url: requestURL,
+          method: request.method,
+          timestamp: requestTS,
+          mod,
+          request
+        };
 
-        response = this.checkSlash(requestURL, requestTS, mod);
-
-        if (response) {
-          return response;
-        }
-
-        response = await this.store.getResource(query, this.prefix, event);
+        response = await this.getReplayResponse(query, event);
       }
     } catch (e) {
       if (e instanceof AuthNeededError) {
@@ -142,7 +139,7 @@ class Collection {
           }
         }
 
-        return notFound(request, `<p>Sorry, this URL requires authentication from the source.</p>`);
+        return notFound(request, `<p style="margin: auto">Please wait, this page will reload after authentication...</p>`);
       }
     }
 
@@ -151,12 +148,22 @@ class Collection {
       <p>Sorry, the URL <b>${requestURL}</b> is not in this archive.</p>
       <p><a target="_blank" href="${requestURL}">Try Live Version?</a></p>`;
       return notFound(request, msg);
+    } else if (response instanceof Response) {
+      // custom Response, not an ArchiveResponse, just return
+      return response;
     }
 
     if (!response.noRW) {
       const headInsertFunc = (url) => {
         const presetCookie = response.headers.get("x-wabac-preset-cookie");
-        return this.makeHeadInsert(url, requestTS, response.date, presetCookie, response.isLive);
+        return this.makeHeadInsert(url, requestTS, response.date, presetCookie, response.isLive, request.referrer);
+      };
+
+      const workerInsertFunc = (text) => {
+        return `
+        (function() { self.importScripts('${this.staticPrefix}wombatWorkers.js');\
+            new WBWombat({'prefix': '${this.prefix + requestTS}/', 'prefixMod': '${this.prefix + requestTS}wkrf_/', 'originalURL': '${requestURL}'});\
+        })();` + text;
       };
 
       const noRewrite = mod === "id_" || mod === "wkrf_";
@@ -167,6 +174,7 @@ class Collection {
         responseUrl: response.url,
         prefix,
         headInsertFunc,
+        workerInsertFunc,
         urlRewrite: !noRewrite,
         contentRewrite: !noRewrite,
         decode: this.config.decode
@@ -190,12 +198,12 @@ class Collection {
     return response.makeResponse();
   }
 
-  checkSlash(requestURL, requestTS, mod) {
+  checkSlash({url, timestamp, mod}) {
     try {
-      const parsed = new URL(requestURL);
-      if (parsed.pathname === "/" && parsed.href !== requestURL) {
-        let redirectUrl = this.prefix + requestTS + mod;
-        if (requestTS || mod) {
+      const parsed = new URL(url);
+      if (parsed.pathname === "/" && parsed.href !== url) {
+        let redirectUrl = this.prefix + timestamp + mod;
+        if (timestamp || mod) {
           redirectUrl += "/";
         }
         redirectUrl += parsed.href;
@@ -207,7 +215,9 @@ class Collection {
   }
 
   getSrcDocResponse(url, base64str) {
-    const payload = new TextEncoder().encode(decodeURIComponent(atob(base64str)));
+    const string = base64str ? decodeURIComponent(atob(base64str)) : "<!DOCTYPE html><html><head></head><body></body></html>";
+    const payload = new TextEncoder().encode(string);
+
     const status = 200;
     const statusText = "OK";
     const headers = new Headers({"Content-Type": "text/html"});
@@ -230,12 +240,36 @@ class Collection {
     return new ArchiveResponse({payload, status, statusText, headers, url, date});
   }
 
-  makeTopFrame(url, requestTS, isLive) {
+  async getReplayResponse(query, event) {
+    let response = this.checkSlash(query);
+
+    if (response) {
+      return response;
+    }
+
+    response = await this.store.getResource(query, this.prefix, event);
+
+    const {request, url} = query;
+
+    // necessary as service worker seem to not be allowed to return a redirect in some circumstances (eg. in extension)
+    if ((request.destination === "video" || request.destination === "audio") && request.mode !== "navigate") {
+      while (response && (response.status >= 301 && response.status < 400)) {
+        const newUrl = new URL(response.headers.get("location"), url);
+        query.url = newUrl.href;
+        console.log(`resolve redirect ${url} -> ${query.url}`);
+        response = await this.store.getResource(query, this.prefix, event);
+      }
+    }
+
+    return response;
+  }
+
+  async makeTopFrame(url, requestTS, isLive) {
     let baseUrl = null;
 
     if (this.config.extraConfig && this.config.extraConfig.baseUrl) {
       baseUrl = this.config.extraConfig.baseUrl;
-    } else if (this.config.sourceUrl) {
+    } else if (!this.isRoot && this.config.sourceUrl) {
       baseUrl = `/?source=${this.config.sourceUrl}`;
     }
 
@@ -244,7 +278,14 @@ class Collection {
       return Response.redirect(baseUrl + "#" + locParams);
     }
 
-    const content = `
+    let content = null;
+
+    if (this.config.topTemplateUrl) {
+      const resp = await fetch(this.config.topTemplateUrl);
+      const topTemplate = await resp.text();
+      content = topTemplate.replace("$URL", url).replace("$TS", requestTS).replace("$PREFIX", this.prefix);
+    } else {
+      content = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -275,7 +316,7 @@ window.home = "${this.rootPrefix}";
 </div>
 <script>
   var cframe = new ContentFrame({"url": "${url}",
-                                 "app_prefix": "${this.appPrefix}",
+                                 "app_prefix": "${this.prefix}",
                                  "content_prefix": "${this.prefix}",
                                  "request_ts": "${requestTS}",
                                  "iframe": "#replay_iframe"});
@@ -284,6 +325,8 @@ window.home = "${this.rootPrefix}";
 </body>
 </html>
 `
+    }
+
     let responseData = {
       "status": 200,
       "statusText": "OK",
@@ -293,10 +336,9 @@ window.home = "${this.rootPrefix}";
     return new Response(content, responseData);
   }
 
-  makeHeadInsert(url, requestTS, date, presetCookie, isLive) {
-
-    const topUrl = this.appPrefix + requestTS + (requestTS ? "/" : "") + url;
+  makeHeadInsert(url, requestTS, date, presetCookie, isLive, referrer) {
     const prefix = this.prefix;
+    const topUrl = prefix + requestTS + (requestTS ? "/" : "") + url;
     const coll = this.name;
 
     const seconds = getSecondsStr(date);
@@ -305,7 +347,14 @@ window.home = "${this.rootPrefix}";
 
     const urlParsed = new URL(url);
 
-    const scheme = urlParsed.protocol === 'blob:' ? 'https' : urlParsed.protocol.slice(0, -1);
+    let scheme;
+
+    // protocol scheme (for relative urls): if not http/https, try to get actual protocol from referrer
+    if (urlParsed.protocol !== "https:" && urlParsed.protocol !== "http:") {
+      scheme = (referrer && referrer.indexOf("/http://") > 0) ? "http" : "https";
+    } else {
+      scheme = urlParsed.protocol.slice(0, -1);
+    }
 
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
     return `

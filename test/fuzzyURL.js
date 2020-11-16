@@ -1,51 +1,63 @@
 "use strict";
 
 import test from 'ava';
-import { FuzzyMatcher, fuzzyCompareUrls } from '../src/fuzzymatcher';
+import { FuzzyMatcher } from '../src/fuzzymatcher';
 
 const fuzzy = new FuzzyMatcher();
 
-function fuzzyUrls(t, url, expectedResults) {
-  const result = [url];
-
-  for (const res of fuzzy.fuzzyUrls(url)) {
-    result.push(res);
-  }
-
-  t.deepEqual(result.slice(1), expectedResults);
+function fuzzyMatch(t, url, result, expected) {
+  t.deepEqual(fuzzy.fuzzyCompareUrls(url, [result]), result);
 }
 
-function fuzzyMatch(t, url, anotherUrl) {
-  for (const url1 of fuzzy.fuzzyUrls(url)) {
-    for (const url2 of fuzzy.fuzzyUrls(anotherUrl)) {
-      if (url1 === url2) {
-        t.pass('match found!');
-        return;
-      }
-    }
-  }
-
-  t.fail('match not found');
+function fuzzyMatchMany(t, url, results, expected) {
+  t.deepEqual(fuzzy.fuzzyCompareUrls(url, results), expected);
 }
 
-test('simple url', fuzzyUrls,
+function fuzzyCanonWithArgs(t, url, expected) {
+  const fuzzyCanonUrl = fuzzy.getFuzzyCanonWithArgs(url);
+  t.is(fuzzyCanonUrl, expected);
+}
+
+test('fuzzy canon args yt', fuzzyCanonWithArgs,
+  'https://www.youtube.com/get_video_info?foo=bar&html5=1&video_id=12345678&pn=JiUSOZ2NVdJy1uam&eurl=baz',
+  'https://youtube.fuzzy.replayweb.page/get_video_info?video_id=12345678'
+);
+
+test('fuzzy canon args yt 2', fuzzyCanonWithArgs,
+  'https://blah.blah.boo.googlevideo.com/videoplayback?foo=bar&itag=3&id=12345678&pn=JiUSOZ2NVdJy1uam&eurl=baz',
+  'https://youtube.fuzzy.replayweb.page/videoplayback?id=12345678&itag=3'
+);
+
+test('fuzzy canon args timestamp', fuzzyCanonWithArgs,
+  'https://example.com?1234',
+  'https://example.com?'
+);
+
+test('fuzzy canon args timestamp 2', fuzzyCanonWithArgs,
+  'https://example.com?_=1234',
+  'https://example.com?'
+);
+
+
+test('simple url', fuzzyMatch,
   'https://example.com/abc', 
-  [],
+  'https://example.com/abc'
 );
 
-test('no ext, _= timestamp', fuzzyUrls,
+
+test('no ext, _= timestamp', fuzzyMatch,
   'https://example.com/abc?_=1234',
-  ['https://example.com/abc']
+  'https://example.com/abc'
 );
 
-test('allowed ext', fuzzyUrls,
+test('allowed ext', fuzzyMatch,
   'https://example.com/abc.mp4?foo=bar&__123=xyz',
-  ['https://example.com/abc.mp4']
+  'https://example.com/abc.mp4'
 )
 
-test('other ext', fuzzyUrls,
+test('other ext', fuzzyMatch,
   'https://example.com/abc.asp?foo=bar&__123=xyz', 
-  []
+  'https://example.com/abc.asp?foo=bar&__123=xyz'
 )
 
 test('match ga utm', fuzzyMatch,
@@ -73,12 +85,8 @@ test('match yt2', fuzzyMatch,
 
 
 
-function fuzzyMatchScore(t, url, results, expected) {
-  t.deepEqual(fuzzyCompareUrls(url, results).result, expected);
-}
 
-
-test('compare score', fuzzyMatchScore,
+test('compare score', fuzzyMatchMany,
   'https://example.com/?_=123',
   [
    'https://example.com/?_=456',
@@ -89,7 +97,7 @@ test('compare score', fuzzyMatchScore,
 
 
 
-test('compare score 2', fuzzyMatchScore,
+test('compare score 2', fuzzyMatchMany,
   'https://example.com/?a=b',
   [
    'https://example.com/?c=d&_=456',
@@ -104,7 +112,7 @@ test('compare score 2', fuzzyMatchScore,
 );
 
 
-test('compare score 3', fuzzyMatchScore,
+test('compare score 3', fuzzyMatchMany,
   'https://example.com/?v=foo,bar',
   [
    'https://example.com/?v=foo&__=123',
@@ -115,7 +123,7 @@ test('compare score 3', fuzzyMatchScore,
   'https://example.com/?v=bar'
 );
 
-test('compare score 4', fuzzyMatchScore,
+test('compare score 4', fuzzyMatchMany,
   'https://example.com/?param=value',
   [
     'https://example.com/?__a=b&param=value',

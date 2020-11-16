@@ -49,6 +49,7 @@ test('DASH', async t => {
 
 
 // ===========================================================================
+/*
 test('FB DASH', async t => {
   const text = await fs.readFile(path.join(__dirname, "data", "sample_dash.mpd"), "utf-8");
 
@@ -83,7 +84,7 @@ test('FB DASH 2', async t => {
   // keep null
   t.deepEqual(res.dash_prefetched_representation_ids, null);
 });
-
+*/
 
 
 test('HLS DEFAULT MAX', async t => {
@@ -137,7 +138,7 @@ test('HLS DEFAULT OLD REPLAY MAX', async t => {
 #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=2505000,RESOLUTION=1280x720,CODECS="avc1.77.30, mp4a.40.2",SUBTITLES="WebVTT"
 http://example.com/video_5.m3u8`;
 
-  t.is(result, expected, result);
+  t.is(result, expected);
 });
 
 
@@ -169,5 +170,64 @@ const test4 = ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""
 `;
 
   const result = await doRewrite({content, contentType: "text/html", url: 'https://youtube.com/example.html'});
+  t.is(result, expected, result);
+});
+
+
+test('FB rewrite JS', async t => {
+
+  const content = `\
+<script>
+const test1 = {"dash_url": "foo", {"some_dash": "a", "data_dash_foo": 2}};
+</script>
+`;
+
+  const expected = `\
+<script>
+const test1 = {"__nodash__url": "foo", {"some__nodash__": "a", "data__nodash__foo": 2}};
+</script>
+`;
+
+  const result = await doRewrite({content, contentType: "text/html", url: 'https://www.facebook.com/data/example.html'});
   t.is(result, expected);
+});
+
+
+test("Twitter rewrite json", async t => {
+
+  const content = {
+    "video_info": {
+        "some_data": "other",
+        "variants": [{
+            "content_type": "application\/x-mpegURL",
+            "url": "https://example.com/A"
+        }, {
+            "bitrate": 256000,
+            "content_type": "video\/mp4",
+            "url": "https://example.com/B"
+        }, {
+            "bitrate": 2176000,
+            "content_type": "video\/mp4",
+            "url": "https://example.com/C"
+        }, {
+            "bitrate": 832000,
+            "content_type": "video\/mp4",
+            "url": "https://example.com/D"
+        }]
+    }
+  };
+
+  const expected = {
+    "video_info": {
+        "some_data": "other",
+        "variants": [{
+            "bitrate": 832000,
+            "content_type": "video\/mp4",
+            "url": "https://example.com/D"
+        }]
+    }
+  };
+
+  const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: 'https://api.twitter.com/2/some/endpoint'});
+  t.deepEqual(JSON.parse(result), expected);
 });

@@ -26,7 +26,7 @@ class RxRewriter
     this.rx = new RegExp(rxString, 'gm');
   }
 
-  doReplace(params) {
+  doReplace(params, opts) {
     const offset = params[params.length - 2];
     const string = params[params.length - 1];
 
@@ -36,19 +36,19 @@ class RxRewriter
         continue;
       }
 
-      const result = this.rules[i][1].call(this, curr, offset, string);
+      const result = this.rules[i][1].call(this, curr, opts, offset, string);
       if (result) {
         return result;
       }
     }
   }
 
-  rewrite(text) {
+  rewrite(text, opts) {
     if (!this.rx) {
       return text;
     }
 
-    return text.replace(this.rx, (match, ...params) => this.doReplace(params));
+    return text.replace(this.rx, (match, ...params) => this.doReplace(params, opts));
   }
 }
 

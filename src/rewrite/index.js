@@ -45,7 +45,8 @@ const baseRules = new DomainSpecificRuleSet(RxRewriter);
 
 // ===========================================================================
 class Rewriter {
-  constructor({baseUrl, prefix, responseUrl, headInsertFunc = null, urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
+  constructor({baseUrl, prefix, responseUrl, workerInsertFunc, headInsertFunc = null,
+               urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
     this.urlRewrite = urlRewrite;
     this.contentRewrite = contentRewrite;
     this.dsRules = urlRewrite && !useBaseRules ? jsRules : baseRules;
@@ -69,6 +70,7 @@ class Rewriter {
     this.url = this.baseUrl = baseUrl;
 
     this.headInsertFunc = headInsertFunc;
+    this.workerInsertFunc = workerInsertFunc;
   }
 
   getRewriteMode(request, response, url = "", mime = null) {
@@ -84,6 +86,9 @@ class Rewriter {
 
         case "script":
           return containsAny(url, JSONP_CONTAINS) ? "jsonp" : "js";
+
+        case "worker":
+          return "js-worker";
       }
     }
 
@@ -155,6 +160,10 @@ class Rewriter {
 
       case "json":
         rwFunc = this.rewriteJSON;
+        break;
+
+      case "js-worker":
+        rwFunc = this.workerInsertFunc;
         break;
 
       case "jsonp":
@@ -282,7 +291,13 @@ class Rewriter {
   }
 
 
-  rewriteAttrs(tag, attrRules) {
+  rewriteTagAndAttrs(tag, attrRules) {
+    const OBJECT_FLASH_DATA_RX = [{
+      "match": /youtube.com\/v\/([^&]+)[&]/,
+      "replace": "youtube.com/embed/$1?"
+    }]
+
+
     const isUrl = (val) => { return startsWithAny(val, DATA_RW_PROTOCOLS); }
 
     for (let attr of tag.attrs) {
@@ -291,7 +306,7 @@ class Rewriter {
 
       // js attrs
       if (name.startsWith("on") && value.startsWith("javascript:") && name.slice(2, 3) != "-") {
-        attr.value = "javascript:" + this.rewriteJS(value.slice("javascript:".length), {}, true);
+        attr.value = "javascript:" + this.rewriteJS(value.slice("javascript:".length), {inline: true});
       }
       // css attrs
       else if (name === "style") {
@@ -349,9 +364,20 @@ class Rewriter {
       else if (tag.tagName === "object" && name === "data") {
         const type = this.getAttr(tag.attrs, "type");
 
+        // convert object tag to iframe
         if (type === "application/pdf") {
           attr.name = "src";
           tag.tagName = "iframe";
+        } else if (type === "application/x-shockwave-flash") {
+          for (const rule of OBJECT_FLASH_DATA_RX) {
+            const value = attr.value.replace(rule.match, rule.replace);
+            if (value !== attr.value) {
+              attr.name = "src";
+              attr.value = this.rewriteUrl(value);
+              tag.tagName = "iframe";
+              break;
+            }
+          }
         }
       }
 
@@ -438,6 +464,7 @@ class Rewriter {
 
     let context = "";
     let scriptRw = false;
+    let replaceTag = null;
 
     const addInsert = () => {
       if (!insertAdded && hasData && this.headInsertFunc) {
@@ -454,7 +481,9 @@ class Rewriter {
 
       const tagRules = rewriteTags[startTag.tagName];
 
-      this.rewriteAttrs(startTag, tagRules || {});
+      const original = startTag.tagName;
+
+      this.rewriteTagAndAttrs(startTag, tagRules || {});
 
       if (!insertAdded && !["head", "html"].includes(startTag.tagName)) {
         hasData = true;
@@ -481,12 +510,20 @@ class Rewriter {
             context = startTag.tagName;
           }
           break;
+      }
 
+      if (startTag.tagName !== original) {
+        context = original;
+        replaceTag = startTag.tagName;
       }
     });
 
     rwStream.on('endTag', endTag => {
       if (endTag.tagName === context) {
+        if (replaceTag) {
+          endTag.tagName = replaceTag;
+          replaceTag = null;
+        }
         context = "";
       }
       rwStream.emitEndTag(endTag);
@@ -546,7 +583,7 @@ class Rewriter {
   }
 
   // JS
-  rewriteJS(text, opts, inline) {
+  rewriteJS(text, opts) {
     const noUrlProxyRewrite = opts && !opts.rewriteUrl;
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
@@ -585,17 +622,17 @@ class Rewriter {
       }
     }
 
-    return dsRewriter.rewrite(text, inline);
+    return dsRewriter.rewrite(text, opts);
   }
 
   // JSON
-  rewriteJSON(text) {
+  rewriteJSON(text, opts) {
     text = this.rewriteJSONP(text);
 
     const dsRewriter = baseRules.getRewriter(this.baseUrl);
 
     if (dsRewriter !== baseRules.defaultRewriter) {
-      return dsRewriter.rewrite(text);
+      return dsRewriter.rewrite(text, opts);
     }
 
     return text;

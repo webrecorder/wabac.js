@@ -22,9 +22,6 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     this.fullConfig = fullConfig;
     this.textIndex = fullConfig && fullConfig.metadata && fullConfig.metadata.textIndex;
 
-    //todo: make this configurable by user?
-    sourceLoader.canLoadOnDemand = true;
-
     if (extraConfig) {
       this.initConfig(extraConfig);
     }
@@ -48,7 +45,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 
   async close() {
     super.close();
-    caches.delete("cache:" + this.name);
+    caches.delete("cache:" + this.name.slice("db:".length));
   }
 
   async clearZipData() {
@@ -527,7 +524,7 @@ class ZipRangeReader
     //  * Published under a MIT license.
     // * https://github.com/Rob--W/zipinfo.js
     const length = data.byteLength;
-    const view = new DataView(data.buffer);
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
 
     const utf8Decoder = new TextDecoder("utf8");
     const asciiDecoder = new TextDecoder("ascii");
@@ -703,7 +700,7 @@ class ZipRangeReader
 
     if (entry.offset === undefined) {
       const header = await this.loader.getRange(entry.localEntryOffset, 30);
-      const view = new DataView(header.buffer);
+      const view = new DataView(header.buffer, header.byteOffset, header.byteLength);
 
       const fileNameLength = view.getUint16(26, true);
       const extraFieldLength = view.getUint16(28, true);

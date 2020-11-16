@@ -9,7 +9,9 @@ import { json2csvAsync } from 'json-2-csv';
 
 import { WARCRecord, WARCSerializer } from 'warcio';
 
-import { getTS } from './utils';
+import { getStatusText } from 'http-status-codes';
+
+import { getTSMillis } from './utils';
 
 
 
@@ -172,14 +174,20 @@ class Downloader
 
       for (const resource of this.resources) {
         resource.offset = offset;
-        const chunk = await this.createWARCRecord(resource);
-        if (!chunk) {
+        const records = await this.createWARCRecord(resource);
+        if (!records) {
           resource.skipped = true;
           continue;
         }
-        yield chunk;
-        offset += chunk.length;
-        resource.length = offset;
+
+        yield records[0];
+        offset += records[0].length;
+        resource.length = records[0].length;
+
+        if (records.length > 1) {
+          yield records[1];
+          offset += records[1].length;
+        }
       }
     } catch (e) {
       console.warn(e);
@@ -202,7 +210,7 @@ class Downloader
         const chunk = await this.createTextWARCRecord(resource);
         yield chunk;
         offset += chunk.length;
-        resource.length = offset;
+        resource.length = chunk.length;
       }
     } catch (e) {
       console.warn(e);
@@ -370,7 +378,7 @@ class Downloader
   async createWARCRecord(resource) {
     const url = resource.url;
     const date = new Date(resource.ts).toISOString();
-    resource.timestamp = getTS(date);
+    resource.timestamp = getTSMillis(date);
     const httpHeaders = resource.respHeaders;
     const warcVersion = "WARC/1.1";
 
@@ -397,7 +405,7 @@ class Downloader
 
       // if exact resource in a row, and same page, then just skip instead of writing revisit
       if (url === this.lastUrl && pageId === this.lastPageId) {
-        console.log("Skip Dupe: " + url);
+        //console.log("Skip Dupe: " + url);
         return null;
       }
 
@@ -409,9 +417,8 @@ class Downloader
       refersToDate = digestOriginal.date;
 
     } else if (resource.origURL && resource.origTS) {
-      return null;
       if (!resource.digest) {
-        console.log("Skip fuzzy resource with no digest");
+        //console.log("Skip fuzzy resource with no digest");
         return null;
       }
 
@@ -429,27 +436,59 @@ class Downloader
       }
 
       if (!payload) {
-        console.log("Skipping No Payload For: " + url, resource);
-        return;
+        //console.log("Skipping No Payload For: " + url, resource);
+        return null;
       }
+
       this.digestsVisted[resource.digest] = {url, date};
     }
 
+    const status = resource.status || 200;
+    const statusText = resource.statusText || getStatusText(status);
+
+    const statusline = `HTTP/1.1 ${status} ${statusText}`;
+
     const record = await WARCRecord.create({
-      url, date, type, warcHeaders, httpHeaders, warcVersion, refersToUrl, refersToDate}, getPayload(payload));
+      url, date, type, warcVersion, warcHeaders, statusline, httpHeaders,
+      refersToUrl, refersToDate}, getPayload(payload));
 
     const buffer = await WARCSerializer.serialize(record, {gzip: true});
     if (!resource.digest) {
       resource.digest = record.warcPayloadDigest;
     }
+
     this.lastPageId = pageId;
     this.lastUrl = url;
-    return buffer;
+
+    const records = [buffer];
+
+    if (resource.reqHeaders) {
+      const reqWarcHeaders = {
+        "WARC-Page-ID": pageId,
+        "WARC-Concurrent-To": record.warcHeader("WARC-Record-ID")
+      };
+
+      const method = resource.method || "GET";
+      const urlParsed = new URL(url);
+      const statusline = method + " " + url.slice(urlParsed.origin.length);
+
+      const reqRecord = await WARCRecord.create({
+        url, date, warcVersion,
+        type: "request",
+        warcHeaders: reqWarcHeaders,
+        httpHeaders: resource.reqHeaders,
+        statusline,
+      }, getPayload(new Uint8Array([])));
+
+      records.push(await WARCSerializer.serialize(reqRecord, {gzip: true}));
+    }
+
+    return records;
   }
 
   async createTextWARCRecord(resource) {
     const date = new Date(resource.ts).toISOString();
-    const timestamp = getTS(date);
+    const timestamp = getTSMillis(date);
     resource.timestamp = timestamp;
     const url = `urn:text:${timestamp}/${resource.url}`;
     resource.url = url;

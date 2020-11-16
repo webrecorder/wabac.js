@@ -23,13 +23,17 @@ function getTS(iso) {
   return iso.replace(/[-:T]/g, '').slice(0, 14);
 }
 
+function getTSMillis(iso) {
+  return iso.replace(/[-:.TZ]/g, '');
+}
+
 function tsToDate(ts) {
   if (!ts) {
     return new Date();
   }
 
-  if (ts.length < 14) {
-    ts += "00000101000000".substr(ts.length);
+  if (ts.length < 17) {
+    ts += "00000101000000000".substr(ts.length);
   }
 
   const datestr = (ts.substring(0, 4) + "-" +
@@ -37,7 +41,8 @@ function tsToDate(ts) {
     ts.substring(6, 8) + "T" +
     ts.substring(8, 10) + ":" +
     ts.substring(10, 12) + ":" +
-    ts.substring(12, 14) + "-00:00");
+    ts.substring(12, 14) + "." + 
+    ts.substring(14) + "Z");
 
   return new Date(datestr);
 };
@@ -58,12 +63,16 @@ function getSecondsStr(date) {
   }
 }
 
+function base16(hashBuffer) {
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function digestMessage(message, hashtype) {
   const msgUint8 = typeof(message) === "string" ? new TextEncoder().encode(message) : message;
   const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);
-  const hashArray = new Uint8Array(hashBuffer);
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashtype + ":" + hashHex;
+  return hashtype + ":" + base16(hashBuffer);
+
 }
 
 function makeHeaders(headers) {
@@ -135,11 +144,24 @@ class AuthNeededError extends RangeError
 
 }
 
+class AccessDeniedError extends RangeError
+{
+  constructor(url, resp) {
+    super(url, resp.status);
+    this.resp = resp;
+  }
+}
+
 class Canceled
 {
 
 }
 
+function sleep(millis) {
+  return new Promise((resolve) => setTimeout(resolve, millis));
+}
 
-export { startsWithAny, containsAny, getTS, tsToDate, tsToSec, getSecondsStr, digestMessage,
-         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, RangeError, AuthNeededError, Canceled };
+
+export { startsWithAny, containsAny, getTS, getTSMillis, tsToDate, tsToSec, getSecondsStr, digestMessage,
+         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep,
+         RangeError, AuthNeededError, AccessDeniedError, Canceled };

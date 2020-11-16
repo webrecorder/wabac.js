@@ -11,7 +11,7 @@ import { CDXLoader, CDXFromWARCLoader } from './cdxloader';
 
 import { createLoader } from './blockloaders';
 
-import { RemoteProxySource, LiveAccess } from './remoteproxy';
+import { RemoteWARCProxy, RemoteProxySource, LiveAccess } from './remoteproxy';
 
 import { deleteDB, openDB } from 'idb/with-async-ittr.js';
 import { Canceled } from './utils.js';
@@ -110,6 +110,19 @@ class CollectionLoader
     return true;
   }
 
+  async updateMetadata(name, newMetadata) {
+    await this._init_db;
+    const data = await this.colldb.get("colls", name);
+    if (!data) {
+      return false;
+    }
+    const metadata = data.config.metadata || {};
+    Object.assign(metadata, newMetadata);
+
+    await this.colldb.put("colls", data);
+    return metadata;
+  }
+
   async updateSize(name, size, dedupSize) {
     await this._init_db;
     const data = await this.colldb.get("colls", name);
@@ -124,41 +137,34 @@ class CollectionLoader
 
   async _initColl(data) {
     let store = null;
+    let sourceLoader = null;
 
     switch (data.type) {
       case "archive":
         store = new ArchiveDB(data.config.dbname);
         break;
 
-      case "remotewarc":
-      {
-        if (data.config.singleFile) {
-          const sourceLoader = createLoader(data.config.loadUrl || data.config.sourceUrl, data.config.headers, data.config.size, data.config.extra);
-          store = new RemoteSourceArchiveDB(data.config.dbname, sourceLoader, data.config.noCache);
-        } else {
-          store = new RemotePrefixArchiveDB(data.config.dbname, data.config.remotePrefix, data.config.headers, data.config.noCache);
-        }
-        break;
-      }
-
       case "remotesource":
-      {
-        const sourceLoader = createLoader(data.config.loadUrl, data.config.headers, data.config.size, data.config.extra);
+        sourceLoader = createLoader(data.config.loadUrl, data.config.headers, data.config.size, data.config.extra);
         store = new RemoteSourceArchiveDB(data.config.dbname, sourceLoader, data.config.noCache);
         break;
-      }
 
       case "remoteprefix":
         store = new RemotePrefixArchiveDB(data.config.dbname, data.config.remotePrefix, data.config.headers, data.config.noCache);
         break;        
 
       case "remotezip":
-        const sourceLoader = createLoader(data.config.loadUrl || data.config.sourceUrl, data.config.headers, data.config.extra);
+        sourceLoader = createLoader(data.config.loadUrl || data.config.sourceUrl, data.config.headers, data.config.extra);
         store = new ZipRemoteArchiveDB(data.config.dbname, sourceLoader, data.config.extraConfig, data.config.noCache, data.config);
         break;
 
       case "remoteproxy":
+        //TODO remove?
         store = new RemoteProxySource(data.config);
+        break;
+
+      case "remotewarcproxy":
+        store = new RemoteWARCProxy(data.config);
         break;
 
       case "live":
@@ -318,152 +324,153 @@ class WorkerLoader extends CollectionLoader
     const name = data.name;
 
     let type = null;
-    let config = {root: false};
+    let config = {root: data.root || false};
     let db = null;
 
-    if (data.file) {
-      const file = data.file;
+    const file = data.file;
 
+    if (!file || !file.sourceUrl) {
+      progressUpdate(0, `Invalid Load Request`);
+      return false;
+    }
+
+    if (file.sourceUrl.startsWith("proxy:")) {
+      config.sourceUrl = file.sourceUrl.slice("proxy:".length);
+      config.extraConfig = data.extraConfig;
+      config.topTemplateUrl = data.topTemplateUrl;
+      type = "remotewarcproxy";
+
+    } else {
       let loader = null;
 
-      if (file.sourceUrl) {
-        type = "archive";
-        config.dbname = "db:" + name;
+      type = "archive";
+      config.dbname = "db:" + name;
 
-        let loadUrl = file.loadUrl || file.sourceUrl;
+      let loadUrl = file.loadUrl || file.sourceUrl;
 
-        if (!loadUrl.match(/[\w]+:\/\//)) {
-          loadUrl = new URL(loadUrl, self.location.href).href;
+      if (!loadUrl.match(/[\w]+:\/\//)) {
+        loadUrl = new URL(loadUrl, self.location.href).href;
+      }
+
+      config.decode = true;
+      config.onDemand = false;
+      config.loadUrl = loadUrl;
+      config.sourceUrl = file.sourceUrl;
+
+      config.sourceName = file.name || file.sourceUrl;
+
+      // parse to strip out query and fragment
+      try {
+        if (config.sourceName.match(/https?:\/\//)) {
+          config.sourceName = new URL(config.sourceName).pathname;
         }
+      } catch (e) {
 
-        config.decode = true;
-        config.onDemand = false;
-        config.loadUrl = loadUrl;
-        config.sourceUrl = file.sourceUrl;
+      }
+      config.sourceName = config.sourceName.slice(config.sourceName.lastIndexOf("/") + 1);
 
-        config.sourceName = file.name || file.sourceUrl;
+      config.headers = file.headers;
+      config.size = typeof(file.size) === "number" ? file.size : null;
+      config.extra = file.extra;
+      config.extraConfig = data.extraConfig;
+      config.noCache = loadUrl.startsWith("file:") || file.noCache;
 
-        // parse to strip out query and fragment
-        try {
-          if (config.sourceName.match(/https?:\/\//)) {
-            config.sourceName = new URL(config.sourceName).pathname;
-          }
-        } catch (e) {
+      const sourceLoader = createLoader(loadUrl, file.headers, file.size, config.extra, file.blob);
 
-        }
-        config.sourceName = config.sourceName.slice(config.sourceName.lastIndexOf("/") + 1);
+      let tryHeadOnly = false;
 
-        config.headers = file.headers;
-        config.size = typeof(file.size) === "number" ? file.size : null;
-        config.extra = file.extra;
-        config.extraConfig = data.extraConfig;
-        config.noCache = loadUrl.startsWith("file:") || file.noCache;
+      if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
+        db = new ZipRemoteArchiveDB(config.dbname, sourceLoader, config.extraConfig, config.noCache, config);
+        type = "remotezip";
+        // is its own loader
+        loader = db;
 
-        const sourceLoader = createLoader(loadUrl, file.headers, file.size, config.extra, file.blob);
+        // do HEAD request only
+        tryHeadOnly = true;
+      }
+      
+      let {abort, response, stream} = await sourceLoader.doInitialFetch(tryHeadOnly);
+      stream = stream || response.body;
 
-        let tryHeadOnly = false;
-
-        if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
-          db = new ZipRemoteArchiveDB(config.dbname, sourceLoader, config.extraConfig, config.noCache, config);
-          type = "remotezip";
-          // is its own loader
-          loader = db;
-
-          // do HEAD request only
-          tryHeadOnly = true;
-        }
-        
-        let {abort, response, stream} = await sourceLoader.doInitialFetch(tryHeadOnly);
-        stream = stream || response.body;
-
-        if (!sourceLoader.isValid) {
-          const text = sourceLoader.length <= 1000 ? await response.text() : "";
-          progressUpdate(0, `\
+      if (!sourceLoader.isValid) {
+        const text = sourceLoader.length <= 1000 ? await response.text() : "";
+        progressUpdate(0, `\
 Sorry, this URL could not be loaded.
 Make sure this is a valid URL and you have access to this file.
 Status: ${response.status} ${response.statusText}
 Error Details:
 ${text}`);
-          if (abort) {
-            abort.abort();
-          }
-          return false;
+        if (abort) {
+          abort.abort();
         }
+        return false;
+      }
 
-        if (!sourceLoader.length) {
-          progressUpdate(0, `\
+      if (!sourceLoader.length) {
+        progressUpdate(0, `\
 Sorry, this URL could not be loaded because the size of the file is not accessible.
 Make sure this is a valid URL and you have access to this file.`);
-          if (abort) {
-            abort.abort();
-          }
-          return false;
+        if (abort) {
+          abort.abort();
         }
-
-        const contentLength = sourceLoader.length;
-
-        if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
-          if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !sourceLoader.canLoadOnDemand) {
-            loader = new WARCLoader(stream, abort, name);
-          } else {
-            loader = new CDXFromWARCLoader(stream, abort, name);
-            type = "remotesource";
-            db = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
-          }
-
-        } else if (config.sourceName.endsWith(".cdxj") || config.sourceName.endsWith(".cdx")) {
-          config.remotePrefix = data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
-          loader = new CDXLoader(stream, abort, name);
-          type = "remoteprefix";
-          db = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
-        
-        } else if (config.sourceName.endsWith(".wbn")) {
-          //todo: fix
-          loader = new WBNLoader(await response.arrayBuffer());
-          config.decode = false;
-
-        } else if (config.sourceName.endsWith(".har")) {
-          //todo: fix
-          loader = new HARLoader(await response.json());
-          config.decode = false;
-        }
-
-        if (!loader) {
-          progressUpdate(0, `The ${config.sourceName} is not a known archive format that could be loaded.`);
-          if (abort) {
-            abort.abort();
-          }
-          return false;
-        }
-
-        if (!db) {
-          db = new ArchiveDB(config.dbname);
-        }
-        await db.initing;
-
-        config.onDemand = sourceLoader.canLoadOnDemand;
-
-        try {
-          config.metadata = await loader.load(db, progressUpdate, contentLength);
-        } catch (e) {
-          if (!(e instanceof Canceled)) {
-            progressUpdate(0, `Unexpected Loading Error: ${e.toString()}`);
-          }
-          return false;
-        }
-
-        if (!config.metadata.size) {
-          config.metadata.size = contentLength;
-        }
+        return false;
       }
+
+      const contentLength = sourceLoader.length;
+
+      if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
+        if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !sourceLoader.canLoadOnDemand) {
+          loader = new WARCLoader(stream, abort, name);
+        } else {
+          loader = new CDXFromWARCLoader(stream, abort, name);
+          type = "remotesource";
+          db = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
+        }
+
+      } else if (config.sourceName.endsWith(".cdxj") || config.sourceName.endsWith(".cdx")) {
+        config.remotePrefix = data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
+        loader = new CDXLoader(stream, abort, name);
+        type = "remoteprefix";
+        db = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
       
-    } else if (data.remote) {
-      type = "remoteproxy";
-      config = data.remote;
-      config.sourceName = config.replayPrefix;
-    } else {
-      progressUpdate(0, `Invalid Load Request`);
-      return false;
+      } else if (config.sourceName.endsWith(".wbn")) {
+        //todo: fix
+        loader = new WBNLoader(await response.arrayBuffer());
+        config.decode = false;
+
+      } else if (config.sourceName.endsWith(".har")) {
+        //todo: fix
+        loader = new HARLoader(await response.json());
+        config.decode = false;
+      }
+
+      if (!loader) {
+        progressUpdate(0, `The ${config.sourceName} is not a known archive format that could be loaded.`);
+        if (abort) {
+          abort.abort();
+        }
+        return false;
+      }
+
+      if (!db) {
+        db = new ArchiveDB(config.dbname);
+      }
+      await db.initing;
+
+      config.onDemand = sourceLoader.canLoadOnDemand;
+
+      try {
+        config.metadata = await loader.load(db, progressUpdate, contentLength);
+      } catch (e) {
+        if (!(e instanceof Canceled)) {
+          progressUpdate(0, `Unexpected Loading Error: ${e.toString()}`);
+        }
+        return false;
+      }
+
+      if (!config.metadata.size) {
+        config.metadata.size = contentLength;
+      }
     }
 
     config.ctime = new Date().getTime();

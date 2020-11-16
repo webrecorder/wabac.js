@@ -187,5 +187,5 @@ function _rewriteDASH(text, opts, bestIds) {
 
 
 // ===========================================================================
-export { rewriteHLS, rewriteDASH, dashOutputOpts };
+export { rewriteHLS, rewriteDASH, dashOutputOpts, DEFAULT_MAX_BAND };
 
