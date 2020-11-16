@@ -43,6 +43,16 @@ class SWCollections extends WorkerLoader
     return this.colls[name];
   }
 
+  async addCollection(data, progressUpdate) {
+    const opts = await super.addCollection(data, progressUpdate);
+
+    if (opts && opts.name) {
+      this.colls[opts.name] = this._createCollection(opts);
+    }
+
+    return opts;
+  }
+
   async deleteColl(name) {
     if (this.colls[name]) {
       await this.colls[name].store.delete();

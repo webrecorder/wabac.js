@@ -134,12 +134,13 @@ class Collection {
             client.postMessage({
               source: this.config.sourceUrl,
               coll: this.name,
-              type: "authneeded"
+              type: "authneeded",
+              fileHandle: e.info.fileHandle,
             });
           }
-        }
+        } 
 
-        return notFound(request, `<p style="margin: auto">Please wait, this page will reload after authentication...</p>`);
+        return notFound(request, `<p style="margin: auto">Please wait, this page will reload after authentication...</p>`, 401);
       }
     }
 

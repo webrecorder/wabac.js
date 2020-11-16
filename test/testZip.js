@@ -54,7 +54,7 @@ test('test range', async t => {
 
 
 test('load test.zip entries', async t => {
-  const zipreader = new ZipRangeReader(createLoader(t.context.baseUrl + "/example.zip"));
+  const zipreader = new ZipRangeReader(createLoader({url: t.context.baseUrl + "/example.zip"}));
 
   const entries = await zipreader.load();
 
@@ -70,7 +70,7 @@ test('load test.zip entries', async t => {
 
 
 test('load test.zip file fully', async t => {
-  const zipreader = new ZipRangeReader(createLoader(t.context.baseUrl + "/example.zip"));
+  const zipreader = new ZipRangeReader(createLoader({url: t.context.baseUrl + "/example.zip"}));
 
   const reader = await zipreader.loadFile('indexes/index.cdxj');
 
@@ -88,7 +88,7 @@ org,iana,www)/ 20140126200624 {"url":"http://www.iana.org/","mime":"text/html","
 
 
 test('load test.zip WARC.GZ record', async t => {
-  const zipreader = new ZipRangeReader(createLoader(t.context.baseUrl + "/example.zip"));
+  const zipreader = new ZipRangeReader(createLoader({url: t.context.baseUrl + "/example.zip"}));
 
   const reader = await zipreader.loadFileCheckDirs('example.warc.gz', 784, 1228);
 
@@ -106,7 +106,7 @@ test('load test.zip WARC.GZ record', async t => {
 });
 
 test('load test.zip WARC record', async t => {
-  const zipreader = new ZipRangeReader(createLoader(t.context.baseUrl + "/example.zip"));
+  const zipreader = new ZipRangeReader(createLoader({url: t.context.baseUrl + "/example.zip"}));
 
   const reader = await zipreader.loadFileCheckDirs('example-iana.org-chunked.warc', 405, 7970);
 

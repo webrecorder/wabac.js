@@ -1,26 +1,45 @@
 import { AuthNeededError, AccessDeniedError, sleep } from "./utils";
 
+import { AsyncIterReader } from 'warcio';
+
 // todo: make configurable
 const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
 
+const IPFS_CORE_JS = "https://cdn.jsdelivr.net/npm/ipfs-core@0.2.0/dist/index.min.js";
+
 
 // ===========================================================================
-function createLoader(url, headers, size, extra, blob) {
-  if (url.startsWith("blob:")) {
-    return new BlobLoader(url, blob, size);
-  } else if (url.startsWith("http:") || url.startsWith("https:") || url.startsWith("file:")) {
-    return new HttpRangeLoader(url, headers, size);
-  } else if (url.startsWith("googledrive:")) {
-    return new GoogleDriveLoader(url, headers, size, extra);
-  } else {
-    throw new Error("Invalid URL: " + url);
+function createLoader(opts) {
+  const { url } = opts;
+
+  const scheme = url.split(":", 1)[0];
+
+  switch (scheme) {
+    case "blob":
+      return new BlobCacheLoader(opts);
+
+    case "http":
+    case "https":
+      return new HttpRangeLoader(opts);
+
+    case "file":
+      return new FileHandleLoader(opts);
+
+    case "googledrive":
+      return new GoogleDriveLoader(opts);
+
+    case "ipfs":
+      return new IPFSRangeLoader(opts);
+
+    default:
+      throw new Error("Invalid URL: " + url);
   }
 }
 
 // ===========================================================================
 class HttpRangeLoader
 {
-  constructor(url, headers, length = null, canLoadOnDemand = false) {
+  constructor({url, headers, length = null, canLoadOnDemand = false}) {
     this.url = url;
     this.headers = headers || {};
     this.length = length;
@@ -113,12 +132,14 @@ class HttpRangeLoader
     }
 
     if (resp.status != 206) {
+      const info = {url: this.url, status: resp.status};
+
       if (resp.status === 401) {
-        throw new AuthNeededError(this.url, resp.status);
+        throw new AuthNeededError(info);
       } else if (resp.status == 403) {
-        throw new AccessDeniedError(this.url, resp);
+        throw new AccessDeniedError(info);
       } else {
-        throw new RangeError(this.url, resp.status);
+        throw new RangeError(info);
       }
     }
 
@@ -133,8 +154,8 @@ class HttpRangeLoader
 // ===========================================================================
 class GoogleDriveLoader
 {
-  constructor(sourceUrl, headers, size, extra) {
-    this.fileId = sourceUrl.slice("googledrive://".length);
+  constructor({url, headers, size, extra}) {
+    this.fileId = url.slice("googledrive://".length);
     this.apiUrl = `https://www.googleapis.com/drive/v3/files/${this.fileId}?alt=media`;
     this.canLoadOnDemand = true;
 
@@ -157,7 +178,7 @@ class GoogleDriveLoader
     let result = null;
 
     if (this.publicUrl) {
-      loader = new HttpRangeLoader(this.publicUrl, null, this.length);
+      loader = new HttpRangeLoader({url: this.publicUrl, length: this.length});
       try {
         result = await loader.doInitialFetch(tryHead);
       } catch(e) {}
@@ -169,7 +190,7 @@ class GoogleDriveLoader
         }
 
         if (await this.refreshPublicUrl()) {
-          loader = new HttpRangeLoader(this.publicUrl, null, this.length);
+          loader = new HttpRangeLoader({url: this.publicUrl, length: this.length});
           try {
             result = await loader.doInitialFetch(tryHead);
           } catch(e) {}
@@ -183,7 +204,7 @@ class GoogleDriveLoader
 
     if (!loader || !loader.isValid) {
       this.publicUrl = null;
-      loader = new HttpRangeLoader(this.apiUrl, this.headers, this.length);
+      loader = new HttpRangeLoader({url: this.apiUrl, headers: this.headers, length: this.length});
       result = await loader.doInitialFetch(tryHead);
     }
 
@@ -198,13 +219,13 @@ class GoogleDriveLoader
     let loader = null;
 
     if (this.publicUrl) {
-      loader = new HttpRangeLoader(this.publicUrl, null, this.length);
+      loader = new HttpRangeLoader({url: this.publicUrl, length: this.length});
 
       try {
         return await loader.getRange(offset, length, streaming, signal);
       } catch (e) {
         if (await this.refreshPublicUrl()) {
-          loader = new HttpRangeLoader(this.publicUrl, null, this.length);
+          loader = new HttpRangeLoader({url: this.publicUrl, length: this.length});
           try {
             return await loader.getRange(offset, length, streaming, signal);
           } catch(e) {
@@ -217,7 +238,7 @@ class GoogleDriveLoader
       this.publicUrl = null;
     }
 
-    loader = new HttpRangeLoader(this.apiUrl, this.headers, this.length);
+    loader = new HttpRangeLoader({url: this.apiUrl, headers: this.headers, length: this.length});
 
     let backoff = 50;
 
@@ -256,17 +277,16 @@ class GoogleDriveLoader
 
 
 // ===========================================================================
-class BlobLoader
+class BlobCacheLoader
 {
-  constructor(url, blob = null, size = null) {
+  constructor({url, blob = null, size = null, extra = null}) {
     this.url = url;
     this.blob = blob;
     this.size = this.blob ? this.blob.size : size;
 
-    // This is false since range-request/on-demand loading can initially be supported
-    // blob urls are short-lived and can't be relied on in future sessions
-    // Returning false ensures that the entire archive is buffered locally
-    this.canLoadOnDemand = false;
+    this.arrayBuffer = extra && extra.arrayBuffer || null;
+
+    this.canLoadOnDemand = true;
   }
 
   get length() {
@@ -275,23 +295,6 @@ class BlobLoader
 
   get isValid() {
     return !!this.blob;
-  }
-
-  async doInitialFetch(tryHead) {
-    if (!this.blob) {
-      const response = await fetch(this.url);
-      this.blob = await response.blob();
-    }
-
-    let stream = null;
-    
-    if (!tryHead) {
-      stream = this.blob.stream ? this.blob.stream() : await this.getReadableStream(this.blob);
-    }
-
-    const response = new Response(stream);
-    
-    return {response, stream};
   }
 
   async getLength() {
@@ -303,58 +306,271 @@ class BlobLoader
     return this.size;
   }
 
-  async getRange(offset, length, streaming = false, signal) {
-
+  async doInitialFetch(tryHead = false) {
     if (!this.blob) {
-      const headers = new Headers();
-      headers.set("Range", `bytes=${offset}-${offset + length - 1}`);
-
-      const response = await fetch(this.url, {headers});
-
-      // if a range was returned, just use that
-      if (response.headers.get("content-range")) {
-        if (streaming) {
-          return response.body;
-        } else {
-          return new Uint8Array(await response.arrayBuffer());
-        }
-      }
-
-      //otherwise, we need to store full blob, then slice
-      this.blob = await response.blob();
-    }
-
-    const blobChunk = this.blob.slice(offset, offset + length, "application/octet-stream");
-
-    if (streaming) {
-      return blobChunk.stream ? blobChunk.stream() : await this.getReadableStream(blobChunk);
-    } else {
       try {
-        const ab = blobChunk.arrayBuffer ? await blobChunk.arrayBuffer() : await this.getArrayBuffer(blobChunk);
-        return new Uint8Array(ab);
-      } catch(e) {
-        console.log("error reading blob", e);
-        return null;
+        const response = await fetch(this.url);
+        this.blob = await response.blob();
+      } catch (e) {
+        console.warn(e);
+        throw e;
       }
     }
+
+    this.arrayBuffer = this.blob.arrayBuffer ? await this.blob.arrayBuffer() : await this.getArrayBuffer();
+    this.arrayBuffer = new Uint8Array(this.arrayBuffer);
+
+    const stream = tryHead ? null : this.getReadableStream(this.arrayBuffer);
+
+    const response = new Response(stream);
+
+    return {response};
   }
 
-  getArrayBuffer(blob) {
+  async getRange(offset, length, streaming = false, signal) {
+    if (!this.arrayBuffer) {
+      await this.doInitialFetch(true);
+    }
+
+    const range = this.arrayBuffer.slice(offset, offset + length);
+
+    return streaming ? this.getReadableStream(range) : range;
+  }
+
+  getArrayBuffer() {
     return new Promise((resolve) => {
-      let fr = new FileReader();
+      const fr = new FileReader();
       fr.onloadend = () => {
         resolve(fr.result);
       };
-      fr.readAsArrayBuffer(blob);
+      fr.readAsArrayBuffer(this.blob);
     });
   }
 
-  async getReadableStream(blob) {
-    const ab = await this.getArrayBuffer(blob);
-
+  getReadableStream(array) {
     return new ReadableStream({
       start(controller) {
-        controller.enqueue(new Uint8Array(ab));
+        controller.enqueue(array);
+        controller.close();
+      }
+    });
+  }
+}
+
+// ===========================================================================
+class FileHandleLoader
+{
+  constructor({blob, size, extra, url})
+  {
+    this.url = url;
+    this.file = blob;
+    this.size = this.blob ? this.blob.size : size;
+
+    this.fileHandle = extra.fileHandle;
+
+    this.canLoadOnDemand = true;
+  }
+
+  get length() {
+    return this.size;
+  }
+
+  get isValid() {
+    return !!this.file;
+  }
+
+  async getLength() {
+    return this.size;
+  }
+
+  async initFileObject() {
+    const options = {mode: "read"};
+
+    const curr = await this.fileHandle.queryPermission(options);
+
+    if (curr !== "granted") {
+      const requested = await this.fileHandle.requestPermission(options);
+
+      if (requested !== "granted") {
+        throw new AuthNeededError({fileHandle: this.fileHandle});
+      }
+    }
+
+    this.file = await this.fileHandle.getFile();
+  }
+
+  async doInitialFetch(tryHead = false) {
+    if (!this.file) {
+      await this.initFileObject();
+    }
+
+    const stream = tryHead ? null : this.file.stream();
+
+    const response = new Response(stream);
+
+    return {response};
+  }
+
+  async getRange(offset, length, streaming = false, signal) {
+    if (!this.file) {
+      await this.initFileObject();
+    }
+
+    const fileSlice = this.file.slice(offset, offset + length);
+
+    return streaming ? fileSlice.stream() : new Uint8Array(await fileSlice.arrayBuffer());
+  }
+}
+
+// ===========================================================================
+let ipfs = null;
+let initingIPFS = null;
+let ipfsGC = null;
+
+const GC_INTERVAL = 600000;
+
+class IPFSRangeLoader
+{
+  static async doInitIPFS() {
+    if (!self.IpfsCore) {
+      const resp = await fetch(IPFS_CORE_JS);
+      eval(await resp.text());
+    }
+
+    ipfs = await self.IpfsCore.create({
+      init: {emptyRepo: true},
+      //preload: {enabled: false},
+    });
+  }
+
+  static async runGC() {
+    let count = 0;
+
+    for await (const res of ipfs.repo.gc()) {
+      count++;
+    }
+    console.log(`IPFS GC, Removed ${count} blocks`);
+  }
+
+  constructor({url, headers}) {
+    this.url = url;
+
+    let inx = url.lastIndexOf("#");
+    if (inx < 0) {
+      inx = undefined;
+    }
+
+    this.cid = this.url.slice("ipfs://".length, inx);
+
+    this.headers = headers;
+    this.length = null;
+    this.canLoadOnDemand = true;
+
+    this.httpFallback = new HttpRangeLoader({url: "https://ipfs.io/ipfs/" + this.cid});
+  }
+
+  async initIPFS() {
+    if (!ipfs) {
+      try {
+        if (!initingIPFS) {
+          initingIPFS = IPFSRangeLoader.doInitIPFS();
+        }
+
+        await initingIPFS;
+
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    return ipfs;
+  }
+
+  async getLength() {
+    if (this.httpFallback) {
+      return await this.httpFallback.getLength();
+    }
+
+    return this.length;
+  }
+
+  async doInitialFetch(tryHead) {
+    const ipfs = await this.initIPFS();
+
+    let status = 206;
+
+    try {
+      for await (const file of ipfs.get(this.cid, {timeout: 20000, preload: false})) {
+        this.length = file.size;
+        this.isValid = (file.type === "file");
+        break;
+      }
+    } catch (e) {
+      console.warn(e);
+      const res = await this.httpFallback.doInitialFetch(tryHead);
+      this.length = this.httpFallback.length;
+      this.isValid = this.httpFallback.isValid;
+      return res;
+    }
+
+    if (!this.isValid) {
+      status = 404;
+    }
+
+    const abort = new AbortController();
+    let body;
+
+    if (tryHead || !this.isValid) {
+      body = new Uint8Array([]);
+    } else {
+      const stream = ipfs.cat(this.cid, {signal: abort.signal});
+      body = this.getReadableStream(stream);
+    }
+
+    const response = new Response(body, {status});
+
+    return {response, abort};
+  }
+
+  async getRange(offset, length, streaming = false, signal = null) {
+    try {
+      const ipfs = await this.initIPFS();
+
+      const stream = ipfs.cat(this.cid, {offset, length, signal});
+
+      if (ipfsGC) {
+        clearInterval(ipfsGC);
+      }
+      ipfsGC = setInterval(IPFSRangeLoader.runGC, GC_INTERVAL);
+
+      if (streaming) {
+        return this.getReadableStream(stream);
+      } else {
+        const chunks = [];
+        let size = 0;
+
+        for await (const chunk of stream) {
+          chunks.push(chunk);
+          size += chunk.byteLength;
+        }
+
+        return AsyncIterReader.concatChunks(chunks, size);
+      }
+    } catch (e) {
+      return await this.httpFallback.getRange(offset, length, streaming, signal);
+    }
+  }
+
+  getReadableStream(stream) {
+    return new ReadableStream({
+      start: async (controller) => {
+        try {
+          for await (const chunk of stream) {
+            controller.enqueue(chunk);
+          }
+        } catch (e) {
+          console.log(e);
+        }
         controller.close();
       }
     });
