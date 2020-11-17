@@ -132,7 +132,7 @@ class HttpRangeLoader
     }
 
     if (resp.status != 206) {
-      const info = {url: this.url, status: resp.status};
+      const info = {url: this.url, status: resp.status, resp};
 
       if (resp.status === 401) {
         throw new AuthNeededError(info);
@@ -246,8 +246,10 @@ class GoogleDriveLoader
       try {
         return await loader.getRange(offset, length, streaming, signal);
       } catch(e) {
-        if (e instanceof AccessDeniedError && e.resp.headers.get("content-type").startsWith("application/json")) {
-          const err = await e.resp.json();
+        if ((e instanceof AccessDeniedError) &&
+            e.info && e.info.resp && e.info.resp.headers.get("content-type").
+            startsWith("application/json")) {
+          const err = await e.info.resp.json();
           if (err.error && err.error.errors && err.error.errors[0].reason === "userRateLimitExceeded") {
             console.log(`Exponential backoff, waiting for: ${backoff}`);
             await sleep(backoff);

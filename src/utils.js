@@ -145,20 +145,14 @@ class RangeError
 
 class AuthNeededError extends RangeError
 {
-
 }
 
 class AccessDeniedError extends RangeError
 {
-  constructor(url, resp) {
-    super(url, resp.status);
-    this.resp = resp;
-  }
 }
 
 class Canceled
 {
-
 }
 
 function sleep(millis) {

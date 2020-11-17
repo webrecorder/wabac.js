@@ -135,7 +135,7 @@ class Collection {
               source: this.config.sourceUrl,
               coll: this.name,
               type: "authneeded",
-              fileHandle: e.info.fileHandle,
+              fileHandle: e.info && e.info.fileHandle,
             });
           }
         } 
