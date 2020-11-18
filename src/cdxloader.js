@@ -86,9 +86,7 @@ class CDXFromWARCLoader extends WARCLoader
     //promises.push(this.db.addResource(entry));
     //await this.db.addResource(entry);
     if (this.batch.length >= BATCH_SIZE) {
-      this.promises.push(this.db.addResources(this.batch));
-      this.batch = [];
-      console.log(`Read ${this.count += BATCH_SIZE} records`);
+      this.flush();
     }
 
     this.batch.push(entry);

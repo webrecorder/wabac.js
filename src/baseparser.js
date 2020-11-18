@@ -15,23 +15,23 @@ class BaseParser
   }
 
   addResource(res) {
-    //this.promises.push(this.db.addResource(res));
-
     if (this.batch.length >= BATCH_SIZE) {
-      this.promises.push(this.db.addResources(this.batch));
-      this.batch = [];
-      console.log(`Read ${this.count += BATCH_SIZE} records`);
+      this.flush();
     }
 
     this.batch.push(res);
   }
 
-  async finishIndexing() {
+  flush() {
     if (this.batch.length > 0) {
       this.promises.push(this.db.addResources(this.batch));
     }
+    console.log(`Read ${this.count += this.batch.length} records`);
+    this.batch = [];
+  }
 
-    console.log(`Indexed ${this.count += this.batch.length} records`);
+  async finishIndexing() {
+    this.flush();
 
     this._finishLoad();
 

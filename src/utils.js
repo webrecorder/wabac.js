@@ -1,4 +1,4 @@
-import { getStatusText } from "http-status-codes";
+import { getReasonPhrase } from "http-status-codes";
 
 // Threshold size for switching to range requests
 const MAX_FULL_DOWNLOAD_SIZE = 25000000;
@@ -102,6 +102,14 @@ function isNullBodyStatus(status) {
   return NULL_STATUS.includes(status);
 }
 
+function getStatusText(status) {
+  try {
+    return getReasonPhrase(status);
+  } catch (e) {
+    return "Unknown Status";
+  }
+}
+
 function isAjaxRequest(request) {
   return request.headers.get('X-Pywb-Requested-With') === 'XMLHttpRequest';
 }
@@ -161,5 +169,5 @@ function sleep(millis) {
 
 
 export { startsWithAny, containsAny, getTS, getTSMillis, tsToDate, tsToSec, getSecondsStr, digestMessage,
-         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep,
+         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep, getStatusText, 
          RangeError, AuthNeededError, AccessDeniedError, Canceled, MAX_FULL_DOWNLOAD_SIZE };

@@ -3,9 +3,8 @@
 import { openDB, deleteDB } from 'idb/with-async-ittr.js';
 import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage } from './utils';
 import { fuzzyMatcher } from './fuzzymatcher';
-import { getStatusText } from 'http-status-codes';
 import { ArchiveResponse } from './response';
-import { getTS } from './utils';
+import { getTS, getStatusText } from './utils';
 
 
 // ===========================================================================
@@ -14,12 +13,12 @@ class ArchiveDB {
     this.name = name;
     this.db = null;
 
-    const { minDedupSize } = opts;
+    const { minDedupSize, noRefCounts } = opts;
     this.minDedupSize = Number.isInteger(minDedupSize) ? minDedupSize : 1024;
 
     this.version = 1;
 
-    this.useRefCounts = true;
+    this.useRefCounts = !noRefCounts;
 
     this.allowRepeats = true;
     this.repeatTracker = this.allowRepeats ? new RepeatTracker() : null;
@@ -219,7 +218,7 @@ class ArchiveDB {
 
     } else if (payload) {
       try {
-        tx.objectStore("payload").add({digest, payload});
+        tx.objectStore("payload").put({digest, payload});
         const size = payload.length;
         //digestRefStore.put({digest, count, size});
         return {digest, count, size};

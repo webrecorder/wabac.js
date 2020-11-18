@@ -350,12 +350,14 @@ class WARCLoader extends BaseParser {
         
         this.index(record, parser);
 
-        try {
-          await Promise.all(this.promises);
-        } catch (e) {
-          console.warn(e.toString());
+        if (this.promises.length > 0) {
+          try {
+            await Promise.all(this.promises);
+          } catch (e) {
+            console.warn(e.toString());
+          }
+          this.promises = [];
         }
-        this.promises = [];
       }
     } catch(e) {
       if (e instanceof Canceled) {

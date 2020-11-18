@@ -9,9 +9,7 @@ import { json2csvAsync } from 'json-2-csv';
 
 import { WARCRecord, WARCSerializer } from 'warcio';
 
-import { getStatusText } from 'http-status-codes';
-
-import { getTSMillis } from './utils';
+import { getTSMillis, getStatusText } from './utils';
 
 
 
