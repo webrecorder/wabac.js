@@ -377,6 +377,17 @@ class WorkerLoader extends CollectionLoader
       config.headers = file.headers;
       config.size = typeof(file.size) === "number" ? file.size : null;
       config.extra = file.extra;
+
+      if (config.sourceUrl.startsWith("file://") && !file.blob && !config.extra) {
+        if (this._fileHandles && this._fileHandles[config.sourceUrl]) {
+          config.extra = {fileHandle: this._fileHandles[config.sourceUrl]};
+          delete this._fileHandles[config.sourceUrl];
+        } else {
+          progressUpdate(0, "missing_local_file");
+          return;
+        }
+      }
+
       config.extraConfig = data.extraConfig;
       config.noCache = file.noCache;
 

@@ -125,7 +125,9 @@ class API {
         return data;
 
       case "deleteColl":
-        if (!await this.collections.deleteColl(params.coll)) {
+        const keepFileHandle = params._query.get("reload") === "1";
+
+        if (!await this.collections.deleteColl(params.coll, keepFileHandle)) {
           return {error: "collection_not_found"};
         }
         return await this.listAll();

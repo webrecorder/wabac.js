@@ -2,10 +2,9 @@ import JSZip from 'jszip';
 
 import { PassThrough } from 'stream';
 
-import yaml from 'js-yaml';
 import { Deflate } from 'pako';
 
-import { json2csvAsync } from 'json-2-csv';
+import sha256 from 'hash.js/lib/hash/sha/256';
 
 import { WARCRecord, WARCSerializer } from 'warcio';
 
@@ -14,6 +13,8 @@ import { getTSMillis, getStatusText } from './utils';
 
 
 // ===========================================================================
+const WACZ_VERSION = "1.0.0";
+
 const encoder = new TextEncoder();
 
 const EMPTY = new Uint8Array([]);
@@ -25,9 +26,10 @@ async function* getPayload(payload) {
 // ===========================================================================
 class ResumePassThrough extends PassThrough
 {
-  constructor(gen) {
+  constructor(gen, stats) {
     super();
     this.gen = gen;
+    this.stats = stats;
   }
 
   resume() {
@@ -40,9 +42,21 @@ class ResumePassThrough extends PassThrough
   }
 
   async start() {
-    for await (const chunk of this.gen) {
+    this.stats.size = 0;
+
+    const sha = sha256();
+
+    for await (let chunk of this.gen) {
+      if (typeof(chunk) === "string") {
+        chunk = encoder.encode(chunk);
+      }
+
       this.push(chunk);
+      this.stats.size += chunk.byteLength;
+      sha.update(chunk);
     }
+
+    this.stats.hash = sha.digest("hex");
 
     this.push(null);
   }
@@ -67,6 +81,8 @@ class Downloader
     this.linesPerBlock = 2048;
 
     this.digestsVisted = {};
+
+    this.fileStats = [];
   }
 
   downloadWARC(filename) {
@@ -88,8 +104,20 @@ class Downloader
     return new Response(rs, {headers});
   }
 
+  async loadResources() {
+    if (this.pageList) {
+      for await (const resource of this.db.resourcesByPages(this.pageList)) {
+        this.resources.push(resource);
+      }
+    } else {
+      this.resources = await this.db.db.getAll("resources");  
+    }
+  }
+
   async queueWARC(controller, filename) {
-    const metadata = await this.getMetadata();
+    await loadResources();
+
+    const metadata = this.metadata;
 
     for await (const chunk of this.generateWARC(filename, metadata)) {
       controller.enqueue(chunk);
@@ -102,8 +130,15 @@ class Downloader
     controller.close();
   }
 
-  addFile(zip, filename, genOrString, compressed = false) {
-    const data = (typeof(genOrString) === "string") ? genOrString : new ResumePassThrough(genOrString);
+  addFile(zip, filename, generator, compressed = false) {
+    const stats = {filename, size: 0, sha256: ""}
+
+    if (filename !== "datapackage.json") {
+      this.fileStats.push(stats);
+    }
+
+    const data = new ResumePassThrough(generator, stats);
+
     zip.file(filename, data, {
       compression: compressed ? 'DEFLATE' : 'STORE',
       binary: !compressed
@@ -115,14 +150,9 @@ class Downloader
 
     filename = (filename || "webarchive").split(".")[0] + ".wacz";
 
-    const metadata = await this.getMetadata();
+    await this.loadResources();
 
-    const pages = metadata.pages;
-    delete metadata.pages;
-    this.addFile(zip, "pages.csv", await json2csvAsync(pages), true);
-
-    this.addFile(zip, "webarchive.yaml", yaml.safeDump(metadata, {skipInvalid: true}), true);
-
+    this.addFile(zip, "pages/pages.jsonl", this.generatePages(), true);
     this.addFile(zip, "archive/data.warc", this.generateWARC(filename + "#/archive/data.warc"), false);
     this.addFile(zip, "archive/text.warc", this.generateTextWARC(filename + "#/archive/text.warc"), false);
 
@@ -132,6 +162,8 @@ class Downloader
       this.addFile(zip, "indexes/index.cdx.gz", this.generateCompressedCDX("index.cdx.gz"), false);
       this.addFile(zip, "indexes/index.idx", this.generateIDX(), true);
     }
+    
+    this.addFile(zip, "datapackage.json", this.generateDataPackage());
 
     const rs = new ReadableStream({
       start(controller) {
@@ -304,40 +336,58 @@ class Downloader
     }
   }
 
-  async getMetadata() {
-    if (this.pageList) {
-      for await (const resource of this.db.resourcesByPages(this.pageList)) {
-        this.resources.push(resource);
+  async* generateDataPackage() {
+    const root = {};
+
+    root.profile = "data-package";
+
+    root.resources = this.fileStats.map((stats) => {
+      return {
+        path: stats.filename,
+        stats: {
+          hash: stats.hash,
+          bytes: stats.size,
+        },
+        hashing: "sha256"
       }
-    } else {
-      this.resources = await this.db.db.getAll("resources");  
-    }
+    });
 
-    const metadata = {...this.metadata};
+    root.wacz_version = WACZ_VERSION;
 
-    metadata.pages = [];
+    root.metadata = this.metadata;
 
+    root.config = {useSurt: false, decodeResponses: false};
+
+    yield JSON.stringify(root, null, 2);
+  }
+
+  async* generatePages() {
     const pageIter = this.pageList ? await this.db.getPages(this.pageList) : await this.db.getAllPages();
 
+    yield JSON.stringify({"format": "json-pages-1.0", "id": "pages", "title": "All Pages", "hasText": true});
+
     for (const page of pageIter) {
-      const {url, ts, title, id, text, favIconUrl} = page;
-      const date = new Date(ts).toISOString();
-      const pageData = {title, url, date, id};
-      if (favIconUrl) {
-        pageData.favIconUrl = favIconUrl;
+      const ts = new Date(page.ts).toISOString();
+
+      const pageData = {
+        title: page.title,
+        url: page.url,
+        id: page.id,
+        ts};
+
+      if (page.favIconUrl) {
+        pageData.favIconUrl = page.favIconUrl;
       }
-      metadata.pages.push(pageData);
+      if (page.text) {
+        pageData.text = page.text;
+      }
+
+      yield "\n" + JSON.stringify(pageData);
 
       if (page.text) {
-        this.textResources.push({url, ts, text});
+        this.textResources.push({url: page.url, ts: page.ts, text: page.text});
       }
     }
-
-    metadata.pageLists = await this.db.getAllCuratedByList();
-
-    metadata.config = {useSurt: false, decodeResponses: false};
-
-    return metadata;
   }
 
   async getLists() {

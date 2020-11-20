@@ -24,6 +24,8 @@ class SWCollections extends WorkerLoader
     this.colls = null;
     this.inited = null;
     this.root = root;
+
+    this._fileHandles = {};
   }
 
   _createCollection(opts) {
@@ -53,9 +55,14 @@ class SWCollections extends WorkerLoader
     return opts;
   }
 
-  async deleteColl(name) {
+  async deleteColl(name, keepFileHandle = false) {
     if (this.colls[name]) {
       await this.colls[name].store.delete();
+    }
+
+    if (keepFileHandle && this.colls[name].config && this.colls[name].config.extra &&
+      this.colls[name].config.extra.fileHandle) {
+        this._fileHandles[this.colls[name].config.sourceUrl] = this.colls[name].config.extra.fileHandle;
     }
 
     await super.deleteColl(name);

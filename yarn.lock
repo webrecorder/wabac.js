@@ -1709,10 +1709,10 @@ decompress-response@^3.3.0:
   dependencies:
     mimic-response "^1.0.0"
 
-deeks@2.2.5:
-  version "2.2.5"
-  resolved "https://registry.yarnpkg.com/deeks/-/deeks-2.2.5.tgz#3d19371479a1d45a6da49734b580475f7c721d9e"
-  integrity sha512-a4N/8uC+OGAmr0pmqaF6ZikBIO3c4cLqLARoOkI0qFH/FXL2rcbvh/fUZmKhdEH0fDbwU5WblV+mn4o8sc9y/A==
+deeks@2.2.7:
+  version "2.2.7"
+  resolved "https://registry.yarnpkg.com/deeks/-/deeks-2.2.7.tgz#91e711cdd434e0f12ddc194836569e2a3db383ad"
+  integrity sha512-pCKFxSqyY2LAQ3qKQ+y+wOG63Bb9uDmDiHUVnrTR10AP75BVo2QMlgm36G+oPpRDPrgAiw5p9d+lAxdsqOwOyA==
 
 deep-equal@^1.0.1:
   version "1.1.1"
@@ -1888,10 +1888,10 @@ dns-txt@^2.0.2:
   dependencies:
     buffer-indexof "^1.0.0"
 
-doc-path@2.0.3:
-  version "2.0.3"
-  resolved "https://registry.yarnpkg.com/doc-path/-/doc-path-2.0.3.tgz#f816c494b99e304dd8e9a98cd00f6cab472931bd"
-  integrity sha512-Wex5OlidOT7esfbuLxtUiDHnG2er5UaKzMbUW2Ns9nRrsx+DmEXdHwXb0+jp+FTKmjE9i6bgrwRakT+YcobjEg==
+doc-path@2.1.2:
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/doc-path/-/doc-path-2.1.2.tgz#08344d188619a6ff7c6631e462362dd720e4e81f"
+  integrity sha512-saM17czrIb4jYLsS5728OKbCa/WQ3xVctkGiMixOHz3X1VYsRn/Q5xPMxE1A5WN+XHHLWak34mMMjmAKRgMLeA==
 
 domain-browser@^1.1.1:
   version "1.2.0"
@@ -3370,12 +3370,12 @@ jsesc@^2.5.1:
   integrity sha512-OYu7XEzjkCQ3C5Ps3QIZsQfNpqoJyZZA99wd9aWd05NCtC5pWOkShK2mkL6HXQR6/Cy2lbNdPlZBpuQHXE63gA==
 
 json-2-csv@^3.7.1:
-  version "3.7.1"
-  resolved "https://registry.yarnpkg.com/json-2-csv/-/json-2-csv-3.7.1.tgz#d9d6e7e92df882df9e0e5a6560466f0e0a0ac495"
-  integrity sha512-AX7ZpKfyXBcAk1GAd8h8bKlLtxhnOdRcXf6EFYogpqIwZCtBGOt/XbIvjgOUFd3wAdnDEqX/wi3VnTZM+ywOZg==
+  version "3.7.8"
+  resolved "https://registry.yarnpkg.com/json-2-csv/-/json-2-csv-3.7.8.tgz#d7663bfe6e022387c5a2db0f57745eb84aa19f06"
+  integrity sha512-2CDoU32s/RA9a9xPRVsLDgk7UMW5u2SzrdklsNDl8tmdHUWT7JN2+eUV1hn1TuxJyrJxQjEXM5K4kTTnpY5+Pw==
   dependencies:
-    deeks "2.2.5"
-    doc-path "2.0.3"
+    deeks "2.2.7"
+    doc-path "2.1.2"
 
 json-buffer@3.0.0:
   version "3.0.0"
@@ -3412,9 +3412,9 @@ json5@^2.1.2:
     minimist "^1.2.5"
 
 jszip@^3.4.0:
-  version "3.4.0"
-  resolved "https://registry.yarnpkg.com/jszip/-/jszip-3.4.0.tgz#1a69421fa5f0bb9bc222a46bca88182fba075350"
-  integrity sha512-gZAOYuPl4EhPTXT0GjhI3o+ZAz3su6EhLrKUoAivcKqyqC7laS5JEv4XWZND9BgcDcF83vI85yGbDmDR6UhrIg==
+  version "3.5.0"
+  resolved "https://registry.yarnpkg.com/jszip/-/jszip-3.5.0.tgz#b4fd1f368245346658e781fec9675802489e15f6"
+  integrity sha512-WRtu7TPCmYePR1nazfrtuF216cIVon/3GWOvHS9QR5bIwSbnxtdpma6un3jyGGNhHsKCSzn5Ypk+EkDRvTGiFA==
   dependencies:
     lie "~3.3.0"
     pako "~1.0.2"

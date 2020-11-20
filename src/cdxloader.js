@@ -81,10 +81,7 @@ class CDXFromWARCLoader extends WARCLoader
     }
 
     const entry = {url, ts, status, digest, mime, loaded: false, source};
-    //console.log("Indexing: " + JSON.stringify(entry));
 
-    //promises.push(this.db.addResource(entry));
-    //await this.db.addResource(entry);
     if (this.batch.length >= BATCH_SIZE) {
       this.flush();
     }

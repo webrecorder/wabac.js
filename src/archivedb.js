@@ -16,7 +16,7 @@ class ArchiveDB {
     const { minDedupSize, noRefCounts } = opts;
     this.minDedupSize = Number.isInteger(minDedupSize) ? minDedupSize : 1024;
 
-    this.version = 1;
+    this.version = 2;
 
     this.useRefCounts = !noRefCounts;
 
@@ -28,10 +28,19 @@ class ArchiveDB {
   }
 
   async init() {
+    let oldVersion = 0;
+
     this.db = await openDB(this.name, this.version, {
-      upgrade: (db, oldV, newV, tx) => this._initDB(db, oldV, newV, tx),
+      upgrade: (db, oldV, newV, tx) => {
+        oldVersion = oldV;
+        this._initDB(db, oldV, newV, tx);
+      },
       blocking: (e) => { if (!e || e.newVersion === null) { this.close(); }}
     });
+
+    if (oldVersion === 1) {
+      await this.convertCuratedPagesToV2(this.db);
+    }
   }
 
   _initDB(db, oldV, newV, tx) {
@@ -54,8 +63,6 @@ class ArchiveDB {
       const payload = db.createObjectStore("payload", { keyPath: "digest", unique: true});
       const digestRef = db.createObjectStore("digestRef", { keyPath: "digest", unique: true});
     }
-
-    //const fuzzyStore = db.createObjectStore("fuzzy", { keyPath: "key" });
   }
 
   async clearAll() {
@@ -88,11 +95,32 @@ class ArchiveDB {
     const id = page.id || this.newPageId();
     let ts = page.ts;
 
-    if (!ts && (page.date || page.datetime)) {
-      ts = new Date(page.date || page.datetime).getTime();
+    if (typeof(ts) !== "number") {
+      if (page.timestamp) {
+        ts = tsToDate(page.timestamp).getTime();
+      } else {
+        const date = page.ts || page.date || page.datetime;
+        if (date) {
+          ts = new Date().getTime();
+        }
+      }
     }
 
-    const p = {...page, url, ts, title, id};
+    const p = {url, ts, title, id};
+
+    if (page.text !== undefined) {
+      p.text = page.text;
+    }
+    if (page.list !== undefined) {
+      p.list = page.list;
+    }
+    if (page.pos !== undefined) {
+      p.pos = page.pos;
+    }
+    if (page.favIconUrl !== undefined) {
+      p.favIconUrl = page.favIconUrl;
+    }
+
     if (tx) {
       tx.store.put(p);
       return p.id;
@@ -101,11 +129,11 @@ class ArchiveDB {
     }
   }
 
-  async addPages(pages) {
-    const tx = this.db.transaction("pages", "readwrite");
+  async addPages(pages, pagesTable = "pages") {
+    const tx = this.db.transaction(pagesTable, "readwrite");
 
     for (const page of pages) {
-      this.addPage(page);
+      this.addPage(page, tx);
     }
 
     try {
@@ -115,13 +143,26 @@ class ArchiveDB {
     }
   }
 
-  async addCPageList(data) {
+  async createPageList(data) {
     const listData = {};
     listData.title = data.title;
-    listData.desc = data.desc;
-    listData.slug = data.slug;
+    listData.desc = data.desc || data.description;
+    listData.slug = data.id || data.slug;
 
     return await this.db.put("pageLists", listData);
+  }
+
+  async addCuratedPageList(listInfo, pages) {
+    const listId = await this.createPageList(listInfo);
+
+    let pos = 0;
+
+    for (const page of pages) {
+      page.pos = pos++;
+      page.list = listId;
+    }
+
+    await this.addPages(pages, "curatedPages");
   }
 
   async addCuratedPageLists(pageLists, pageKey = "pages", filter = "public") {
@@ -130,41 +171,57 @@ class ArchiveDB {
         continue;
       }
 
-      const listId = await this.addCPageList(list);
-
-      const tx = this.db.transaction("curatedPages", "readwrite");
-
-      let pos = 0;
-
       const pages = list[pageKey] || [];
 
-      for (const data of pages) {
-        const pageData = {};
-        pageData.pos = pos++;
-        pageData.list  = listId;
-        const type = typeof(data.page);
-        // only store page id, if WR-style page object, reference the id
-        if (type === "string") {
-          pageData.page = data.page;
-        } else if (type === "object") {
-          pageData.page = data.page.id;
-        } else {
-          pageData.page = data.page_id || data.pageId;
-        }
-        pageData.desc = data.desc;
-
-        tx.store.put(pageData);
-      }
-
-      try {
-        await tx.done;
-      } catch(e) {
-        console.warn("addCuratedPageLists tx", e.toString());
-      }
+      await this.addCuratedPageList(list, pages);
     }
   }
 
-  async getAllCuratedByList() {
+  async convertCuratedPagesToV2(db) {
+    const curatedPages = await db.getAll("curatedPages");
+
+    if (!curatedPages || !curatedPages.length) {
+      return;
+    }
+
+    const pages = await db.getAll("pages");
+    const pageMap = new Map();
+
+    for (const page of pages) {
+      pageMap.set(page.id, page);
+    }
+
+    for (const cpage of curatedPages) {
+      if (cpage.page) {
+        const page = pageMap.get(cpage.page);
+        if (page) {
+          cpage.id = this.newPageId();
+          cpage.url = page.url;
+          cpage.ts = page.ts;
+          if (!cpage.title && page.title) {
+            cpage.title = page.title;
+          }
+        }
+        delete cpage.page;
+      }
+    }
+
+    await db.clear("curatedPages");
+
+    const tx = db.transaction("curatedPages", "readwrite");
+
+    for (const cpage of curatedPages) {
+      tx.store.put(cpage);
+    }
+
+    try {
+      await tx.done;
+    } catch (e) {
+      console.warn("Conversion Failed", e);
+    }
+  }
+
+  async getCuratedPagesByList() {
     const allLists = await this.db.getAll("pageLists");
 
     const tx = this.db.transaction("curatedPages", "readonly");
@@ -546,10 +603,10 @@ class ArchiveDB {
     }
   }
 
-  async* matchAny(storeName, indexName, sortedKeys, subKey) {
+  async* matchAny(storeName, indexName, sortedKeys, subKey, openBound = false) {
     const tx = this.db.transaction(storeName, "readonly");
 
-    const range = IDBKeyRange.lowerBound(sortedKeys[0], true);
+    const range = IDBKeyRange.lowerBound(sortedKeys[0], openBound);
 
     let cursor = indexName ? await tx.store.index(indexName).openCursor(range) : await tx.store.openCursor(range);
 
@@ -625,7 +682,7 @@ class ArchiveDB {
       }
     }
 
-    for await (const result of this.matchAny("resources", "mimeStatusUrl", startKey, 0)) {
+    for await (const result of this.matchAny("resources", "mimeStatusUrl", startKey, 0, true)) {
       results.push(this.resJson(result));
 
       if (results.length === count) {

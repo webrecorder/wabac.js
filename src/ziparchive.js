@@ -8,6 +8,8 @@ import { LiveAccess } from './remoteproxy';
 import yaml from 'js-yaml';
 import { csv2jsonAsync } from 'json-2-csv';
 
+const MAIN_PAGES_JSON = "pages/pages.jsonl";
+
 
 // ===========================================================================
 class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
@@ -196,8 +198,10 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     const indexloaders = [];
     let metadata;
 
-    if (entries["webarchive.yaml"]) {
-      metadata = await this.loadMetadata(entries, await db.zipreader.loadFile("webarchive.yaml"));
+    if (entries["datapackage.json"]) {
+      metadata = await this.loadMetadata(entries, await db.zipreader.loadFile("datapackage.json"));
+    } else if (entries["webarchive.yaml"]) {
+      metadata = await this.loadMetadataYAML(entries, await db.zipreader.loadFile("webarchive.yaml"));
     }
 
     for (const filename of Object.keys(entries)) {
@@ -238,6 +242,8 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
           const entryTotal = db.zipreader.getCompressedSize(filename);
           metadata = await warcLoader.load(db, progressUpdate, entryTotal);
         }
+      } else if (filename.endsWith(".jsonl") && filename.startsWith("pages/") && filename !== MAIN_PAGES_JSON) {
+        await this.loadPagesJSONL(filename, false);
       }
     }
 
@@ -297,7 +303,70 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     return new Response(reader.getReadableStream(), {headers});
   }
 
+  // New WACZ 1.0.0 Format
   async loadMetadata(entries, reader) {
+    const text = new TextDecoder().decode(await reader.readFully());
+    const root = JSON.parse(text);
+
+    if (root.config !== undefined) {
+      this.initConfig(root.config);
+    }
+
+    const metadata = root.metadata || {};
+
+    // All Pages
+    if (entries[MAIN_PAGES_JSON]) {
+      const pageInfo = await this.loadPagesJSONL(MAIN_PAGES_JSON);
+      if (pageInfo.hasText) {
+        this.textIndex = metadata.textIndex = MAIN_PAGES_JSON;
+      }
+    }
+
+    return metadata;
+  }
+
+  async loadPagesJSONL(filename, isMainPages = true) {
+    const PAGE_BATCH_SIZE = 500;
+
+    const reader = await this.zipreader.loadFile(filename, {unzip: true});
+
+    let pageListInfo = null;
+
+    const pages = [];
+
+    for await (const textLine of reader.iterLines()) {
+      const page = JSON.parse(textLine);
+
+      if (!pageListInfo) {
+        pageListInfo = page;
+        continue;
+      }
+
+      pages.push(page);
+
+      if (pages.length === PAGE_BATCH_SIZE) {
+        if (isMainPages) {
+          await this.addPages(pages);
+        } else {
+          await this.addCuratedPageList(pageListInfo, pages);
+        }
+        pages = [];
+      }
+    }
+
+    if (pages.length) {
+      if (isMainPages) {
+        await this.addPages(pages);
+      } else {
+        await this.addCuratedPageList(pageListInfo, pages);
+      }
+    }
+
+    return pageListInfo;
+  }
+
+  // Old WACZ 0.1.0 Format
+  async loadMetadataYAML(entries, reader) {
     const text = new TextDecoder().decode(await reader.readFully());
     const root = yaml.safeLoad(text);
 

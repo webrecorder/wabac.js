@@ -399,6 +399,7 @@ class FileHandleLoader
     }
 
     this.file = await this.fileHandle.getFile();
+    this.size = this.file.size;
   }
 
   async doInitialFetch(tryHead = false) {
