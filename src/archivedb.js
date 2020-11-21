@@ -106,20 +106,7 @@ class ArchiveDB {
       }
     }
 
-    const p = {url, ts, title, id};
-
-    if (page.text !== undefined) {
-      p.text = page.text;
-    }
-    if (page.list !== undefined) {
-      p.list = page.list;
-    }
-    if (page.pos !== undefined) {
-      p.pos = page.pos;
-    }
-    if (page.favIconUrl !== undefined) {
-      p.favIconUrl = page.favIconUrl;
-    }
+    const p = {...page, url, ts, title, id};
 
     if (tx) {
       tx.store.put(p);

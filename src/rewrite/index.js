@@ -547,21 +547,19 @@ class Rewriter {
 
     const encoder = new TextEncoder("utf-8");
 
-    const iter = response[Symbol.asyncIterator]();
-
     const rs = new ReadableStream({
-      start(controller) {
+      async start(controller) {
         rwStream.on("data", (chunk) => controller.enqueue(encoder.encode(chunk)));
         rwStream.on("end", () => controller.close());
+
+        for await (const chunk of response) {
+          buff.push(chunk);
+          hasData = true;
+        }
+
+        buff.push(null);
       }
     });
-
-    for await (const chunk of response) {
-      buff.push(chunk);
-      hasData = true;
-    }
-
-    buff.push(null);
 
     response.setContent(rs);
     return response;
