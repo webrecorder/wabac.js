@@ -466,6 +466,47 @@ class Rewriter {
     let scriptRw = false;
     let replaceTag = null;
 
+    let cacheChunks = [];
+    let cacheOffset = 0;
+
+    function getRawText(loc) {
+      let offset = cacheOffset;
+
+      while (cacheChunks.length) {
+        const nextOffset = offset + cacheChunks[0].byteLength;
+        if (loc.startOffset > nextOffset) {
+          cacheChunks.shift();
+          offset = nextOffset;
+        } else {
+          break;
+        }
+      }
+
+      if (!cacheChunks.length) {
+        return "";
+      }
+
+      cacheOffset = offset;
+      offset = loc.startOffset - offset;
+
+      let remainder = loc.endOffset - loc.startOffset;
+      const textDec = new TextDecoder();
+      let text = "";
+
+      for (const chunk of cacheChunks) {
+        if (remainder <= 0) {
+          break;
+        }
+
+        const slice =  chunk.slice(offset, offset + remainder);
+        offset = 0;
+        remainder -= slice.byteLength;
+        text += textDec.decode(slice);
+      }
+
+      return text;
+    }
+
     const addInsert = () => {
       if (!insertAdded && hasData && this.headInsertFunc) {
         const headInsert = this.headInsertFunc(this.url);
@@ -476,7 +517,6 @@ class Rewriter {
       }
     };
 
-    // Replace divs with spans
     rwStream.on('startTag', startTag => {
 
       const tagRules = rewriteTags[startTag.tagName];
@@ -535,8 +575,10 @@ class Rewriter {
       } else if (context === "style") {
         rwStream.emitRaw(this.rewriteCSS(textToken.text));
       } else {
-        //rwStream.emitText(textToken);
-        //rwStream.emitRaw(textToken.text);
+        // if initial offset is <0, then raw text was cutoff, so use our own tracked buffer
+        if ((textToken.sourceCodeLocation.startOffset - rwStream.posTracker.droppedBufferSize) < 0) {
+          raw = getRawText(textToken.sourceCodeLocation);
+        }
         rwStream.emitRaw(raw);
       }
     });
@@ -553,6 +595,7 @@ class Rewriter {
         rwStream.on("end", () => controller.close());
 
         for await (const chunk of response) {
+          cacheChunks.push(chunk);
           buff.push(chunk);
           hasData = true;
         }

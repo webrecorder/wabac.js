@@ -115,7 +115,7 @@ class Downloader
   }
 
   async queueWARC(controller, filename) {
-    await loadResources();
+    await this.loadResources();
 
     const metadata = this.metadata;
 
