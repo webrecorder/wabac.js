@@ -188,7 +188,9 @@ class Downloader
       "Content-Type": "application/zip"
     };
 
-    return new Response(rs, {headers});
+    const response = new Response(rs, {headers});
+    response.filename = filename;
+    return response;
   }
 
   async* generateWARC(filename, metadata)  {

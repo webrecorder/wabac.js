@@ -1,10 +1,10 @@
 "use strict";
 
 import { openDB, deleteDB } from 'idb/with-async-ittr.js';
-import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage } from './utils';
+import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage,
+         getTS, getStatusText, randomId } from './utils';
 import { fuzzyMatcher } from './fuzzymatcher';
 import { ArchiveResponse } from './response';
-import { getTS, getStatusText } from './utils';
 
 
 // ===========================================================================
@@ -228,11 +228,8 @@ class ArchiveDB {
     return allLists;
   }
 
-  
-
-  //from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
   newPageId() {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    return randomId();
   }
 
   async getAllPages() {

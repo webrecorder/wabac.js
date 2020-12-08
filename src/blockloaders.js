@@ -1,11 +1,10 @@
 import { AuthNeededError, AccessDeniedError, sleep } from "./utils";
 
 import { AsyncIterReader } from 'warcio';
+import { initIPFS, resetGC } from "./ipfs";
 
 // todo: make configurable
 const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
-
-const IPFS_CORE_JS = "https://cdn.jsdelivr.net/npm/ipfs-core@0.2.0/dist/index.min.js";
 
 
 // ===========================================================================
@@ -426,35 +425,8 @@ class FileHandleLoader
 }
 
 // ===========================================================================
-let ipfs = null;
-let initingIPFS = null;
-let ipfsGC = null;
-
-const GC_INTERVAL = 600000;
-
 class IPFSRangeLoader
 {
-  static async doInitIPFS() {
-    if (!self.IpfsCore) {
-      const resp = await fetch(IPFS_CORE_JS);
-      eval(await resp.text());
-    }
-
-    ipfs = await self.IpfsCore.create({
-      init: {emptyRepo: true},
-      //preload: {enabled: false},
-    });
-  }
-
-  static async runGC() {
-    let count = 0;
-
-    for await (const res of ipfs.repo.gc()) {
-      count++;
-    }
-    console.log(`IPFS GC, Removed ${count} blocks`);
-  }
-
   constructor({url, headers}) {
     this.url = url;
 
@@ -472,23 +444,6 @@ class IPFSRangeLoader
     this.httpFallback = new HttpRangeLoader({url: "https://ipfs.io/ipfs/" + this.cid});
   }
 
-  async initIPFS() {
-    if (!ipfs) {
-      try {
-        if (!initingIPFS) {
-          initingIPFS = IPFSRangeLoader.doInitIPFS();
-        }
-
-        await initingIPFS;
-
-      } catch (e) {
-        console.warn(e);
-      }
-    }
-
-    return ipfs;
-  }
-
   async getLength() {
     if (this.httpFallback) {
       return await this.httpFallback.getLength();
@@ -498,7 +453,7 @@ class IPFSRangeLoader
   }
 
   async doInitialFetch(tryHead) {
-    const ipfs = await this.initIPFS();
+    const ipfs = await initIPFS();
 
     let status = 206;
 
@@ -537,14 +492,11 @@ class IPFSRangeLoader
 
   async getRange(offset, length, streaming = false, signal = null) {
     try {
-      const ipfs = await this.initIPFS();
+      const ipfs = await initIPFS();
 
       const stream = ipfs.cat(this.cid, {offset, length, signal});
 
-      if (ipfsGC) {
-        clearInterval(ipfsGC);
-      }
-      ipfsGC = setInterval(IPFSRangeLoader.runGC, GC_INTERVAL);
+      resetGC();
 
       if (streaming) {
         return this.getReadableStream(stream);

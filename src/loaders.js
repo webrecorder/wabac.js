@@ -14,7 +14,8 @@ import { createLoader } from './blockloaders';
 import { RemoteWARCProxy, RemoteProxySource, LiveAccess } from './remoteproxy';
 
 import { deleteDB, openDB } from 'idb/with-async-ittr.js';
-import { Canceled, MAX_FULL_DOWNLOAD_SIZE } from './utils.js';
+import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId } from './utils.js';
+import { initIPFS, rmAllPins } from './ipfs.js';
 
 self.interruptLoads = {};
 
@@ -85,14 +86,25 @@ class CollectionLoader
     if (!data) {
       return false;
     }
+
     if (data.config.dbname) {
-      await deleteDB(data.config.dbname, {
-        blocked(reason) {
-          console.log(`Unable to delete ${data.config.dbname}: ${reason}`);
-        }
-      });
+      try {
+        await deleteDB(data.config.dbname, {
+          blocked(reason) {
+            console.log(`Unable to delete ${data.config.dbname}: ${reason}`);
+          }
+        });
+      } catch(e) {
+        console.warn(e);
+        return false;
+      }
     }
+
+    data.config.metadata.ipfsPins = await rmAllPins(data.config.metadata.ipfsPins);
+
     await this.colldb.delete("colls", name);
+
+    return true;
   }
 
   async updateAuth(name, newHeaders) {
@@ -112,22 +124,22 @@ class CollectionLoader
     if (!data) {
       return false;
     }
-    const metadata = data.config.metadata || {};
-    Object.assign(metadata, newMetadata);
+    data.config.metadata = {...data.config.metadata, ...newMetadata};
 
     await this.colldb.put("colls", data);
-    return metadata;
+    return data.config.metadata;
   }
 
-  async updateSize(name, size, dedupSize) {
+  async updateSize(name, fullSize, dedupSize) {
     await this._init_db;
     const data = await this.colldb.get("colls", name);
     if (!data) {
       return false;
     }
 
-    data.config.loadSize = (data.config.loadSize || 0) + size;
-    data.config.dedupSize = (data.config.dedupSize || 0) + dedupSize;
+    const metadata = data.config.metadata;
+    metadata.fullSize = (metadata.fullSize || 0) + fullSize;
+    metadata.size = (metadata.size || 0) + dedupSize;
     await this.colldb.put("colls", data);
   }
 
@@ -193,7 +205,36 @@ class CollectionLoader
       this.root = name;
     }
 
+    if (data.config.metadata.ipfsPins) {
+      await initIPFS();
+    }
+
     return this._createCollection({name, store, config});
+  }
+
+  async initNewColl(metadata, extraConfig = {}) {
+    const id = randomId();
+    const dbname = "db:" + id;
+    const sourceUrl = "local://" + id;
+    const decode = false;
+    const ctime = new Date().getTime();
+
+    const data = {
+      name: id,
+      type: "archive",
+      config: {
+        dbname,
+        ctime,
+        decode,
+        metadata,
+        sourceUrl,
+        extraConfig,
+      }
+    }
+
+    const coll = await this._initColl(data);
+    await this.colldb.put("colls", data);
+    return coll;
   }
 
   _createCollection(opts) {
@@ -245,7 +286,7 @@ class WorkerLoader extends CollectionLoader
         try {
           if (await this.hasCollection(name)) {
             if (!event.data.skipExisting) {
-              await this.deleteCollection(name);
+              await this.deleteColl(name);
               res = await this.addCollection(event.data, progressUpdate);
             } else {
               res = true;
@@ -283,7 +324,7 @@ class WorkerLoader extends CollectionLoader
 
         await p;
 
-        await this.deleteCollection(name);
+        await this.deleteColl(name);
 
         delete self.interruptLoads[name];
 
@@ -295,7 +336,7 @@ class WorkerLoader extends CollectionLoader
         const name = event.data.name;
 
         if (await this.hasCollection(name)) {
-          await this.deleteCollection(name);
+          await this.deleteColl(name);
           this.doListAll(client);
         }
         break;
@@ -501,36 +542,6 @@ Make sure this is a valid URL and you have access to this file.`);
     await this.colldb.add("colls", collData);
     collData.store = db;
     return collData;
-  }
-
-  async deleteCollection(name) {
-    const dbname = "db:" + name;
-
-    try {
-      await deleteDB(dbname, {
-        blocked(reason) {
-          console.log("Unable to delete: " + reason);
-        }
-      });
-    } catch (e) {
-      console.warn(e);
-      return false;
-    }
-
-    /*
-    if (this.collections[name].config.dbname) {
-      this.collections[name].store.close();
-      await deleteDB(this.collections[name].config.dbname, {
-        blocked(reason) {
-          console.log("Unable to delete: " + reason);
-        }
-      });
-    }*/
-
-    await this.colldb.delete("colls", name);
-    //delete this.collections[name];
-    //self.caches.delete(CACHE_PREFIX + name);
-    return true;
   }
 }
 

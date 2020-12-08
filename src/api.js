@@ -2,7 +2,8 @@
 
 import { Path } from 'path-parser';
 
-import { Downloader} from './downloader';
+import { Downloader } from './downloader';
+import { initIPFS, addPin, rmAllPins } from './ipfs';
 
 
 // ===========================================================================
@@ -51,6 +52,7 @@ class API {
       'index': 'index',
       'coll': ':coll',
       'urls': ':coll/urls',
+      'createColl': ['create', 'POST'],
       'deleteColl': [':coll', 'DELETE'],
       'updateAuth': [':coll/updateAuth', 'POST'],
       'updateMetadata': [':coll/metadata', 'POST'],
@@ -58,7 +60,9 @@ class API {
       'pages': ':coll/pages',
       'textIndex': ':coll/textIndex',
       'deletePage': [':coll/page/:page', 'DELETE'],
-      'downloadPages': ':coll/dl'
+      'downloadPages': ':coll/dl',
+      'ipfsPin': [':coll/ipfs/pin', 'POST'],
+      'ipfsUnpin': [':coll/ipfs/unpin', 'POST']
     });
 
     this.collections = collections;
@@ -76,7 +80,7 @@ class API {
   getCollData(coll) {
     const metadata = coll.config.metadata ? coll.config.metadata : {};
 
-    return {
+    const res = {
       "title": metadata.title || "",
       "desc": metadata.desc || "",
       "size": metadata.size || 0,
@@ -84,8 +88,14 @@ class API {
       "sourceUrl": coll.config.sourceUrl,
       "id": coll.name,
       "ctime": coll.config.ctime,
-      "onDemand": coll.config.onDemand
+      "onDemand": coll.config.onDemand,
+    };
+
+    if (metadata.ipfsPins) {
+      res.ipfsPins = metadata.ipfsPins;
     }
+
+    return res;
   }
 
   async handleApi(url, method, request) {
@@ -99,6 +109,11 @@ class API {
     switch (params._route) {
       case "index":
         return await this.listAll();
+
+      case "createColl":
+        requestJSON = await request.json();
+        coll = await this.collections.initNewColl(requestJSON.metadata || {}, requestJSON.extraConfig || {});
+        return this.getCollData(coll);
 
       case "coll":
         coll = await this.collections.getColl(params.coll);
@@ -120,6 +135,10 @@ class API {
         } else {
           data.numLists = await coll.store.db.count("pageLists");
           data.numPages = await coll.store.db.count("pages");
+        }
+
+        if (coll.config.metadata.ipfsPins) {
+          data.ipfsPins = coll.config.metadata.ipfsPins;
         }
 
         return data;
@@ -217,29 +236,80 @@ class API {
         const pageQ = params._query.get("pages");
         const pageList = pageQ === "all" ? null : pageQ.split(",");
 
-        const dl = new Downloader(coll.store, pageList, params.coll, coll.config.metadata);
-
         const format = params._query.get("format") || "wacz";
         let filename = params._query.get("filename");
 
-        // determine filename from title, if it exists
-        if (!filename && coll.config.metadata.title) {
-          filename = coll.config.metadata.title.toLowerCase().replace(/\s/g, "-");
-        }
-        if (!filename) {
-          filename = "webarchive";
-        }
+        return this.getDownloadResponse({coll, format, filename, pageList});
 
-        if (format === "wacz") {
-          return dl.downloadWACZ(filename);
-        } else if (format === "warc") {
-          return dl.downloadWARC(filename);
-        } else {
-          return {"error": "invalid 'format': must be wacz or warc"};
-        }
+      case "ipfsPin":
+        return await this.ipfsPinUnpin(params.coll, true);
+
+      case "ipfsUnpin":
+        return await this.ipfsPinUnpin(params.coll, false);
 
       default:
         return {"error": "not_found"};
+    }
+  }
+
+  getDownloadResponse({coll, format = "wacz", filename = null, pageList = null}) {
+    const dl = new Downloader(coll.store, pageList, coll.name, coll.config.metadata);
+
+    // determine filename from title, if it exists
+    if (!filename && coll.config.metadata.title) {
+      filename = coll.config.metadata.title.toLowerCase().replace(/\s/g, "-");
+    }
+    if (!filename) {
+      filename = "webarchive";
+    }
+
+    let resp = null;
+
+    if (format === "wacz") {
+      return dl.downloadWACZ(filename);
+    } else if (format === "warc") {
+      return dl.downloadWARC(filename);
+    } else {
+      return {"error": "invalid 'format': must be wacz or warc"};
+    }
+  }
+
+  async ipfsPinUnpin(collId, isPin) {
+    const coll = await this.collections.getColl(collId);
+    if (!coll) {
+      return {error: "collection_not_found"};
+    }
+
+    const ipfs = await initIPFS();
+
+    if (isPin) {
+      const dlResponse = await this.getDownloadResponse({coll});
+
+      const resp = await ipfs.add({
+        path: dlResponse.filename,
+        content: dlResponse.body
+      }, {wrapWithDirectory: true});
+
+      const hash = resp.cid.toString();
+
+      const ipfsUrl = `ipfs://${hash}/${dlResponse.filename}`;
+
+      coll.config.metadata.ipfsPins = addPin(coll.config.metadata.ipfsPins, hash, ipfsUrl, resp.size);
+
+      console.log("ipfs hash added " + ipfsUrl);
+
+      await this.collections.updateMetadata(coll.name, coll.config.metadata);
+
+      return {"ipfsURL": ipfsUrl};
+
+    } else {
+      if (coll.config.metadata.ipfsPins) {
+        coll.config.metadata.ipfsPins = await rmAllPins(coll.config.metadata.ipfsPins);
+
+        await this.collections.updateMetadata(coll.name, coll.config.metadata);
+      }
+
+      return {"removed": true};
     }
   }
 

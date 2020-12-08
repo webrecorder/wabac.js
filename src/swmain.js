@@ -65,9 +65,19 @@ class SWCollections extends WorkerLoader
         this._fileHandles[this.colls[name].config.sourceUrl] = this.colls[name].config.extra.fileHandle;
     }
 
-    await super.deleteColl(name);
+    if (!await super.deleteColl(name)) {
+      return false;
+    }
     delete this.colls[name];
     return true;
+  }
+
+  async initNewColl(metadata, extraConfig = {}) {
+    const coll = await super.initNewColl(metadata, extraConfig);
+    if (coll) {
+      this.colls[coll.name] = coll;
+    }
+    return coll;
   }
 
   async updateAuth(name, headers) {

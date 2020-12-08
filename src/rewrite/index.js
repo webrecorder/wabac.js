@@ -736,7 +736,7 @@ class Rewriter {
       'expires': 'prefix',
 
       'last-modified': 'prefix',
-      'link': 'keep',
+      'link': 'prefix',
       'location': 'url-rewrite',
 
       'p3p': 'prefix',

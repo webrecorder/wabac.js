@@ -80,6 +80,12 @@ async function digestMessage(message, hashtype) {
 
 }
 
+
+//from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
+function randomId() {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
 function makeHeaders(headers) {
   try {
     return new Headers(headers);
@@ -169,5 +175,5 @@ function sleep(millis) {
 
 
 export { startsWithAny, containsAny, getTS, getTSMillis, tsToDate, tsToSec, getSecondsStr, digestMessage,
-         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep, getStatusText, 
+         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep, getStatusText, randomId,
          RangeError, AuthNeededError, AccessDeniedError, Canceled, MAX_FULL_DOWNLOAD_SIZE };

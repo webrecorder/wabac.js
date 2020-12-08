@@ -4,7 +4,7 @@ import http from 'http';
 
 import path from 'path';
 
-import { } from './helpers';
+import './helpers';
 
 import listen from 'test-listen';
 
