@@ -4,7 +4,9 @@ import { PassThrough } from 'stream';
 
 import { Deflate } from 'pako';
 
-import sha256 from 'hash.js/lib/hash/sha/256';
+//import sha256 from 'hash.js/lib/hash/sha/256';
+//import { sha256 } from 'js-sha256';
+import { createSHA256 } from 'hash-wasm';
 
 import { WARCRecord, WARCSerializer } from 'warcio';
 
@@ -26,10 +28,11 @@ async function* getPayload(payload) {
 // ===========================================================================
 class ResumePassThrough extends PassThrough
 {
-  constructor(gen, stats) {
+  constructor(gen, stats, hasher) {
     super();
     this.gen = gen;
     this.stats = stats;
+    this.hasher = hasher;
   }
 
   resume() {
@@ -44,7 +47,7 @@ class ResumePassThrough extends PassThrough
   async start() {
     this.stats.size = 0;
 
-    const sha = sha256();
+    this.hasher.init();
 
     for await (let chunk of this.gen) {
       if (typeof(chunk) === "string") {
@@ -53,10 +56,10 @@ class ResumePassThrough extends PassThrough
 
       this.push(chunk);
       this.stats.size += chunk.byteLength;
-      sha.update(chunk);
+      this.hasher.update(chunk);
     }
 
-    this.stats.hash = sha.digest("hex");
+    this.stats.hash = this.hasher.digest("hex");
 
     this.push(null);
   }
@@ -81,6 +84,7 @@ class Downloader
     this.linesPerBlock = 2048;
 
     this.digestsVisted = {};
+    this.hasher = null;
 
     this.fileStats = [];
   }
@@ -137,7 +141,7 @@ class Downloader
       this.fileStats.push(stats);
     }
 
-    const data = new ResumePassThrough(generator, stats);
+    const data = new ResumePassThrough(generator, stats, this.hasher);
 
     zip.file(filename, data, {
       compression: compressed ? 'DEFLATE' : 'STORE',
@@ -151,6 +155,8 @@ class Downloader
     filename = (filename || "webarchive").split(".")[0] + ".wacz";
 
     await this.loadResources();
+
+    this.hasher = await createSHA256();
 
     this.addFile(zip, "pages/pages.jsonl", this.generatePages(), true);
     this.addFile(zip, "archive/data.warc", this.generateWARC(filename + "#/archive/data.warc"), false);

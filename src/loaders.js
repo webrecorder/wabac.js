@@ -143,6 +143,32 @@ class CollectionLoader
     await this.colldb.put("colls", data);
   }
 
+  async initNewColl(metadata, extraConfig = {}) {
+    await this._init_db;
+    const id = randomId();
+    const dbname = "db:" + id;
+    const sourceUrl = "local://" + id;
+    const decode = false;
+    const ctime = new Date().getTime();
+
+    const data = {
+      name: id,
+      type: "archive",
+      config: {
+        dbname,
+        ctime,
+        decode,
+        metadata,
+        sourceUrl,
+        extraConfig,
+      }
+    }
+
+    const coll = await this._initColl(data);
+    await this.colldb.put("colls", data);
+    return coll;
+  }
+
   async _initColl(data) {
     let store = null;
     let sourceLoader = null;
@@ -210,31 +236,6 @@ class CollectionLoader
     }
 
     return this._createCollection({name, store, config});
-  }
-
-  async initNewColl(metadata, extraConfig = {}) {
-    const id = randomId();
-    const dbname = "db:" + id;
-    const sourceUrl = "local://" + id;
-    const decode = false;
-    const ctime = new Date().getTime();
-
-    const data = {
-      name: id,
-      type: "archive",
-      config: {
-        dbname,
-        ctime,
-        decode,
-        metadata,
-        sourceUrl,
-        extraConfig,
-      }
-    }
-
-    const coll = await this._initColl(data);
-    await this.colldb.put("colls", data);
-    return coll;
   }
 
   _createCollection(opts) {
