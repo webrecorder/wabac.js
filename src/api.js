@@ -3,7 +3,7 @@
 import { Path } from 'path-parser';
 
 import { Downloader } from './downloader';
-import { initIPFS, addPin, rmAllPins } from './ipfs';
+import { initIPFS } from './ipfs';
 
 
 // ===========================================================================
@@ -280,31 +280,29 @@ class API {
       return {error: "collection_not_found"};
     }
 
-    const ipfs = await initIPFS();
+    const ipfsClient = await initIPFS();
 
     if (isPin) {
       const dlResponse = await this.getDownloadResponse({coll});
 
-      const resp = await ipfs.add({
-        path: dlResponse.filename,
-        content: dlResponse.body
-      }, {wrapWithDirectory: true});
+      if (!coll.config.metadata.ipfsPins) {
+        coll.config.metadata.ipfsPins = [];
+      }
+      
+      const data = await ipfsClient.addPin(dlResponse.filename, dlResponse.body);
+      coll.config.metadata.ipfsPins.push(data);
 
-      const hash = resp.cid.toString();
-
-      const ipfsUrl = `ipfs://${hash}/${dlResponse.filename}`;
-
-      coll.config.metadata.ipfsPins = addPin(coll.config.metadata.ipfsPins, hash, ipfsUrl, resp.size);
-
-      console.log("ipfs hash added " + ipfsUrl);
+      console.log("ipfs hash added " + data.url);
 
       await this.collections.updateMetadata(coll.name, coll.config.metadata);
 
-      return {"ipfsURL": ipfsUrl};
+      return {"ipfsURL": data.url};
 
     } else {
       if (coll.config.metadata.ipfsPins) {
-        coll.config.metadata.ipfsPins = await rmAllPins(coll.config.metadata.ipfsPins);
+        await ipfsClient.rmAllPins(coll.config.metadata.ipfsPins);
+
+        delete coll.config.metadata.ipfsPins;
 
         await this.collections.updateMetadata(coll.name, coll.config.metadata);
       }

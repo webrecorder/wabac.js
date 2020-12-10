@@ -12,8 +12,6 @@ const { Headers, Request, Response } = fetch;
 global.Headers = Headers;
 global.fetch = fetch;
 
-global.self = global;
-
 global.__IPFS_CORE_URL__ = "";
 
 const encoder = new TextEncoder("utf-8");

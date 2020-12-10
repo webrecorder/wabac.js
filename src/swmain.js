@@ -58,11 +58,11 @@ class SWCollections extends WorkerLoader
   async deleteColl(name, keepFileHandle = false) {
     if (this.colls[name]) {
       await this.colls[name].store.delete();
-    }
 
-    if (keepFileHandle && this.colls[name].config && this.colls[name].config.extra &&
-      this.colls[name].config.extra.fileHandle) {
-        this._fileHandles[this.colls[name].config.sourceUrl] = this.colls[name].config.extra.fileHandle;
+      if (keepFileHandle && this.colls[name].config && this.colls[name].config.extra &&
+        this.colls[name].config.extra.fileHandle) {
+          this._fileHandles[this.colls[name].config.sourceUrl] = this.colls[name].config.extra.fileHandle;
+      }
     }
 
     if (!await super.deleteColl(name)) {

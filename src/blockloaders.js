@@ -1,7 +1,7 @@
 import { AuthNeededError, AccessDeniedError, sleep } from "./utils";
 
 import { AsyncIterReader } from 'warcio';
-import { initIPFS, resetGC } from "./ipfs";
+import { initIPFS } from "./ipfs";
 
 // todo: make configurable
 const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
@@ -453,16 +453,12 @@ class IPFSRangeLoader
   }
 
   async doInitialFetch(tryHead) {
-    const ipfs = await initIPFS();
-
-    let status = 206;
+    const ipfsClient = await initIPFS();
 
     try {
-      for await (const file of ipfs.get(this.cid, {timeout: 20000, preload: false})) {
-        this.length = file.size;
-        this.isValid = (file.type === "file");
-        break;
-      }
+      this.length = await ipfsClient.getFileSize(this.cid);
+      this.isValid = (this.length !== null);
+
     } catch (e) {
       console.warn(e);
       const res = await this.httpFallback.doInitialFetch(tryHead);
@@ -470,6 +466,8 @@ class IPFSRangeLoader
       this.isValid = this.httpFallback.isValid;
       return res;
     }
+
+    let status = 206;
 
     if (!this.isValid) {
       status = 404;
@@ -492,19 +490,17 @@ class IPFSRangeLoader
 
   async getRange(offset, length, streaming = false, signal = null) {
     try {
-      const ipfs = await initIPFS();
+      const ipfsClient = await initIPFS();
 
-      const stream = ipfs.cat(this.cid, {offset, length, signal});
-
-      resetGC();
+      const iter = ipfsClient.cat(this.cid, {offset, length, signal});
 
       if (streaming) {
-        return this.getReadableStream(stream);
+        return this.getReadableStream(iter);
       } else {
         const chunks = [];
         let size = 0;
 
-        for await (const chunk of stream) {
+        for await (const chunk of iter) {
           chunks.push(chunk);
           size += chunk.byteLength;
         }

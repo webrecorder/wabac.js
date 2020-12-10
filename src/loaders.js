@@ -15,7 +15,7 @@ import { RemoteWARCProxy, RemoteProxySource, LiveAccess } from './remoteproxy';
 
 import { deleteDB, openDB } from 'idb/with-async-ittr.js';
 import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId } from './utils.js';
-import { initIPFS, rmAllPins } from './ipfs.js';
+import { initIPFS } from './ipfs.js';
 
 self.interruptLoads = {};
 
@@ -100,7 +100,10 @@ class CollectionLoader
       }
     }
 
-    data.config.metadata.ipfsPins = await rmAllPins(data.config.metadata.ipfsPins);
+    if (data.config.metadata.ipfsPins) {
+      const ipfsClient = await initIPFS();
+      await ipfsClient.rmAllPins(data.config.metadata.ipfsPins);
+    }
 
     await this.colldb.delete("colls", name);
 

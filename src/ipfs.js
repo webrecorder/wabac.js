@@ -1,94 +1,134 @@
 // ===========================================================================
-let ipfs = null;
-let initingIPFS = null;
-let ipfsGC = null;
-
-self.IpfsCore = null;
-
 const GC_INTERVAL = 600000;
 
 const IPFS_CORE_JS = __IPFS_CORE_URL__;
 
+let client = null;
 
 // ===========================================================================
-async function initIPFS() {
-  if (!ipfs) {
-    try {
-      if (!initingIPFS) {
-        initingIPFS = doInitIPFS();
+class IPFSClient
+{
+  constructor() {
+    this.ipfs = null;
+    this._initingIPFS = null;
+    this.ipfsGC = null;
+  }
+
+  async initIPFS() {
+    if (!this.ipfs) {
+      try {
+        if (!this._initingIPFS) {
+          this._initingIPFS = this._doInitIPFS();
+        }
+
+        await this._initingIPFS;
+
+      } catch (e) {
+        console.warn(e);
       }
-
-      await initingIPFS;
-
-    } catch (e) {
-      console.warn(e);
     }
   }
 
-  return ipfs;
-}
-
-
-// ===========================================================================
-async function doInitIPFS() {
-  if (!self.IpfsCore) {
-    const resp = await fetch(IPFS_CORE_JS);
-    eval(await resp.text());
-  }
-
-  ipfs = await self.IpfsCore.create({
-    init: {emptyRepo: true},
-    //preload: {enabled: false},
-  });
-
-  resetGC();
-}
-
-
-// ===========================================================================
-async function runGC() {
-  let count = 0;
-
-  for await (const res of ipfs.repo.gc()) {
-    count++;
-  }
-  console.log(`IPFS GC, Removed ${count} blocks`);
-}
-
-
-// ===========================================================================
-async function resetGC() {
-  if (ipfsGC) {
-    clearInterval(ipfsGC);
-  }
-
-  ipfsGC = setInterval(runGC, GC_INTERVAL);
-}
-
-
-// ===========================================================================
-async function rmAllPins(pinList) {
-  if (pinList) {
-    const ipfs = await initIPFS();
-    for (const pin of pinList) {
-      ipfs.pin.rm(pin.hash);
+  async _doInitIPFS() {
+    if (!IPFS_CORE_JS) {
+      console.warn("Skipping IPFS init, no load URL");
+      return;
     }
-    runGC();
+
+    if (!self.IpfsCore && IPFS_CORE_JS) {
+      const resp = await fetch(IPFS_CORE_JS);
+      eval(await resp.text());
+    }
+  
+    this.ipfs = await self.IpfsCore.create({
+      init: {emptyRepo: true},
+      //preload: {enabled: false},
+    });
+  
+    this.resetGC();
   }
-  return null;
+
+  async runGC() {
+    let count = 0;
+  
+    for await (const res of this.ipfs.repo.gc()) {
+      count++;
+    }
+    console.log(`IPFS GC, Removed ${count} blocks`);
+  }
+
+  async resetGC() {
+    if (this.ipfsGC) {
+      clearInterval(this.ipfsGC);
+    }
+  
+    this.ipfsGC = setInterval(() => this.runGC(), GC_INTERVAL);
+  }
+
+  async getFileSize(filename) {
+    let name = null;
+    let iter = null;
+
+    // workaround as ipfs.ls() on single file is broken
+    // if no dir, use get
+    const inx = filename.lastIndexOf("/");
+    if (inx > 0) {
+      const dir = filename.slice(0, inx);
+      iter = this.ipfs.ls(dir, {preload: false});
+      name = filename.slice(inx + 1);
+    } else {
+      iter = this.ipfs.get(filename, {preload: false});
+      name = filename;
+    }
+
+    for await (const file of iter) {
+      if (file.name == name && file.type === "file") {
+        return file.size;
+      }
+    }
+
+    return null;
+  }
+
+  cat(filename, opts) {
+    this.resetGC();
+
+    return this.ipfs.cat(filename, opts);
+  }
+
+  async rmAllPins(pinList) {
+    if (pinList) {
+      for (const pin of pinList) {
+        this.ipfs.pin.rm(pin.hash);
+      }
+      this.runGC();
+    }
+    return null;
+  }
+  
+  async addPin(path, content) {
+    const resp = await this.ipfs.add({path, content}, {wrapWithDirectory: true});
+
+    const hash = resp.cid.toString();
+
+    const url = `ipfs://${hash}/${path}`;
+
+    const size = resp.size;
+
+    const ctime = new Date().getTime();
+  
+    return {hash, url, size, ctime};
+  }
 }
 
 // ===========================================================================
-function addPin(pinList, hash, url, size) {
-  if (!pinList) {
-    pinList = [];
+async function initIPFS()
+{
+  if (!client) {
+    client = new IPFSClient();
   }
-
-  const ctime = new Date().getTime();
-
-  pinList.push({hash, url, size, ctime});
-
-  return pinList;
+  await client.initIPFS();
+  return client;
 }
 
-export { initIPFS, resetGC, runGC, addPin, rmAllPins };
+export { IPFSClient, initIPFS };
