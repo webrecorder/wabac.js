@@ -479,8 +479,8 @@ class IPFSRangeLoader
     if (tryHead || !this.isValid) {
       body = new Uint8Array([]);
     } else {
-      const stream = ipfs.cat(this.cid, {signal: abort.signal});
-      body = this.getReadableStream(stream);
+      const iter = ipfsClient.cat(this.cid, {signal: abort.signal});
+      body = this.getReadableStream(iter);
     }
 
     const response = new Response(body, {status});
