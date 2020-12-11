@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@titelmedia/node-fetch": "^3.0.1",
-    "ava": "^3.13.0",
+    "ava": "^3.14.0",
     "esm": "^3.2.25",
     "fake-indexeddb": "^3.0.0",
     "nyc": "^15.0.1",
