@@ -6,7 +6,7 @@ import test from 'ava';
 
 import { tsToDate } from '../src/utils';
 
-import { ArchiveDB } from '../src/archiveDB';
+import { ArchiveDB } from '../src/archivedb';
 
 import { createHash } from 'crypto';
 
