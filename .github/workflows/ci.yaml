@@ -12,10 +12,10 @@ jobs:
           node-version: 13
 
       - name: install
-        run: yarn run install
+        run: yarn install
 
       - name: build
-        run: yarn run build
+        run: yarn build
 
       - name: test
-        run: yarn run test
+        run: yarn test
