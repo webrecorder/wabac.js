@@ -4,6 +4,9 @@ import { PassThrough } from 'stream';
 
 import RewritingStream from 'parse5-html-rewriting-stream';
 
+import parseLinkHeader from 'parse-link-header';
+import formatLinkHeader from 'format-link-header';
+
 import { startsWithAny, containsAny, isAjaxRequest } from '../utils.js';
 
 import { decodeResponse } from './decoder';
@@ -124,9 +127,11 @@ class Rewriter {
   async rewrite(response, request) {
     const rewriteMode = this.contentRewrite ? this.getRewriteMode(request, response, this.baseUrl) : null;
 
-    const urlRewrite = this.urlRewrite && !isAjaxRequest(request);
+    const isAjax = isAjaxRequest(request);
 
-    const headers = this.rewriteHeaders(response.headers, this.urlRewrite, !!rewriteMode);
+    const urlRewrite = this.urlRewrite && !isAjax;
+
+    const headers = this.rewriteHeaders(response.headers, this.urlRewrite, !!rewriteMode, isAjax);
 
     const encoding = response.headers.get("content-encoding");
     const te = response.headers.get('transfer-encoding');
@@ -697,7 +702,7 @@ class Rewriter {
   }
 
   //Headers
-  rewriteHeaders(headers, urlRewrite, contentRewrite) {
+  rewriteHeaders(headers, urlRewrite, contentRewrite, isAjax) {
     const headerRules = {
       'access-control-allow-origin': 'prefix-if-url-rewrite',
       'access-control-allow-credentials': 'prefix-if-url-rewrite',
@@ -736,7 +741,7 @@ class Rewriter {
       'expires': 'prefix',
 
       'last-modified': 'prefix',
-      'link': 'prefix',
+      'link': 'link',
       'location': 'url-rewrite',
 
       'p3p': 'prefix',
@@ -839,6 +844,22 @@ class Rewriter {
         case "cookie":
           //todo
           new_headers.append(header[0], header[1]);
+          break;
+
+        case "link":
+          if (urlRewrite && !isAjax) {
+            const parsed = parseLinkHeader(header[1]);
+
+            for (const entry of Object.values(parsed)) {
+              if (entry.url) {
+                entry.url = this.rewriteUrl(entry.url);
+              }
+            }
+
+            new_headers.append(header[0], formatLinkHeader(parsed));
+          } else {
+            new_headers.append(header[0], header[1]);
+          }
           break;
 
         default:

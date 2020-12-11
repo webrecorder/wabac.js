@@ -17,22 +17,34 @@ global.__IPFS_CORE_URL__ = "";
 const encoder = new TextEncoder("utf-8");
 
 
-async function doRewrite({content, contentType, url = "https://example.com/some/path/index.html", useBaseRules = true, isLive = false, isAjax = false, extraOpts = null}) {
+async function doRewrite({
+    content,
+    contentType,
+    url = "https://example.com/some/path/index.html",
+    useBaseRules = true,
+    isLive = false,
+    isAjax = false,
+    extraOpts = null,
+    returnHeaders = false,
+    headers={}}) {
   const RW = new Rewriter({baseUrl: url, prefix: "http://localhost:8080/prefix/20201226101010/", useBaseRules});
   //const resp = new Response(content, {"headers": {"Content-Type": contentType}});
   const date = new Date("2019-01-02T03:00:00Z");
   const payload = encoder.encode(content);
-  const resp = new ArchiveResponse({payload, headers: new Headers({"Content-Type": contentType}), date,  isLive, extraOpts});
 
-  const headers = new Headers();
+  headers = new Headers({...headers, "Content-Type": contentType});
+
+  const resp = new ArchiveResponse({payload, headers, date, isLive, extraOpts});
+
+  const respHeaders = new Headers();
 
   if (isAjax) {
-    headers.set("X-Pywb-Requested-With", "XMLHttpRequest");
+    respHeaders.set("X-Pywb-Requested-With", "XMLHttpRequest");
   }
 
-  const res = await RW.rewrite(resp, new Request(url, {headers}));
+  const res = await RW.rewrite(resp, new Request(url, {headers: respHeaders}));
 
-  return await res.getText();
+  return returnHeaders ? res.headers : await res.getText();
 }
 
 export { doRewrite };
