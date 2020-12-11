@@ -4,17 +4,18 @@ jobs:
   build:
     name: Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [12.x]
     steps:
       - uses: actions/checkout@v2
-      - uses: borales/actions-yarn@v2.0.0
+      - name: Install Node.js, NPM and Yarn
+        uses: actions/setup-node@v1
         with:
-          cmd: install
-      - uses: borales/actions-yarn@v2.0.0
-        with:
-          cmd: build
-      - uses: borales/actions-yarn@v2.0.0
-        with:
-          cmd: test
+          node-version: 13
+
+      - name: install
+        run: yarn run install
+
+      - name: build
+        run: yarn run build
+
+      - name: test
+        run: yarn run test
