@@ -2,10 +2,6 @@
 
 import { Path } from 'path-parser';
 
-import { Downloader } from './downloader';
-import { initIPFS } from './ipfs';
-
-
 // ===========================================================================
 class APIRouter {
   constructor(paths) {
@@ -48,7 +44,13 @@ class APIRouter {
 // ===========================================================================
 class API {
   constructor(collections) {
-    this.router = new APIRouter({
+    this.router = new APIRouter(this.routes);
+
+    this.collections = collections;
+  }
+
+  get routes() {
+    return {
       'index': 'index',
       'coll': ':coll',
       'urls': ':coll/urls',
@@ -60,16 +62,12 @@ class API {
       'pages': ':coll/pages',
       'textIndex': ':coll/textIndex',
       'deletePage': [':coll/page/:page', 'DELETE'],
-      'downloadPages': ':coll/dl',
-      'ipfsPin': [':coll/ipfs/pin', 'POST'],
-      'ipfsUnpin': [':coll/ipfs/unpin', 'POST']
-    });
-
-    this.collections = collections;
+    };
   }
 
-  async apiResponse(url, method, request) {
-    const response = await this.handleApi(url, method, request);
+  async apiResponse(url, request) {
+    const params = this.router.match(url, request.method);
+    const response = await this.handleApi(request, params);
     if (response instanceof Response) {
       return response;
     }
@@ -98,10 +96,8 @@ class API {
     return res;
   }
 
-  async handleApi(url, method, request) {
-    let params = this.router.match(url, method);
+  async handleApi(request, params) {
     let coll;
-    let total;
     let count;
     let urls;
     let requestJSON;
@@ -227,87 +223,8 @@ class API {
 
         return {pageSize, deleteSize};
 
-      case "downloadPages":
-        coll = await this.collections.getColl(params.coll);
-        if (!coll) {
-          return {error: "collection_not_found"};
-        }
-
-        const pageQ = params._query.get("pages");
-        const pageList = pageQ === "all" ? null : pageQ.split(",");
-
-        const format = params._query.get("format") || "wacz";
-        let filename = params._query.get("filename");
-
-        return this.getDownloadResponse({coll, format, filename, pageList});
-
-      case "ipfsPin":
-        return await this.ipfsPinUnpin(params.coll, true);
-
-      case "ipfsUnpin":
-        return await this.ipfsPinUnpin(params.coll, false);
-
       default:
         return {"error": "not_found"};
-    }
-  }
-
-  getDownloadResponse({coll, format = "wacz", filename = null, pageList = null}) {
-    const dl = new Downloader(coll.store, pageList, coll.name, coll.config.metadata);
-
-    // determine filename from title, if it exists
-    if (!filename && coll.config.metadata.title) {
-      filename = coll.config.metadata.title.toLowerCase().replace(/\s/g, "-");
-    }
-    if (!filename) {
-      filename = "webarchive";
-    }
-
-    let resp = null;
-
-    if (format === "wacz") {
-      return dl.downloadWACZ(filename);
-    } else if (format === "warc") {
-      return dl.downloadWARC(filename);
-    } else {
-      return {"error": "invalid 'format': must be wacz or warc"};
-    }
-  }
-
-  async ipfsPinUnpin(collId, isPin) {
-    const coll = await this.collections.getColl(collId);
-    if (!coll) {
-      return {error: "collection_not_found"};
-    }
-
-    const ipfsClient = await initIPFS();
-
-    if (isPin) {
-      const dlResponse = await this.getDownloadResponse({coll});
-
-      if (!coll.config.metadata.ipfsPins) {
-        coll.config.metadata.ipfsPins = [];
-      }
-      
-      const data = await ipfsClient.addPin(dlResponse.filename, dlResponse.body);
-      coll.config.metadata.ipfsPins.push(data);
-
-      console.log("ipfs hash added " + data.url);
-
-      await this.collections.updateMetadata(coll.name, coll.config.metadata);
-
-      return {"ipfsURL": data.url};
-
-    } else {
-      if (coll.config.metadata.ipfsPins) {
-        await ipfsClient.rmAllPins(coll.config.metadata.ipfsPins);
-
-        delete coll.config.metadata.ipfsPins;
-
-        await this.collections.updateMetadata(coll.name, coll.config.metadata);
-      }
-
-      return {"removed": true};
     }
   }
 

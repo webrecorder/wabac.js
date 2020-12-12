@@ -26,6 +26,7 @@ class CollectionLoader
   constructor() {
     this.colldb = null;
     this.root = null;
+    this.checkIpfs = true;
     this._init_db = this._initDB();
   }
 
@@ -100,7 +101,7 @@ class CollectionLoader
       }
     }
 
-    if (data.config.metadata.ipfsPins) {
+    if (this.checkIpfs && data.config.metadata.ipfsPins) {
       const ipfsClient = await initIPFS();
       await ipfsClient.rmAllPins(data.config.metadata.ipfsPins);
     }
@@ -234,7 +235,7 @@ class CollectionLoader
       this.root = name;
     }
 
-    if (data.config.metadata.ipfsPins) {
+    if (this.checkIpfs && data.config.metadata.ipfsPins) {
       await initIPFS();
     }
 

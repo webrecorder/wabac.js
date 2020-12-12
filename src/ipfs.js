@@ -99,7 +99,11 @@ class IPFSClient
   async rmAllPins(pinList) {
     if (pinList) {
       for (const pin of pinList) {
-        this.ipfs.pin.rm(pin.hash);
+        try {
+          this.ipfs.pin.rm(pin.hash);
+        } catch (e) {
+          console.warn(e);
+        }
       }
       this.runGC();
     }

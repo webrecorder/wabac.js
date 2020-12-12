@@ -18,12 +18,13 @@ const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 // ===========================================================================
 class SWCollections extends WorkerLoader
 {
-  constructor(prefixes, root = null) {
+  constructor(prefixes, root = null, checkIpfs = false) {
     super(self);
     this.prefixes = prefixes;
     this.colls = null;
     this.inited = null;
     this.root = root;
+    this.checkIpfs = checkIpfs;
 
     this._fileHandles = {};
   }
@@ -101,7 +102,7 @@ class SWCollections extends WorkerLoader
 
 // ===========================================================================
 class SWReplay {
-  constructor(staticData = null) {
+  constructor(staticData = null, ApiClass = API, useIPFS = true) {
     this.prefix = self.registration ? self.registration.scope : '';
 
     this.replayPrefix = this.prefix;
@@ -130,10 +131,10 @@ class SWReplay {
     this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
     this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
 
-    this.collections = new SWCollections(prefixes, sp.get("root"));
+    this.collections = new SWCollections(prefixes, sp.get("root"), useIPFS);
     this.collections.loadAll(sp.get("dbColl"));
 
-    this.api = new API(this.collections);
+    this.api = new ApiClass(this.collections);
     this.apiPrefix = this.replayPrefix + "api/";
 
     this.allowRewrittenCache = sp.get("allowCache") ? true : false;
@@ -264,7 +265,7 @@ class SWReplay {
       if (this.stats && request.url.startsWith(this.apiPrefix + "stats.json")) {
         return await this.stats.getStats(event);
       }
-      return await this.api.apiResponse(request.url.slice(this.apiPrefix.length), request.method, request);
+      return await this.api.apiResponse(request.url.slice(this.apiPrefix.length), request);
     }
 
     if (request.method === "POST") {
