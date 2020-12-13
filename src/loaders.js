@@ -15,7 +15,6 @@ import { RemoteWARCProxy, RemoteProxySource, LiveAccess } from './remoteproxy';
 
 import { deleteDB, openDB } from 'idb/with-async-ittr.js';
 import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId } from './utils.js';
-import { initIPFS } from './ipfs.js';
 
 self.interruptLoads = {};
 
@@ -99,11 +98,6 @@ class CollectionLoader
         console.warn(e);
         return false;
       }
-    }
-
-    if (this.checkIpfs && data.config.metadata.ipfsPins) {
-      const ipfsClient = await initIPFS();
-      await ipfsClient.rmAllPins(data.config.metadata.ipfsPins);
     }
 
     await this.colldb.delete("colls", name);
@@ -233,10 +227,6 @@ class CollectionLoader
 
     if (data.config.root) {
       this.root = name;
-    }
-
-    if (this.checkIpfs && data.config.metadata.ipfsPins) {
-      await initIPFS();
     }
 
     return this._createCollection({name, store, config});

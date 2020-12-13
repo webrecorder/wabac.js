@@ -42,10 +42,14 @@ class IPFSClient
   
     this.ipfs = await self.IpfsCore.create({
       init: {emptyRepo: true},
-      //preload: {enabled: false},
+      config: this.initConfig,
     });
   
     this.resetGC();
+  }
+
+  get initConfig() {
+    return {};
   }
 
   async runGC() {
@@ -94,34 +98,6 @@ class IPFSClient
     this.resetGC();
 
     return this.ipfs.cat(filename, opts);
-  }
-
-  async rmAllPins(pinList) {
-    if (pinList) {
-      for (const pin of pinList) {
-        try {
-          this.ipfs.pin.rm(pin.hash);
-        } catch (e) {
-          console.warn(e);
-        }
-      }
-      this.runGC();
-    }
-    return null;
-  }
-  
-  async addPin(path, content) {
-    const resp = await this.ipfs.add({path, content}, {wrapWithDirectory: true});
-
-    const hash = resp.cid.toString();
-
-    const url = `ipfs://${hash}/${path}`;
-
-    const size = resp.size;
-
-    const ctime = new Date().getTime();
-  
-    return {hash, url, size, ctime};
   }
 }
 
