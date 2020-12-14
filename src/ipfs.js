@@ -40,16 +40,22 @@ class IPFSClient
       eval(await resp.text());
     }
   
-    this.ipfs = await self.IpfsCore.create({
-      init: {emptyRepo: true},
-      config: this.initConfig,
-    });
+    this.ipfs = await self.IpfsCore.create(this.initOptions);
   
     this.resetGC();
   }
 
-  get initConfig() {
-    return {};
+  get initOptions() {
+    let opts = {init: {emptyRepo: true}};
+
+    // init from globally set self.ipfsOpts, if available
+    try {
+      opts = {...opts, ...self.ipfsOpts};
+    } catch(e) {
+
+    }
+
+    return opts;
   }
 
   async runGC() {
