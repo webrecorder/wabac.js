@@ -445,8 +445,8 @@ class IPFSRangeLoader
   }
 
   async getLength() {
-    if (this.httpFallback) {
-      return await this.httpFallback.getLength();
+    if (this.length === null) {
+      await this.doInitialFetch(true);
     }
 
     return this.length;
