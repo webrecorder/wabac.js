@@ -494,6 +494,15 @@ class IPFSRangeLoader
 
       const iter = ipfsClient.cat(this.cid, {offset, length, signal});
 
+      if (iter instanceof Promise) {
+        const resp = await iter;
+        if (streaming) {
+          return resp.body;
+        } else {
+          return new Uint8Array(await resp.arrayBuffer());
+        }
+      }
+
       if (streaming) {
         return this.getReadableStream(iter);
       } else {

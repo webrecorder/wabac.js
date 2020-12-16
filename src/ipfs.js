@@ -1,3 +1,5 @@
+import { sleep } from "./utils";
+
 // ===========================================================================
 const GC_INTERVAL = 600000;
 
@@ -8,10 +10,15 @@ let client = null;
 // ===========================================================================
 class IPFSClient
 {
-  constructor() {
+  constructor(customPreload = false) {
     this.ipfs = null;
     this._initingIPFS = null;
     this.ipfsGC = null;
+
+    this.customPreload = customPreload;
+    this.preloadNodes = null;
+
+    //this._currentPreload = null;
   }
 
   async initIPFS() {
@@ -43,10 +50,24 @@ class IPFSClient
     this.ipfs = await self.IpfsCore.create(this.initOptions);
   
     this.resetGC();
+
+    if (this.customPreload) {
+      //const allConfig = await this.ipfs.config.getAll();
+      //this.preloadNodes = allConfig.Addresses.Delegates.map(x => multiAddToUri(x));
+      this.preloadNodes = this.ipfsCustomPreloadURLs || [
+        "https://node0.preload.ipfs.io",
+        "https://node1.preload.ipfs.io",
+        "https://node2.preload.ipfs.io",
+        "https://node3.preload.ipfs.io",
+      ];
+    }
   }
 
   get initOptions() {
-    let opts = {init: {emptyRepo: true}};
+    let opts = {
+      init: {emptyRepo: true},
+      preload: {enabled: !this.customPreload}
+    };
 
     // init from globally set self.ipfsOpts, if available
     try {
@@ -84,9 +105,18 @@ class IPFSClient
     const inx = filename.lastIndexOf("/");
     if (inx > 0) {
       const dir = filename.slice(0, inx);
+
+      if (this.customPreload) {
+        await this.cacheDirToPreload(dir);
+      }
+
       iter = this.ipfs.ls(dir, {preload: false});
       name = filename.slice(inx + 1);
     } else {
+      if (this.customPreload) {
+        await this.cacheDirToPreload(filename);
+      }
+
       iter = this.ipfs.get(filename, {preload: false});
       name = filename;
     }
@@ -103,7 +133,57 @@ class IPFSClient
   cat(filename, opts) {
     this.resetGC();
 
-    return this.ipfs.cat(filename, opts);
+    if (this.customPreload) {
+      return this.preloadCat(filename, opts);
+    } else {
+      return this.ipfs.cat(filename, opts);
+    }
+  }
+
+  getPreloadURL() {
+    if (!this.preloadNodes || !this.preloadNodes.length) {
+      return null;
+    }
+
+    const inx = parseInt(Math.random() * this.preloadNodes.length);
+    return this.preloadNodes[inx];
+  }
+
+  async cacheDirToPreload(hash) {
+    while (true) {
+      const preloadBaseUrl = this.getPreloadURL();
+      if (!preloadBaseUrl) {
+        return;
+      }
+
+      const params = new URLSearchParams({"arg": hash});
+      const url = `${preloadBaseUrl}/api/v0/ls?${params}`;
+
+      try {
+        await fetch(url);
+        return;
+      } catch (e) {
+        console.log("try again");
+        await sleep(500);
+        //this._currentPreload = null;
+      }
+    }
+  }
+
+  preloadCat(filename, opts) {
+    const preloadBaseUrl = this.getPreloadURL();
+    if (!preloadBaseUrl) {
+      return;
+    }
+
+    const arg = filename;
+    const {offset, length} = opts;
+
+    const params = new URLSearchParams({arg, offset, length});
+
+    const url = `${preloadBaseUrl}/api/v0/cat?${params}`;
+
+    return fetch(url);
   }
 }
 
@@ -111,7 +191,7 @@ class IPFSClient
 async function initIPFS()
 {
   if (!client) {
-    client = new IPFSClient();
+    client = new IPFSClient(!!self.ipfsCustomPreload);
   }
   await client.initIPFS();
   return client;
