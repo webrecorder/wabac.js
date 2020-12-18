@@ -479,7 +479,7 @@ class IPFSRangeLoader
     if (tryHead || !this.isValid) {
       body = new Uint8Array([]);
     } else {
-      const iter = ipfsClient.cat(this.cid, {signal: abort.signal});
+      const iter = await ipfsClient.cat(this.cid, {signal: abort.signal});
       body = this.getReadableStream(iter);
     }
 
@@ -492,16 +492,7 @@ class IPFSRangeLoader
     try {
       const ipfsClient = await initIPFS();
 
-      const iter = ipfsClient.cat(this.cid, {offset, length, signal});
-
-      if (iter instanceof Promise) {
-        const resp = await iter;
-        if (streaming) {
-          return resp.body;
-        } else {
-          return new Uint8Array(await resp.arrayBuffer());
-        }
-      }
+      const iter = await ipfsClient.cat(this.cid, {offset, length, signal});
 
       if (streaming) {
         return this.getReadableStream(iter);

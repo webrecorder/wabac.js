@@ -63,6 +63,13 @@ class IPFSClient
     }
   }
 
+  async restart() {
+    await this.ipfs.stop();
+    this._initingIPFS = null;
+    this.ipfs = null;
+    await this.initIPFS();
+  }
+
   get initOptions() {
     let opts = {
       init: {emptyRepo: true},
@@ -130,14 +137,13 @@ class IPFSClient
     return null;
   }
 
-  cat(filename, opts) {
+  async cat(filename, opts) {
     this.resetGC();
 
     if (this.customPreload) {
-      return this.preloadCat(filename, opts);
-    } else {
-      return this.ipfs.cat(filename, opts);
+      await this.preloadCat(filename, opts);
     }
+    return this.ipfs.cat(filename, opts);
   }
 
   getPreloadURL() {
@@ -149,8 +155,8 @@ class IPFSClient
     return this.preloadNodes[inx];
   }
 
-  async cacheDirToPreload(hash) {
-    while (true) {
+  async cacheDirToPreload(hash, timeout = 20000, retries = 5) {
+    for (let i = 0; i < retries; i++) {
       const preloadBaseUrl = this.getPreloadURL();
       if (!preloadBaseUrl) {
         return;
@@ -159,15 +165,31 @@ class IPFSClient
       const params = new URLSearchParams({"arg": hash});
       const url = `${preloadBaseUrl}/api/v0/ls?${params}`;
 
+      const abort = new AbortController();
+      const signal = abort.signal;
+
       try {
-        await fetch(url);
-        return;
+        const resp = await Promise.race([fetch(url, {signal, method: "HEAD"}), sleep(timeout)]);
+        // if got response, success and can return
+        if (resp) {
+          return true;
+        }
+
+        abort.abort();
+
+        // if timed out establishing connection, (sleep finished first), likely no transport
+        // attempt to restart ipfs and try again
+        await this.restart();
+        await sleep(500);
+
       } catch (e) {
         console.log("try again");
         await sleep(500);
         //this._currentPreload = null;
       }
     }
+
+    return false;
   }
 
   preloadCat(filename, opts) {
@@ -183,7 +205,7 @@ class IPFSClient
 
     const url = `${preloadBaseUrl}/api/v0/cat?${params}`;
 
-    return fetch(url);
+    return fetch(url, {method: "HEAD"});
   }
 }
 
