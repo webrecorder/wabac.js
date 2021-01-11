@@ -8,6 +8,9 @@ import { StatsTracker } from './statstracker.js';
 
 import { API } from './api.js';
 
+import { Rewriter } from './rewrite';
+import { ArchiveResponse } from './response';
+
 import WOMBAT from '../dist/wombat.js';
 import WOMBAT_WORKERS from '@webrecorder/wombat/src/wombatWorkers.js';
 
@@ -58,7 +61,9 @@ class SWCollections extends WorkerLoader
 
   async deleteColl(name, keepFileHandle = false) {
     if (this.colls[name]) {
-      await this.colls[name].store.delete();
+      if (this.colls[name].store && this.colls[name].store.delete) {
+        await this.colls[name].store.delete();
+      }
 
       if (keepFileHandle && this.colls[name].config && this.colls[name].config.extra &&
         this.colls[name].config.extra.fileHandle) {
@@ -174,6 +179,11 @@ class SWReplay {
       return this.defaultFetch(event.request);
     }
 
+    // JS rewrite on static/external files not from archive
+    if (url.startsWith(this.staticPrefix + "js_/")) {
+      return this.rewriteJSLive(url, event.request);
+    }
+
     // handle replay / api
     if (url.startsWith(this.replayPrefix) && !url.startsWith(this.staticPrefix)) {
       return this.getResponseFor(event.request, event);
@@ -198,6 +208,29 @@ class SWReplay {
     } else {
       return this.defaultFetch(event.request);
     }
+  }
+
+  async rewriteJSLive(url, request) {
+    url = url.slice((this.staticPrefix + "js_/").length);
+    url = new URL(url, self.location.href).href;
+    request = new Request(url);
+    let response = await this.defaultFetch(request);
+
+    response = ArchiveResponse.fromResponse({url, response});
+
+    const rewriteOpts = {
+      baseUrl: url,
+      responseUrl: url,
+      prefix: this.prefix,
+      urlRewrite: true,
+      contentRewrite: true,
+    };
+
+    const rewriter = new Rewriter(rewriteOpts);
+
+    response = await rewriter.rewrite(response, request);
+
+    return response.makeResponse();
   }
 
   defaultFetch(request) {

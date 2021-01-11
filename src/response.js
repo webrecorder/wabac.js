@@ -9,8 +9,14 @@ class ArchiveResponse
   static fromResponse({url, response, date, noRW, isLive}) {
     const payload = response.body ? new AsyncIterReader(response.body.getReader(), false) : null;
     const status = Number(response.headers.get("x-redirect-status") || response.status);
-    const statusText = response.statusText;
-    let headers = response.headers;
+    const statusText = response.headers.get("x-redirect-statusText") || response.statusText;
+
+    let headers = new Headers(response.headers);
+
+    const origLoc = headers.get("x-orig-location");
+    if (origLoc) {
+      headers.set("location", origLoc);
+    }
 
     const cookie = (headers.get("x-proxy-set-cookie"));
     if (cookie) {
@@ -23,7 +29,6 @@ class ArchiveResponse
       });
 
       if (cookies.length) {
-        headers = new Headers(headers);
         headers.set("x-wabac-preset-cookie", cookies.join(";"));
         console.log("cookies", cookies.join(";"));
       }
@@ -142,6 +147,8 @@ class ArchiveResponse
                                          statusText: this.statusText,
                                          headers: this.headers});
     response.date = this.date;
+    response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
+    response.headers.set("Cross-Origin-Embedder-Policy", "require-corp");
     return response;
   }
 }

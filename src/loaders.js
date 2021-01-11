@@ -168,59 +168,7 @@ class CollectionLoader
   }
 
   async _initColl(data) {
-    let store = null;
-    let sourceLoader = null;
-
-    switch (data.type) {
-      case "archive":
-        store = new ArchiveDB(data.config.dbname);
-        break;
-
-      case "remotesource":
-        sourceLoader = createLoader({
-          url: data.config.loadUrl,
-          headers: data.config.headers,
-          size: data.config.size,
-          extra: data.config.extra
-        });
-        store = new RemoteSourceArchiveDB(data.config.dbname, sourceLoader, data.config.noCache);
-        break;
-
-      case "remoteprefix":
-        store = new RemotePrefixArchiveDB(data.config.dbname, data.config.remotePrefix, data.config.headers, data.config.noCache);
-        break;        
-
-      case "remotezip":
-        sourceLoader = createLoader({
-          url: data.config.loadUrl || data.config.sourceUrl,
-          headers: data.config.headers,
-          extra: data.config.extra
-        });
-        store = new ZipRemoteArchiveDB(data.config.dbname, sourceLoader, data.config.extraConfig, data.config.noCache, data.config);
-        break;
-
-      case "remoteproxy":
-        //TODO remove?
-        store = new RemoteProxySource(data.config);
-        break;
-
-      case "remotewarcproxy":
-        store = new RemoteWARCProxy(data.config);
-        break;
-
-      case "live":
-        store = new LiveAccess(data.config.prefix, data.config.proxyPathOnly, data.config.isLive);
-        break;
-    }
-
-    if (!store) {
-      console.log("no store found: " + data.type);
-      return null;
-    }
-
-    if (store.initing) {
-      await store.initing;
-    }
+    const store = await this._initStore(data.type, data.config);
 
     const name = data.name;
     const config = data.config;
@@ -230,6 +178,64 @@ class CollectionLoader
     }
 
     return this._createCollection({name, store, config});
+  }
+
+  async _initStore(type, config) {
+    let sourceLoader = null;
+    let store = null;
+
+    switch (type) {
+      case "archive":
+        store = new ArchiveDB(config.dbname);
+        break;
+
+      case "remotesource":
+        sourceLoader = createLoader({
+          url: config.loadUrl,
+          headers: config.headers,
+          size: config.size,
+          extra: config.extra
+        });
+        store = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
+        break;
+
+      case "remoteprefix":
+        store = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
+        break;        
+
+      case "remotezip":
+        sourceLoader = createLoader({
+          url: config.loadUrl || config.sourceUrl,
+          headers: config.headers,
+          extra: config.extra
+        });
+        store = new ZipRemoteArchiveDB(config.dbname, sourceLoader, config.extraConfig, config.noCache, config);
+        break;
+
+      case "remoteproxy":
+        //TODO remove?
+        store = new RemoteProxySource(config);
+        break;
+
+      case "remotewarcproxy":
+        store = new RemoteWARCProxy(config);
+        break;
+
+      case "live":
+        store = new LiveAccess(config);
+        break;
+    }
+
+    if (!store) {
+      console.log("no store found: " + type);
+      return null;
+    }
+
+    if (store.initing) {
+      await store.initing;
+    }
+
+    return store;
   }
 
   _createCollection(opts) {
@@ -379,7 +385,9 @@ class WorkerLoader extends CollectionLoader
       config.sourceUrl = file.sourceUrl.slice("proxy:".length);
       config.extraConfig = data.extraConfig;
       config.topTemplateUrl = data.topTemplateUrl;
-      type = "remotewarcproxy";
+      type = data.type || "remotewarcproxy";
+
+      db = await this._initStore(type, config);
 
     } else {
       let loader = null;

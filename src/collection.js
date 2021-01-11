@@ -20,6 +20,12 @@ class Collection {
     this.config = config;
     this.metadata = this.config.metadata ? this.config.metadata : {};
 
+    if (this.config.extraConfig && this.config.extraConfig.injectScripts) {
+      this.injectScripts = this.config.extraConfig.injectScripts;
+    } else {
+      this.injectScripts = [];
+    }
+
     this.rootPrefix = prefixes.root || prefixes.main;
 
     this.prefix = prefixes.main;
@@ -275,8 +281,14 @@ class Collection {
     }
 
     if (baseUrl) {
-      const locParams = new URLSearchParams({url, ts: requestTS, view: "replay"}).toString();
-      return Response.redirect(baseUrl + "#" + locParams);
+      if (this.config.extraConfig.baseUrlHashReplay) {
+        baseUrl += `#${requestTS}/${url}`;
+      } else {
+        const locParams = new URLSearchParams({url, ts: requestTS, view: "replay"});
+        baseUrl += "#" + locParams.toString();
+      }
+
+      return Response.redirect(baseUrl);
     }
 
     let content = null;
@@ -405,6 +417,7 @@ body {
     window._WBWombatInit(wbinfo);
   }
 </script>
+${this.injectScripts.map((script) => `<script src='${this.staticPrefix}js_/${script}'> </script>`)}
   `
   }
 }
