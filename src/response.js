@@ -137,7 +137,7 @@ class ArchiveResponse
     return true;
   }
 
-  makeResponse() {
+  makeResponse(coHeaders = false) {
     let body = null;
     if (!isNullBodyStatus(this.status)) {
       body = this.buffer || !this.reader ? this.buffer : this.reader.getReadableStream();
@@ -147,8 +147,10 @@ class ArchiveResponse
                                          statusText: this.statusText,
                                          headers: this.headers});
     response.date = this.date;
-    response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
-    response.headers.set("Cross-Origin-Embedder-Policy", "require-corp");
+    if (coHeaders) {
+      response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
+      response.headers.set("Cross-Origin-Embedder-Policy", "require-corp");
+    }
     return response;
   }
 }

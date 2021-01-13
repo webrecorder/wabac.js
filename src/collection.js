@@ -20,11 +20,16 @@ class Collection {
     this.config = config;
     this.metadata = this.config.metadata ? this.config.metadata : {};
 
-    if (this.config.extraConfig && this.config.extraConfig.injectScripts) {
-      this.injectScripts = this.config.extraConfig.injectScripts;
-    } else {
-      this.injectScripts = [];
-    }
+    const extraConfig = this.config.extraConfig || {};
+
+    this.injectScripts = extraConfig.injectScripts || [];
+    this.noRewritePrefixes = extraConfig.noRewritePrefixes || null;
+
+    this.coHeaders = extraConfig.coHeaders || false;
+
+    this.csp = extraConfig.csp || DEFAULT_CSP;
+
+    this.injectRelCanon = extraConfig.injectRelCanon || false;
 
     this.rootPrefix = prefixes.root || prefixes.main;
 
@@ -192,7 +197,7 @@ class Collection {
       response = await rewriter.rewrite(response, request);
 
       if (mod !== "id_") {
-        response.headers.append("Content-Security-Policy", DEFAULT_CSP);
+        response.headers.append("Content-Security-Policy", this.csp);
       }
     }
 
@@ -202,7 +207,7 @@ class Collection {
       response.setRange(range);
     }
 
-    return response.makeResponse();
+    return response.makeResponse(this.coHeaders);
   }
 
   checkSlash({url, timestamp, mod}) {
@@ -343,7 +348,7 @@ window.home = "${this.rootPrefix}";
     let responseData = {
       "status": 200,
       "statusText": "OK",
-      "headers": { "Content-Type": "text/html", "Content-Security-Policy": DEFAULT_CSP }
+      "headers": { "Content-Type": "text/html", "Content-Security-Policy": this.csp }
     };
 
     return new Response(content, responseData);
@@ -378,6 +383,7 @@ body {
   font-size: inherit;
 }
 </style>
+${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ``}
 <script>
   wbinfo = {};
   wbinfo.top_url = "${topUrl}";
@@ -411,13 +417,16 @@ body {
   wbinfo.wombat_scheme = "${scheme}";
   wbinfo.wombat_host = "${urlParsed.host}";
 
-  wbinfo.wombat_opts = {};
+  ${this.noRewritePrefixes ? `
+  wbinfo.wombat_opts = {"no_rewrite_prefixes": ${JSON.stringify(this.noRewritePrefixes)}}` : `
+  wbinfo.wombat_opts = {}
+  `}
 
   if (window && window._WBWombatInit) {
     window._WBWombatInit(wbinfo);
   }
 </script>
-${this.injectScripts.map((script) => `<script src='${this.staticPrefix}js_/${script}'> </script>`)}
+${this.injectScripts.map((script) => `<script src='${script}'> </script>`).join("")}
   `
   }
 }
