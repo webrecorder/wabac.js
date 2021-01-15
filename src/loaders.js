@@ -138,6 +138,7 @@ class CollectionLoader
     const metadata = data.config.metadata;
     metadata.fullSize = (metadata.fullSize || 0) + fullSize;
     metadata.size = (metadata.size || 0) + dedupSize;
+    metadata.mtime = new Date().getTime();
     await this.colldb.put("colls", data);
   }
 

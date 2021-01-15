@@ -86,6 +86,7 @@ class API {
       "sourceUrl": coll.config.sourceUrl,
       "id": coll.name,
       "ctime": coll.config.ctime,
+      "mtime": metadata.mtime || coll.config.ctime,
       "onDemand": coll.config.onDemand,
     };
 

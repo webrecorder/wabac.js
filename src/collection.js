@@ -12,7 +12,7 @@ const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
 
 class Collection {
-  constructor(opts, prefixes) {
+  constructor(opts, prefixes, defaultConfig = {}) {
     const { name, store, config } = opts;
 
     this.name = name;
@@ -20,7 +20,7 @@ class Collection {
     this.config = config;
     this.metadata = this.config.metadata ? this.config.metadata : {};
 
-    const extraConfig = this.config.extraConfig || {};
+    const extraConfig = {...defaultConfig, ...this.config.extraConfig};
 
     this.injectScripts = extraConfig.injectScripts || [];
     this.noRewritePrefixes = extraConfig.noRewritePrefixes || null;
@@ -30,6 +30,10 @@ class Collection {
     this.csp = extraConfig.csp || DEFAULT_CSP;
 
     this.injectRelCanon = extraConfig.injectRelCanon || false;
+
+    this.baseFramePrefix = extraConfig.baseUrlSourcePrefix;
+    this.baseFrameUrl = extraConfig.baseUrl;
+    this.baseFrameHashReplay = extraConfig.baseUrlHashReplay || false;
 
     this.rootPrefix = prefixes.root || prefixes.main;
 
@@ -279,14 +283,15 @@ class Collection {
   async makeTopFrame(url, requestTS, isLive) {
     let baseUrl = null;
 
-    if (this.config.extraConfig && this.config.extraConfig.baseUrl) {
-      baseUrl = this.config.extraConfig.baseUrl;
+    if (this.baseFrameUrl) {
+      baseUrl = this.baseFrameUrl;
     } else if (!this.isRoot && this.config.sourceUrl) {
-      baseUrl = `/?source=${this.config.sourceUrl}`;
+      baseUrl = this.baseFramePrefix || "/";
+      baseUrl += `?source=${this.config.sourceUrl}`;
     }
 
     if (baseUrl) {
-      if (this.config.extraConfig.baseUrlHashReplay) {
+      if (this.baseFrameHashReplay) {
         baseUrl += `#${requestTS}/${url}`;
       } else {
         const locParams = new URLSearchParams({url, ts: requestTS, view: "replay"});

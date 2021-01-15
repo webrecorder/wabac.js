@@ -21,19 +21,20 @@ const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 // ===========================================================================
 class SWCollections extends WorkerLoader
 {
-  constructor(prefixes, root = null, checkIpfs = false) {
+  constructor(prefixes, root = null, checkIpfs = false, defaultConfig = {}) {
     super(self);
     this.prefixes = prefixes;
     this.colls = null;
     this.inited = null;
     this.root = root;
     this.checkIpfs = checkIpfs;
+    this.defaultConfig = defaultConfig;
 
     this._fileHandles = {};
   }
 
   _createCollection(opts) {
-    return new Collection(opts, this.prefixes);
+    return new Collection(opts, this.prefixes, this.defaultConfig);
   }
 
   loadAll(dbColl) {
@@ -107,7 +108,7 @@ class SWCollections extends WorkerLoader
 
 // ===========================================================================
 class SWReplay {
-  constructor(staticData = null, ApiClass = API, useIPFS = true) {
+  constructor(staticData = null, ApiClass = API, useIPFS = true, defaultConfig = {}) {
     this.prefix = self.registration ? self.registration.scope : '';
 
     this.replayPrefix = this.prefix;
@@ -136,7 +137,7 @@ class SWReplay {
     this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
     this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
 
-    this.collections = new SWCollections(prefixes, sp.get("root"), useIPFS);
+    this.collections = new SWCollections(prefixes, sp.get("root"), useIPFS, defaultConfig);
     this.collections.loadAll(sp.get("dbColl"));
 
     this.api = new ApiClass(this.collections);
