@@ -332,7 +332,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 
     let pageListInfo = null;
 
-    const pages = [];
+    let pages = [];
 
     for await (const textLine of reader.iterLines()) {
       const page = JSON.parse(textLine);
