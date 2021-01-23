@@ -104,31 +104,13 @@ class IPFSClient
   }
 
   async getFileSize(filename) {
-    let name = null;
-    let iter = null;
+    const name = filename.slice(filename.lastIndexOf("/") + 1);
 
-    // workaround as ipfs.ls() on single file is broken
-    // if no dir, use get
-    const inx = filename.lastIndexOf("/");
-    if (inx > 0) {
-      const dir = filename.slice(0, inx);
-
-      if (this.customPreload) {
-        await this.cacheDirToPreload(dir);
-      }
-
-      iter = this.ipfs.ls(dir, {preload: false});
-      name = filename.slice(inx + 1);
-    } else {
-      if (this.customPreload) {
-        await this.cacheDirToPreload(filename);
-      }
-
-      iter = this.ipfs.get(filename, {preload: false});
-      name = filename;
+    if (this.customPreload) {
+      await this.cacheDirToPreload(filename);
     }
 
-    for await (const file of iter) {
+    for await (const file of this.ipfs.ls(filename, {preload: false})) {
       if (file.name == name && file.type === "file") {
         return file.size;
       }

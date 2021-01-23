@@ -34,9 +34,9 @@ module.exports = {
   },
 
   plugins: [
-    new webpack.BannerPlugin('[name].js is part of Webrecorder project. Copyright (C) 2020, Webrecorder Software. Licensed under the Affero General Public License v3.'),
+    new webpack.BannerPlugin('[name].js is part of Webrecorder project. Copyright (C) 2020=2021, Webrecorder Software. Licensed under the Affero General Public License v3.'),
     new webpack.DefinePlugin({
-      __IPFS_CORE_URL__: JSON.stringify("https://cdn.jsdelivr.net/npm/ipfs-core@0.3.0/dist/index.min.js")
+      __IPFS_CORE_URL__: JSON.stringify("https://cdn.jsdelivr.net/npm/ipfs-core@0.4.2/dist/index.min.js")
     })
   ],
 };
