@@ -3,7 +3,7 @@
 import { Collection } from './collection';
 import { WorkerLoader } from './loaders';
 
-import { notFound, isAjaxRequest } from './utils.js';
+import { notFound, isAjaxRequest, jsonToQueryString } from './utils.js';
 import { StatsTracker } from './statstracker.js';
 
 import { API } from './api.js';
@@ -373,7 +373,7 @@ class SWReplay {
 
         case "application/json":
           query = await request.text();
-          query = "__wb_json_data=" + query.replace(/\n/g, "");
+          query = jsonToQueryString(query); 
           break;
       }
     }

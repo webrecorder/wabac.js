@@ -463,6 +463,10 @@
   resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.0.3.tgz#122f6f33839112ea4c82eb7da8871a73067f058b"
   integrity sha512-PfVODJiryZingyKu5avkb6RkL908chQe7GUqweHspSd84K0BAzihcdAkFP2ByTW/QvaqCH15BRN+SeMDl2T2hg==
 
+"@webrecorder/wombat@github:webrecorder/wombat.js":
+  version "3.0.4"
+  resolved "https://codeload.github.com/webrecorder/wombat.js/tar.gz/ce873420565cdde30221078a7f71ffa4e0b016aa"
+
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@xtuc/ieee754/-/ieee754-1.2.0.tgz#eef014a3145ae477a1cbc00cd1e552336dceb790"

@@ -41,6 +41,11 @@ const DEFAULT_RULES =
    "args": [["video_id"]],
   },
   {
+   "match": /\/\/(?:www\.)?youtube(?:-nocookie)?\.com\/(youtubei\/v1\/[^?]+\?).*(videoId[^,]+).*/i,
+   "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1?$2",
+   "args": [["videoId"]]
+  },
+  {
    "match": /\/\/.*googlevideo.com\/(videoplayback)/i,
    "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1",
    "args": [["id", "itag"],
@@ -251,9 +256,9 @@ class FuzzyMatcher {;
     for (const [key, value] of reqQuery) {
       const foundValue = foundQuery.get(key);
 
-      // if ksy is required, return 0 to skip this match
+      // if key is required, return a large negative to skip this match
       if (reqArgs && reqArgs.has(key) && foundValue !== value) {
-        return -1;
+        return -1000;
       }
 
       let weight;

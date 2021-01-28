@@ -102,6 +102,29 @@ function makeHeaders(headers) {
   }
 }
 
+function jsonToQueryString(json) {
+  if (typeof(json) === "string") {
+    try {
+      json = JSON.parse(json);
+    } catch(e) {
+      json = {};
+    }
+  }
+
+  const q = new URLSearchParams();
+
+  try {
+    JSON.stringify(json, (k, v) => {
+      if (!["object", "function"].includes(typeof(v))) {
+        q.set(k, v);
+      }
+      return v;
+    });
+  } catch (e) {}
+
+  return "__wb_post=1&" + q.toString();
+}
+
 const NULL_STATUS = [101, 204, 205, 304];
 
 function isNullBodyStatus(status) {
@@ -175,5 +198,5 @@ function sleep(millis) {
 
 
 export { startsWithAny, containsAny, getTS, getTSMillis, tsToDate, tsToSec, getSecondsStr, digestMessage,
-         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep, getStatusText, randomId,
+         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep, getStatusText, randomId, jsonToQueryString,
          RangeError, AuthNeededError, AccessDeniedError, Canceled, MAX_FULL_DOWNLOAD_SIZE };
