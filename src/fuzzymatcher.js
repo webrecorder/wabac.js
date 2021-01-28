@@ -8,8 +8,8 @@ function joinRx(rxStr) {
 const DEFAULT_RULES = 
 [
   {
-   "match": /\/\/.*gcs-vimeo|vod|vod-progressive\.akamaized\.net.*\/([\d]+)\/[\d]+(.mp4)/,
-   "fuzzyCanonReplace": "//vimeo-cdn.fuzzy.replayweb.page/$1$2",
+   "match": /\/\/.*(?:gcs-vimeo|vod|vod-progressive)\.akamaized\.net.*?\/([\d\/]+\.mp4)/,
+   "fuzzyCanonReplace": "//vimeo-cdn.fuzzy.replayweb.page/$1",
    "split": ".net",
   },
   {
@@ -39,6 +39,11 @@ const DEFAULT_RULES =
    "match": /\/\/(?:www\.)?youtube(?:-nocookie)?\.com\/(get_video_info)/i,
    "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1",
    "args": [["video_id"]],
+  },
+  {
+   "match": /\/\/(?:www\.)?youtube(?:-nocookie)?\.com\/(youtubei\/v1\/[^?]+\?).*(videoId[^,]+).*/i,
+   "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1?$2",
+   "args": [["videoId"]]
   },
   {
    "match": /\/\/.*googlevideo.com\/(videoplayback)/i,
@@ -251,9 +256,9 @@ class FuzzyMatcher {;
     for (const [key, value] of reqQuery) {
       const foundValue = foundQuery.get(key);
 
-      // if ksy is required, return 0 to skip this match
+      // if key is required, return a large negative to skip this match
       if (reqArgs && reqArgs.has(key) && foundValue !== value) {
-        return -1;
+        return -1000;
       }
 
       let weight;
