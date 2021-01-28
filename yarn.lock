@@ -458,14 +458,10 @@
     "@webassemblyjs/wast-parser" "1.9.0"
     "@xtuc/long" "4.2.2"
 
-"@webrecorder/wombat@^3.0.3":
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.0.3.tgz#122f6f33839112ea4c82eb7da8871a73067f058b"
-  integrity sha512-PfVODJiryZingyKu5avkb6RkL908chQe7GUqweHspSd84K0BAzihcdAkFP2ByTW/QvaqCH15BRN+SeMDl2T2hg==
-
-"@webrecorder/wombat@github:webrecorder/wombat.js":
+"@webrecorder/wombat@^3.0.4":
   version "3.0.4"
-  resolved "https://codeload.github.com/webrecorder/wombat.js/tar.gz/ce873420565cdde30221078a7f71ffa4e0b016aa"
+  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.0.4.tgz#3cc5439ff88af4249ea67c20d92e2cb89beac83b"
+  integrity sha512-HhDW/JaPeaIgrao1m8z+DBupDEGTi3K6lU+FRmpcXiweUGsPFJF59VUUdVGxlERPDOUR5Mvw5Vqmb6ayJUkifw==
 
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"

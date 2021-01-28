@@ -8,8 +8,8 @@ function joinRx(rxStr) {
 const DEFAULT_RULES = 
 [
   {
-   "match": /\/\/.*gcs-vimeo|vod|vod-progressive\.akamaized\.net.*\/([\d]+)\/[\d]+(.mp4)/,
-   "fuzzyCanonReplace": "//vimeo-cdn.fuzzy.replayweb.page/$1$2",
+   "match": /\/\/.*(?:gcs-vimeo|vod|vod-progressive)\.akamaized\.net.*?\/([\d\/]+\.mp4)/,
+   "fuzzyCanonReplace": "//vimeo-cdn.fuzzy.replayweb.page/$1",
    "split": ".net",
   },
   {
