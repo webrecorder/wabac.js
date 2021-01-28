@@ -3,7 +3,7 @@
 import { Collection } from './collection';
 import { WorkerLoader } from './loaders';
 
-import { notFound, isAjaxRequest, jsonToQueryString } from './utils.js';
+import { notFound, isAjaxRequest, postToGetUrl } from './utils.js';
 import { StatsTracker } from './statstracker.js';
 
 import { API } from './api.js';
@@ -361,26 +361,20 @@ class SWReplay {
   }
 
   async toGetRequest(request) {
-    let query = null;
-
-    const contentType = (request.headers.get("Content-Type") || "").split(";")[0];
+    let newUrl = request.url;
 
     if (request.method === "POST" || request.method === "PUT") {
-      switch (contentType) {
-        case "application/x-www-form-urlencoded":
-          query = await request.text();
-          break;
+      const data = {
+        method: request.method,
+        postData: await request.text(),
+        headers: request.headers,
+        url: request.url
+      };
 
-        case "application/json":
-          query = await request.text();
-          query = jsonToQueryString(query); 
-          break;
+      if (postToGetUrl(data)) {
+        newUrl = data.url;
       }
     }
-
-    const newUrl = request.url + (request.url.indexOf("?") >= 0 ? "&" : "?") + query;
-
-    //console.log(`${request.method} ${request.url} ->  ${newUrl}`);
 
     const options = {
       method: "GET",

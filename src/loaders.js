@@ -529,7 +529,9 @@ Make sure this is a valid URL and you have access to this file.`);
       try {
         config.metadata = await loader.load(db, progressUpdate, contentLength);
       } catch (e) {
-        if (!(e instanceof Canceled)) {
+        if (e instanceof AuthNeededError) {
+          progressUpdate(0, `Permission Requested: please reload this file from the file system`);
+        } else if (!(e instanceof Canceled)) {
           progressUpdate(0, `Unexpected Loading Error: ${e.toString()}`);
         }
         return false;

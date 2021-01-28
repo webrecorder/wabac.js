@@ -1,4 +1,4 @@
-import { makeHeaders, Canceled, tsToDate } from './utils.js';
+import { makeHeaders, Canceled, tsToDate, postToGetUrl } from './utils.js';
 
 import { WARCParser } from 'warcio';
 
@@ -166,7 +166,7 @@ class WARCLoader extends BaseParser {
         return null;
     }
 
-    const url = record.warcTargetURI.split("#")[0];
+    let url = record.warcTargetURI.split("#")[0];
     const date = record.warcDate;
 
     let headers;
@@ -175,11 +175,12 @@ class WARCLoader extends BaseParser {
     //let content = record.content;
     let cl = 0;
     let mime = "";
+    let method = (reqRecord && reqRecord.httpHeaders.method);
 
     if (record.httpHeaders) {
       status = Number(record.httpHeaders.statusCode) || 200;
 
-      if (reqRecord && reqRecord.httpHeaders.method === "OPTIONS") {
+      if (method === "OPTIONS") {
         return null;
       }
  
@@ -229,15 +230,30 @@ class WARCLoader extends BaseParser {
     let referrer = null;
 
     if (reqRecord && reqRecord.httpHeaders.headers) {
+      let reqHeaders = null;
       try {
-        const reqHeaders = new Headers(reqRecord.httpHeaders.headers);
+        reqHeaders = new Headers(reqRecord.httpHeaders.headers);
         const cookie = reqHeaders.get("cookie");
         if (cookie) {
           headers.set("x-wabac-preset-cookie", cookie);
         }
         referrer = reqRecord.httpHeaders.headers.get("Referer");
       } catch(e) {
+        reqHeaders = new Headers();
         console.warn(e);
+      }
+
+      if (method === "POST") {
+        const data = {
+          headers: reqHeaders,
+          method,
+          url,
+          postData: reqRecord.payload
+        };
+
+        if (postToGetUrl(data)) {
+          url = data.url;
+        }
       }
     }
 /*

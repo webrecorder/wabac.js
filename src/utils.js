@@ -102,7 +102,44 @@ function makeHeaders(headers) {
   }
 }
 
+function postToGetUrl(request) {
+  const {url, method, headers, postData} = request;
+
+  const requestMime = (headers.get("content-type") || "").split(";")[0];
+
+  if (method !== "POST" && method !== "PUT") {
+    return false;
+  }
+
+  let query = null;
+
+  switch (requestMime) {
+    case "application/x-www-form-urlencoded":
+      query = postData;
+      break;
+
+    case "application/json":
+      query = jsonToQueryString(postData);
+      break;
+
+    default:
+      return false;
+  }
+
+  if (query)  {
+    request.url += (url.indexOf("?") > 0 ? "&" : "?") + query;
+    request.method = "GET";
+    return true;
+  }
+
+  return false;
+}
+
 function jsonToQueryString(json) {
+  if (json instanceof Uint8Array) {
+    json = new TextDecoder().decode(json);
+  }
+
   if (typeof(json) === "string") {
     try {
       json = JSON.parse(json);
@@ -198,5 +235,6 @@ function sleep(millis) {
 
 
 export { startsWithAny, containsAny, getTS, getTSMillis, tsToDate, tsToSec, getSecondsStr, digestMessage,
-         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep, getStatusText, randomId, jsonToQueryString,
+         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep, getStatusText, randomId,
+         jsonToQueryString, postToGetUrl,
          RangeError, AuthNeededError, AccessDeniedError, Canceled, MAX_FULL_DOWNLOAD_SIZE };
