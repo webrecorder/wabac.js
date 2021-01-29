@@ -14,7 +14,7 @@ import { createLoader } from './blockloaders';
 import { RemoteWARCProxy, RemoteProxySource, LiveAccess } from './remoteproxy';
 
 import { deleteDB, openDB } from 'idb/with-async-ittr.js';
-import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId } from './utils.js';
+import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from './utils.js';
 
 self.interruptLoads = {};
 
@@ -272,14 +272,15 @@ class WorkerLoader extends CollectionLoader
       {
         const name = event.data.name; 
 
-        const progressUpdate = (percent, error, currentSize, totalSize) => {
+        const progressUpdate = (percent, error, currentSize, totalSize, fileHandle = null) => {
           client.postMessage({
             "msg_type": "collProgress",
             name,
             percent,
             error,
             currentSize,
-            totalSize
+            totalSize,
+            fileHandle
           });
         };
 
@@ -304,7 +305,11 @@ class WorkerLoader extends CollectionLoader
           }
         } catch (e) {
           console.warn(e);
-          progressUpdate(0, "An unexpected error occured: " + e.toString());
+          if (e instanceof AuthNeededError) {
+            progressUpdate(0, "permission_needed", null, null, e.info && e.info.fileHandle);
+          } else {
+            progressUpdate(0, "An unexpected error occured: " + e.toString());
+          }
           return;
         }
 
@@ -426,7 +431,6 @@ class WorkerLoader extends CollectionLoader
       if (config.loadUrl.startsWith("file://") && !file.blob && !config.extra) {
         if (this._fileHandles && this._fileHandles[config.sourceUrl]) {
           config.extra = {fileHandle: this._fileHandles[config.sourceUrl]};
-          delete this._fileHandles[config.sourceUrl];
         } else {
           progressUpdate(0, "missing_local_file");
           return;
@@ -529,9 +533,7 @@ Make sure this is a valid URL and you have access to this file.`);
       try {
         config.metadata = await loader.load(db, progressUpdate, contentLength);
       } catch (e) {
-        if (e instanceof AuthNeededError) {
-          progressUpdate(0, `Permission Requested: please reload this file from the file system`);
-        } else if (!(e instanceof Canceled)) {
+        if (!(e instanceof Canceled)) {
           progressUpdate(0, `Unexpected Loading Error: ${e.toString()}`);
         }
         return false;
@@ -543,6 +545,10 @@ Make sure this is a valid URL and you have access to this file.`);
     }
 
     config.ctime = new Date().getTime();
+
+    if (config.extra && config.extra.fileHandle) {
+      delete this._fileHandles[config.sourceUrl];
+    }
 
     const collData = {name, type, config};
     await this.colldb.add("colls", collData);
