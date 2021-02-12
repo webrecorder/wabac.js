@@ -1,10 +1,10 @@
 {
   "name": "@webrecorder/wabac",
-  "version": "2.5.6",
+  "version": "2.6.0-beta.0",
   "main": "index.js",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "@webrecorder/wombat": "^3.0.4",
+    "@webrecorder/wombat": "^3.1.0",
     "brotli": "github:foliojs/brotli.js",
     "fast-xml-parser": "^3.15.1",
     "format-link-header": "^3.1.1",

@@ -432,7 +432,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
   getSurt(url) {
     try {
       url = url.replace(/www\d*\./, '');
-      const urlObj = new URL(url);
+      const urlObj = new URL(url.toLowerCase());
 
       const hostParts = urlObj.hostname.split(".").reverse();
       let surt = hostParts.join(",");

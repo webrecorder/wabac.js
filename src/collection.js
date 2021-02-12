@@ -133,6 +133,7 @@ class Collection {
           url: requestURL,
           method: request.method,
           timestamp: requestTS,
+          referrer: request.referrer,
           mod,
           request
         };
@@ -214,16 +215,29 @@ class Collection {
     return response.makeResponse(this.coHeaders);
   }
 
-  checkSlash({url, timestamp, mod}) {
+  getCanonRedirect(query) {
+    let {url, timestamp, mod, referrer} = query;
+    const schemeRel = url.startsWith("//");
+
+    if (schemeRel) {
+      let scheme = (referrer && referrer.indexOf("/http://") > 0) ? "http:" : "https:";
+      url = scheme + url;
+    }
+
     try {
       const parsed = new URL(url);
-      if (parsed.pathname === "/" && parsed.href !== url) {
-        let redirectUrl = this.prefix + timestamp + mod;
-        if (timestamp || mod) {
-          redirectUrl += "/";
+      if (parsed.href !== url) {
+        if (parsed.pathname === "/") {
+          let redirectUrl = this.prefix + timestamp + mod;
+          if (timestamp || mod) {
+            redirectUrl += "/";
+          }
+          redirectUrl += parsed.href;
+          return Response.redirect(redirectUrl, 301);
+        // if different due to canonical URL included, just update the URL
+        } else if (!schemeRel && url.indexOf(":443") || url.indexOf(":80")) {
+          query.url = parsed.href;
         }
-        redirectUrl += parsed.href;
-        return Response.redirect(redirectUrl, 301);
       }
     } catch (e) {}
 
@@ -257,7 +271,7 @@ class Collection {
   }
 
   async getReplayResponse(query, event) {
-    let response = this.checkSlash(query);
+    let response = this.getCanonRedirect(query);
 
     if (response) {
       return response;

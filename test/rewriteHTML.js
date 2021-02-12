@@ -6,8 +6,14 @@ import { doRewrite } from './helpers';
 
 
 // ===========================================================================
-async function rewriteHtml(t, content, expected, useBaseRules = true) {
-  const actual = await doRewrite({content, contentType: "text/html", useBaseRules});
+async function rewriteHtml(t, content, expected, {useBaseRules = true, url = ""} = {}) {
+  const rwArgs = {content, contentType: "text/html", useBaseRules};
+
+  if (url) {
+    rwArgs.url = url;
+  }
+
+  const actual = await doRewrite(rwArgs);
 
   t.is(actual, expected);
 }
@@ -260,7 +266,7 @@ test('srcset', rewriteHtml,
 test('script proxy wrapped', rewriteHtml,
   '<script>window.location = "http://example.com/a/b/c.html"</script>',
   `<script>${wrapScript('window.location = "http://example.com/a/b/c.html"')}</script>`,
-  false);
+  {useBaseRules: false});
 
 // pywb diff: no script url rewriting!
 test('script not wrapped', rewriteHtml,
@@ -291,6 +297,11 @@ test('object pdf', rewriteHtml,
   '<iframe type="application/pdf" src="https://example.com/some/file.pdf">');
 
 
+test('textarea text', rewriteHtml,
+  '<textarea>&quot;loadOrderID&#x3d;0&amp;&quot;</textarea>',
+  '<textarea>&quot;loadOrderID&#x3d;12&amp;&quot;</textarea>',
+  {url: 'https://example.com/foo/bar?a=b&:loadOrderID=12&some=param'});
+
 /*
 # Script tag + crossorigin + integrity
 >>> parse('<script src="/js/scripts.js" crossorigin="anonymous" integrity="ABC"></script>')
@@ -310,5 +321,6 @@ test('object pdf', rewriteHtml,
 */
 //>>> parse('<script>/*<![CDATA[*/window.location = "http://example.com/a/b/c.html;/*]]>*/"</script>')
 //<script>/*<![CDATA[*/window.WB_wombat_location = "/web/20131226101010/http://example.com/a/b/c.html;/*]]>*/"</script>
+
 
 

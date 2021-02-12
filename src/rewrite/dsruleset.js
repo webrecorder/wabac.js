@@ -39,6 +39,13 @@ const DEFAULT_RULES = [
     rxRules: [
       [/"video_info".*?}]}/, ruleRewriteTwitterVideo]
     ]
+  },
+
+  {
+    contains: ["/vqlweb.js"],
+    rxRules: [
+      [/\b\w+\.updatePortSize\(\);this\.updateApplicationSize\(\)(?![*])/img,  ruleReplace('/*{0}*/')]
+    ]
   }
 ];
 

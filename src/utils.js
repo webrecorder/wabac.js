@@ -122,6 +122,10 @@ function postToGetUrl(request) {
       query = jsonToQueryString(postData);
       break;
 
+    case "multipart/form-data":
+      query = mfdToQueryString(postData, headers.get("content-type"));
+      break;
+
     default:
       return false;
   }
@@ -160,6 +164,30 @@ function jsonToQueryString(json) {
   } catch (e) {}
 
   return "__wb_post=1&" + q.toString();
+}
+
+function mfdToQueryString(mfd, contentType) {
+  const params = new URLSearchParams();
+
+  if (mfd instanceof Uint8Array) {
+    mfd = new TextDecoder().decode(mfd);
+  }
+
+  try {
+    const boundary = contentType.split("boundary=")[1];
+
+    const parts = mfd.split(new RegExp("-*" + boundary + "-*", "mi"));
+
+    for (let i = 0; i < parts.length; i++) {
+      const m = parts[i].trim().match(/name="([^"]+)"\r\n\r\n(.*)/mi);
+      if (m) {
+        params.set(m[1], m[2]);
+      }
+    }
+
+  } catch (e) {}
+
+  return params.toString();
 }
 
 const NULL_STATUS = [101, 204, 205, 304];
