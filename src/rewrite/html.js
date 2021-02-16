@@ -67,7 +67,7 @@ const OBJECT_FLASH_DATA_RX = [{
 const TEXT_NODE_REWRITE_RULES = [
   {
     urlMatch: /[?&]:loadOrderID=([\d]+)/,
-    match: /(loadOrderID&#x[^;]+?;)([\d]+)/gi,
+    match: /(loadOrderID&(quot;&)?#x[^;]+?;)([\d]+)/gi,
     replace: "$1$U1"
   }
 ];

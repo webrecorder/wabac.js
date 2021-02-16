@@ -302,6 +302,13 @@ test('textarea text', rewriteHtml,
   '<textarea>&quot;loadOrderID&#x3d;12&amp;&quot;</textarea>',
   {url: 'https://example.com/foo/bar?a=b&:loadOrderID=12&some=param'});
 
+test('textarea text 2', rewriteHtml,
+  '<textarea>&quot;loadOrderID&quot;&#x3d;0&amp;&quot;</textarea>',
+  '<textarea>&quot;loadOrderID&quot;&#x3d;12&amp;&quot;</textarea>',
+  {url: 'https://example.com/foo/bar?a=b&:loadOrderID=12&some=param'});
+
+
+
 /*
 # Script tag + crossorigin + integrity
 >>> parse('<script src="/js/scripts.js" crossorigin="anonymous" integrity="ABC"></script>')
