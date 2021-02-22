@@ -102,94 +102,6 @@ function makeHeaders(headers) {
   }
 }
 
-function postToGetUrl(request) {
-  const {url, method, headers, postData} = request;
-
-  const requestMime = (headers.get("content-type") || "").split(";")[0];
-
-  if (method !== "POST" && method !== "PUT") {
-    return false;
-  }
-
-  let query = null;
-
-  switch (requestMime) {
-    case "application/x-www-form-urlencoded":
-      query = postData;
-      break;
-
-    case "application/json":
-      query = jsonToQueryString(postData);
-      break;
-
-    case "multipart/form-data":
-      query = mfdToQueryString(postData, headers.get("content-type"));
-      break;
-
-    default:
-      return false;
-  }
-
-  if (query)  {
-    request.url += (url.indexOf("?") > 0 ? "&" : "?") + query;
-    request.method = "GET";
-    return true;
-  }
-
-  return false;
-}
-
-function jsonToQueryString(json) {
-  if (json instanceof Uint8Array) {
-    json = new TextDecoder().decode(json);
-  }
-
-  if (typeof(json) === "string") {
-    try {
-      json = JSON.parse(json);
-    } catch(e) {
-      json = {};
-    }
-  }
-
-  const q = new URLSearchParams();
-
-  try {
-    JSON.stringify(json, (k, v) => {
-      if (!["object", "function"].includes(typeof(v))) {
-        q.set(k, v);
-      }
-      return v;
-    });
-  } catch (e) {}
-
-  return "__wb_post=1&" + q.toString();
-}
-
-function mfdToQueryString(mfd, contentType) {
-  const params = new URLSearchParams();
-
-  if (mfd instanceof Uint8Array) {
-    mfd = new TextDecoder().decode(mfd);
-  }
-
-  try {
-    const boundary = contentType.split("boundary=")[1];
-
-    const parts = mfd.split(new RegExp("-*" + boundary + "-*", "mi"));
-
-    for (let i = 0; i < parts.length; i++) {
-      const m = parts[i].trim().match(/name="([^"]+)"\r\n\r\n(.*)/mi);
-      if (m) {
-        params.set(m[1], m[2]);
-      }
-    }
-
-  } catch (e) {}
-
-  return params.toString();
-}
-
 const NULL_STATUS = [101, 204, 205, 304];
 
 function isNullBodyStatus(status) {
@@ -264,5 +176,4 @@ function sleep(millis) {
 
 export { startsWithAny, containsAny, getTS, getTSMillis, tsToDate, tsToSec, getSecondsStr, digestMessage,
          isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep, getStatusText, randomId,
-         jsonToQueryString, postToGetUrl,
          RangeError, AuthNeededError, AccessDeniedError, Canceled, MAX_FULL_DOWNLOAD_SIZE };

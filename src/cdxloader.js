@@ -19,10 +19,8 @@ class CDXFromWARCLoader extends WARCLoader
     switch (record.warcType) {
       case "warcinfo":
       case "revisit":
-        return null;
-
       case "request":
-        return "skipContent";
+        return null;
 
       case "metadata":
         return this.shouldIndexMetadataRecord(record) ? null : "skipContent";
@@ -38,8 +36,16 @@ class CDXFromWARCLoader extends WARCLoader
   }
 
   index(record, parser) {
+    if (record) {
+      record._offset = parser.offset;
+      record._length = parser.recordLength;
+    }
+    return super.index(record, parser);
+  }
+
+  indexReqResponse(record, reqRecord, parser) {
     if (record._isPage) {
-      return super.index(record, parser);
+      return super.indexReqResponse(record, reqRecord, parser);
     }
 
     if (record.warcType === "warcinfo") {
@@ -51,7 +57,7 @@ class CDXFromWARCLoader extends WARCLoader
       this.cdxindexer = new CDXIndexer({}, null);
     }
 
-    const cdx = this.cdxindexer.indexRecord(record, parser, "");
+    const cdx = this.cdxindexer.indexRecordPair(record, reqRecord, parser, "");
 
     if (cdx) {
       this.addCdx(cdx);
@@ -81,6 +87,14 @@ class CDXFromWARCLoader extends WARCLoader
     }
 
     const entry = {url, ts, status, digest, mime, loaded: false, source};
+
+    if (cdx.method) {
+      entry.method = cdx.method;
+    }
+
+    if (cdx.requestBody) {
+      entry.url += cdx.requestBody;
+    }
 
     if (this.batch.length >= BATCH_SIZE) {
       this.flush();

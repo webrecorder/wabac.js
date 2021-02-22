@@ -1,6 +1,6 @@
-import { makeHeaders, Canceled, tsToDate, postToGetUrl } from './utils.js';
+import { makeHeaders, Canceled, tsToDate } from './utils.js';
 
-import { WARCParser } from 'warcio';
+import { WARCParser, postToGetUrl } from 'warcio';
 
 import { extractText } from './extract.js';
 
@@ -71,7 +71,7 @@ class WARCLoader extends BaseParser {
     }
   }
 
-  index(record) {
+  index(record, parser) {
     if (record.warcType === "warcinfo") {
       this.parseWarcInfo(record);
       return;
@@ -85,19 +85,19 @@ class WARCLoader extends BaseParser {
     }
 
     if (this._lastRecord.warcTargetURI != record.warcTargetURI) {
-      this.indexReqResponse(this._lastRecord, null);
+      this.indexReqResponse(this._lastRecord, null, parser);
       this._lastRecord = record;
       return;
     }
 
     if (record.warcType === "request" && this._lastRecord.warcType === "response") {
-      this.indexReqResponse(this._lastRecord, record);
+      this.indexReqResponse(this._lastRecord, record, parser);
       this._lastRecord = null;
     } else if (record.warcType === "response" && this._lastRecord.warcType === "request") {
-      this.indexReqResponse(record, this._lastRecord);
+      this.indexReqResponse(record, this._lastRecord, parser);
       this._lastRecord = null;
     } else {
-      this.indexReqResponse(this._lastRecord, null);
+      this.indexReqResponse(this._lastRecord, null, parser);
       this._lastRecord = record;
     }
   }

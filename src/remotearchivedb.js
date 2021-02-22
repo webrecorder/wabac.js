@@ -38,7 +38,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       return null;
     }
 
-    if (remote.url !== cdx.url) {
+    if (remote.url !== cdx.url && !(cdx.method && cdx.url.startsWith(remote.url))) {
       console.log(`Wrong url: expected ${cdx.url}, got ${remote.url}`);
       return null;
     }
@@ -279,5 +279,5 @@ class PayloadBufferingReader extends BaseAsyncIterReader
 }
 
 
-export { OnDemandPayloadArchiveDB, RemotePrefixArchiveDB, RemoteSourceArchiveDB, SingleRecordWARCLoader };
+export { OnDemandPayloadArchiveDB, RemotePrefixArchiveDB, RemoteSourceArchiveDB };
 

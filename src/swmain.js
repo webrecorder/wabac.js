@@ -3,8 +3,9 @@
 import { Collection } from './collection';
 import { WorkerLoader } from './loaders';
 
-import { notFound, isAjaxRequest, postToGetUrl } from './utils.js';
+import { notFound, isAjaxRequest } from './utils.js';
 import { StatsTracker } from './statstracker.js';
+import { postToGetUrl } from 'warcio';
 
 import { API } from './api.js';
 
