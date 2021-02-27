@@ -54,7 +54,7 @@ class CDXFromWARCLoader extends WARCLoader
     }
 
     if (!this.cdxindexer) {
-      this.cdxindexer = new CDXIndexer({}, null);
+      this.cdxindexer = new CDXIndexer({noSurt: true}, null);
     }
 
     const cdx = this.cdxindexer.indexRecordPair(record, reqRecord, parser, "");
@@ -92,8 +92,9 @@ class CDXFromWARCLoader extends WARCLoader
       entry.method = cdx.method;
     }
 
+    // url with post query appended
     if (cdx.requestBody) {
-      entry.url += cdx.requestBody;
+      entry.url = cdx.urlkey;
     }
 
     if (this.batch.length >= BATCH_SIZE) {

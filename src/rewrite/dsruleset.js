@@ -12,7 +12,7 @@ const DEFAULT_RULES = [
       [/(?:"player":|ytplayer\.config).*"args":\s*{/, ruleReplace('{0}"dash":"0","dashmpd":"",')],
       [/yt\.setConfig.*PLAYER_VARS.*?{/, ruleReplace('{0}"dash":"0","dashmpd":"",')],
       [/ytplayer.config={args:\s*{/, ruleReplace('{0}"dash":"0","dashmpd":"",')],
-      [/"0"==\w+\.dash\&\&/, ruleReplace('1&&')],
+      [/"0"\s*?==\s*?\w+\.dash\&\&/m, ruleReplace('1&&')],
     ]
   },
   {
