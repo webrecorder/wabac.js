@@ -1,9 +1,10 @@
 import { AsyncIterReader } from 'warcio';
-import { RemoteSourceArchiveDB, SingleRecordWARCLoader } from './remotearchivedb';
-import { WARCInfoOnlyWARCLoader, WARCLoader } from './warcloader';
+import { RemoteSourceArchiveDB } from './remotearchivedb';
+import { WARCInfoOnlyWARCLoader, WARCLoader, SingleRecordWARCLoader } from './warcloader';
 import { CDXLoader } from './cdxloader';
 import { getTS, MAX_FULL_DOWNLOAD_SIZE } from './utils';
 import { LiveAccess } from './remoteproxy';
+import { getSurt } from 'warcio';
 
 import yaml from 'js-yaml';
 import { csv2jsonAsync } from 'json-2-csv';
@@ -429,35 +430,13 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     return await loader.load();
   }
 
-  getSurt(url) {
-    try {
-      url = url.replace(/www\d*\./, '');
-      const urlObj = new URL(url.toLowerCase());
-
-      const hostParts = urlObj.hostname.split(".").reverse();
-      let surt = hostParts.join(",");
-      if (urlObj.port) {
-        surt += ":" + urlObj.port;
-      }
-      surt += ")";
-      surt += urlObj.pathname;
-      if (urlObj.search) {
-        urlObj.searchParams.sort();
-        surt += urlObj.search;
-      }
-      return surt.toLowerCase();
-    } catch (e) {
-      return url;
-    }
-  }
-
   async loadFromZiplines(url, datetime) {
     const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
 
     let prefix;
     let checkPrefix;
 
-    const surt = this.useSurt ? this.getSurt(url) : url;
+    const surt = this.useSurt ? getSurt(url) : url;
 
     prefix = surt + " 9";
     checkPrefix = surt;
