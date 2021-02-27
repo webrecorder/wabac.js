@@ -148,6 +148,8 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
         const prefix = line.slice(0, inx);
         let {offset, length, filename} = JSON.parse(line.slice(inx));
 
+        this.useSurt = prefix.indexOf(")/") > 0;
+
         filename = filename || defaultFilename;
 
         entry = {prefix, filename, offset, length, loaded: false};

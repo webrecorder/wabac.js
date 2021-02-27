@@ -1,7 +1,7 @@
 import { tsToDate } from './utils';
 import { WARCLoader } from './warcloader';
 
-import { CDXIndexer, AsyncIterReader } from 'warcio';
+import { CDXIndexer, AsyncIterReader, appendRequestQuery } from 'warcio';
 
 
 const BATCH_SIZE = 3000;
@@ -94,7 +94,7 @@ class CDXFromWARCLoader extends WARCLoader
 
     // url with post query appended
     if (cdx.requestBody) {
-      entry.url = cdx.urlkey;
+      entry.url = cdx.urlkey ? cdx.urlkey : appendRequestQuery(cdx.url, cdx.requestBody, cdx.method);
     }
 
     if (this.batch.length >= BATCH_SIZE) {
