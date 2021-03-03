@@ -41,7 +41,7 @@ class ArchiveResponse
     this.reader = null;
     this.buffer = null;
 
-    if (payload && payload[Symbol.asyncIterator]) {
+    if (payload && (payload[Symbol.asyncIterator] || payload instanceof BaseAsyncIterReader)) {
       this.reader = payload;
     } else {
       this.buffer = payload;
@@ -125,6 +125,8 @@ class ArchiveResponse
     } else if (this.reader) {
       if (start !== 0 || end !== (length - 1)) {
         this.reader.setLimitSkip(end - start + 1, start);
+      } else if (this.reader.setRangeAll) {
+        this.reader.setRangeAll(length);
       }
     }
 

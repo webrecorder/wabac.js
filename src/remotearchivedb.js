@@ -1,6 +1,6 @@
 import { ArchiveDB } from './archivedb';
 import { SingleRecordWARCLoader } from './warcloader';
-import { BaseAsyncIterReader } from 'warcio';
+import { BaseAsyncIterReader, AsyncIterReader, LimitReader } from 'warcio';
 
 import { createLoader } from './blockloaders';
 
@@ -13,6 +13,8 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
     this.noCache = noCache;
 
     this.useRefCounts = !noCache;
+
+    this.streamMap = new Map();
   }
 
   async loadRecordFromSource(cdx) {
@@ -29,6 +31,12 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       if (cdx.respHeaders && cdx.mime !== "warc/revisit") {
         return payload;
       }
+    }
+
+    const chunkstore = this.streamMap.get(cdx.url);
+    if (chunkstore) {
+      console.log(`Reuse stream for ${cdx.url}`);
+      return new PartialStreamReader(chunkstore);
     }
 
     const remote = await this.loadRecordFromSource(cdx);
@@ -104,7 +112,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
     const digest = remote.digest;
 
     if (!this.noCache && remote.reader && digest) {
-      remote.reader = new PayloadBufferingReader(this, remote.reader, digest, cdx.url);
+      remote.reader = new PayloadBufferingReader(this, remote.reader, digest, cdx.url, this.streamMap);
     }
 
     payload = remote.payload;
@@ -222,9 +230,88 @@ class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB
 
 
 // ===========================================================================
+class PartialStreamReader extends BaseAsyncIterReader
+{
+  constructor(chunkstore) {
+    super();
+    this.chunkstore = chunkstore;
+    this.offset = 0;
+    this.size = this.chunkstore.totalLength;
+  }
+
+  setLimitSkip(limit = -1, skip = 0) {
+    this.offset = skip;
+    if (limit > 0) {
+      this.size = limit;
+    }
+  }
+
+  setRangeAll(length) {
+    this.size = length;
+  }
+
+  getReadableStream() {
+    console.log(`Offset: ${this.offset}, Size: ${this.size}`);
+
+    const reader = this.chunkstore.getChunkIter();
+
+    const limitreader = new LimitReader(reader, this.size, this.offset);
+    return limitreader.getReadableStream();
+  }
+}
+
+// ===========================================================================
+class ChunkStore
+{
+  constructor(totalLength) {
+    this.chunks = [];
+    this.size = 0;
+    this.done = false;
+    this.totalLength = this.totalLength;
+
+    this.nextChunk = new Promise(resolve => this._nextResolve = resolve);
+  }
+
+  async consume(readable) {
+    for await (const chunk of AsyncIterReader.fromReadable(readable.getReader())) {
+      this.chunks.push(chunk);
+      this.size += chunk.byteLength;
+      this._nextResolve(true);
+      this.nextChunk = new Promise(resolve => this._nextResolve = resolve);
+    }
+
+    this._nextResolve(false);
+    this.done = true;
+
+    const buff = BaseAsyncIterReader.concatChunks(this.chunks, this.size);
+
+    return buff;
+  }
+
+  async* getChunkIter() {
+    for (const chunk of this.chunks) {
+      yield chunk;
+    }
+
+    let i = this.chunks.length;
+
+    while (!this.done) {
+      if (!await this.nextChunk) {
+        break;
+      }
+
+      for (i; i < this.chunks.length; i++) {
+        yield this.chunks[i];
+      }
+    }
+  }
+}
+
+
+// ===========================================================================
 class PayloadBufferingReader extends BaseAsyncIterReader
 {
-  constructor(db, reader, digest, url = "") {
+  constructor(db, reader, digest, url = "", streamMap) {
     super();
     this.db = db;
     this.reader = reader;
@@ -232,15 +319,29 @@ class PayloadBufferingReader extends BaseAsyncIterReader
     this.digest = digest;
     this.url = url;
 
-    this.chunks = [];
-    this.size = 0;
     this.fullbuff = null;
 
     this.commit = true;
-    this.alreadyRead = false;
+
+    this.isRange = false;
+    this.totalLength = -1;
+
+    this.streamMap = streamMap;
+  }
+
+  setRangeAll(length) {
+    this.isRange = true;
+    this.totalLength = length;
   }
 
   setLimitSkip(limit = -1, skip = 0) {
+    this.isRange = true;
+
+    if (limit === 2 && skip === 0) {
+      this.fixedSize = 2;
+      return;
+    }
+
     if (limit != -1 || skip > 0) {
       this.commit = false;
     }
@@ -248,33 +349,75 @@ class PayloadBufferingReader extends BaseAsyncIterReader
   }
 
   async* [Symbol.asyncIterator]() {
-    if (this.alreadyRead) {
-      return;
-    }
-
     for await (const chunk of this.reader) {
-      this.chunks.push(chunk);
-      this.size += chunk.byteLength;
-
       yield chunk;
     }
-
-    this.fullbuff = BaseAsyncIterReader.concatChunks(this.chunks, this.size);
-
-    // if limit is not 0, didn't consume expected amount... something likely wrong
-    if (this.reader.limit !== 0) {
-      console.warn(`Expected payload not consumed, ${this.reader.limit} bytes left`);
-    } else if (this.commit) {
-      await this.db.commitPayload(this.fullbuff, this.digest);
-    }
-
-    this.chunks = [];
-    this.alreadyRead = true;
   }
 
-  async readFully() {
-    for await (const chunk of this);
+  async doCommit(readable) {
+    const chunkstore = new ChunkStore(this.totalLength);
+
+    try {
+      if (this.isRange) {
+        console.log(`Store stream for ${this.url}, ${this.totalLength}`);
+        this.streamMap.set(this.url, chunkstore);
+      }
+
+      this.fullbuff = await chunkstore.consume(readable);
+
+      // if limit is not 0, didn't consume expected amount... something likely wrong
+      if (this.reader.limit !== 0) {
+        console.warn(`Expected payload not consumed, ${this.reader.limit} bytes left`);
+      } else if (this.commit) {
+        await this.db.commitPayload(this.fullbuff, this.digest);
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+
+    if (this.isRange) {
+      this.streamMap.delete(this.url);
+      console.log(`Delete stream for ${this.url}`);
+    }
+
     return this.fullbuff;
+  }
+
+  readFully() {
+    this.commit = true;
+    return this.doCommit(super.getReadableStream());
+  }
+
+  getReadableStream() {
+    const stream = super.getReadableStream();
+
+    if (!this.commit) {
+      return stream;
+    }
+
+    const tees = stream.tee();
+
+    this.doCommit(tees[1]);
+
+    // load a single, fixed chunk (only used for 0-1 safari range)
+    if (this.fixedSize) {
+      return this.getFixedSizeReader(tees[0].getReader(), this.fixedSize);
+    }
+
+    return tees[0];
+  }
+
+  getFixedSizeReader(reader, size) {
+    return new ReadableStream({
+      async start(controller) {
+        const {value, done} = await reader.read();
+        if (!done) {
+          controller.enqueue(value.slice(0, size));
+        }
+        controller.close();
+        reader.close();
+      }
+    });
   }
 }
 

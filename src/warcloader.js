@@ -256,17 +256,7 @@ class WARCLoader extends BaseParser {
         }
       }
     }
-/*
-    if (cl && content.byteLength !== cl) {
-      // expected mismatch due to bug in node-warc occasionally including trailing \r\n in record
-      if (cl === content.byteLength - 2) {
-        content = content.slice(0, cl);
-      } else {
-      // otherwise, warn about mismatch
-        console.warn(`CL mismatch for ${url}: expected: ${cl}, found: ${content.byteLength}`);
-      }
-    }
-*/
+
     // if no pages found, start detection if hasn't started already
     if (this.detectPages === undefined) {
       this.detectPages = !this.anyPages;
