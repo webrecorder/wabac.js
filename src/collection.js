@@ -128,6 +128,8 @@ class Collection {
         response = await this.getBlobResponse(requestURL);
       } else if (requestURL === "about:blank") {
         response = await this.getSrcDocResponse(requestURL);
+      } else if (requestURL === "__wb_module_decl.js") {
+        response = await this.getWrappedModuleDecl(requestURL);
       } else {
         const query = {
           url: requestURL,
@@ -242,6 +244,31 @@ class Collection {
     } catch (e) {}
 
     return null;
+  }
+
+  getWrappedModuleDecl(url) {
+    const string = `
+    var wrapObj = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
+    if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
+
+    const window = wrapObj("window");
+    const document = wrapObj("document");
+    const location = wrapObj("location");
+    const top = wrapObj("top");
+    const parent = wrapObj("parent");
+    const frames = wrapObj("frames");
+    const opener = wrapObj("opener");
+    const __self = wrapObj("self");
+
+    export { window, document, location, top, parent, frames, opener, __self as self };
+    `;
+
+    const payload = new TextEncoder().encode(string);
+
+    const status = 200;
+    const statusText = "OK";
+    const headers = new Headers({"Content-Type": "application/javascript"});
+    return new Response(payload, {headers, status, statusText});
   }
 
   getSrcDocResponse(url, base64str) {

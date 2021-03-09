@@ -14,14 +14,31 @@ async function rewriteJS(t, content, expected, useBaseRules = false) {
   t.is(actual, wrapScript(expected));
 }
 
-rewriteJS.title = (providedTitle = 'HTML', input, expected) => `${providedTitle}: ${input} => ${expected}`.trim();
+rewriteJS.title = (providedTitle = 'JS', input, expected) => `${providedTitle}: ${input} => ${expected}`.trim();
+
+
+// ===========================================================================
+async function rewriteJSImport(t, content, expected, useBaseRules = false) {
+  const actual = await doRewrite({content, contentType: "application/javascript", useBaseRules});
+
+  if (!expected) {
+    expected = content;
+  }
+
+  t.is(actual, expected);
+}
+
+rewriteJSImport.title = (providedTitle = 'JS Module', input, expected) => `${providedTitle}: ${input}\n=>\n${expected}`.trim();
+
+
 
 
 function wrapScript(text) {
 return `\
-    var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
-    if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
-    {    let window = _____WB$wombat$assign$function_____("window");
+var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
+if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
+{
+let window = _____WB$wombat$assign$function_____("window");
 let self = _____WB$wombat$assign$function_____("self");
 let document = _____WB$wombat$assign$function_____("document");
 let location = _____WB$wombat$assign$function_____("location");
@@ -69,6 +86,38 @@ test(rewriteJS,
 test(rewriteJS,
     "window.eval(a)",
     "window.WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).eval(a)");
+
+// import rewrite
+test(rewriteJSImport, `\
+
+import "foo";
+
+a = this.location`,
+
+`\
+import { window, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010/__wb_module_decl.js";
+
+import "foo";
+
+a = _____WB$wombat$check$this$function_____(this).location\
+`);
+
+
+// import rewrite
+test(rewriteJSImport, `\
+a = this.location
+
+export { a };
+`,
+
+`\
+import { window, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010/__wb_module_decl.js";
+a = _____WB$wombat$check$this$function_____(this).location
+
+export { a };
+`);
+
+
 
 // Not Rewritten
 test(rewriteJS, "return this.abc");

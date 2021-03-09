@@ -179,7 +179,7 @@ class Rewriter {
         break;
     }
 
-    const opts = {response};
+    const opts = {response, prefix: this.prefix};
 
     if (urlRewrite) {
       opts.rewriteUrl = url => this.rewriteUrl(url);

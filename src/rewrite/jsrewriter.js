@@ -1,5 +1,8 @@
 import { RxRewriter } from './rxrewriter';
 
+const IMPORT_RX = /^(?:\s*(?:import\s*{[\s\S]+?}.*|import.*)\n)+/;
+const EXPORT_RX = /export\s+({([\s\w,\n]+)}[\s;]*$|default|class)/;
+
 
 // ===========================================================================
 class JSRewriter extends RxRewriter {
@@ -62,6 +65,7 @@ class JSRewriter extends RxRewriter {
 
     this.compileRules();
 
+    this.localObjs = localObjs;
     this.firstBuff = this.initLocalDecl(localObjs);
     this.lastBuff = '\n\n}';
   }
@@ -107,10 +111,10 @@ class JSRewriter extends RxRewriter {
     const assignFunc = '_____WB$wombat$assign$function_____';
     
     let buffer = `\
-    var ${assignFunc} = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
-    if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
-    {\
-    `;
+var ${assignFunc} = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
+if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
+{
+`;
 
     for (let decl of localDecls) {
       buffer += `let ${decl} = ${assignFunc}("${decl}");\n`;
@@ -119,9 +123,28 @@ class JSRewriter extends RxRewriter {
     return buffer + '\n';
   }
 
+  getModuleDecl(localDecls, prefix) {
+    return `import { ${localDecls.join(", ")} } from "${prefix}__wb_module_decl.js";\n`;
+  }
+
   rewrite(text, opts) {
-    const newText = this.firstBuff + super.rewrite(text, opts) + this.lastBuff;
+    let newText;
+
+    if ((text.indexOf("import ") >= 0 && text.match(IMPORT_RX)) ||
+        (text.indexOf("export ") >= 0 && text.match(EXPORT_RX))) {
+      newText = this.getModuleDecl(this.localObjs, opts.prefix) + super.rewrite(text, opts);
+    } else {
+      newText = this.firstBuff + super.rewrite(text, opts) + this.lastBuff;
+    }
+
     return opts && opts.inline ? newText.replace(/\n/g, " ") : newText;
+  }
+
+  rewriteWrapImportExport(text, opts) {
+    const m = text.match(IMPORT_RX);
+    const start = m ? m[0] : "";
+
+    return start + this.firstBuffModule + super.rewrite(text.slice(start.length), opts);
   }
 }
 
