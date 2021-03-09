@@ -27,9 +27,10 @@ rewriteHtml.title = (providedTitle = 'HTML', input, expected) => `${providedTitl
 // ===========================================================================
 function wrapScript(text) {
 return `\
-    var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
-    if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
-    {    let window = _____WB$wombat$assign$function_____("window");
+var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
+if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
+{
+let window = _____WB$wombat$assign$function_____("window");
 let self = _____WB$wombat$assign$function_____("self");
 let document = _____WB$wombat$assign$function_____("document");
 let location = _____WB$wombat$assign$function_____("location");
