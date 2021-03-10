@@ -259,7 +259,7 @@ class WorkerLoader extends CollectionLoader
   }
 
   registerListener(worker) {
-    worker.addEventListener("message", event => this._handleMessage(event));
+    worker.addEventListener("message", event => event.waitUntil(this._handleMessage(event)));
   }
 
   async _handleMessage(event) {

@@ -163,7 +163,7 @@ class SWReplay {
 
     self.addEventListener("message", (event) => {
       if (event.data.msg_type === "reload_all") {
-        this.collections.loadAll();
+        event.waitUntil(this.collections.loadAll());
       }
     });
   }
