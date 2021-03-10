@@ -1,7 +1,7 @@
 import { RxRewriter } from './rxrewriter';
 
-const IMPORT_RX = /^(?:\s*(?:import\s*{[\s\S]+?}.*|import.*)\n)+/;
-const EXPORT_RX = /export\s+({([\s\w,\n]+)}[\s;]*$|default|class)/;
+const IMPORT_RX = /^\s*?import\s*?[\{"']/;
+const EXPORT_RX = /export\s*?({([\s\w,\$\n]+?)}[\s;]*|default|class)/;
 
 
 // ===========================================================================
@@ -130,21 +130,14 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
   rewrite(text, opts) {
     let newText;
 
-    if ((text.indexOf("import ") >= 0 && text.match(IMPORT_RX)) ||
-        (text.indexOf("export ") >= 0 && text.match(EXPORT_RX))) {
+    if ((text.indexOf("import") >= 0 && text.match(IMPORT_RX)) ||
+        (text.indexOf("export") >= 0 && text.match(EXPORT_RX))) {
       newText = this.getModuleDecl(this.localObjs, opts.prefix) + super.rewrite(text, opts);
     } else {
       newText = this.firstBuff + super.rewrite(text, opts) + this.lastBuff;
     }
 
     return opts && opts.inline ? newText.replace(/\n/g, " ") : newText;
-  }
-
-  rewriteWrapImportExport(text, opts) {
-    const m = text.match(IMPORT_RX);
-    const start = m ? m[0] : "";
-
-    return start + this.firstBuffModule + super.rewrite(text.slice(start.length), opts);
   }
 }
 

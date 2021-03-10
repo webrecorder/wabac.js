@@ -14,7 +14,7 @@ async function rewriteJS(t, content, expected, useBaseRules = false) {
   t.is(actual, wrapScript(expected));
 }
 
-rewriteJS.title = (providedTitle = 'JS', input, expected) => `${providedTitle}: ${input} => ${expected}`.trim();
+rewriteJS.title = (providedTitle = 'JS', input, expected) => `${providedTitle}: ${input.replace(/\n/g, "\\n")}`.trim();
 
 
 // ===========================================================================
@@ -25,10 +25,10 @@ async function rewriteJSImport(t, content, expected, useBaseRules = false) {
     expected = content;
   }
 
-  t.is(actual, expected);
+  t.is(actual, wrapImport(expected));
 }
 
-rewriteJSImport.title = (providedTitle = 'JS Module', input, expected) => `${providedTitle}: ${input}\n=>\n${expected}`.trim();
+rewriteJSImport.title = (providedTitle = 'JS Module', input, expected) => `${providedTitle}: ${input.replace(/\n/g, "\\n")}`.trim();
 
 
 
@@ -47,6 +47,13 @@ let parent = _____WB$wombat$assign$function_____("parent");
 let frames = _____WB$wombat$assign$function_____("frames");
 let opener = _____WB$wombat$assign$function_____("opener");
 \n` + text + `\n\n}`;
+
+}
+
+function wrapImport(text) {
+  return `\
+import { window, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010/__wb_module_decl.js";
+${text}`;
 
 }
 
@@ -95,7 +102,6 @@ import "foo";
 a = this.location`,
 
 `\
-import { window, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010/__wb_module_decl.js";
 
 import "foo";
 
@@ -103,7 +109,7 @@ a = _____WB$wombat$check$this$function_____(this).location\
 `);
 
 
-// import rewrite
+// import/export module rewrite
 test(rewriteJSImport, `\
 a = this.location
 
@@ -111,12 +117,21 @@ export { a };
 `,
 
 `\
-import { window, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010/__wb_module_decl.js";
 a = _____WB$wombat$check$this$function_____(this).location
 
 export { a };
 `);
 
+
+test(rewriteJSImport, `\
+import"./import.js";import{A, B, C} from"test.js";(function() => { frames[0].href = "/abc"; })`);
+
+
+test(rewriteJSImport, `\
+a = location
+
+export{ a, $ as b };
+`);
 
 
 // Not Rewritten
