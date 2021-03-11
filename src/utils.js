@@ -1,10 +1,10 @@
 import { getReasonPhrase } from "http-status-codes";
 
 // Threshold size for switching to range requests
-const MAX_FULL_DOWNLOAD_SIZE = 25000000;
+export const MAX_FULL_DOWNLOAD_SIZE = 25000000;
 
 
-function startsWithAny(value, iter) {
+export  function startsWithAny(value, iter) {
   for (const str of iter) {
     if (value.startsWith(str)) {
       return true;
@@ -14,7 +14,7 @@ function startsWithAny(value, iter) {
   return false;
 }
 
-function containsAny(value, iter) {
+export function containsAny(value, iter) {
   for (const str of iter) {
     if (value.indexOf(str) >= 0) {
       return true;
@@ -24,15 +24,15 @@ function containsAny(value, iter) {
   return false;
 }
 
-function getTS(iso) {
+export function getTS(iso) {
   return iso.replace(/[-:T]/g, '').slice(0, 14);
 }
 
-function getTSMillis(iso) {
+export function getTSMillis(iso) {
   return iso.replace(/[-:.TZ]/g, '');
 }
 
-function tsToDate(ts) {
+export function tsToDate(ts) {
   if (!ts) {
     return new Date();
   }
@@ -52,11 +52,11 @@ function tsToDate(ts) {
   return new Date(datestr);
 };
 
-function tsToSec(ts) {
+export function tsToSec(ts) {
   return tsToDate(ts).getTime() / 1000;
 }
 
-function getSecondsStr(date) {
+export function getSecondsStr(date) {
   if (!date) {
     return "";
   }
@@ -73,7 +73,7 @@ function base16(hashBuffer) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function digestMessage(message, hashtype) {
+export async function digestMessage(message, hashtype) {
   const msgUint8 = typeof(message) === "string" ? new TextEncoder().encode(message) : message;
   const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);
   return hashtype + ":" + base16(hashBuffer);
@@ -82,11 +82,11 @@ async function digestMessage(message, hashtype) {
 
 
 //from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
-function randomId() {
+export function randomId() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-function makeHeaders(headers) {
+export function makeHeaders(headers) {
   try {
     return new Headers(headers);
   } catch (e) {
@@ -102,13 +102,37 @@ function makeHeaders(headers) {
   }
 }
 
+export function parseSetCookie(setCookie, scheme, cookieStr = "") {
+  for (const cookie of setCookie.split(",")) {
+    const cookieCore = cookie.split(";", 1)[0];
+    // if has cookie flags
+    if (cookieCore !== cookie) {
+      const cookieRemainder = cookie.slice(cookieCore.length).toLowerCase();
+      if (cookieRemainder.indexOf("httponly") > 0) {
+        continue;
+      }
+      if (scheme === "http" && cookieRemainder.indexOf("secure") > 0) {
+        continue;
+      }
+    }
+
+    if (cookieStr) {
+      cookieStr += "; ";
+    }
+
+    cookieStr += cookieCore;
+  }
+
+  return cookieStr;
+}
+
 const NULL_STATUS = [101, 204, 205, 304];
 
-function isNullBodyStatus(status) {
+export function isNullBodyStatus(status) {
   return NULL_STATUS.includes(status);
 }
 
-function getStatusText(status) {
+export function getStatusText(status) {
   try {
     return getReasonPhrase(status);
   } catch (e) {
@@ -116,12 +140,12 @@ function getStatusText(status) {
   }
 }
 
-function isAjaxRequest(request) {
+export function isAjaxRequest(request) {
   return request.headers.get('X-Pywb-Requested-With') === 'XMLHttpRequest';
 }
 
 
-function notFound(request, msg, status = 404) {
+export function notFound(request, msg, status = 404) {
   let content;
   let contentType;
 
@@ -150,30 +174,26 @@ function notFound(request, msg, status = 404) {
 
 
 // ===========================================================================
-class RangeError
+export class RangeError
 {
   constructor(info = {}) {
     this.info = info;
   }
 }
 
-class AuthNeededError extends RangeError
+export class AuthNeededError extends RangeError
 {
 }
 
-class AccessDeniedError extends RangeError
+export class AccessDeniedError extends RangeError
 {
 }
 
-class Canceled
+export class Canceled
 {
 }
 
-function sleep(millis) {
+export function sleep(millis) {
   return new Promise((resolve) => setTimeout(resolve, millis));
 }
 
-
-export { startsWithAny, containsAny, getTS, getTSMillis, tsToDate, tsToSec, getSecondsStr, digestMessage,
-         isNullBodyStatus, makeHeaders, notFound, isAjaxRequest, sleep, getStatusText, randomId,
-         RangeError, AuthNeededError, AccessDeniedError, Canceled, MAX_FULL_DOWNLOAD_SIZE };

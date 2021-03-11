@@ -2,7 +2,7 @@
 
 import { Rewriter } from './rewrite';
 
-import { getTS, getSecondsStr, notFound, AuthNeededError } from './utils.js';
+import { getTS, getSecondsStr, notFound, AuthNeededError, parseSetCookie } from './utils.js';
 
 import { ArchiveResponse } from './response';
 
@@ -174,8 +174,9 @@ class Collection {
 
     if (!response.noRW) {
       const headInsertFunc = (url) => {
-        const presetCookie = response.headers.get("x-wabac-preset-cookie");
-        return this.makeHeadInsert(url, requestTS, response.date, presetCookie, response.isLive, request.referrer);
+        let presetCookie = response.headers.get("x-wabac-preset-cookie") || "";
+        const setCookie = response.headers.get("Set-Cookie");
+        return this.makeHeadInsert(url, requestTS, response.date, presetCookie, setCookie, response.isLive, request.referrer);
       };
 
       const workerInsertFunc = (text) => {
@@ -400,7 +401,7 @@ window.home = "${this.rootPrefix}";
     return new Response(content, responseData);
   }
 
-  makeHeadInsert(url, requestTS, date, presetCookie, isLive, referrer) {
+  makeHeadInsert(url, requestTS, date, presetCookie, setCookie, isLive, referrer) {
     const prefix = this.prefix;
     const topUrl = prefix + requestTS + (requestTS ? "/" : "") + url;
     const coll = this.name;
@@ -418,6 +419,10 @@ window.home = "${this.rootPrefix}";
       scheme = (referrer && referrer.indexOf("/http://") > 0) ? "http" : "https";
     } else {
       scheme = urlParsed.protocol.slice(0, -1);
+    }
+
+    if (setCookie) {
+      presetCookie = parseSetCookie(setCookie, scheme, presetCookie);
     }
 
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
