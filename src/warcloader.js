@@ -102,9 +102,9 @@ class WARCLoader extends BaseParser {
     }
   }
 
-  indexDone() {
+  indexDone(parser) {
     if (this._lastRecord) {
-      this.indexReqResponse(this._lastRecord);
+      this.indexReqResponse(this._lastRecord, null, parser);
       this._lastRecord = null;
     }
   }
@@ -377,7 +377,7 @@ class WARCLoader extends BaseParser {
       console.warn(e);
     }
 
-    this.indexDone();
+    this.indexDone(parser);
 
     progressUpdate(95);
 

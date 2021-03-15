@@ -23,7 +23,7 @@ class CDXFromWARCLoader extends WARCLoader
         return null;
 
       case "metadata":
-        return this.shouldIndexMetadataRecord(record) ? null : "skipContent";
+        return this.shouldIndexMetadataRecord(record) ? null : "skip";
     }
 
     const url = record.warcTargetURI;
@@ -145,8 +145,6 @@ class CDXLoader extends CDXFromWARCLoader
       }
       this.addCdx(cdx);
     }
-
-    this.indexDone();
 
     await this.finishIndexing();
   }
