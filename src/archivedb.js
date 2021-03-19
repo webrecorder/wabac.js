@@ -101,7 +101,7 @@ class ArchiveDB {
       } else {
         const date = page.ts || page.date || page.datetime;
         if (date) {
-          ts = new Date().getTime();
+          ts = new Date(date).getTime();
         }
       }
     }

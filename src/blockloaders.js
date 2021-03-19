@@ -72,6 +72,11 @@ class HttpRangeLoader
       response = await fetch(this.url, {headers, signal});
       this.canLoadOnDemand = ((response.status === 206) || response.headers.get("Accept-Ranges") === "bytes");
       this.isValid = (response.status === 206 || response.status === 200);
+      // if emulating HEAD, abort here
+      if (tryHead) {
+        abort.abort();
+        abort = null;
+      }
     }
 
     if (this.length === null) {
