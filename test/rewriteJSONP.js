@@ -6,8 +6,7 @@ import { doRewrite } from './helpers';
 
 
 // ===========================================================================
-async function rewriteJSONP(t, content, expected, useBaseRules = true) {
-  const url = 'http://example.com/?callback=jQuery_ABC'
+async function rewriteJSONP(t, content, expected, url = "http://example.com/?callback=jQuery_ABC", useBaseRules = true) {
   const actual = await doRewrite({content, contentType: "application/json", url, useBaseRules});
 
   if (expected) {
@@ -51,6 +50,11 @@ test(rewriteJSONP,
 test(rewriteJSONP,
   ' /* some comment */ jQuery_1234({"foo": "bar", "some": "data"})',
   'jQuery_ABC({"foo": "bar", "some": "data"})');
+
+test(rewriteJSONP,
+  'some.other.object1234({"foo": "bar", "some": "data"})',
+  'some.other.object5678({"foo": "bar", "some": "data"})',
+  'http://example.com/?jsonp=some.other.object5678');
 
 
 test(rewriteJSONP,

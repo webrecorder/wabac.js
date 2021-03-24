@@ -26,14 +26,15 @@ const IMPORT_REGEX = /(@import\s*[\\"']*)([^)'";]+)([\\"']*\s*;?)/gi;
 const NO_WOMBAT_REGEX = /WB_wombat_/g;
 
 //const JSONP_REGEX = /^(?:[ \t]*(?:(?:\/\*[^\*]*\*\/)|(?:\/\/[^\n]+[\n])))*[ \t]*(\w+)\(\{/m;
-const JSONP_REGEX = /^(?:\s*(?:(?:\/\*[^\*]*\*\/)|(?:\/\/[^\n]+[\n])))*\s*(\w+)\(\{/;
+const JSONP_REGEX = /^(?:\s*(?:(?:\/\*[^\*]*\*\/)|(?:\/\/[^\n]+[\n])))*\s*([\w.]+)\([{\[]/;
 
-const JSONP_CALLBACK_REGEX = /[?].*callback=([^&]+)/;
+const JSONP_CALLBACK_REGEX = /[?].*(?:callback|jsonp)=([^&]+)/;
 
 const JSONP_CONTAINS = [
   'callback=jQuery',
   'callback=jsonp',
-  '.json?'
+  '.json?',
+  'jsonp='
 ];
 
 // JS Rewriters
@@ -83,7 +84,7 @@ class Rewriter {
           return "css";
 
         case "script":
-          return containsAny(url, JSONP_CONTAINS) ? "jsonp" : "js";
+          return this.getScriptRewriteMode(mime, url, "js");
 
         case "worker":
           return "js-worker";
@@ -94,6 +95,23 @@ class Rewriter {
       case "text/html":
         return "html";
 
+      case "text/css":
+        return "css";
+
+      case "application/x-mpegURL":
+      case "application/vnd.apple.mpegurl":
+        return "hls";
+
+      case "application/dash+xml":
+        return "dash";
+
+      default:
+        return this.getScriptRewriteMode(mime, url, null);
+    }
+  }
+
+  getScriptRewriteMode(mime, url, defaultType) {
+    switch (mime) {
       case "text/javascript":
       case "application/javascript":
       case "application/x-javascript":
@@ -105,18 +123,9 @@ class Rewriter {
       case "application/json":
         return "json";
 
-      case "text/css":
-        return "css";
-
-      case "application/x-mpegURL":
-      case "application/vnd.apple.mpegurl":
-        return "hls";
-
-      case "application/dash+xml":
-        return "dash";
+      default:
+        return defaultType;
     }
-
-    return null;
   }
 
   async rewrite(response, request) {
