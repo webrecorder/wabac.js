@@ -72,12 +72,12 @@ class HARLoader extends BaseParser {
       }
 
       this.addResource({url: entry.request.url,
-                           ts,
-                           status: entry.response.status,
-                           //statusText: entry.response.statusText,
-                           respHeaders,
-                           //reqHeaders,
-                           payload});
+        ts,
+        status: entry.response.status,
+        //statusText: entry.response.statusText,
+        respHeaders,
+        //reqHeaders,
+        payload});
 
       if (entry.pageref && !this.pageRefs[entry.pageref]) {
         this.pageRefs[entry.pageref] = entry.request.url;

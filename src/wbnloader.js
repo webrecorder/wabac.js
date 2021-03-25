@@ -1,6 +1,7 @@
 
-import { Bundle } from 'wbn';
-import { BaseParser } from './baseparser';
+import { Bundle } from "wbn";
+import { BaseParser } from "./baseparser";
+import { Buffer } from "buffer";
 
 
 // ===========================================================================
@@ -27,11 +28,11 @@ class WBNLoader extends BaseParser {
       const resp = this.bundle.getResponse(url);
 
       this.addResource({url,
-                        ts,
-                        status: resp.status,
-                        respHeaders: resp.headers,
-                        payload: resp.body
-                       });
+        ts,
+        status: resp.status,
+        respHeaders: resp.headers,
+        payload: resp.body
+      });
     }
 
     await this.finishIndexing();

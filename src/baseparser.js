@@ -49,4 +49,4 @@ class BaseParser
   }
 }
 
-export { BaseParser }
+export { BaseParser };

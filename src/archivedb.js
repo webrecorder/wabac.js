@@ -1,10 +1,10 @@
 "use strict";
 
-import { openDB, deleteDB } from 'idb/with-async-ittr.js';
+import { openDB, deleteDB } from "idb/with-async-ittr.js";
 import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage,
-         getTS, getStatusText, randomId } from './utils';
-import { fuzzyMatcher } from './fuzzymatcher';
-import { ArchiveResponse } from './response';
+  getTS, getStatusText, randomId } from "./utils";
+import { fuzzyMatcher } from "./fuzzymatcher";
+import { ArchiveResponse } from "./response";
 
 
 // ===========================================================================
@@ -43,13 +43,13 @@ class ArchiveDB {
     }
   }
 
-  _initDB(db, oldV, newV, tx) {
+  _initDB(db, oldV/*, newV, tx*/) {
     if (!oldV) {
       const pageStore = db.createObjectStore("pages", { keyPath: "id" });
       pageStore.createIndex("url", "url");
       pageStore.createIndex("ts", "ts");
 
-      const listStore = db.createObjectStore("pageLists", { keyPath: "id", autoIncrement: true});
+      db.createObjectStore("pageLists", { keyPath: "id", autoIncrement: true});
 
       const curatedPages = db.createObjectStore("curatedPages", { keyPath: "id", autoIncrement: true});
       curatedPages.createIndex("listPages", ["list", "pos"]);
@@ -60,8 +60,8 @@ class ArchiveDB {
       //urlStore.createIndex("ts", "ts");
       urlStore.createIndex("mimeStatusUrl", ["mime", "status", "url"]);
 
-      const payload = db.createObjectStore("payload", { keyPath: "digest", unique: true});
-      const digestRef = db.createObjectStore("digestRef", { keyPath: "digest", unique: true});
+      db.createObjectStore("payload", { keyPath: "digest", unique: true});
+      db.createObjectStore("digestRef", { keyPath: "digest", unique: true});
     }
   }
 
@@ -345,11 +345,11 @@ class ArchiveDB {
       }
 
       const fuzzyRes = {url: fuzzyCanonUrl,
-                        ts: result.ts,
-                        origURL: result.url,
-                        origTS: result.ts,
-                        pageId: result.pageId,
-                        digest: result.digest};
+        ts: result.ts,
+        origURL: result.url,
+        origTS: result.ts,
+        pageId: result.pageId,
+        digest: result.digest};
 
       return fuzzyRes;
     }
@@ -539,7 +539,7 @@ class ArchiveDB {
   }
 
   async lookupQueryPrefix(url) {
-    const {rule, prefix, fuzzyCanonUrl, fuzzyPrefix} = fuzzyMatcher.getRuleFor(url);
+    const {rule, prefix, fuzzyCanonUrl/*, fuzzyPrefix*/} = fuzzyMatcher.getRuleFor(url);
 
     if (fuzzyCanonUrl !== url) {
       const result = await this.lookupUrl(fuzzyCanonUrl);
@@ -564,7 +564,7 @@ class ArchiveDB {
       ts: getTS(date),
       mime: res.mime,
       status: res.status
-    }
+    };
   }
 
   async resourcesByPage(pageId) {
@@ -675,7 +675,7 @@ class ArchiveDB {
     }
 
     return results;
-/*
+    /*
     let i = 0;
     let cursor = await this.db.transaction("resources").store.index("mimeStatusUrl").openCursor();
 
@@ -706,7 +706,7 @@ class ArchiveDB {
 
     const size = await this.deletePageResources(id);
     return {pageSize: page && page.size || 0,
-            dedupSize: size};
+      dedupSize: size};
   }
 
   async deletePageResources(pageId) {
@@ -762,22 +762,23 @@ class ArchiveDB {
     let upper;
 
     switch (type) {
-      case "prefix":
-        upper = url.slice(0, -1) + String.fromCharCode(url.charCodeAt(url.length - 1) + 1);
-        lower = [url];
-        upper = [upper];
-        break;
+    case "prefix":
+      upper = url.slice(0, -1) + String.fromCharCode(url.charCodeAt(url.length - 1) + 1);
+      lower = [url];
+      upper = [upper];
+      break;
 
-      case "host":
-        const origin = new URL(url).origin;
-        lower = [origin + "/"];
-        upper = [origin + "0"];
-        break;
+    case "host": {
+      const origin = new URL(url).origin;
+      lower = [origin + "/"];
+      upper = [origin + "0"];
+      break;
+    }
 
-      case "exact":
-      default:
-        lower = [url];
-        upper = [url + "!"];
+    case "exact":
+    default:
+      lower = [url];
+      upper = [url + "!"];
     }
 
     let inclusive;

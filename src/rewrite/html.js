@@ -1,8 +1,8 @@
-import { PassThrough } from 'stream';
+import { PassThrough } from "stream";
 
-import RewritingStream from 'parse5-html-rewriting-stream';
+import RewritingStream from "parse5-html-rewriting-stream";
 
-import { startsWithAny, decodeLatin1, encodeLatin1 } from '../utils';
+import { startsWithAny, decodeLatin1, encodeLatin1 } from "../utils";
 
 
 // ===========================================================================
@@ -13,48 +13,47 @@ const DATA_RW_PROTOCOLS = ["http://", "https://", "//"];
 const defmod = "mp_";
 
 const rewriteTags = {
-  'a': { 'href': defmod },
-  'base': { 'href': defmod },
-  'applet': {
-    'codebase': 'oe_',
-    'archive': 'oe_'
+  "a": { "href": defmod },
+  "applet": {
+    "codebase": "oe_",
+    "archive": "oe_"
   },
-  'area': { 'href': defmod },
-  'audio': { 'src': 'oe_' },
-  'base': { 'href': defmod },
-  'blockquote': { 'cite': defmod },
-  'body': { 'background': 'im_' },
-  'button': { 'formaction': defmod },
-  'command': { 'icon': 'im_' },
-  'del': { 'cite': defmod },
-  'embed': { 'src': 'oe_' },
-  'iframe': { 'src': 'if_' },
-  'image': { 'src': 'im_', 'xlink:href': 'im_', 'href': 'im_' },
-  'img': {
-    'src': 'im_',
-    'srcset': 'im_'
+  "area": { "href": defmod },
+  "audio": { "src": "oe_" },
+  "base": { "href": defmod },
+  "blockquote": { "cite": defmod },
+  "body": { "background": "im_" },
+  "button": { "formaction": defmod },
+  "command": { "icon": "im_" },
+  "del": { "cite": defmod },
+  "embed": { "src": "oe_" },
+  "iframe": { "src": "if_" },
+  "image": { "src": "im_", "xlink:href": "im_", "href": "im_" },
+  "img": {
+    "src": "im_",
+    "srcset": "im_"
   },
-  'ins': { 'cite': defmod },
-  'input': {
-    'src': 'im_',
-    'formaction': defmod
+  "ins": { "cite": defmod },
+  "input": {
+    "src": "im_",
+    "formaction": defmod
   },
-  'form': { 'action': defmod },
-  'frame': { 'src': 'fr_' },
-  'link': { 'href': 'oe_' },
-  'meta': { 'content': defmod },
-  'object': {
-    'codebase': 'oe_',
-    'data': 'oe_'
+  "form": { "action": defmod },
+  "frame": { "src": "fr_" },
+  "link": { "href": "oe_" },
+  "meta": { "content": defmod },
+  "object": {
+    "codebase": "oe_",
+    "data": "oe_"
   },
-  'param': { 'value': 'oe_' },
-  'q': { 'cite': defmod },
-  'ref': { 'href': 'oe_' },
-  'script': { 'src': 'js_', 'xlink:href': 'js_' },
-  'source': { 'src': 'oe_', 'srcset': 'oe_' },
-  'video': {
-    'src': 'oe_',
-    'poster': 'im_'
+  "param": { "value": "oe_" },
+  "q": { "cite": defmod },
+  "ref": { "href": "oe_" },
+  "script": { "src": "js_", "xlink:href": "js_" },
+  "source": { "src": "oe_", "srcset": "oe_" },
+  "video": {
+    "src": "oe_",
+    "poster": "im_"
   },
 };
 
@@ -109,7 +108,7 @@ class HTMLRewriter
   }
 
   rewriteSrcSet(value, rewriter) {
-    const SRCSET_REGEX = /\s*(\S*\s+[\d\.]+[wx]),|(?:\s*,(?:\s+|(?=https?:)))/;
+    const SRCSET_REGEX = /\s*(\S*\s+[\d.]+[wx]),|(?:\s*,(?:\s+|(?=https?:)))/;
 
     let rv = [];
 
@@ -126,7 +125,7 @@ class HTMLRewriter
 
 
   rewriteTagAndAttrs(tag, attrRules, rewriter) {
-    const isUrl = (val) => { return startsWithAny(val, DATA_RW_PROTOCOLS); }
+    const isUrl = (val) => { return startsWithAny(val, DATA_RW_PROTOCOLS); };
 
     for (let attr of tag.attrs) {
       const name = attr.name;
@@ -294,7 +293,7 @@ class HTMLRewriter
       }
     };
 
-    rwStream.on('startTag', startTag => {
+    rwStream.on("startTag", startTag => {
 
       const tagRules = rewriteTags[startTag.tagName];
 
@@ -310,23 +309,24 @@ class HTMLRewriter
       rwStream.emitStartTag(startTag);
 
       switch (startTag.tagName) {
-        case "script":
-          if (startTag.selfClosing) {
-            break;
-          }
+      case "script": {
+        if (startTag.selfClosing) {
+          break;
+        }
 
+        context = startTag.tagName;
+
+        const scriptType = this.getAttr(startTag.attrs, "type");
+
+        scriptRw = !scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0);
+        break;
+      }
+
+      case "style":
+        if (!startTag.selfClosing) {
           context = startTag.tagName;
-
-          const scriptType = this.getAttr(startTag.attrs, "type");
-
-          scriptRw = !scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0);
-          break;
-
-        case "style":
-          if (!startTag.selfClosing) {
-            context = startTag.tagName;
-          }
-          break;
+        }
+        break;
       }
 
       if (startTag.tagName !== original) {
@@ -335,7 +335,7 @@ class HTMLRewriter
       }
     });
 
-    rwStream.on('endTag', endTag => {
+    rwStream.on("endTag", endTag => {
       if (endTag.tagName === context) {
         if (replaceTag) {
           endTag.tagName = replaceTag;
@@ -346,7 +346,7 @@ class HTMLRewriter
       rwStream.emitEndTag(endTag);
     });
 
-    rwStream.on('text', (textToken, raw) => {
+    rwStream.on("text", (textToken, raw) => {
       if (context === "script") {
         rwStream.emitRaw(scriptRw ? rewriter.rewriteJS(textToken.text) : textToken.text);
       } else if (context === "style") {
@@ -363,7 +363,7 @@ class HTMLRewriter
 
     const buff = new PassThrough({ encoding: "latin1" });
     buff.pipe(rwStream);
-    buff.on('end', addInsert);
+    buff.on("end", addInsert);
 
     const rs = new ReadableStream({
       async start(controller) {

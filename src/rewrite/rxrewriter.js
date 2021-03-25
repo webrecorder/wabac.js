@@ -12,7 +12,7 @@ class RxRewriter
   }
 
   compileRules() {
-    let rxBuff = '';
+    let rxBuff = "";
 
     for (let rule of this.rules) {
       if (rxBuff) {
@@ -23,7 +23,7 @@ class RxRewriter
 
     const rxString = `(?:${rxBuff})`;
 
-    this.rx = new RegExp(rxString, 'gm');
+    this.rx = new RegExp(rxString, "gm");
   }
 
   doReplace(params, opts) {

@@ -1,21 +1,21 @@
 "use strict";
 
-import parseLinkHeader from 'parse-link-header';
-import formatLinkHeader from 'format-link-header';
+import parseLinkHeader from "parse-link-header";
+import formatLinkHeader from "format-link-header";
 
-import { containsAny, isAjaxRequest } from '../utils.js';
+import { containsAny, isAjaxRequest } from "../utils.js";
 
-import { decodeResponse } from './decoder';
-import { ArchiveResponse } from '../response';
+import { decodeResponse } from "./decoder";
+import { ArchiveResponse } from "../response";
 
-import { rewriteDASH, rewriteHLS } from './rewriteVideo';
+import { rewriteDASH, rewriteHLS } from "./rewriteVideo";
 
-import { DomainSpecificRuleSet } from './dsruleset';
+import { DomainSpecificRuleSet } from "./dsruleset";
 
-import { RxRewriter } from './rxrewriter';
-import { JSRewriter } from './jsrewriter';
+import { RxRewriter } from "./rxrewriter";
+import { JSRewriter } from "./jsrewriter";
 
-import { HTMLRewriter } from './html';
+import { HTMLRewriter } from "./html";
 
 
 // ===========================================================================
@@ -26,15 +26,15 @@ const IMPORT_REGEX = /(@import\s*[\\"']*)([^)'";]+)([\\"']*\s*;?)/gi;
 const NO_WOMBAT_REGEX = /WB_wombat_/g;
 
 //const JSONP_REGEX = /^(?:[ \t]*(?:(?:\/\*[^\*]*\*\/)|(?:\/\/[^\n]+[\n])))*[ \t]*(\w+)\(\{/m;
-const JSONP_REGEX = /^(?:\s*(?:(?:\/\*[^\*]*\*\/)|(?:\/\/[^\n]+[\n])))*\s*([\w.]+)\([{\[]/;
+const JSONP_REGEX = /^(?:\s*(?:(?:\/\*[^*]*\*\/)|(?:\/\/[^\n]+[\n])))*\s*([\w.]+)\([{[]/;
 
 const JSONP_CALLBACK_REGEX = /[?].*(?:callback|jsonp)=([^&]+)/;
 
 const JSONP_CONTAINS = [
-  'callback=jQuery',
-  'callback=jsonp',
-  '.json?',
-  'jsonp='
+  "callback=jQuery",
+  "callback=jsonp",
+  ".json?",
+  "jsonp="
 ];
 
 // JS Rewriters
@@ -45,7 +45,7 @@ const baseRules = new DomainSpecificRuleSet(RxRewriter);
 // ===========================================================================
 class Rewriter {
   constructor({baseUrl, prefix, responseUrl, workerInsertFunc, headInsertFunc = null,
-               urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
+    urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
     this.urlRewrite = urlRewrite;
     this.contentRewrite = contentRewrite;
     this.dsRules = urlRewrite && !useBaseRules ? jsRules : baseRules;
@@ -80,51 +80,51 @@ class Rewriter {
 
     if (request) {
       switch (request.destination) {
-        case "style":
-          return "css";
+      case "style":
+        return "css";
 
-        case "script":
-          return this.getScriptRewriteMode(mime, url, "js");
+      case "script":
+        return this.getScriptRewriteMode(mime, url, "js");
 
-        case "worker":
-          return "js-worker";
+      case "worker":
+        return "js-worker";
       }
     }
 
     switch (mime) {
-      case "text/html":
-        return "html";
+    case "text/html":
+      return "html";
 
-      case "text/css":
-        return "css";
+    case "text/css":
+      return "css";
 
-      case "application/x-mpegURL":
-      case "application/vnd.apple.mpegurl":
-        return "hls";
+    case "application/x-mpegURL":
+    case "application/vnd.apple.mpegurl":
+      return "hls";
 
-      case "application/dash+xml":
-        return "dash";
+    case "application/dash+xml":
+      return "dash";
 
-      default:
-        return this.getScriptRewriteMode(mime, url, null);
+    default:
+      return this.getScriptRewriteMode(mime, url, null);
     }
   }
 
   getScriptRewriteMode(mime, url, defaultType) {
     switch (mime) {
-      case "text/javascript":
-      case "application/javascript":
-      case "application/x-javascript":
-        if (containsAny(url, JSONP_CONTAINS)) {
-          return "jsonp";
-        }
-        return url.endsWith(".json") ? "json" : "js";
+    case "text/javascript":
+    case "application/javascript":
+    case "application/x-javascript":
+      if (containsAny(url, JSONP_CONTAINS)) {
+        return "jsonp";
+      }
+      return url.endsWith(".json") ? "json" : "js";
 
-      case "application/json":
-        return "json";
+    case "application/json":
+      return "json";
 
-      default:
-        return defaultType;
+    default:
+      return defaultType;
     }
   }
 
@@ -138,7 +138,7 @@ class Rewriter {
     const headers = this.rewriteHeaders(response.headers, this.urlRewrite, !!rewriteMode, isAjax);
 
     const encoding = response.headers.get("content-encoding");
-    const te = response.headers.get('transfer-encoding');
+    const te = response.headers.get("transfer-encoding");
 
     response.headers = headers;
 
@@ -151,41 +151,41 @@ class Rewriter {
     let rwFunc = null;
 
     switch (rewriteMode) {
-      case "html":
-        if (urlRewrite) {
-          return await this.rewriteHtml(response);
-        }
-        break;
+    case "html":
+      if (urlRewrite) {
+        return await this.rewriteHtml(response);
+      }
+      break;
 
-      case "css":
-        if (this.urlRewrite) {
-          rwFunc = this.rewriteCSS;
-        }
-        break;
+    case "css":
+      if (this.urlRewrite) {
+        rwFunc = this.rewriteCSS;
+      }
+      break;
 
-      case "js":
-        rwFunc = this.rewriteJS;
-        break;
+    case "js":
+      rwFunc = this.rewriteJS;
+      break;
 
-      case "json":
-        rwFunc = this.rewriteJSON;
-        break;
+    case "json":
+      rwFunc = this.rewriteJSON;
+      break;
 
-      case "js-worker":
-        rwFunc = this.workerInsertFunc;
-        break;
+    case "js-worker":
+      rwFunc = this.workerInsertFunc;
+      break;
 
-      case "jsonp":
-        rwFunc = this.rewriteJSONP;
-        break;
+    case "jsonp":
+      rwFunc = this.rewriteJSONP;
+      break;
 
-      case "hls":
-        rwFunc = rewriteHLS;
-        break;
+    case "hls":
+      rwFunc = rewriteHLS;
+      break;
 
-      case "dash":
-        rwFunc = rewriteDASH;
-        break;
+    case "dash":
+      rwFunc = rewriteDASH;
+      break;
     }
 
     const opts = {response, prefix: this.prefix};
@@ -224,7 +224,7 @@ class Rewriter {
   }
 
   isRewritableUrl(url) {
-    const NO_REWRITE_URI_PREFIX = ['#', 'javascript:', 'data:', 'mailto:', 'about:', 'file:', 'blob:', '{'];
+    const NO_REWRITE_URI_PREFIX = ["#", "javascript:", "data:", "mailto:", "about:", "file:", "blob:", "{"];
 
     for (let prefix of NO_REWRITE_URI_PREFIX) {
       if (url.startsWith(prefix)) {
@@ -277,15 +277,15 @@ class Rewriter {
   rewriteCSS(text) {
     const rewriter = this;
 
-    function cssStyleReplacer(match, n1, n2, n3, offset, string) {
-      n2 = n2.replace(/\s+/g, '');
+    function cssStyleReplacer(match, n1, n2, n3) {
+      n2 = n2.replace(/\s+/g, "");
       return n1 + rewriter.rewriteUrl(n2) + n3;
-    };
+    }
 
     return text
       .replace(STYLE_REGEX, cssStyleReplacer)
       .replace(IMPORT_REGEX, cssStyleReplacer)
-      .replace(NO_WOMBAT_REGEX, '');
+      .replace(NO_WOMBAT_REGEX, "");
   }
 
   // JS
@@ -301,17 +301,17 @@ class Rewriter {
       }
 
       const overrideProps = [
-        'window',
-        'self',
-        'document',
-        'location',
-        'top',
-        'parent',
-        'frames',
-        'opener',
-        'this',
-        'eval',
-        'postMessage'
+        "window",
+        "self",
+        "document",
+        "location",
+        "top",
+        "parent",
+        "frames",
+        "opener",
+        "this",
+        "eval",
+        "postMessage"
       ];
 
       let containsProps = false;
@@ -364,81 +364,81 @@ class Rewriter {
   //Headers
   rewriteHeaders(headers, urlRewrite, contentRewrite, isAjax) {
     const headerRules = {
-      'access-control-allow-origin': 'prefix-if-url-rewrite',
-      'access-control-allow-credentials': 'prefix-if-url-rewrite',
-      'access-control-expose-headers': 'prefix-if-url-rewrite',
-      'access-control-max-age': 'prefix-if-url-rewrite',
-      'access-control-allow-methods': 'prefix-if-url-rewrite',
-      'access-control-allow-headers': 'prefix-if-url-rewrite',
+      "access-control-allow-origin": "prefix-if-url-rewrite",
+      "access-control-allow-credentials": "prefix-if-url-rewrite",
+      "access-control-expose-headers": "prefix-if-url-rewrite",
+      "access-control-max-age": "prefix-if-url-rewrite",
+      "access-control-allow-methods": "prefix-if-url-rewrite",
+      "access-control-allow-headers": "prefix-if-url-rewrite",
 
-      'accept-patch': 'keep',
-      'accept-ranges': 'keep',
+      "accept-patch": "keep",
+      "accept-ranges": "keep",
 
-      'age': 'prefix',
+      "age": "prefix",
 
-      'allow': 'keep',
+      "allow": "keep",
 
-      'alt-svc': 'prefix',
-      'cache-control': 'prefix',
+      "alt-svc": "prefix",
+      "cache-control": "prefix",
 
-      'connection': 'prefix',
+      "connection": "prefix",
 
-      'content-base': 'url-rewrite',
-      'content-disposition': 'keep',
-      'content-encoding': 'prefix-if-content-rewrite',
-      'content-language': 'keep',
-      'content-length': 'content-length',
-      'content-location': 'url-rewrite',
-      'content-md5': 'prefix',
-      'content-range': 'keep',
-      'content-security-policy': 'prefix',
-      'content-security-policy-report-only': 'prefix',
-      'content-type': 'keep',
+      "content-base": "url-rewrite",
+      "content-disposition": "keep",
+      "content-encoding": "prefix-if-content-rewrite",
+      "content-language": "keep",
+      "content-length": "content-length",
+      "content-location": "url-rewrite",
+      "content-md5": "prefix",
+      "content-range": "keep",
+      "content-security-policy": "prefix",
+      "content-security-policy-report-only": "prefix",
+      "content-type": "keep",
 
-      'date': 'keep',
+      "date": "keep",
 
-      'etag': 'prefix',
-      'expires': 'prefix',
+      "etag": "prefix",
+      "expires": "prefix",
 
-      'last-modified': 'prefix',
-      'link': 'link',
-      'location': 'url-rewrite',
+      "last-modified": "prefix",
+      "link": "link",
+      "location": "url-rewrite",
 
-      'p3p': 'prefix',
-      'pragma': 'prefix',
+      "p3p": "prefix",
+      "pragma": "prefix",
 
-      'proxy-authenticate': 'keep',
+      "proxy-authenticate": "keep",
 
-      'public-key-pins': 'prefix',
-      'retry-after': 'prefix',
-      'server': 'prefix',
+      "public-key-pins": "prefix",
+      "retry-after": "prefix",
+      "server": "prefix",
 
-      'set-cookie': 'cookie',
+      "set-cookie": "cookie",
 
-      'status': 'prefix',
+      "status": "prefix",
 
-      'strict-transport-security': 'prefix',
+      "strict-transport-security": "prefix",
 
-      'trailer': 'prefix',
-      'transfer-encoding': 'transfer-encoding',
-      'tk': 'prefix',
+      "trailer": "prefix",
+      "transfer-encoding": "transfer-encoding",
+      "tk": "prefix",
 
-      'upgrade': 'prefix',
-      'upgrade-insecure-requests': 'prefix',
+      "upgrade": "prefix",
+      "upgrade-insecure-requests": "prefix",
 
-      'vary': 'prefix',
+      "vary": "prefix",
 
-      'via': 'prefix',
+      "via": "prefix",
 
-      'warning': 'prefix',
+      "warning": "prefix",
 
-      'www-authenticate': 'keep',
+      "www-authenticate": "keep",
 
-      'x-frame-options': 'prefix',
-      'x-xss-protection': 'prefix',
-    }
+      "x-frame-options": "prefix",
+      "x-xss-protection": "prefix",
+    };
 
-    const headerPrefix = 'X-Archive-Orig-';
+    const headerPrefix = "X-Archive-Orig-";
 
     let new_headers = new Headers();
 
@@ -446,84 +446,86 @@ class Rewriter {
       const rule = headerRules[header[0]];
 
       switch (rule) {
-        case "keep":
+      case "keep":
+        new_headers.append(header[0], header[1]);
+        break;
+
+      case "url-rewrite":
+        if (urlRewrite) {
+          new_headers.append(header[0], this.rewriteUrl(header[1]));
+        } else {
           new_headers.append(header[0], header[1]);
-          break;
+        }
+        break;
 
-        case "url-rewrite":
-          if (urlRewrite) {
-            new_headers.append(header[0], this.rewriteUrl(header[1]));
-          } else {
-            new_headers.append(header[0], header[1]);
-          }
-          break;
-
-        case "prefix-if-content-rewrite":
-          if (contentRewrite) {
-            new_headers.append(headerPrefix + header[0], header[1]);
-          } else {
-            new_headers.append(header[0], header[1]);
-          }
-          break;
-
-        case "prefix-if-url-rewrite":
-          if (urlRewrite) {
-            new_headers.append(headerPrefix + header[0], header[1]);
-          } else {
-            new_headers.append(header[0], header[1]);
-          }
-          break;
-
-        case "content-length":
-          if (header[1] == '0') {
-            new_headers.append(header[0], header[1]);
-            continue;
-          }
-
-          if (contentRewrite) {
-            try {
-              if (parseInt(header[1]) >= 0) {
-                new_headers.append(header[0], header[1]);
-                continue;
-              }
-            } catch (e) { }
-          }
-
-          new_headers.append(header[0], header[1]);
-          break;
-
-        case "transfer-encoding":
-          //todo: mark as needing decoding?
+      case "prefix-if-content-rewrite":
+        if (contentRewrite) {
           new_headers.append(headerPrefix + header[0], header[1]);
-          break;
-
-        case "prefix":
-          new_headers.append(headerPrefix + header[0], header[1]);
-          break;
-
-        case "cookie":
-          //todo
+        } else {
           new_headers.append(header[0], header[1]);
-          break;
+        }
+        break;
 
-        case "link":
-          if (urlRewrite && !isAjax) {
-            const parsed = parseLinkHeader(header[1]);
+      case "prefix-if-url-rewrite":
+        if (urlRewrite) {
+          new_headers.append(headerPrefix + header[0], header[1]);
+        } else {
+          new_headers.append(header[0], header[1]);
+        }
+        break;
 
-            for (const entry of Object.values(parsed)) {
-              if (entry.url) {
-                entry.url = this.rewriteUrl(entry.url);
-              }
+      case "content-length":
+        if (header[1] == "0") {
+          new_headers.append(header[0], header[1]);
+          continue;
+        }
+
+        if (contentRewrite) {
+          try {
+            if (parseInt(header[1]) >= 0) {
+              new_headers.append(header[0], header[1]);
+              continue;
             }
-
-            new_headers.append(header[0], formatLinkHeader(parsed));
-          } else {
-            new_headers.append(header[0], header[1]);
+          } catch (e) { 
+            // ignore if content-length is not parsable as number
           }
-          break;
+        }
 
-        default:
+        new_headers.append(header[0], header[1]);
+        break;
+
+      case "transfer-encoding":
+        //todo: mark as needing decoding?
+        new_headers.append(headerPrefix + header[0], header[1]);
+        break;
+
+      case "prefix":
+        new_headers.append(headerPrefix + header[0], header[1]);
+        break;
+
+      case "cookie":
+        //todo
+        new_headers.append(header[0], header[1]);
+        break;
+
+      case "link":
+        if (urlRewrite && !isAjax) {
+          const parsed = parseLinkHeader(header[1]);
+
+          for (const entry of Object.values(parsed)) {
+            if (entry.url) {
+              entry.url = this.rewriteUrl(entry.url);
+            }
+          }
+
+          new_headers.append(header[0], formatLinkHeader(parsed));
+        } else {
           new_headers.append(header[0], header[1]);
+        }
+        break;
+
+      default:
+        new_headers.append(header[0], header[1]);
       }
     }
 

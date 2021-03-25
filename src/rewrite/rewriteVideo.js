@@ -1,6 +1,6 @@
-'use strict';
+"use strict";
 
-import XMLParser from 'fast-xml-parser';
+import XMLParser from "fast-xml-parser";
 
 // orig pywb defaults
 const OLD_DEFAULT_MAX_BAND = 2000000;
@@ -16,7 +16,7 @@ function getMaxResAndBand(opts = {}) {
   // read opts from warc, if any
   let maxRes, maxBand;
 
-  const extraOpts = (opts && opts.response && opts.response.extraOpts)
+  const extraOpts = (opts && opts.response && opts.response.extraOpts);
 
   if (extraOpts) {
     maxRes = extraOpts.adaptive_max_resolution || extraOpts.maxRes;
@@ -61,7 +61,7 @@ function rewriteHLS(text, opts) {
   let bestBand = 0;
   let bestRes = 0;
 
-  let lines = text.trimEnd().split('\n');
+  let lines = text.trimEnd().split("\n");
 
   for (const line of lines) {
     const m = line.match(EXT_INF);
@@ -104,7 +104,7 @@ function rewriteHLS(text, opts) {
     }
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 // ===========================================================================
@@ -154,14 +154,14 @@ function _rewriteDASH(text, opts, bestIds) {
     }
 
     for (const repres of reps) {
-      const currRes = Number(repres['@_width'] || '0') * Number(repres['@_height'] || '0');
-      const currBand = Number(repres['@_bandwidth'] || '0');
+      const currRes = Number(repres["@_width"] || "0") * Number(repres["@_height"] || "0");
+      const currBand = Number(repres["@_bandwidth"] || "0");
 
       if (currRes && maxRes) {
         if (currRes <= maxRes && currRes > bestRes) {
-            bestRes = currRes;
-            bestBand = currBand;
-            best = repres;
+          bestRes = currRes;
+          bestBand = currBand;
+          best = repres;
         }
       } else if (currBand <= maxBand && currBand > bestBand) {
         bestRes = currRes;
@@ -171,7 +171,7 @@ function _rewriteDASH(text, opts, bestIds) {
     }
 
     if (best && Array.isArray(bestIds)) {
-      bestIds.push(best['@_id']);
+      bestIds.push(best["@_id"]);
     }
 
     if (best) {

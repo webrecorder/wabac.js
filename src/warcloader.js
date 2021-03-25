@@ -1,10 +1,10 @@
-import { makeHeaders, Canceled, tsToDate } from './utils.js';
+import { makeHeaders, Canceled, tsToDate } from "./utils.js";
 
-import { WARCParser, postToGetUrl } from 'warcio';
+import { WARCParser, postToGetUrl } from "warcio";
 
-import { extractText } from './extract.js';
+import { extractText } from "./extract.js";
 
-import { BaseParser } from './baseparser';
+import { BaseParser } from "./baseparser";
 
 
 // ===========================================================================
@@ -121,7 +121,7 @@ class WARCLoader extends BaseParser {
   parseRevisitRecord(record) {
     const url = record.warcTargetURI.split("#")[0];
     const date = record.warcDate;
-    const ts = new Date(record.warcDate).getTime();
+    const ts = new Date(date).getTime();
 
     const origURL = record.warcRefersToTargetURI;
     const origTS = new Date(record.warcRefersToDate).getTime();
@@ -146,24 +146,24 @@ class WARCLoader extends BaseParser {
 
   parseRecords(record, reqRecord) {
     switch (record.warcType) {
-      case "revisit":
-        return this.parseRevisitRecord(record);
+    case "revisit":
+      return this.parseRevisitRecord(record);
 
-      case "resource":
-        reqRecord = null;
-        break;
+    case "resource":
+      reqRecord = null;
+      break;
 
-      case "response":
-        break;
+    case "response":
+      break;
 
-      case "metadata":
-        if (!this.shouldIndexMetadataRecord(record)) {
-          return null;
-        }
-        break;
-
-      default:
+    case "metadata":
+      if (!this.shouldIndexMetadataRecord(record)) {
         return null;
+      }
+      break;
+
+    default:
+      return null;
     }
 
     let url = record.warcTargetURI.split("#")[0];
@@ -171,7 +171,7 @@ class WARCLoader extends BaseParser {
 
     let headers;
     let status = 200;
-    let statusText = "OK";
+    //let statusText = "OK";
     //let content = record.content;
     let cl = 0;
     let mime = "";
@@ -184,7 +184,7 @@ class WARCLoader extends BaseParser {
         return null;
       }
  
-      statusText = record.httpHeaders.statusText;
+      //statusText = record.httpHeaders.statusText;
 
       headers = makeHeaders(record.httpHeaders.headers);
 
@@ -195,7 +195,7 @@ class WARCLoader extends BaseParser {
 
       mime = (headers.get("content-type") || "").split(";")[0];
 
-      cl = parseInt(headers.get('content-length') || 0);
+      cl = parseInt(headers.get("content-length") || 0);
 
       // skip partial responses (not starting from 0)
       if (status === 206) {
@@ -211,7 +211,7 @@ class WARCLoader extends BaseParser {
 
       // skip self-redirects
       if (status > 300 && status < 400) {
-        const location = headers.get('location');
+        const location = headers.get("location");
         if (location) {
           if (new URL(location, url).href === url) {
             return null;
@@ -293,7 +293,9 @@ class WARCLoader extends BaseParser {
     if (extraMetadata) {
       try {
         entry.extraOpts = JSON.parse(extraMetadata);
-      } catch (e) { }
+      } catch (e) { 
+        // ignore error on extraOpts
+      }
     }
 
     const pageId = record.warcHeader("WARC-Page-ID");
@@ -305,7 +307,7 @@ class WARCLoader extends BaseParser {
     return entry;
   }
 
-  filterRecord(record) {
+  filterRecord() {
     return null;
   }
 
@@ -379,11 +381,11 @@ class WARCLoader extends BaseParser {
 
     this.indexDone(parser);
 
-    progressUpdate(95);
+    progressUpdate(95, null, parser.offset, totalSize);
 
     await this.finishIndexing();
 
-    progressUpdate(100);
+    progressUpdate(100, null, totalSize, totalSize);
 
     return this.metadata;
   }

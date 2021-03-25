@@ -1,8 +1,8 @@
-import { ArchiveDB } from './archivedb';
-import { SingleRecordWARCLoader } from './warcloader';
-import { BaseAsyncIterReader, AsyncIterReader, LimitReader } from 'warcio';
+import { ArchiveDB } from "./archivedb";
+import { SingleRecordWARCLoader } from "./warcloader";
+import { BaseAsyncIterReader, AsyncIterReader, LimitReader } from "warcio";
 
-import { createLoader } from './blockloaders';
+import { createLoader } from "./blockloaders";
 
 
 // ===========================================================================
@@ -175,7 +175,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       await tx.done;
 
     } catch (e) {
-      console.warn('Payload Commit Error: ' + e);
+      console.warn("Payload Commit Error: " + e);
     }
   }
 }
@@ -267,7 +267,7 @@ class ChunkStore
     this.chunks = [];
     this.size = 0;
     this.done = false;
-    this.totalLength = this.totalLength;
+    this.totalLength = totalLength;
 
     this.nextChunk = new Promise(resolve => this._nextResolve = resolve);
   }

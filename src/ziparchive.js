@@ -1,22 +1,16 @@
-import { AsyncIterReader } from 'warcio';
-import { RemoteSourceArchiveDB } from './remotearchivedb';
-import { WARCInfoOnlyWARCLoader, WARCLoader, SingleRecordWARCLoader } from './warcloader';
-import { CDXLoader } from './cdxloader';
-import { getTS, MAX_FULL_DOWNLOAD_SIZE } from './utils';
-import { LiveAccess } from './remoteproxy';
-import { getSurt } from 'warcio';
-
-import yaml from 'js-yaml';
-import { csv2jsonAsync } from 'json-2-csv';
-
-const MAIN_PAGES_JSON = "pages/pages.jsonl";
-
+import { AsyncIterReader } from "warcio";
+import { RemoteSourceArchiveDB } from "./remotearchivedb";
+import { SingleRecordWARCLoader } from "./warcloader";
+import { CDXLoader } from "./cdxloader";
+import { getTS } from "./utils";
+import { LiveAccess } from "./remoteproxy";
+import { getSurt } from "warcio";
 
 // ===========================================================================
-class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
+class WACZRemoteArchiveDB extends RemoteSourceArchiveDB
 {
-  constructor(name, sourceLoader, extraConfig = null, noCache = false, fullConfig) {
-    super(name, sourceLoader, noCache);
+  constructor(name, sourceLoader, fullConfig) {
+    super(name, sourceLoader, fullConfig.noCache);
     this.zipreader = new ZipRangeReader(sourceLoader);
 
     this.externalSources = [];
@@ -25,8 +19,8 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     this.fullConfig = fullConfig;
     this.textIndex = fullConfig && fullConfig.metadata && fullConfig.metadata.textIndex;
 
-    if (extraConfig) {
-      this.initConfig(extraConfig);
+    if (fullConfig.extraConfig) {
+      this.initConfig(fullConfig.extraConfig);
     }
   }
 
@@ -34,9 +28,9 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     super._initDB(db, oldV, newV, tx);
 
     if (!oldV) {
-      const ziplStore = db.createObjectStore("ziplines", { keyPath: "prefix" });
+      db.createObjectStore("ziplines", { keyPath: "prefix" });
 
-      const zipFiles = db.createObjectStore("zipEntries", { keyPath: "filename"});
+      db.createObjectStore("zipEntries", { keyPath: "filename"});
     }
   }
 
@@ -94,174 +88,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 
     await tx.done;
 
-    this.db.clear("ziplines")
-  }
-
-  async loadZiplinesIndex(reader, progressUpdate, totalSize) {
-    let currOffset = 0;
-
-    let lastUpdate = 0, updateTime = 0;
-
-    let batch = [];
-    let defaultFilename = "";
-    
-    for await (const line of reader.iterLines()) {
-      currOffset += line.length;
-
-      if (currOffset === line.length) {
-        if (line.startsWith("!meta")) {
-          const inx = line.indexOf(" {");
-          if (inx < 0) {
-            console.warn("Invalid Meta Line: " + line);
-            continue;
-          }
-
-          const indexMetadata = JSON.parse(line.slice(inx));
-          if (indexMetadata.filename) {
-            defaultFilename = indexMetadata.filename;
-          }
-          if (indexMetadata.format !== "cdxj-gzip-1.0") {
-            console.log(`Unknown CDXJ format "${indexMetadata.format}", archive may not parse correctly`);
-          }
-          continue;
-        }
-      }
-
-      let entry;
-
-      if (line.indexOf("\t") > 0) {
-
-        let [prefix, filename, offset, length] = line.split("\t");
-        offset = Number(offset);
-        length = Number(length);
-
-        entry = {prefix, filename, offset, length, loaded: false};
-
-        this.useSurt = true;
-
-      } else {
-        const inx = line.indexOf(" {");
-        if (inx < 0) {
-          console.log("Invalid Index Line: " + line);
-          continue;
-        }
-        const prefix = line.slice(0, inx);
-        let {offset, length, filename} = JSON.parse(line.slice(inx));
-
-        this.useSurt = prefix.indexOf(")/") > 0;
-
-        filename = filename || defaultFilename;
-
-        entry = {prefix, filename, offset, length, loaded: false};
-
-      }
-
-      updateTime = new Date().getTime();
-      if ((updateTime - lastUpdate) > 500) {
-        progressUpdate(Math.round((currOffset / totalSize) * 100.0), null, currOffset, totalSize);
-        lastUpdate = updateTime;
-      }
-
-      batch.push(entry);
-    }
-
-    const tx = this.db.transaction("ziplines", "readwrite");
-
-    for (const entry of batch) {
-      tx.store.put(entry);
-    }
-
-    try {
-      await tx.done;
-    } catch (e) {
-      console.log("Error loading ziplines index: ", e);
-    }
-  }
-
-  async load(db, progressUpdate, totalSize) {
-    if (db !== this) {
-      console.error("wrong db");
-      return;
-    }
-
-    const entries = await db.zipreader.load(true);
-
-    //todo: a bit hacky, store the full arrayBuffer for blob loader
-    // if size less than MAX_FULL_DOWNLOAD_SIZE
-    if (this.fullConfig && this.loader.arrayBuffer &&
-      this.loader.arrayBuffer.byteLength <= MAX_FULL_DOWNLOAD_SIZE) {
-      if (!this.fullConfig.extra) {
-        this.fullConfig.extra = {};
-      }
-      this.fullConfig.extra.arrayBuffer = this.loader.arrayBuffer;
-    }
-
-    await db.saveZipEntries(entries);
-
-    const indexloaders = [];
-    let metadata;
-
-    if (entries["datapackage.json"]) {
-      metadata = await this.loadMetadata(entries, await db.zipreader.loadFile("datapackage.json"));
-    } else if (entries["webarchive.yaml"]) {
-      metadata = await this.loadMetadataYAML(entries, await db.zipreader.loadFile("webarchive.yaml"));
-    }
-
-    for (const filename of Object.keys(entries)) {
-      if (filename.endsWith(".cdx") || filename.endsWith(".cdxj")) {
-        // For regular cdx
-        console.log("Loading CDX " + filename);
-
-        const reader = await db.zipreader.loadFile(filename);
-        indexloaders.push(new CDXLoader(reader).load(db));
-
-      } else if (filename.endsWith(".idx")) {
-
-        // load only if doing on-demand loading, otherwise we load the WARCs fully, ignoring existing indices
-        if (this.loader.canLoadOnDemand) {
-          // For compressed indices
-          console.log("Loading IDX " + filename);
-
-          const entryTotal = db.zipreader.getCompressedSize(filename);
-
-          indexloaders.push(db.loadZiplinesIndex(await db.zipreader.loadFile(filename), progressUpdate, entryTotal));
-        }
-
-      } else if (filename.endsWith(".warc.gz") || filename.endsWith(".warc")) {
-
-        // if on-demand loading, and no metadata, load only the warcinfo records to attempt to get metadata
-        if (!metadata && this.loader.canLoadOnDemand) {
-          // for WR metadata at beginning of WARCS
-          const abort = new AbortController();
-          const reader = await db.zipreader.loadFile(filename, {signal: abort.signal, unzip: true});
-          const warcinfoLoader = new WARCInfoOnlyWARCLoader(reader, abort);
-          const entryTotal = db.zipreader.getCompressedSize(filename);
-          metadata = await warcinfoLoader.load(db, progressUpdate, entryTotal);
-        } else if (!this.loader.canLoadOnDemand) {
-          // otherwise, need to load the full WARCs
-          const reader = await db.zipreader.loadFile(filename, {unzip: true});
-          const warcLoader = new WARCLoader(reader);
-          warcLoader.detectPages = false;
-          const entryTotal = db.zipreader.getCompressedSize(filename);
-          metadata = await warcLoader.load(db, progressUpdate, entryTotal);
-        }
-      } else if (filename.endsWith(".jsonl") && filename.startsWith("pages/") && filename !== MAIN_PAGES_JSON) {
-        await this.loadPagesJSONL(filename, false);
-      }
-    }
-
-    await Promise.all(indexloaders);
-    return metadata || {};
-  }
-
-  async loadPagesCSV(reader) {
-    const csv = new TextDecoder().decode(await reader.readFully());
-
-    const pages = await csv2jsonAsync(csv);
-
-    if (pages && pages.length) {
-      await this.addPages(pages);
-    }
+    this.db.clear("ziplines");
   }
 
   initConfig(config) {
@@ -305,108 +132,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 
     return new Response(reader.getReadableStream(), {headers});
   }
-
-  // New WACZ 1.0.0 Format
-  async loadMetadata(entries, reader) {
-    const text = new TextDecoder().decode(await reader.readFully());
-    const root = JSON.parse(text);
-
-    if (root.config !== undefined) {
-      this.initConfig(root.config);
-    }
-
-    const metadata = root.metadata || {};
-
-    // All Pages
-    if (entries[MAIN_PAGES_JSON]) {
-      const pageInfo = await this.loadPagesJSONL(MAIN_PAGES_JSON);
-      if (pageInfo.hasText) {
-        this.textIndex = metadata.textIndex = MAIN_PAGES_JSON;
-      }
-    }
-
-    return metadata;
-  }
-
-  async loadPagesJSONL(filename, isMainPages = true) {
-    const PAGE_BATCH_SIZE = 500;
-
-    const reader = await this.zipreader.loadFile(filename, {unzip: true});
-
-    let pageListInfo = null;
-
-    let pages = [];
-
-    for await (const textLine of reader.iterLines()) {
-      const page = JSON.parse(textLine);
-
-      if (!pageListInfo) {
-        pageListInfo = page;
-        continue;
-      }
-
-      pages.push(page);
-
-      if (pages.length === PAGE_BATCH_SIZE) {
-        if (isMainPages) {
-          await this.addPages(pages);
-        } else {
-          await this.addCuratedPageList(pageListInfo, pages);
-        }
-        pages = [];
-      }
-    }
-
-    if (pages.length) {
-      if (isMainPages) {
-        await this.addPages(pages);
-      } else {
-        await this.addCuratedPageList(pageListInfo, pages);
-      }
-    }
-
-    return pageListInfo;
-  }
-
-  // Old WACZ 0.1.0 Format
-  async loadMetadataYAML(entries, reader) {
-    const text = new TextDecoder().decode(await reader.readFully());
-    const root = yaml.safeLoad(text);
-
-    if (root.config !== undefined) {
-      this.initConfig(root.config);
-    }
-
-    const metadata = {
-      desc: root.desc,
-      title: root.title
-    };
-
-    if (root.textIndex) {
-      metadata.textIndex = root.textIndex;
-    }
-
-    // All pages
-    const pages = root.pages || [];
-
-    if (pages && pages.length) {
-      await this.addPages(pages);
-    } else {
-      if (entries["pages.csv"]) {
-        await this.loadPagesCSV(await this.zipreader.loadFile("pages.csv"));
-      }
-    }
-
-    // Curated Pages
-    const pageLists = root.pageLists || [];
-
-    if (pageLists && pageLists.length) {
-      await this.addCuratedPageLists(pageLists, "pages", "show");
-    }
-
-    return metadata;
-  }
-
+  
   async loadRecordFromSource(cdx) {
     let filename;
     let offset = 0;
@@ -440,7 +166,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
 
     const surt = this.useSurt ? getSurt(url) : url;
 
-    prefix = surt + " 9";
+    prefix = surt + " " + timestamp;
     checkPrefix = surt;
 
     const tx = this.db.transaction("ziplines", "readonly");
@@ -468,7 +194,7 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
       }
 
       const filename = "indexes/" + zipblock.filename;
-      const params = {offset: zipblock.offset, length: zipblock.length, unzip: true}
+      const params = {offset: zipblock.offset, length: zipblock.length, unzip: true};
       const reader = await this.zipreader.loadFile(filename, params);
 
       cdxloaders.push(new CDXLoader(reader).load(this));
@@ -480,6 +206,20 @@ class ZipRemoteArchiveDB extends RemoteSourceArchiveDB
     await Promise.all(cdxloaders);
 
     return cdxloaders.length > 0;
+  }
+
+  async addZipLines(batch) {
+    const tx = this.db.transaction("ziplines", "readwrite");
+
+    for (const entry of batch) {
+      tx.store.put(entry);
+    }
+
+    try {
+      await tx.done;
+    } catch (e) {
+      console.log("Error loading ziplines index: ", e);
+    }
   }
 
   async getResource(request, rwPrefix, event) {
@@ -597,17 +337,17 @@ class ZipRangeReader
     for (let i = length - 22, ii = Math.max(0, i - MAX_INT16); i >= ii; --i) {
       if (data[i] === 0x50 && data[i + 1] === 0x4b &&
         data[i + 2] === 0x05 && data[i + 3] === 0x06) {
-          endoffset = i;
-          offset = view.getUint32(i + 16, true);
-          entriesLeft = view.getUint16(i + 8, true);
-          break;
-        }
+        endoffset = i;
+        offset = view.getUint32(i + 16, true);
+        entriesLeft = view.getUint16(i + 8, true);
+        break;
+      }
     }
 
     //ZIP64 find offset
     if (offset === MAX_INT32 || entriesLeft === MAX_INT16) {
       if (view.getUint32(endoffset - 20, true) !== 0x07064b50) {
-        console.warn('invalid zip64 EOCD locator');
+        console.warn("invalid zip64 EOCD locator");
         return;
       }
 
@@ -616,7 +356,7 @@ class ZipRangeReader
       const viewOffset = zip64Offset - dataStartOffset;
 
       if (view.getUint32(viewOffset, true) !== 0x06064b50) {
-        console.warn('invalid zip64 EOCD record');
+        console.warn("invalid zip64 EOCD record");
         return;
       }
 
@@ -691,11 +431,11 @@ class ZipRangeReader
             }
           }
 
-          extraFieldOffset += size
+          extraFieldOffset += size;
         }
       }
 
-      const directory = filename.endsWith('/');
+      const directory = filename.endsWith("/");
 
       if (!directory) {
         entries[filename] = {
@@ -735,16 +475,16 @@ class ZipRangeReader
 
   getCompressedSize(name) {
     if (this.entries === null) {
-      return -1;
+      return 0;
     }
 
     const entry = this.entries[name];
 
     if (!entry) {
-      return -1;
+      return 0;
     }
 
-    return entry.compressedSize;
+    return isNaN(entry.compressedSize) ? 0 : entry.compressedSize;
   }
 
   async loadFile(name, {offset = 0, length = -1, signal = null, unzip = false} = {}) {
@@ -796,12 +536,12 @@ class ZipRangeReader
     const combined = littleEndian? left + 2**32*right : 2**32*left + right;
 
     if (!Number.isSafeInteger(combined))
-      console.warn(combined, 'exceeds MAX_SAFE_INTEGER. Precision may be lost');
+      console.warn(combined, "exceeds MAX_SAFE_INTEGER. Precision may be lost");
 
     return combined;
   }
 }
 
 
-export { ZipRangeReader, ZipRemoteArchiveDB };
+export { ZipRangeReader, WACZRemoteArchiveDB };
 

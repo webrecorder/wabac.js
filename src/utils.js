@@ -25,11 +25,11 @@ export function containsAny(value, iter) {
 }
 
 export function getTS(iso) {
-  return iso.replace(/[-:T]/g, '').slice(0, 14);
+  return iso.replace(/[-:T]/g, "").slice(0, 14);
 }
 
 export function getTSMillis(iso) {
-  return iso.replace(/[-:.TZ]/g, '');
+  return iso.replace(/[-:.TZ]/g, "");
 }
 
 export function tsToDate(ts) {
@@ -50,7 +50,7 @@ export function tsToDate(ts) {
     ts.substring(14) + "Z");
 
   return new Date(datestr);
-};
+}
 
 export function tsToSec(ts) {
   return tsToDate(ts).getTime() / 1000;
@@ -70,7 +70,7 @@ export function getSecondsStr(date) {
 
 function base16(hashBuffer) {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
 export async function digestMessage(message, hashtype) {
@@ -109,12 +109,12 @@ export function makeHeaders(headers) {
     // try to sanitize the headers, if any errors
     for (let key of Object.keys(headers)) {
       const value = headers[key];
-      const newValue = value.replace(/[\r\n]+/g, ', ');
+      const newValue = value.replace(/[\r\n]+/g, ", ");
       if (value != newValue) {
         headers[key] = newValue;
       }
     }
-    return new Headers(headers)
+    return new Headers(headers);
   }
 }
 
@@ -157,7 +157,7 @@ export function getStatusText(status) {
 }
 
 export function isAjaxRequest(request) {
-  return request.headers.get('X-Pywb-Requested-With') === 'XMLHttpRequest';
+  return request.headers.get("X-Pywb-Requested-With") === "XMLHttpRequest";
 }
 
 

@@ -1,10 +1,10 @@
 "use strict";
 
-import { Rewriter } from './rewrite';
+import { Rewriter } from "./rewrite";
 
-import { getTS, getSecondsStr, notFound, AuthNeededError, parseSetCookie } from './utils.js';
+import { getTS, getSecondsStr, notFound, AuthNeededError, parseSetCookie } from "./utils.js";
 
-import { ArchiveResponse } from './response';
+import { ArchiveResponse } from "./response";
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
@@ -69,7 +69,7 @@ class Collection {
 
     // pageList
     if (wbUrlStr == "") {
-      content = '<html><body><h2>Available Pages</h2><ul>'
+      content = "<html><body><h2>Available Pages</h2><ul>";
 
       const pages = await this.store.getAllPages();
 
@@ -79,18 +79,18 @@ class Collection {
           href += page.date + "/";
         }
         href += page.url;
-        content += `<li><a href="${href}">${page.url}</a></li>`
+        content += `<li><a href="${href}">${page.url}</a></li>`;
       }
 
-      content += '</ul></body></html>'
+      content += "</ul></body></html>";
 
       return new Response(content, responseOpts);
     }
 
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
-    let requestTS = '';
-    let requestURL = '';
-    let mod = '';
+    let requestTS = "";
+    let requestURL = "";
+    let mod = "";
 
     if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:") || wbUrlStr.startsWith("blob:"))) {
       requestURL = wbUrlStr;
@@ -106,7 +106,7 @@ class Collection {
 
     // force timestamp for root coll
     //if (!requestTS && this.isRoot) {
-      //requestTS = "2";
+    //requestTS = "2";
     //}
 
     if (!mod) {
@@ -158,7 +158,7 @@ class Collection {
           }
         } 
 
-        return notFound(request, `<p style="margin: auto">Please wait, this page will reload after authentication...</p>`, 401);
+        return notFound(request, "<p style=\"margin: auto\">Please wait, this page will reload after authentication...</p>", 401);
       }
     }
 
@@ -242,12 +242,14 @@ class Collection {
           query.url = parsed.href;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // ignore invalid URLs, no redirect
+    }
 
     return null;
   }
 
-  getWrappedModuleDecl(url) {
+  getWrappedModuleDecl() {
     const string = `
     var wrapObj = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
     if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
@@ -322,7 +324,7 @@ class Collection {
     return response;
   }
 
-  async makeTopFrame(url, requestTS, isLive) {
+  async makeTopFrame(url, requestTS) {
     let baseUrl = null;
 
     if (this.baseFrameUrl) {
@@ -389,7 +391,7 @@ window.home = "${this.rootPrefix}";
 </script>
 </body>
 </html>
-`
+`;
     }
 
     let responseData = {
@@ -425,7 +427,7 @@ window.home = "${this.rootPrefix}";
       presetCookie = parseSetCookie(setCookie, scheme, presetCookie);
     }
 
-    const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
+    const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : "\"\"";
     return `
 <!-- WB Insert -->
 <style>
@@ -434,7 +436,7 @@ body {
   font-size: inherit;
 }
 </style>
-${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ``}
+${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
 <script>
   wbinfo = {};
   wbinfo.top_url = "${topUrl}";
@@ -453,7 +455,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ``}
   wbinfo.prefix = decodeURI("${prefix}");
   wbinfo.mod = "mp_";
   wbinfo.is_framed = true;
-  wbinfo.is_live = ${isLive ? 'true' : 'false'};
+  wbinfo.is_live = ${isLive ? "true" : "false"};
   wbinfo.coll = "${coll}";
   wbinfo.proxy_magic = "";
   wbinfo.static_prefix = "${this.staticPrefix}";
@@ -478,7 +480,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ``}
   }
 </script>
 ${this.injectScripts.map((script) => `<script src='${script}'> </script>`).join("")}
-  `
+  `;
   }
 }
 

@@ -1,5 +1,5 @@
-import { BaseAsyncIterReader, AsyncIterReader } from 'warcio';
-import { isNullBodyStatus, decodeLatin1, encodeLatin1 } from './utils';
+import { BaseAsyncIterReader, AsyncIterReader } from "warcio";
+import { isNullBodyStatus, decodeLatin1, encodeLatin1 } from "./utils";
 
 
 class ArchiveResponse
@@ -61,7 +61,7 @@ class ArchiveResponse
     return typeof(buff) === "string" ? buff : decodeLatin1(buff);
   }
 
-  async setText(text) {
+  setText(text) {
     this.setBuffer(encodeLatin1(text));
   }
 
@@ -79,7 +79,7 @@ class ArchiveResponse
     this.reader = null;
   }
 
-  async setReader(reader) {
+  setReader(reader) {
     if (reader instanceof BaseAsyncIterReader) {
       this.reader = reader;
       this.buffer = null;
@@ -98,7 +98,7 @@ class ArchiveResponse
   }
 
   setRange(range) {
-    const bytes = range.match(/^bytes\=(\d+)\-(\d+)?$/);
+    const bytes = range.match(/^bytes=(\d+)-(\d+)?$/);
 
     let length = 0;
 
@@ -116,8 +116,8 @@ class ArchiveResponse
 
     if (!bytes) {
       this.status = 416;
-      this.statusText = 'Range Not Satisfiable';
-      this.headers.set('Content-Range', `*/${length}`);
+      this.statusText = "Range Not Satisfiable";
+      this.headers.set("Content-Range", `*/${length}`);
       return false;
     }
 
@@ -135,11 +135,11 @@ class ArchiveResponse
       }
     }
 
-    this.headers.set('Content-Range', `bytes ${start}-${end}/${length}`);
-    this.headers.set('Content-Length', end - start + 1);
+    this.headers.set("Content-Range", `bytes ${start}-${end}/${length}`);
+    this.headers.set("Content-Length", end - start + 1);
 
     this.status = 206;
-    this.statusText = 'Partial Content';
+    this.statusText = "Partial Content";
 
     return true;
   }
@@ -151,8 +151,8 @@ class ArchiveResponse
     }
 
     const response = new Response(body, {status: this.status,
-                                         statusText: this.statusText,
-                                         headers: this.headers});
+      statusText: this.statusText,
+      headers: this.headers});
     response.date = this.date;
     if (coHeaders) {
       response.headers.set("Cross-Origin-Opener-Policy", "same-origin");

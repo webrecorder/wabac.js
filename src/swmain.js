@@ -1,19 +1,19 @@
 "use strict";
 
-import { Collection } from './collection';
-import { WorkerLoader } from './loaders';
+import { Collection } from "./collection";
+import { WorkerLoader } from "./loaders";
 
-import { notFound, isAjaxRequest } from './utils.js';
-import { StatsTracker } from './statstracker.js';
-import { postToGetUrl } from 'warcio';
+import { notFound, isAjaxRequest } from "./utils.js";
+import { StatsTracker } from "./statstracker.js";
+import { postToGetUrl } from "warcio";
 
-import { API } from './api.js';
+import { API } from "./api.js";
 
-import { Rewriter } from './rewrite';
-import { ArchiveResponse } from './response';
+import { Rewriter } from "./rewrite";
+import { ArchiveResponse } from "./response";
 
-import WOMBAT from '../dist/wombat.js';
-import WOMBAT_WORKERS from '@webrecorder/wombat/src/wombatWorkers.js';
+import WOMBAT from "../dist/wombat.js";
+import WOMBAT_WORKERS from "@webrecorder/wombat/src/wombatWorkers.js";
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
@@ -69,7 +69,7 @@ class SWCollections extends WorkerLoader
 
       if (keepFileHandle && this.colls[name].config && this.colls[name].config.extra &&
         this.colls[name].config.extra.fileHandle) {
-          this._fileHandles[this.colls[name].config.sourceUrl] = this.colls[name].config.extra.fileHandle;
+        this._fileHandles[this.colls[name].config.sourceUrl] = this.colls[name].config.extra.fileHandle;
       }
     }
 
@@ -110,7 +110,7 @@ class SWCollections extends WorkerLoader
 // ===========================================================================
 class SWReplay {
   constructor(staticData = null, ApiClass = API, useIPFS = true, defaultConfig = {}) {
-    this.prefix = self.registration ? self.registration.scope : '';
+    this.prefix = self.registration ? self.registration.scope : "";
 
     this.replayPrefix = this.prefix;
 
@@ -130,9 +130,9 @@ class SWReplay {
     this.distPrefix = this.prefix + "dist/";
 
     const prefixes = {static: this.staticPrefix,
-                      root: this.prefix,
-                      main: this.replayPrefix
-                     };
+      root: this.prefix,
+      main: this.replayPrefix
+    };
 
     this.staticData = staticData || new Map();
     this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
@@ -148,16 +148,16 @@ class SWReplay {
 
     this.stats = sp.get("stats") ? new StatsTracker() : null;
 
-    self.addEventListener('install', (event) => {
+    self.addEventListener("install", () => {
       self.skipWaiting();
     });
 
-    self.addEventListener('activate', (event) => {
+    self.addEventListener("activate", (event) => {
       event.waitUntil(self.clients.claim());
       console.log("Activate!");
     });
 
-    self.addEventListener('fetch', (event) => {
+    self.addEventListener("fetch", (event) => {
       event.respondWith(this.handleFetch(event));
     });
 
@@ -237,14 +237,14 @@ class SWReplay {
 
   defaultFetch(request) {
     const opts = {};
-    if (request.cache === 'only-if-cached' && request.mode !== 'same-origin') {
-      opts.cache = 'default';
+    if (request.cache === "only-if-cached" && request.mode !== "same-origin") {
+      opts.cache = "default";
     }
     return self.fetch(request, opts);
   }
 
   async ensureCached(urls) {
-    const cache = await caches.open('wabac-offline');
+    const cache = await caches.open("wabac-offline");
 
     for (let url of urls) {
       url = new URL(url, self.location.href).href;
@@ -266,7 +266,7 @@ class SWReplay {
   async handleOffline(request) {
     let response = null;
     
-    const cache = await caches.open('wabac-offline');
+    const cache = await caches.open("wabac-offline");
 
     try {
       response = await this.defaultFetch(request);
@@ -312,7 +312,7 @@ class SWReplay {
     let response = null;
 
     const isAjax = isAjaxRequest(request);
-    const range = request.headers.get('range');
+    const range = request.headers.get("range");
 
     try {
       if (this.allowRewrittenCache && !range) {
@@ -345,7 +345,7 @@ class SWReplay {
             response.headers.set(IS_AJAX_HEADER, "true");
           }
           const cacheResp = response.clone();
-          await cache.put(getRequest, cacheResp);
+          await cache.put(request, cacheResp);
         } catch (e) {
           console.warn(e);
         }
@@ -355,7 +355,7 @@ class SWReplay {
     }
 
     if (range) {
-      console.log('Not Found Range!: ' + range);
+      console.log("Not Found Range!: " + range);
     }
 
     return notFound(request);
@@ -380,13 +380,13 @@ class SWReplay {
     const options = {
       method: "GET",
       headers: request.headers,
-      mode: (request.mode === 'navigate' ? 'same-origin' : request.mode),
+      mode: (request.mode === "navigate" ? "same-origin" : request.mode),
       credentials: request.credentials,
       cache: request.cache,
       redirect: request.redirect,
       referrer: request.referrer,
       integrity: request.integrity,
-    }
+    };
 
     return new Request(newUrl, options);
   }

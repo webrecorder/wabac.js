@@ -2,7 +2,9 @@ import { sleep } from "./utils";
 
 // ===========================================================================
 const GC_INTERVAL = 600000;
-
+  
+// defined during webpack build
+// eslint-disable-next-line no-undef
 const IPFS_CORE_JS = __IPFS_CORE_URL__;
 
 let client = null;
@@ -80,7 +82,7 @@ class IPFSClient
     try {
       opts = {...opts, ...self.ipfsOpts};
     } catch(e) {
-
+      // ignore invalid options
     }
 
     return opts;
@@ -89,7 +91,8 @@ class IPFSClient
   async runGC() {
     let count = 0;
   
-    for await (const res of this.ipfs.repo.gc()) {
+    // eslint-disable-next-line no-unused-vars
+    for await (const _ of this.ipfs.repo.gc()) {
       count++;
     }
     console.log(`IPFS GC, Removed ${count} blocks`);

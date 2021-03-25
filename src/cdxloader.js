@@ -1,7 +1,7 @@
-import { tsToDate } from './utils';
-import { WARCLoader } from './warcloader';
+import { tsToDate } from "./utils";
+import { WARCLoader } from "./warcloader";
 
-import { CDXIndexer, AsyncIterReader, appendRequestQuery } from 'warcio';
+import { CDXIndexer, AsyncIterReader, appendRequestQuery } from "warcio";
 
 
 const BATCH_SIZE = 3000;
@@ -17,13 +17,13 @@ class CDXFromWARCLoader extends WARCLoader
 
   filterRecord(record) {
     switch (record.warcType) {
-      case "warcinfo":
-      case "revisit":
-      case "request":
-        return null;
+    case "warcinfo":
+    case "revisit":
+    case "request":
+      return null;
 
-      case "metadata":
-        return this.shouldIndexMetadataRecord(record) ? null : "skip";
+    case "metadata":
+      return this.shouldIndexMetadataRecord(record) ? null : "skip";
     }
 
     const url = record.warcTargetURI;
@@ -78,8 +78,8 @@ class CDXFromWARCLoader extends WARCLoader
     //}
 
     const source = {"path": cdx.filename,
-                    "start": Number(cdx.offset),
-                    "length": Number(cdx.length)};
+      "start": Number(cdx.offset),
+      "length": Number(cdx.length)};
 
     let { digest } = cdx;
     if (digest && digest.indexOf(":") === -1) {

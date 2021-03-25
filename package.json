@@ -1,6 +1,6 @@
 {
   "name": "@webrecorder/wabac",
-  "version": "2.6.9",
+  "version": "2.7.0",
   "main": "index.js",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
@@ -18,7 +18,6 @@
     "parse5-html-rewriting-stream": "^6.0.1",
     "parse5-sax-parser": "^6.0.1",
     "path-parser": "^6.1.0",
-    "unescape-js": "^1.1.4",
     "warcio": "^1.4.2",
     "wbn": "^0.0.3"
   },
