@@ -399,3 +399,4 @@ class HTMLRewriter
 }
 
 export { HTMLRewriter };
+

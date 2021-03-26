@@ -58,7 +58,7 @@ class ArchiveResponse
 
   async getText() {
     const buff = await this.getBuffer();
-    return typeof(buff) === "string" ? buff : decodeLatin1(buff)
+    return typeof(buff) === "string" ? buff : decodeLatin1(buff);
   }
 
   async getBuffer() {
