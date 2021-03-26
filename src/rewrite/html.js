@@ -2,7 +2,7 @@ import { PassThrough } from 'stream';
 
 import RewritingStream from 'parse5-html-rewriting-stream';
 
-import { startsWithAny } from '../utils';
+import { startsWithAny, decodeLatin1, encodeLatin1 } from '../utils';
 
 
 // ===========================================================================
@@ -268,7 +268,6 @@ class HTMLRewriter
       offset = loc.startOffset - offset;
 
       let remainder = loc.endOffset - loc.startOffset;
-      const textDec = new TextDecoder();
       let text = "";
 
       for (const chunk of cacheChunks) {
@@ -279,7 +278,7 @@ class HTMLRewriter
         const slice =  chunk.slice(offset, offset + remainder);
         offset = 0;
         remainder -= slice.byteLength;
-        text += textDec.decode(slice);
+        text += decodeLatin1(slice);
       }
 
       return text;
@@ -362,15 +361,13 @@ class HTMLRewriter
       }
     });
 
-    const buff = new PassThrough({ encoding: 'utf-8' });
+    const buff = new PassThrough({ encoding: "latin1" });
     buff.pipe(rwStream);
     buff.on('end', addInsert);
 
-    const encoder = new TextEncoder("utf-8");
-
     const rs = new ReadableStream({
       async start(controller) {
-        rwStream.on("data", (chunk) => controller.enqueue(encoder.encode(chunk)));
+        rwStream.on("data", (chunk) => controller.enqueue(encodeLatin1(chunk)));
         rwStream.on("end", () => controller.close());
 
         for await (const chunk of response) {
@@ -402,3 +399,4 @@ class HTMLRewriter
 }
 
 export { HTMLRewriter };
+
