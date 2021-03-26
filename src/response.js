@@ -1,7 +1,6 @@
 import { BaseAsyncIterReader, AsyncIterReader } from 'warcio';
-import { isNullBodyStatus } from './utils';
+import { isNullBodyStatus, decodeLatin1 } from './utils';
 
-const decoder = new TextDecoder("utf-8");
 
 class ArchiveResponse
 {
@@ -59,7 +58,7 @@ class ArchiveResponse
 
   async getText() {
     const buff = await this.getBuffer();
-    return typeof(buff) === "string" ? buff : decoder.decode(buff);
+    return typeof(buff) === "string" ? buff : decodeLatin1(buff)
   }
 
   async getBuffer() {

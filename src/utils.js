@@ -80,6 +80,22 @@ export async function digestMessage(message, hashtype) {
 
 }
 
+export function decodeLatin1(buf) {
+  let str = "";
+  for (let i = 0; i < buf.length; i++) {
+    str += String.fromCharCode(buf[i]);
+  }
+  return str;
+}
+
+export function encodeLatin1(str) {
+  const buf = new Uint8Array(str.length);
+  for (let i = 0; i < str.length; i++) {
+    buf[i] = str.charCodeAt(i) & 0xFF;
+  }
+  return buf;
+}
+
 
 //from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
 export function randomId() {

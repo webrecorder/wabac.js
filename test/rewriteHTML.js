@@ -13,7 +13,9 @@ async function rewriteHtml(t, content, expected, {useBaseRules = true, url = ""}
     rwArgs.url = url;
   }
 
-  const actual = await doRewrite(rwArgs);
+  let actual = await doRewrite(rwArgs);
+
+  actual = Buffer.from(actual, "latin1").toString("utf8");
 
   t.is(actual, expected);
 }
