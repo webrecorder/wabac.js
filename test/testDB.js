@@ -2,13 +2,13 @@
 
 require("fake-indexeddb/auto");
 
-import test from 'ava';
+import test from "ava";
 
-import { tsToDate } from '../src/utils';
+import { tsToDate } from "../src/utils";
 
-import { ArchiveDB } from '../src/archivedb';
+import { ArchiveDB } from "../src/archivedb";
 
-import { createHash } from 'crypto';
+import { createHash } from "crypto";
 
 global.crypto = {subtle: {digest: (type, buff) => {
   const hash = createHash("sha256");
@@ -23,89 +23,89 @@ function ts(timestamp) {
 }
 
 const PAGES = [
-{
-  "id": "01",
-  "url": "https://example.com/",
-  "title": "Example Domain",
-  "ts": ts("20200303040506"),
-},
+  {
+    "id": "01",
+    "url": "https://example.com/",
+    "title": "Example Domain",
+    "ts": ts("20200303040506"),
+  },
 
-{
-  "id": "02",
-  "url": "http://another.example.com/page",
-  "title": "Another Page",
-  "ts": ts("20200102000000"),
-},
+  {
+    "id": "02",
+    "url": "http://another.example.com/page",
+    "title": "Another Page",
+    "ts": ts("20200102000000"),
+  },
 
-{
-  "id": "03",
-  "url": "https://example.com/",
-  "title": "Example Domain Again",
-  "ts": ts("20210303040506"),
-}
+  {
+    "id": "03",
+    "url": "https://example.com/",
+    "title": "Example Domain Again",
+    "ts": ts("20210303040506"),
+  }
 ];
 
 
 const URL_DATA = [
-{
-  "url": "https://example.com/",
-  "ts": ts("202003040506"),
-  "pageId": "01",
-  "payload": new Uint8Array([1, 2, 3]),
-  "headers": {"a": "b"},
-  "mime": "",
-},
+  {
+    "url": "https://example.com/",
+    "ts": ts("202003040506"),
+    "pageId": "01",
+    "payload": new Uint8Array([1, 2, 3]),
+    "headers": {"a": "b"},
+    "mime": "",
+  },
 
-{
-  "url": "https://example.com/script.js",
-  "ts": ts("202003040507"),
-  "pageId": "01",
-  "payload": "text",
-  "headers": {"a": "b"},
-  "mime": "",
-},
+  {
+    "url": "https://example.com/script.js",
+    "ts": ts("202003040507"),
+    "pageId": "01",
+    "payload": "text",
+    "headers": {"a": "b"},
+    "mime": "",
+  },
 
-{
-  "url": "https://another.example.com/page",
-  "ts": ts("20200102000000"),
-  "pageId": "02",
-  "payload": new Uint8Array([0, 1, 0, 1]),
-  "headers": {"a": "b"},
-  "mime": "",
-},
+  {
+    "url": "https://another.example.com/page",
+    "ts": ts("20200102000000"),
+    "pageId": "02",
+    "payload": new Uint8Array([0, 1, 0, 1]),
+    "headers": {"a": "b"},
+    "mime": "",
+  },
 
-{
-  "url": "https://example.com/",
-  "ts": ts("202103040506"),
-  "pageId": "03",
-  "payload": new Uint8Array([4, 5, 6]),
-  "mime": "",
-},
+  {
+    "url": "https://example.com/",
+    "ts": ts("202103040506"),
+    "pageId": "03",
+    "payload": new Uint8Array([4, 5, 6]),
+    "mime": "",
+  },
 
-{
-  "url": "https://example.com/dupe/page.html",
-  "ts": ts("202006040506"),
-  "pageId": "02",
-  "payload": new Uint8Array([1, 2, 3]),
-  "mime": "",
-},
-
-
-
-]
+  {
+    "url": "https://example.com/dupe/page.html",
+    "ts": ts("202006040506"),
+    "pageId": "02",
+    "payload": new Uint8Array([1, 2, 3]),
+    "mime": "",
+  },
 
 
 
+];
 
 
-test('init', async t => { 
+
+
+
+test("init", async t => { 
   await db.init();
   t.pass();
 });
 
 
 
-test('Add Pages', async t => {
+test("Add Pages", async t => {
   for (const page of PAGES) {
     const pageId = await db.addPage(page);
 
@@ -114,11 +114,9 @@ test('Add Pages', async t => {
 });
 
 
-test('Add Url', async t => {
-  let count = 0;
-
+test("Add Url", async t => {
   for (const data of URL_DATA) {
-    const length = data.payload.length;
+    //const length = data.payload.length;
     const added = await db.addResource(data);
     if (data === URL_DATA[4]) {
       t.false(added);
@@ -129,7 +127,7 @@ test('Add Url', async t => {
 });
 
 
-test('Lookup Url Only (Latest)', async t => {
+test("Lookup Url Only (Latest)", async t => {
   t.deepEqual(
     await db.lookupUrl("https://example.com/"),
     URL_DATA[3]
@@ -138,7 +136,7 @@ test('Lookup Url Only (Latest)', async t => {
 
 
 
-test('Lookup Url Exact Ts', async t => {
+test("Lookup Url Exact Ts", async t => {
   // exact
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("202003040506")),
@@ -152,7 +150,7 @@ test('Lookup Url Exact Ts', async t => {
 });
 
 
-test('Lookup Url Closest Ts', async t => {
+test("Lookup Url Closest Ts", async t => {
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("2015")),
     URL_DATA[0]
@@ -176,12 +174,12 @@ test('Lookup Url Closest Ts', async t => {
 });
 
 
-test('Lookup Not Found Url', async t => {
+test("Lookup Not Found Url", async t => {
   t.not(await db.lookupUrl("https://example.com/foo", ts("2015")));
 });
 
 
-test('Search by pageId', async t => {
+test("Search by pageId", async t => {
   t.deepEqual(
     await db.resourcesByPage("01"),
     [URL_DATA[0], URL_DATA[1]]
@@ -189,7 +187,7 @@ test('Search by pageId', async t => {
 });
 
 
-test('Delete with ref counts', async t => {
+test("Delete with ref counts", async t => {
   const toDict= (results) => {
     const obj = {};
     for (const res of results) {
