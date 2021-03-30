@@ -51,17 +51,17 @@ class API {
 
   get routes() {
     return {
-      "index": "index",
-      "coll": ":coll",
-      "urls": ":coll/urls",
-      "createColl": ["create", "POST"],
-      "deleteColl": [":coll", "DELETE"],
-      "updateAuth": [":coll/updateAuth", "POST"],
-      "updateMetadata": [":coll/metadata", "POST"],
-      "curated": ":coll/curated/:list",
-      "pages": ":coll/pages",
-      "textIndex": ":coll/textIndex",
-      "deletePage": [":coll/page/:page", "DELETE"],
+      "index": "coll-index",
+      "coll": "c/:coll",
+      "urls": "c/:coll/urls",
+      "createColl": ["c/create", "POST"],
+      "deleteColl": ["c/:coll", "DELETE"],
+      "updateAuth": ["c/:coll/updateAuth", "POST"],
+      "updateMetadata": ["c/:coll/metadata", "POST"],
+      "curated": "c/:coll/curated/:list",
+      "pages": "c/:coll/pages",
+      "textIndex": "c/:coll/textIndex",
+      "deletePage": ["c/:coll/page/:page", "DELETE"],
     };
   }
 

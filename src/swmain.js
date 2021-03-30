@@ -109,14 +109,14 @@ class SWCollections extends WorkerLoader
 
 // ===========================================================================
 class SWReplay {
-  constructor(staticData = null, ApiClass = API, useIPFS = true, defaultConfig = {}) {
+  constructor({staticData = null, ApiClass = API, useIPFS = true, defaultConfig = {}}) {
     this.prefix = self.registration ? self.registration.scope : "";
 
     this.replayPrefix = this.prefix;
 
     const sp = new URLSearchParams(self.location.search);
 
-    let replayPrefixPath = "wabac";
+    let replayPrefixPath = "w";
 
     if (sp.has("replayPrefix")) {
       replayPrefixPath = sp.get("replayPrefix");
