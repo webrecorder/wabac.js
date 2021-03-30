@@ -197,7 +197,7 @@ class Rewriter {
     if (rwFunc) {
       let text = await response.getText();
       text = rwFunc.call(this, text, opts);
-      response.setContent(text);
+      response.setText(text);
     }
 
     return response;

@@ -1,5 +1,5 @@
 import { BaseAsyncIterReader, AsyncIterReader } from 'warcio';
-import { isNullBodyStatus, decodeLatin1 } from './utils';
+import { isNullBodyStatus, decodeLatin1, encodeLatin1 } from './utils';
 
 
 class ArchiveResponse
@@ -61,6 +61,10 @@ class ArchiveResponse
     return typeof(buff) === "string" ? buff : decodeLatin1(buff);
   }
 
+  async setText(text) {
+    this.setBuffer(encodeLatin1(text));
+  }
+
   async getBuffer() {
     if (this.buffer) {
       return this.buffer;
@@ -70,16 +74,18 @@ class ArchiveResponse
     return this.buffer;
   }
 
-  async setContent(content) {
-    if (content instanceof BaseAsyncIterReader) {
-      this.reader = content;
+  setBuffer(buffer) {
+    this.buffer = buffer;
+    this.reader = null;
+  }
+
+  async setReader(reader) {
+    if (reader instanceof BaseAsyncIterReader) {
+      this.reader = reader;
       this.buffer = null;
-    } else if (content.getReader) {
-      this.reader = new AsyncIterReader(content.getReader());
+    } else if (reader.getReader) {
+      this.reader = new AsyncIterReader(reader.getReader());
       this.buffer = null;
-    } else {
-      this.reader = null;
-      this.buffer = content;
     }
   }
 

@@ -380,7 +380,7 @@ class HTMLRewriter
       }
     });
 
-    response.setContent(rs);
+    response.setReader(rs);
     return response;
   }
 

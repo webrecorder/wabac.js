@@ -14,7 +14,7 @@ async function decodeResponse(response, contentEncoding, transferEncoding, noRW)
   if (response.reader && noRW &&
       ((contentEncoding === "gzip" && !transferEncoding) || 
       (!contentEncoding && transferEncoding === "gzip"))) {
-    response.setContent(new AsyncIterReader(response.reader));
+    response.setReader(new AsyncIterReader(response.reader));
     return response;
   }
 
@@ -23,7 +23,7 @@ async function decodeResponse(response, contentEncoding, transferEncoding, noRW)
   const content = await decodeContent(origContent, contentEncoding, transferEncoding);
 
   if (origContent !== content) {
-    response.setContent(content);
+    response.setBuffer(content);
   }
 
   return response;
