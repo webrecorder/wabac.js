@@ -109,7 +109,7 @@ class SWCollections extends WorkerLoader
 
 // ===========================================================================
 class SWReplay {
-  constructor({staticData = null, ApiClass = API, useIPFS = true, defaultConfig = {}}) {
+  constructor({staticData = null, ApiClass = API, useIPFS = true, defaultConfig = {}, CollectionsClass = SWCollections}) {
     this.prefix = self.registration ? self.registration.scope : "";
 
     this.replayPrefix = this.prefix;
@@ -138,7 +138,7 @@ class SWReplay {
     this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
     this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
 
-    this.collections = new SWCollections(prefixes, sp.get("root"), useIPFS, defaultConfig);
+    this.collections = new CollectionsClass(prefixes, sp.get("root"), useIPFS, defaultConfig);
     this.collections.loadAll(sp.get("dbColl"));
 
     this.api = new ApiClass(this.collections);
@@ -392,5 +392,5 @@ class SWReplay {
   }
 }
 
-export { SWReplay };
+export { SWReplay, SWCollections };
 

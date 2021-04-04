@@ -101,7 +101,7 @@ class API {
   async handleApi(request, params) {
     switch (params._route) {
     case "index":
-      return await this.listAll();
+      return await this.listAll(params._query.get("filter"));
 
     case "createColl": {
       const requestJSON = await request.json();
@@ -237,7 +237,7 @@ class API {
     }
   }
 
-  async listAll() {
+  async listAll(filter) {
     const response = await this.collections.listAll();
     const collections = [];
 
@@ -245,6 +245,11 @@ class API {
       if (coll.type === "live" || coll.type === "remoteproxy") {
         return;
       }
+
+      if (filter && coll.type.indexOf(filter) !== 0) {
+        return;
+      }
+
       collections.push(this.getCollData(coll));
     });
 

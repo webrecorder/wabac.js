@@ -2,7 +2,7 @@
 
 import { openDB, deleteDB } from "idb/with-async-ittr.js";
 import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage,
-  getTS, getStatusText, randomId } from "./utils";
+  getTS, getStatusText, randomId, PAGE_STATE_SYNCED } from "./utils";
 import { fuzzyMatcher } from "./fuzzymatcher";
 import { ArchiveResponse } from "./response";
 
@@ -48,6 +48,7 @@ class ArchiveDB {
       const pageStore = db.createObjectStore("pages", { keyPath: "id" });
       pageStore.createIndex("url", "url");
       pageStore.createIndex("ts", "ts");
+      pageStore.createIndex("state", "state");
 
       db.createObjectStore("pageLists", { keyPath: "id", autoIncrement: true});
 
@@ -93,7 +94,9 @@ class ArchiveDB {
     const url = page.url;
     const title = page.title || page.url;
     const id = page.id || this.newPageId();
+    const state = page.state || PAGE_STATE_SYNCED;
     let ts = page.ts;
+
 
     if (typeof(ts) !== "number") {
       if (page.timestamp) {
@@ -106,7 +109,7 @@ class ArchiveDB {
       }
     }
 
-    const p = {...page, url, ts, title, id};
+    const p = {...page, url, ts, title, id, state};
 
     if (tx) {
       tx.store.put(p);
@@ -116,11 +119,15 @@ class ArchiveDB {
     }
   }
 
-  async addPages(pages, pagesTable = "pages") {
+  async addPages(pages, pagesTable = "pages", update = false) {
     const tx = this.db.transaction(pagesTable, "readwrite");
 
     for (const page of pages) {
-      this.addPage(page, tx);
+      if (update) {
+        tx.store.put(page);
+      } else {
+        this.addPage(page, tx);
+      }
     }
 
     try {
@@ -245,6 +252,10 @@ class ArchiveDB {
     }
 
     return results;
+  }
+
+  async getPagesWithState(state) {
+    return await this.db.getAllFromIndex("pages", "state", state);
   }
 
   async dedupResource(digest, payload, tx, count = 1) {

@@ -3,6 +3,11 @@ import { getReasonPhrase } from "http-status-codes";
 // Threshold size for switching to range requests
 export const MAX_FULL_DOWNLOAD_SIZE = 25000000;
 
+export const PAGE_STATE_NOT_FINISHED = 0x00;
+export const PAGE_STATE_NEED_REMOTE_SYNC = 0x10;
+export const PAGE_STATE_NEED_LOCAL_SYNC = 0x01;
+export const PAGE_STATE_SYNCED = 0x11;
+
 
 export  function startsWithAny(value, iter) {
   for (const str of iter) {

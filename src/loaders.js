@@ -33,7 +33,9 @@ class CollectionLoader
   async _initDB() {
     this.colldb = await openDB("collDB", 1, {
       upgrade: (db/*, oldV, newV, tx*/) => {
-        db.createObjectStore("colls", {keyPath: "name"});
+        const collstore = db.createObjectStore("colls", {keyPath: "name"});
+
+        collstore.createIndex("type", "type");
       }
     });
   }
