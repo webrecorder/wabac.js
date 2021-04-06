@@ -88,8 +88,6 @@ export class WACZRemoteArchiveDB extends RemoteSourceArchiveDB
     }
 
     await tx.done;
-
-    this.db.clear("ziplines");
   }
 
   initConfig(config) {

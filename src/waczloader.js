@@ -47,6 +47,7 @@ export class WACZLoader
       }
 
       await db.saveZipEntries(entries);
+      db.db.clear("ziplines");
     }
 
     const indexloaders = [];
