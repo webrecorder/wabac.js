@@ -1,297 +1,4 @@
 import { AsyncIterReader } from "warcio";
-import { RemoteSourceArchiveDB } from "./remotearchivedb";
-import { SingleRecordWARCLoader } from "./warcloader";
-import { CDXLoader } from "./cdxloader";
-import { getTS } from "./utils";
-import { LiveAccess } from "./remoteproxy";
-import { getSurt } from "warcio";
-
-// ===========================================================================
-class WACZRemoteArchiveDB extends RemoteSourceArchiveDB
-{
-  constructor(name, sourceLoader, fullConfig) {
-    super(name, sourceLoader, fullConfig.noCache);
-    this.zipreader = new ZipRangeReader(sourceLoader);
-
-    this.externalSources = [];
-    this.fuzzyUrlRules = [];
-    this.useSurt = true;
-    this.fullConfig = fullConfig;
-    this.textIndex = fullConfig && fullConfig.metadata && fullConfig.metadata.textIndex;
-
-    if (fullConfig.extraConfig) {
-      this.initConfig(fullConfig.extraConfig);
-    }
-  }
-
-  _initDB(db, oldV, newV, tx) {
-    super._initDB(db, oldV, newV, tx);
-
-    if (!oldV) {
-      db.createObjectStore("ziplines", { keyPath: "prefix" });
-
-      db.createObjectStore("zipEntries", { keyPath: "filename"});
-    }
-  }
-
-  async init() {
-    await super.init();
-
-    await this.loadZipEntries();
-  }
-
-  async close() {
-    super.close();
-    caches.delete("cache:" + this.name.slice("db:".length));
-  }
-
-  async clearZipData() {
-    const stores = ["zipEntries", "ziplines"];
-
-    for (const store of stores) {
-      await this.db.clear(store);
-    }
-  }
-
-  async clearAll() {
-    await super.clearAll();
-
-    await this.clearZipData();
-  }
-
-  updateHeaders(headers) {
-    this.zipreader.loader.headers = headers;
-  }
-
-  async loadZipEntries() {
-    const entriesList = await this.db.getAll("zipEntries");
-    if (!entriesList.length) {
-      return;
-    }
-
-    const entries = {};
-    for (const entry of entriesList) {
-      entries[entry.filename] = entry;
-    }
-
-    this.zipreader.entries = entries;
-  }
-
-  async saveZipEntries(entries) {
-    const tx = this.db.transaction("zipEntries", "readwrite");
-
-    tx.store.clear();
-
-    for (const entry of Object.values(entries)) {
-      tx.store.put(entry);
-    }
-
-    await tx.done;
-
-    this.db.clear("ziplines");
-  }
-
-  initConfig(config) {
-    if (config.decodeResponses !== undefined) {
-      this.fullConfig.decode = config.decodeResponses;
-    }
-    if (config.useSurt !== undefined) {
-      this.useSurt = config.useSurt;
-    }
-    if (config.es) {
-      for (const [prefix, externalPath] of config.es) {
-        const external = new LiveAccess(externalPath, true, false);
-        this.externalSources.push({prefix, external});
-      }
-    }
-    if (config.fuzzy) {
-      for (const [matchStr, replace] of config.fuzzy) {
-        const match = new RegExp(matchStr);
-        this.fuzzyUrlRules.push({match, replace});
-      }
-    }
-    if (config.textIndex) {
-      this.textIndex = config.textIndex;
-    }
-  }
-
-  async getTextIndex() {
-    const headers = {"Content-Type": "application/ndjson"};
-
-    if (!this.textIndex) {
-      return new Response("", {headers});
-    }
-
-    const size = this.zipreader.getCompressedSize(this.textIndex);
-
-    if (size > 0) {
-      headers["Content-Length"] = "" + size;
-    }
-
-    const reader = await this.zipreader.loadFile(this.textIndex, {unzip: true});
-
-    return new Response(reader.getReadableStream(), {headers});
-  }
-  
-  async loadRecordFromSource(cdx) {
-    let filename;
-    let offset = 0;
-    let length = -1;
-
-    const source = cdx.source;
-
-    if (typeof(source) === "string") {
-      filename = source;
-    } else if (typeof(source) === "object") {
-      offset = source.start;
-      length = source.length;
-      filename = source.path;
-    } else {
-      return null;
-    }
-
-    let loader = null;
-   
-    const fileStream = await this.zipreader.loadFileCheckDirs(filename, offset, length);
-    loader = new SingleRecordWARCLoader(fileStream);
-
-    return await loader.load();
-  }
-
-  async loadFromZiplines(url, datetime) {
-    const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
-
-    let prefix;
-    let checkPrefix;
-
-    const surt = this.useSurt ? getSurt(url) : url;
-
-    prefix = surt + " " + timestamp;
-    checkPrefix = surt;
-
-    const tx = this.db.transaction("ziplines", "readonly");
-
-    const values = [];
-
-    // and first match
-    const key = IDBKeyRange.upperBound(prefix, false);
-
-    for await (const cursor of tx.store.iterate(key, "prev")) {
-      // add to beginning as processing entries in reverse here
-      values.unshift(cursor.value);
-      if (!cursor.value.prefix.split(" ")[0].startsWith(checkPrefix)) {
-        break;
-      }
-    }
-
-    await tx.done;
-
-    const cdxloaders = [];
-
-    for (const zipblock of values) {
-      if (zipblock.loaded) {
-        continue;
-      }
-
-      const filename = "indexes/" + zipblock.filename;
-      const params = {offset: zipblock.offset, length: zipblock.length, unzip: true};
-      const reader = await this.zipreader.loadFile(filename, params);
-
-      cdxloaders.push(new CDXLoader(reader).load(this));
-
-      zipblock.loaded = true;
-      await this.db.put("ziplines", zipblock);
-    }
-
-    await Promise.all(cdxloaders);
-
-    return cdxloaders.length > 0;
-  }
-
-  async addZipLines(batch) {
-    const tx = this.db.transaction("ziplines", "readwrite");
-
-    for (const entry of batch) {
-      tx.store.put(entry);
-    }
-
-    try {
-      await tx.done;
-    } catch (e) {
-      console.log("Error loading ziplines index: ", e);
-    }
-  }
-
-  async getResource(request, rwPrefix, event) {
-    if (this.externalSources.length) {
-      for (const {prefix, external} of this.externalSources) {
-        if (request.url.startsWith(prefix)) {
-          try {
-            return await external.getResource(request, rwPrefix, event);
-          } catch(e) {
-            console.warn("Upstream Error", e);
-            //return new Response("Upstream Error", {status: 503});
-          }
-        }
-      }
-    }
-
-    let res = await super.getResource(request, rwPrefix, event);
-
-    if (res) {
-      return res;
-    }
-
-    if (this.fuzzyUrlRules.length) {
-      for (const {match, replace} of this.fuzzyUrlRules) {
-        const newUrl = request.url.replace(match, replace);
-        if (newUrl && newUrl !== request.url) {
-          request.url = newUrl;
-          res = await super.getResource(request, rwPrefix, event);
-          if (res) {
-            return res;
-          }
-        }
-      }
-    }
-
-    return null;
-  }
-
-  async lookupUrl(url, datetime, opts = {}) {
-    try {
-      let result = await super.lookupUrl(url, datetime, opts);
-
-      if (result && (!opts.noRevisits || result.mime !== "warc/revisit")) {
-        return result;
-      }
-
-      if (await this.loadFromZiplines(url, datetime)) {
-        result = await super.lookupUrl(url, datetime, opts);
-      }
-
-      return result;
-    } catch (e) {
-      console.warn(e);
-      return null;
-    }
-  }
-
-  async resourcesByUrlAndMime(url, ...args) {
-    let results = await super.resourcesByUrlAndMime(url, ...args);
-
-    if (results.length > 0) {
-      return results;
-    }
-
-    if (await this.loadFromZiplines(url, "")) {
-      results = await super.resourcesByUrlAndMime(url, ...args);
-    }
-
-    return results;
-  }
-}
-
 
 // ===========================================================================
 const MAX_INT32 = 0xFFFFFFFF;
@@ -299,11 +6,12 @@ const MAX_INT16 = 0xFFFF;
 
 
 // ===========================================================================
-class ZipRangeReader
+export class ZipRangeReader
 {
   constructor(loader, entries = null) {
     this.loader = loader;
     this.entries = entries;
+    this.entriesUpdated = false;
   }
 
   async load(always = false) {
@@ -314,6 +22,7 @@ class ZipRangeReader
       const endChunk = await this.loader.getRange(start, length);
 
       this.entries = this._loadEntries(endChunk, start);
+      this.entriesUpdated = true;
     }
     return this.entries;
   }
@@ -443,7 +152,7 @@ class ZipRangeReader
           deflate,
           uncompressedSize,
           compressedSize,
-          localEntryOffset
+          localEntryOffset,
         };
       }
 
@@ -506,6 +215,7 @@ class ZipRangeReader
       const extraFieldLength = view.getUint16(28, true);
 
       entry.offset = 30 + fileNameLength + extraFieldLength + entry.localEntryOffset;
+      this.entriesUpdated = true;
     }
 
     length = length < 0 ? entry.compressedSize : Math.min(length, entry.compressedSize - offset);
@@ -541,7 +251,4 @@ class ZipRangeReader
     return combined;
   }
 }
-
-
-export { ZipRangeReader, WACZRemoteArchiveDB };
 

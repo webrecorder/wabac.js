@@ -10,9 +10,10 @@ const BATCH_SIZE = 3000;
 // ===========================================================================
 class CDXFromWARCLoader extends WARCLoader
 {
-  constructor(reader, abort, id) {
+  constructor(reader, abort, id, sourceExtra = {}) {
     super(reader, abort, id);
     this.cdxindexer = null;
+    this.sourceExtra = sourceExtra;
   }
 
   filterRecord(record) {
@@ -64,6 +65,15 @@ class CDXFromWARCLoader extends WARCLoader
     }
   }
 
+  getSource(cdx) {
+    return {
+      ...this.sourceExtra,
+      path: cdx.filename,
+      start: Number(cdx.offset),
+      length: Number(cdx.length)
+    };
+  }
+
   addCdx(cdx) {
     const { url, mime } = cdx;
 
@@ -77,9 +87,7 @@ class CDXFromWARCLoader extends WARCLoader
     //  promises.push(this.db.addPage({url, date: date.toISOString(), title}));
     //}
 
-    const source = {"path": cdx.filename,
-      "start": Number(cdx.offset),
-      "length": Number(cdx.length)};
+    const source = this.getSource(cdx);
 
     let { digest } = cdx;
     if (digest && digest.indexOf(":") === -1) {

@@ -80,8 +80,8 @@ class SWCollections extends WorkerLoader
     return true;
   }
 
-  async initNewColl(metadata, extraConfig = {}) {
-    const coll = await super.initNewColl(metadata, extraConfig);
+  async initNewColl(metadata, extraConfig = {}, type = "archive") {
+    const coll = await super.initNewColl(metadata, extraConfig, type);
     if (coll) {
       this.colls[coll.name] = coll;
     }

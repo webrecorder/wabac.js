@@ -1,8 +1,6 @@
-"use strict";
-
 import { ArchiveDB } from "./archivedb.js";
 import { RemoteSourceArchiveDB, RemotePrefixArchiveDB } from "./remotearchivedb";
-import { WACZRemoteArchiveDB } from "./ziparchive";
+import { WACZRemoteArchiveDB } from "./waczarchive";
 
 import { HARLoader } from "./harloader";
 import { WBNLoader } from "./wbnloader";
@@ -16,6 +14,8 @@ import { RemoteWARCProxy, RemoteProxySource, LiveAccess } from "./remoteproxy";
 import { deleteDB, openDB } from "idb/with-async-ittr.js";
 import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils.js";
 import { WACZLoader } from "./waczloader.js";
+
+import { MultiWACZCollection } from "./multiwacz.js";
 
 self.interruptLoads = {};
 
@@ -93,8 +93,8 @@ class CollectionLoader
     if (data.config.dbname) {
       try {
         await deleteDB(data.config.dbname, {
-          blocked(reason) {
-            console.log(`Unable to delete ${data.config.dbname}: ${reason}`);
+          blocked() {
+            console.log(`Unable to delete ${data.config.dbname}, blocked`);
           }
         });
       } catch(e) {
@@ -145,7 +145,7 @@ class CollectionLoader
     await this.colldb.put("colls", data);
   }
 
-  async initNewColl(metadata, extraConfig = {}) {
+  async initNewColl(metadata, extraConfig = {}, type = "archive") {
     await this._init_db;
     const id = randomId();
     const dbname = "db:" + id;
@@ -155,7 +155,7 @@ class CollectionLoader
 
     const data = {
       name: id,
-      type: "archive",
+      type,
       config: {
         dbname,
         ctime,
@@ -228,6 +228,9 @@ class CollectionLoader
     case "live":
       store = new LiveAccess(config);
       break;
+
+    default:
+      store = await this._loadCustomStore(type, config);
     }
 
     if (!store) {
@@ -244,6 +247,13 @@ class CollectionLoader
 
   _createCollection(opts) {
     return opts;
+  }
+
+  async _loadCustomStore(type, config) {
+    if (type.startsWith("sync:")) {
+      return new MultiWACZCollection(config);
+    }
+    return null;
   }
 }
 

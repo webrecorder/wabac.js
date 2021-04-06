@@ -4,13 +4,13 @@ import { WARCInfoOnlyWARCLoader, WARCLoader } from "./warcloader";
 import { CDXLoader } from "./cdxloader";
 
 import { MAX_FULL_DOWNLOAD_SIZE } from "./utils";
-import { ZipRangeReader } from "./ziparchive";
+import { ZipRangeReader } from "./ziprangereader";
 
 const MAIN_PAGES_JSON = "pages/pages.jsonl";
 
 
 // ============================================================================
-class WACZLoader
+export class WACZLoader
 {
   constructor(loader, config, loadId = null) {
     this.loader = loader;
@@ -306,5 +306,3 @@ class WACZLoader
     db.addZipLines(batch);
   }
 }
-
-export { WACZLoader };

@@ -1,5 +1,3 @@
-"use strict";
-
 if (self.registration) {
 // Service Worker Init
   const { SWReplay } = require("./swmain.js"); // eslint-disable-line

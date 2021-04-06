@@ -422,20 +422,20 @@ class ArchiveDB {
     return isNew;
   }
 
-  async getResource(request, rwPrefix, event) {
+  async getResource(request, rwPrefix, event, opts = {}) {
     const datetime = tsToDate(request.timestamp).getTime();
     let url = request.url;
 
     let result = null;
 
     const skip = this.repeatTracker ? this.repeatTracker.getSkipCount(event, url, request.request.method) : 0;
-    const opts = {skip};
+    const newOpts = {...opts, skip};
 
     if (url.startsWith("//")) {
       let useHttp = false;
-      result = await this.lookupUrl("https:" + url, datetime, opts);
+      result = await this.lookupUrl("https:" + url, datetime, newOpts);
       if (!result) {
-        result = await this.lookupUrl("http:" + url, datetime, opts);
+        result = await this.lookupUrl("http:" + url, datetime, newOpts);
         // use http if found or if referrer contains an http replay path
         // otherwise, default to https
         if (result || request.request.referrer.indexOf("/http://", 2) > 0) {
@@ -444,10 +444,10 @@ class ArchiveDB {
       }
       url = (useHttp ? "http:" : "https:") + url;
     } else {
-      result = await this.lookupUrl(url, datetime, opts);
+      result = await this.lookupUrl(url, datetime, newOpts);
       if (!result && url.startsWith("http://")) {
         const httpsUrl = url.replace("http://", "https://");
-        result = await this.lookupUrl(httpsUrl, datetime, opts);
+        result = await this.lookupUrl(httpsUrl, datetime, newOpts);
         if (result) {
           url = httpsUrl;
         }
@@ -470,12 +470,12 @@ class ArchiveDB {
     // }
 
     if (!result && this.fuzzyPrefixSearch) {
-      result = await this.lookupQueryPrefix(url);
+      result = await this.lookupQueryPrefix(url, opts);
     }
 
     // check if redirect
     if (result && result.origURL) {
-      const origResult = await this.lookupUrl(result.origURL, result.origTS || result.ts);
+      const origResult = await this.lookupUrl(result.origURL, result.origTS || result.ts, opts);
       if (origResult) {
         url = origResult.url;
         result = origResult;
@@ -534,26 +534,32 @@ class ArchiveDB {
     let skip = opts.skip || 0;
 
     for await (const cursor of tx.store.iterate(this.getLookupRange(url))) {
-      if (lastValue && cursor.value.ts > datetime) {
+      const value = cursor.value;
+
+      if (lastValue && value.ts > datetime) {
+        if (opts.pageId && value.pageId && (value.pageId !== opts.pageId)) {
+          continue;
+        }
+
         if (skip == 0) {
-          const diff = cursor.value.ts - datetime;
+          const diff = value.ts - datetime;
           const diffLast = datetime - lastValue.ts;
-          return diff < diffLast ? cursor.value : lastValue;
+          return diff < diffLast ? value : lastValue;
         } else {
           skip--;
         }
       }
-      lastValue = cursor.value;
+      lastValue = value;
     }
 
     return lastValue;
   }
 
-  async lookupQueryPrefix(url) {
+  async lookupQueryPrefix(url, opts) {
     const {rule, prefix, fuzzyCanonUrl/*, fuzzyPrefix*/} = fuzzyMatcher.getRuleFor(url);
 
     if (fuzzyCanonUrl !== url) {
-      const result = await this.lookupUrl(fuzzyCanonUrl);
+      const result = await this.lookupUrl(fuzzyCanonUrl, "", opts);
       if (result) {
         return result;
       }

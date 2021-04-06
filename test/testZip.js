@@ -7,7 +7,7 @@ import listen from "test-listen";
 
 import serveStatic from "serve-static";
 
-import { ZipRangeReader } from "../src/ziparchive";
+import { ZipRangeReader } from "../src/ziprangereader";
 
 import { createLoader } from "../src/blockloaders";
 
