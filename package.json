@@ -24,6 +24,7 @@
   "devDependencies": {
     "@titelmedia/node-fetch": "^3.0.1",
     "ava": "^3.14.0",
+    "eslint": "^7.23.0",
     "esm": "^3.2.25",
     "fake-indexeddb": "^3.0.0",
     "nyc": "^15.0.1",
@@ -42,7 +43,8 @@
     "build": "webpack --mode production",
     "build-dev": "webpack --mode development",
     "start-dev": "webpack-dev-server --mode development",
-    "test": "nyc --reporter=lcov --reporter=text ava"
+    "test": "nyc --reporter=lcov --reporter=text ava",
+    "lint": "eslint ./src/ webpack.config.js"
   },
   "esm": {
     "mode": "all"
