@@ -252,13 +252,21 @@ class FuzzyMatcher {
   getMatch(reqQuery, foundQuery, reqArgs) {
     let score = 1.0;
     let total = 1.0;
+    const MAX_ARG_LEN = 512;
 
-    for (const [key, value] of reqQuery) {
-      const foundValue = foundQuery.get(key);
+    for (let [key, value] of reqQuery) {
+      let foundValue = foundQuery.get(key);
 
       // if key is required, return a large negative to skip this match
       if (reqArgs && reqArgs.has(key) && foundValue !== value) {
         return -1000;
+      }
+
+      if (foundValue && foundValue.length > MAX_ARG_LEN) {
+        foundValue = foundValue.slice(0, MAX_ARG_LEN);
+      }
+      if (value && value.length > MAX_ARG_LEN) {
+        value = value.slice(0, MAX_ARG_LEN);
       }
 
       let weight;
