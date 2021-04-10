@@ -93,6 +93,9 @@ class Rewriter {
 
     switch (mime) {
     case "text/html":
+      if (!request.destination && request.headers.get("Accept") === "application/json") {
+        return "json";
+      }
       return "html";
 
     case "text/css":

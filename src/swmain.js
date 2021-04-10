@@ -303,7 +303,7 @@ class SWReplay {
       return await this.api.apiResponse(request.url.slice(this.apiPrefix.length), request);
     }
 
-    if (request.method === "POST") {
+    if (request.method === "POST" || request.method === "PUT") {
       request = await this.toGetRequest(request);
     }
 

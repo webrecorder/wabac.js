@@ -6489,10 +6489,10 @@ vm-browserify@^1.0.1:
   resolved "https://registry.yarnpkg.com/vm-browserify/-/vm-browserify-1.1.2.tgz#78641c488b8e6ca91a75f511e7a3b32a86e5dda0"
   integrity sha512-2ham8XPWTONajOR0ohOKOHXkm3+gaBmGut3SRuu75xLd/RRaY6vqgh8NBYYk7+RW3u5AtzPQZG8F10LHkl0lAQ==
 
-warcio@^1.4.2:
-  version "1.4.2"
-  resolved "https://registry.yarnpkg.com/warcio/-/warcio-1.4.2.tgz#48ff77a61de6112de8acadf655400074e2c13df8"
-  integrity sha512-trdD7EiPGFsoYuiAC+jzbYQuM/9P2ZK9q7mUc6HAMVkhTsPEluWrgq3q0q3Uv7s3pS345nIt2NU9de/PQNCfLg==
+warcio@^1.4.3:
+  version "1.4.3"
+  resolved "https://registry.yarnpkg.com/warcio/-/warcio-1.4.3.tgz#9cfa3264c4c2b80a0a5955fa0fd7f85f7418d799"
+  integrity sha512-zyhFDt/OmzkNGCaUJaFNrAia9NAPIJmmxtGypqDjH1tVloWSp4tvrj1mQ3CgMiZ0nbrFYwrLVGzMfBTul6gnDg==
   dependencies:
     "@peculiar/webcrypto" "^1.1.1"
     esm "^3.2.25"
