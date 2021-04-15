@@ -154,6 +154,11 @@ export class ZipRangeReader
           compressedSize,
           localEntryOffset,
         };
+
+        // optimization if no extraFieldLength, can set offset and avoid extra lookup
+        if (!extraFieldLength) {
+          entries[filename].offset = 30 + fileNameLength + localEntryOffset;
+        }
       }
 
       offset += 46 + fileNameLength + extraFieldLength + fileCommentLength;
