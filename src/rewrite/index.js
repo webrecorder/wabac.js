@@ -281,7 +281,7 @@ class Rewriter {
     const rewriter = this;
 
     function cssStyleReplacer(match, n1, n2, n3) {
-      n2 = n2.replace(/\s+/g, "");
+      n2 = n2.trim();
       return n1 + rewriter.rewriteUrl(n2) + n3;
     }
 

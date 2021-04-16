@@ -44,7 +44,7 @@
     "build-dev": "webpack --mode development",
     "start-dev": "webpack-dev-server --mode development",
     "test": "nyc --reporter=lcov --reporter=text ava",
-    "lint": "eslint ./src/ webpack.config.js"
+    "lint": "eslint ./src/ ./test/ webpack.config.js"
   },
   "esm": {
     "mode": "all"
