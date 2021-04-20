@@ -4,6 +4,9 @@ function joinRx(rxStr) {
   return new RegExp("[?&]" + rxStr.map(x => "(" + x + ")").join("|"), "gi");
 }
 
+const MAX_ARG_LEN = 1024;
+
+const SPLIT_BASE_RX = /\[\d]+/;
 
 const DEFAULT_RULES = 
 [
@@ -59,41 +62,46 @@ const DEFAULT_RULES =
   },
   // Facebook
   {
-    "match": /facebook\.com\/api\/graphql/i,
-    "args": [["variables", "doc_id"]],
-    "fuzzyArgs": true
+    "match": /facebook\.com\/ajax\//i,
+    "fuzzySet": true
   },
-  {
-    "match": /facebook\.com\/api\/graphqlbatch/i,
-    "args": [["batch_name", "queries"], ["batch_name"]]
-  },
-  {
-    "match": /facebook\.com\/ajax\/navigation/i,
-    "args": [["route_url", "__user"], ["route_url"]]
-  },
-  {
-    "match": /facebook\.com\/ajax\/route-definition/i,
-    "args": [["route_url", "__user"], ["route_url"]]
-  },
-  {
-    "match": /facebook\.com\/ajax\/bulk-route-definitions/i,
-    "args": [["route_urls[0]", "__user"], ["route_urls[0]"]]
-  },
-  {
-    "match": /facebook\.com\/ajax\/relay-ef/i,
-    "args": [["queries[0]", "__user"], ["queries[0]"]]
-  },
-  {
-    "match": /facebook\.com\/videos\/vodcomments/i,
-    "args": [["eft_id"]],
-  },
-  {
-    "match": /facebook\.com\/ajax\.*/i,
-    "replaceQuery": /([?&][^_]\w+=[^&]+)/g,
-  },
-  {"match": /plus\.googleapis\.com\/u\/\/0\/_\/widget\/render\/comments/i,
-    "args": [["href", "stream_id", "substream_id"]]
-  },
+  // {
+  //   "match": /facebook\.com\/api\/graphql/i,
+  //   "args": [["fb_api_req_friendly_name"]],
+  //   //"args": [["variables", "doc_id"]],
+  //   //"fuzzyArgs": true
+  // },
+  // {
+  //   "match": /facebook\.com\/api\/graphqlbatch/i,
+  //   "args": [["batch_name", "queries"], ["batch_name"]]
+  // },
+  // {
+  //   "match": /facebook\.com\/ajax\/navigation/i,
+  //   "args": [["route_url", "__user"], ["route_url"]]
+  // },
+  // {
+  //   "match": /facebook\.com\/ajax\/route-definition/i,
+  //   "args": [["route_url", "__user"], ["route_url"]]
+  // },
+  // {
+  //   "match": /facebook\.com\/ajax\/bulk-route-definitions/i,
+  //   "args": [["route_urls[0]", "__user"], ["route_urls[0]"]]
+  // },
+  // {
+  //   "match": /facebook\.com\/ajax\/relay-ef/i,
+  //   "args": [["queries[0]", "__user"], ["queries[0]"]]
+  // },
+  // {
+  //   "match": /facebook\.com\/videos\/vodcomments/i,
+  //   "args": [["eft_id"]],
+  // },
+  // {
+  //   "match": /facebook\.com\/ajax\.*/i,
+  //   "replaceQuery": /([?&][^_]\w+=[^&]+)/g,
+  // },
+  // {"match": /plus\.googleapis\.com\/u\/\/0\/_\/widget\/render\/comments/i,
+  //   "args": [["href", "stream_id", "substream_id"]]
+  // },
 
   // Generic Rules -- should be last
   {
@@ -226,7 +234,7 @@ class FuzzyMatcher {
       }
 
       const foundQuery = new URLSearchParams(url.search);
-      let total = this.getMatch(reqQuery, foundQuery, reqArgs);
+      let total = this.getMatch(reqQuery, foundQuery, reqArgs, rule && rule.fuzzySet);
       total += this.getMatch(foundQuery, reqQuery, reqArgs);
       total /= 2.0;
 
@@ -249,13 +257,15 @@ class FuzzyMatcher {
     return bestResult;
   }
 
-  getMatch(reqQuery, foundQuery, reqArgs) {
+  getMatch(reqQuery, foundQuery, reqArgs = null, fuzzySet = false) {
     let score = 1.0;
     let total = 1.0;
-    const MAX_ARG_LEN = 512;
+
+    const keySets = {};
 
     for (let [key, value] of reqQuery) {
-      let foundValue = foundQuery.get(key);
+      value = value || "";
+      let foundValue = foundQuery.get(key) || "";
 
       // if key is required, return a large negative to skip this match
       if (reqArgs && reqArgs.has(key) && foundValue !== value) {
@@ -269,10 +279,11 @@ class FuzzyMatcher {
         value = value.slice(0, MAX_ARG_LEN);
       }
 
+      let keyParts;
       let weight;
 
       if (key[0] === "_") {
-        weight = 1.0;
+        weight = 0.1;
       } else {
         weight = 10.0;
       }
@@ -292,21 +303,85 @@ class FuzzyMatcher {
         score += 0.0;
       } else if (!isNaN(numValue) && !isNaN(numFoundValue)) {
         score += 10.0 - Math.log(Math.abs(numValue - numFoundValue) + 1);
+      } else if (value.startsWith("{") && foundValue.startsWith("{")) {
+        try {
+          const rQ = this.jsonToQuery(JSON.parse(value));
+          const fQ = this.jsonToQuery(JSON.parse(foundValue));
+
+          score += this.getMatch(rQ, fQ) * weight * 2;
+
+        } catch (e) {
+          score += 0.5 * weight * this.levScore(value, foundValue);
+        }
+      } else if (fuzzySet && value[0] === "/" && foundValue[0] === "/" && ((keyParts = key.split(SPLIT_BASE_RX)) && keyParts.length > 1)) {
+        const valueQ = value.indexOf("?");
+        const foundQ = foundValue.indexOf("?");
+
+        const keyBase = keyParts[0];
+
+        const valueNoQ = valueQ > 0 ? value.slice(0, valueQ) : value;
+        const foundNoQ = foundQ > 0 ? foundValue.slice(0, foundQ) : foundValue;
+
+        if (!keySets[keyBase]) {
+          keySets[keyBase] = {value: [], found: new Set()};
+        }
+
+        keySets[keyBase].value.push(valueNoQ);
+        keySets[keyBase].found.add(foundNoQ);
+
+        //score += weight * this.levScore(valueNoQ, foundNoQ);
+
       } else {
         // if (foundValue.length > value.length && foundValue.indexOf(",") >= 0 && foundValue.indexOf(value) >= 0) {
         //   score += weight * value.length * 0.5;
         // }
-        const minLen = Math.min(foundValue.length, value.length);
-        const lev = levenshtein(foundValue, value);
-        if (lev < minLen) {
-          score += weight * (minLen - lev);
-        }
+        score += weight * this.levScore(value, foundValue);
       }
     }
 
-    const result = score / total;
+    const result = (score / total) + (fuzzySet ? this.paramSetMatch(keySets, 100) : 0);
     //console.log('score: ' + result + " " + reqQuery + " <-> " + foundQuery);
     return result;
+  }
+
+  paramSetMatch(keySets, weight) {
+    let score = 0;
+
+    for (const keySet of Object.values(keySets)) {
+      let currWeight = weight;
+
+      for (const obj of keySet.value) {
+        if (keySet.found.has(obj)) {
+          score += currWeight;
+        }
+        currWeight *= 0.33;
+      }
+    }
+
+    return score;
+  }
+
+  jsonToQuery(json) {
+    const q = new URLSearchParams();
+
+    try {
+      JSON.stringify(json, (k, v) => {
+        if (!["object", "function"].includes(typeof(v))) {
+          q.set(k, v);
+        }
+        return v;
+      });
+    } catch (e) {
+      // ignore invalid json, don't add params
+    }
+
+    return q;
+  }
+
+  levScore(val1, val2) {
+    const minLen = Math.min(val1.length, val2.length);
+    const lev = levenshtein(val1, val2);
+    return Math.max(minLen - lev, 0);
   }
 }
 
