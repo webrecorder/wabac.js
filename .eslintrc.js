@@ -9,7 +9,11 @@ module.exports = {
         "sourceType": "module"
     },
     "rules": {
-        "indent": [
+        "no-restricted-globals": [
+            2,
+            "event", "window"
+        ],
+         "indent": [
             "error",
             2
         ],

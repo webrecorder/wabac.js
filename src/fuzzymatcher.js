@@ -264,19 +264,11 @@ class FuzzyMatcher {
     const keySets = {};
 
     for (let [key, value] of reqQuery) {
-      value = value || "";
-      let foundValue = foundQuery.get(key) || "";
+      let foundValue = foundQuery.get(key);
 
       // if key is required, return a large negative to skip this match
       if (reqArgs && reqArgs.has(key) && foundValue !== value) {
         return -1000;
-      }
-
-      if (foundValue && foundValue.length > MAX_ARG_LEN) {
-        foundValue = foundValue.slice(0, MAX_ARG_LEN);
-      }
-      if (value && value.length > MAX_ARG_LEN) {
-        value = value.slice(0, MAX_ARG_LEN);
       }
 
       let keyParts;
@@ -290,6 +282,14 @@ class FuzzyMatcher {
 
       if (foundValue !== null) {
         score += weight * 0.5;
+
+        if (foundValue.length > MAX_ARG_LEN) {
+          foundValue = foundValue.slice(0, MAX_ARG_LEN);
+        }
+      }
+
+      if (value && value.length > MAX_ARG_LEN) {
+        value = value.slice(0, MAX_ARG_LEN);
       }
 
       const numValue = Number(value);
@@ -299,7 +299,7 @@ class FuzzyMatcher {
 
       if (foundValue === value) {
         score += weight * value.length;
-      } else if (foundValue === null) {
+      } else if (foundValue === null || value === null) {
         score += 0.0;
       } else if (!isNaN(numValue) && !isNaN(numFoundValue)) {
         score += 10.0 - Math.log(Math.abs(numValue - numFoundValue) + 1);
@@ -314,6 +314,8 @@ class FuzzyMatcher {
           score += 0.5 * weight * this.levScore(value, foundValue);
         }
       } else if (fuzzySet && value[0] === "/" && foundValue[0] === "/" && ((keyParts = key.split(SPLIT_BASE_RX)) && keyParts.length > 1)) {
+        // compare set matches instead of by string
+
         const valueQ = value.indexOf("?");
         const foundQ = foundValue.indexOf("?");
 
@@ -330,7 +332,6 @@ class FuzzyMatcher {
         keySets[keyBase].found.add(foundNoQ);
 
         //score += weight * this.levScore(valueNoQ, foundNoQ);
-
       } else {
         // if (foundValue.length > value.length && foundValue.indexOf(",") >= 0 && foundValue.indexOf(value) >= 0) {
         //   score += weight * value.length * 0.5;
@@ -381,7 +382,7 @@ class FuzzyMatcher {
   levScore(val1, val2) {
     const minLen = Math.min(val1.length, val2.length);
     const lev = levenshtein(val1, val2);
-    return Math.max(minLen - lev, 0);
+    return lev < minLen ? minLen - lev : 0;
   }
 }
 
