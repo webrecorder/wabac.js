@@ -470,6 +470,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   wbinfo.enable_auto_fetch = true;
   wbinfo.presetCookie = ${presetCookieStr};
   wbinfo.isSW = true;
+  wbinfo.pixel_ratio = 2;
 </script>
 <script src='${this.staticPrefix}wombat.js'> </script>
 <script>

@@ -192,6 +192,21 @@ class IPFSClient
 
     return fetch(url, {method: "HEAD"});
   }
+
+  preloadGet(filename) {
+    const preloadBaseUrl = this.getPreloadURL();
+    if (!preloadBaseUrl) {
+      return;
+    }
+
+    const arg = filename;
+
+    const params = new URLSearchParams({arg});
+
+    const url = `${preloadBaseUrl}/api/v0/get?${params}`;
+
+    return fetch(url, {method: "HEAD"});
+  }
 }
 
 // ===========================================================================
