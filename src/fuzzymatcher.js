@@ -271,7 +271,6 @@ class FuzzyMatcher {
         return -1000;
       }
 
-      let keyParts;
       let weight;
 
       if (key[0] === "_") {
@@ -297,6 +296,10 @@ class FuzzyMatcher {
 
       total += weight;
 
+      if (fuzzySet) {
+        this.addSetMatch(keySets, key, value, foundValue);
+      }
+
       if (foundValue === value) {
         score += weight * value.length;
       } else if (foundValue === null || value === null) {
@@ -313,36 +316,48 @@ class FuzzyMatcher {
         } catch (e) {
           score += 0.5 * weight * this.levScore(value, foundValue);
         }
-      } else if (fuzzySet && value[0] === "/" && foundValue[0] === "/" && ((keyParts = key.split(SPLIT_BASE_RX)) && keyParts.length > 1)) {
-        // compare set matches instead of by string
 
-        const valueQ = value.indexOf("?");
-        const foundQ = foundValue.indexOf("?");
-
-        const keyBase = keyParts[0];
-
-        const valueNoQ = valueQ > 0 ? value.slice(0, valueQ) : value;
-        const foundNoQ = foundQ > 0 ? foundValue.slice(0, foundQ) : foundValue;
-
-        if (!keySets[keyBase]) {
-          keySets[keyBase] = {value: [], found: new Set()};
-        }
-
-        keySets[keyBase].value.push(valueNoQ);
-        keySets[keyBase].found.add(foundNoQ);
-
-        //score += weight * this.levScore(valueNoQ, foundNoQ);
       } else {
         // if (foundValue.length > value.length && foundValue.indexOf(",") >= 0 && foundValue.indexOf(value) >= 0) {
         //   score += weight * value.length * 0.5;
         // }
-        score += weight * this.levScore(value, foundValue);
+        if (!fuzzySet) {
+          score += weight * this.levScore(value, foundValue);
+        }
       }
     }
 
     const result = (score / total) + (fuzzySet ? this.paramSetMatch(keySets, 100) : 0);
     //console.log('score: ' + result + " " + reqQuery + " <-> " + foundQuery);
     return result;
+  }
+
+  addSetMatch(keySets, key, value, foundValue) {
+    if (!value || !foundValue || value[0] !== "/" || foundValue[0] !== "/") {
+      return;
+    }
+
+    const keyParts = key.split(SPLIT_BASE_RX);
+
+    if (keyParts.length <= 1) {
+      return;
+    }
+
+    // compare set matches instead of by string
+    const valueQ = value.indexOf("?");
+    const foundQ = foundValue.indexOf("?");
+
+    const keyBase = keyParts[0];
+
+    const valueNoQ = valueQ > 0 ? value.slice(0, valueQ) : value;
+    const foundNoQ = foundQ > 0 ? foundValue.slice(0, foundQ) : foundValue;
+
+    if (!keySets[keyBase]) {
+      keySets[keyBase] = {value: [], found: new Set()};
+    }
+
+    keySets[keyBase].value.push(valueNoQ);
+    keySets[keyBase].found.add(foundNoQ);
   }
 
   paramSetMatch(keySets, weight) {
