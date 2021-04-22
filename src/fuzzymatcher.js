@@ -1,4 +1,5 @@
 import levenshtein from "js-levenshtein";
+import { jsonToQueryParams } from "warcio";
 
 function joinRx(rxStr) {
   return new RegExp("[?&]" + rxStr.map(x => "(" + x + ")").join("|"), "gi");
@@ -308,8 +309,8 @@ class FuzzyMatcher {
         score += 10.0 - Math.log(Math.abs(numValue - numFoundValue) + 1);
       } else if (value.startsWith("{") && foundValue.startsWith("{")) {
         try {
-          const rQ = this.jsonToQuery(JSON.parse(value));
-          const fQ = this.jsonToQuery(JSON.parse(foundValue));
+          const rQ = jsonToQueryParams(value);
+          const fQ = jsonToQueryParams(foundValue);
 
           score += this.getMatch(rQ, fQ) * weight * 2;
 
@@ -375,23 +376,6 @@ class FuzzyMatcher {
     }
 
     return score;
-  }
-
-  jsonToQuery(json) {
-    const q = new URLSearchParams();
-
-    try {
-      JSON.stringify(json, (k, v) => {
-        if (!["object", "function"].includes(typeof(v))) {
-          q.set(k, v);
-        }
-        return v;
-      });
-    } catch (e) {
-      // ignore invalid json, don't add params
-    }
-
-    return q;
   }
 
   levScore(val1, val2) {
