@@ -15,7 +15,7 @@ import { deleteDB, openDB } from "idb/with-async-ittr.js";
 import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils.js";
 import { WACZLoader } from "./waczloader.js";
 
-import { MultiWACZCollection } from "./multiwacz.js";
+import { JSONMultiWACZLoader, MultiWACZCollection } from "./multiwacz.js";
 
 self.interruptLoads = {};
 
@@ -229,8 +229,8 @@ class CollectionLoader
       store = new LiveAccess(config);
       break;
 
-    default:
-      store = await this._loadCustomStore(type, config);
+    case "multiwacz":
+      store = new MultiWACZCollection(config);
     }
 
     if (!store) {
@@ -247,13 +247,6 @@ class CollectionLoader
 
   _createCollection(opts) {
     return opts;
-  }
-
-  async _loadCustomStore(type, config) {
-    if (type.startsWith("sync:")) {
-      return new MultiWACZCollection(config);
-    }
-    return null;
   }
 }
 
@@ -538,6 +531,9 @@ Make sure this is a valid URL and you have access to this file.`);
         //todo: fix
         loader = new HARLoader(await response.json());
         config.decode = false;
+      } else if (config.sourceName.endsWith(".json")) {
+        db = new MultiWACZCollection(config);
+        loader = new JSONMultiWACZLoader(await response.json());
       }
 
       if (!loader) {

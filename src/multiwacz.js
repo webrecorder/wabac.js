@@ -5,6 +5,7 @@ import { SingleRecordWARCLoader } from "./warcloader";
 import { CDXLoader } from "./cdxloader";
 import { getTS, tsToDate } from "./utils";
 import { getSurt } from "warcio";
+import { createLoader } from "./blockloaders";
 
 const PAGE_BATCH_SIZE = 500;
 
@@ -43,6 +44,28 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
     for (const file of fileDatas) {
       this.waczfiles[file.waczname] = file;
     }
+
+    this.initLoader();
+  }
+
+  initLoader() {
+    const config = this.config;
+
+    this.indexLoader = createLoader({
+      url: config.loadUrl,
+      headers: config.headers,
+      size: config.size,
+      extra: config.extra
+    });
+
+    this.checkUpdates();
+  }
+
+  async checkUpdates() {
+    const {response} = await this.indexLoader.doInitialFetch(false);
+    const loader = new JSONMultiWACZLoader(await response.json());
+    const files = loader.loadFiles(this.config.loadUrl);
+    await this.syncWacz(files);
   }
 
   async syncWacz(files) {
@@ -133,10 +156,6 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
 
     const zipreader = this.getReaderForWACZ(waczname);
 
-    const waczSource = {
-      wacz: waczname
-    };
-
     const indexloaders = [];
     let indexType = INDEX_CDX;
 
@@ -147,14 +166,13 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
       if (filename.endsWith(".cdx") || filename.endsWith(".cdxj")) {
         console.log(`Loading CDX for ${waczname}`);
 
-        const reader = await zipreader.loadFile(filename);
-        indexloaders.push(new CDXLoader(reader, null, null, waczSource).load(this));
+        indexloaders.push(this.loadCDX(zipreader, filename, waczname));
 
       } else if (filename.endsWith(".idx")) {
         // For compressed indices
         console.log(`Loading IDX for ${waczname}`);
 
-        indexloaders.push(this.loadIDX(zipreader, waczname));
+        indexloaders.push(this.loadIDX(zipreader, filename, waczname));
 
         indexType = INDEX_IDX;
       }
@@ -168,11 +186,22 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
     return {indexType, isNew: true};
   }
 
-  async loadIDX(reader, waczname) {
+  async loadCDX(zipreader, filename, waczname) {
+    const reader = await zipreader.loadFile(filename);
+
+    const loader = new CDXLoader(reader, null, null, {wacz: waczname});
+
+    return loader.load(this);
+  }
+
+  async loadIDX(zipreader, filename, waczname) {
+    const reader = await zipreader.loadFile(filename);
+
     let currOffset = 0;
 
     let batch = [];
     let defaultFilename = "";
+    let useSurt = false;
     
     for await (const line of reader.iterLines()) {
       currOffset += line.length;
@@ -207,7 +236,7 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
       const prefix = line.slice(0, inx);
       let {offset, length, filename} = JSON.parse(line.slice(inx));
 
-      this.useSurt = prefix.indexOf(")/") > 0;
+      useSurt = prefix.indexOf(")/") > 0;
 
       filename = filename || defaultFilename;
 
@@ -227,6 +256,12 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
     } catch (e) {
       console.log("Error loading ziplines index: ", e);
     }
+
+    if (this.waczfiles[waczname].useSurt) {
+      // only store if defaults to true, false is default
+      this.waczfiles[waczname].useSurt = useSurt;
+      await this.db.put("waczfiles", this.waczfiles[waczname]);
+    }
   }
 
   async loadCDXFromIDX(waczname, url, datetime) {
@@ -235,7 +270,7 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
     let prefix;
     let checkPrefix;
 
-    const surt = this.useSurt ? getSurt(url) : url;
+    const surt = this.waczfiles[waczname].useSurt ? getSurt(url) : url;
 
     prefix = surt + " " + timestamp;
     checkPrefix = surt;
@@ -307,8 +342,10 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
     }
   }
 
-  getBlockLoader(/* filename */) {
-    throw new Error("getBlockLoader() not implemented");
+  getBlockLoader(filename) {
+    return createLoader({
+      url: filename
+    });
   }
 
   async findPageAtUrl(url, ts) {
@@ -404,5 +441,29 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
       console.warn(e);
       return null;
     }
+  }
+}
+
+
+// ==========================================================================
+export class JSONMultiWACZLoader
+{
+  constructor(json) {
+    this.json = json;
+  }
+
+  load()  {
+    const metadata = {
+      title: this.json.title,
+      desc: this.json.description
+    };
+
+    return metadata;
+  }
+
+  loadFiles(baseUrl) {
+    return this.json.resources.map((res) => {
+      return new URL(res.path, baseUrl).href;
+    });
   }
 }
