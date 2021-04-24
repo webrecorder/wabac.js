@@ -24,6 +24,8 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
     this.config = config;
 
     this.waczfiles = {};
+
+    this._updatedInterval = 30000;
   }
 
   _initDB(db, oldV, newV, tx) {
@@ -59,12 +61,18 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
     });
 
     this.checkUpdates();
+
+    this._updateId = setInterval(() => this.checkUpdates(), this._updatedInterval);
   }
 
   async checkUpdates() {
     const {response} = await this.indexLoader.doInitialFetch(false);
-    const loader = new JSONMultiWACZLoader(await response.json());
-    const files = loader.loadFiles(this.config.loadUrl);
+    if (response.status !== 206 && response.status !== 200) {
+      console.warn("WACZ update failed from: " + this.config.loadUrl);
+      return;
+    }
+    const loader = new JSONMultiWACZLoader(await response.json(), this.config.loadUrl);
+    const files = loader.loadFiles();
     await this.syncWacz(files);
   }
 
@@ -77,7 +85,9 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
       }
     }
 
-    await Promise.allSettled(promises);
+    if (promises.length) {
+      await Promise.allSettled(promises);
+    }
   }
 
   async loadNewWacz(waczname) {
@@ -448,22 +458,27 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
 // ==========================================================================
 export class JSONMultiWACZLoader
 {
-  constructor(json) {
+  constructor(json, baseUrl) {
     this.json = json;
+    this.baseUrl = baseUrl;
   }
 
-  load()  {
+  async load(db)  {
     const metadata = {
       title: this.json.title,
       desc: this.json.description
     };
 
+    const files = this.loadFiles(this.baseUrl);
+
+    await db.syncWacz(files);
+
     return metadata;
   }
 
-  loadFiles(baseUrl) {
+  loadFiles() {
     return this.json.resources.map((res) => {
-      return new URL(res.path, baseUrl).href;
+      return new URL(res.path, this.baseUrl).href;
     });
   }
 }

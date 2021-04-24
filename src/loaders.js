@@ -533,7 +533,7 @@ Make sure this is a valid URL and you have access to this file.`);
         config.decode = false;
       } else if (config.sourceName.endsWith(".json")) {
         db = new MultiWACZCollection(config);
-        loader = new JSONMultiWACZLoader(await response.json());
+        loader = new JSONMultiWACZLoader(await response.json(), config.loadUrl);
       }
 
       if (!loader) {
