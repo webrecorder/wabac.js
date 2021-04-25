@@ -1,7 +1,7 @@
-import { RxRewriter } from './rxrewriter';
+import { RxRewriter } from "./rxrewriter";
 
-const IMPORT_RX = /^\s*?import\s*?[\{"']/;
-const EXPORT_RX = /export\s*?({([\s\w,\$\n]+?)}[\s;]*|default|class)/;
+const IMPORT_RX = /^\s*?import\s*?[{"']/;
+const EXPORT_RX = /export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)/;
 
 
 // ===========================================================================
@@ -9,24 +9,24 @@ class JSRewriter extends RxRewriter {
   constructor(extraRules) {
     super();
 
-    this.thisRw = '_____WB$wombat$check$this$function_____(this)';
+    this.thisRw = "_____WB$wombat$check$this$function_____(this)";
 
-    const checkLoc = '((self.__WB_check_loc && self.__WB_check_loc(location)) || {}).href = ';
+    const checkLoc = "((self.__WB_check_loc && self.__WB_check_loc(location)) || {}).href = ";
 
     const localObjs = [
-      'window',
-      'self',
-      'document',
-      'location',
-      'top',
-      'parent',
-      'frames',
-      'opener'
+      "window",
+      "self",
+      "document",
+      "location",
+      "top",
+      "parent",
+      "frames",
+      "opener"
     ];
 
-    const propStr = localObjs.join('|');
+    const propStr = localObjs.join("|");
 
-    const evalStr = 'WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).';
+    const evalStr = "WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).";
 
 
     this.rules = [
@@ -34,10 +34,10 @@ class JSRewriter extends RxRewriter {
       [/[^$,]\beval\s*\(/, this.addPrefixAfter1(evalStr)],
 
       // rewriting 'x = eval' - no invocation
-      [/[^$]\beval\b/, this.addPrefixAfter1('WB_wombat_')],
+      [/[^$]\beval\b/, this.addPrefixAfter1("WB_wombat_")],
 
       // rewriting .postMessage -> __WB_pmw(self).postMessage
-      [/\.postMessage\b\(/, this.addPrefix('.__WB_pmw(self)')],
+      [/\.postMessage\b\(/, this.addPrefix(".__WB_pmw(self)")],
 
       // rewriting 'location = ' to custom expression '(...).href =' assignment
       [/[^$.]\s*\blocation\b\s*[=]\s*(?![\s=])/, this.addSuffix(checkLoc)],
@@ -67,7 +67,7 @@ class JSRewriter extends RxRewriter {
 
     this.localObjs = localObjs;
     this.firstBuff = this.initLocalDecl(localObjs);
-    this.lastBuff = '\n\n}';
+    this.lastBuff = "\n\n}";
   }
 
   addPrefix(prefix) {
@@ -82,25 +82,25 @@ class JSRewriter extends RxRewriter {
     return (x, offset, string) => {
       if (offset > 0) {
         const prev = string[offset - 1];
-        if (prev === '.' || prev === '$') {
+        if (prev === "." || prev === "$") {
           return x;
         }
       }
       return x + suffix;
-    }
+    };
   }
 
   replaceThis() {
-    return x => x.replace('this', this.thisRw);
+    return x => x.replace("this", this.thisRw);
   }
 
   replaceThisProp() {
     return (x, offset, string) => {
       const prev = (offset > 0 ? string[offset - 1] : "");
-      if (prev === '\n') {
-        return x.replace('this', ';' + this.thisRw);
-      } else if (prev !== '.' && prev !== '$') {
-        return x.replace('this', this.thisRw);
+      if (prev === "\n") {
+        return x.replace("this", ";" + this.thisRw);
+      } else if (prev !== "." && prev !== "$") {
+        return x.replace("this", this.thisRw);
       } else {
         return x;
       }
@@ -108,7 +108,7 @@ class JSRewriter extends RxRewriter {
   }
 
   initLocalDecl(localDecls) {
-    const assignFunc = '_____WB$wombat$assign$function_____';
+    const assignFunc = "_____WB$wombat$assign$function_____";
     
     let buffer = `\
 var ${assignFunc} = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
@@ -120,7 +120,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       buffer += `let ${decl} = ${assignFunc}("${decl}");\n`;
     }
 
-    return buffer + '\n';
+    return buffer + "\n";
   }
 
   getModuleDecl(localDecls, prefix) {

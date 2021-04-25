@@ -1,10 +1,10 @@
 "use strict";
 
-import brotliDecode from 'brotli/decompress';
+import brotliDecode from "brotli/decompress";
 
-import { Inflate } from 'pako';
+import { Inflate } from "pako";
 
-import { AsyncIterReader } from 'warcio';
+import { AsyncIterReader } from "warcio";
 
 
 // ===========================================================================

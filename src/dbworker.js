@@ -1,7 +1,7 @@
 "use strict";
 
-import { WorkerLoader } from './loaders';
+import { WorkerLoader } from "./loaders";
 
-const loader = new WorkerLoader(self);
+new WorkerLoader(self);
 
 

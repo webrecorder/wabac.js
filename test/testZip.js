@@ -1,20 +1,17 @@
-import test from 'ava';
-import fs from 'fs';
-import http from 'http';
+import test from "ava";
+import http from "http";
 
-import path from 'path';
+import { fetch } from "./helpers";
 
-import './helpers';
+import listen from "test-listen";
 
-import listen from 'test-listen';
+import serveStatic from "serve-static";
 
-import serveStatic from 'serve-static';
+import { ZipRangeReader } from "../src/ziprangereader";
 
-import { ZipRangeReader } from '../src/ziparchive';
+import { createLoader } from "../src/blockloaders";
 
-import { createLoader } from '../src/blockloaders';
-
-import { WARCParser } from 'warcio';
+import { WARCParser } from "warcio";
 
 
 const decoder = new TextDecoder("utf-8");
@@ -36,16 +33,16 @@ test.after.always(t => {
 });
 
 
-test('test head', async t => {
+test("test head", async t => {
   const res = await fetch(t.context.baseUrl + "/sample_dash.mpd",
     {method: "HEAD"});
 
-  t.is(res.headers.get("Content-Length"), '3229');
+  t.is(res.headers.get("Content-Length"), "3229");
 
 });
 
 
-test('test range', async t => {
+test("test range", async t => {
   const res = await fetch(t.context.baseUrl + "/sample_dash.mpd",
     {headers: {"Range": "bytes=12-24"}});
 
@@ -53,26 +50,26 @@ test('test range', async t => {
 });
 
 
-test('load test.zip entries', async t => {
+test("load test.zip entries", async t => {
   const zipreader = new ZipRangeReader(createLoader({url: t.context.baseUrl + "/example.zip"}));
 
   const entries = await zipreader.load();
 
   t.deepEqual(entries, {
-    'collection.yaml': { deflate: true, uncompressedSize: 389, compressedSize: 188, localEntryOffset: 0, filename: 'collection.yaml' },
-    'indexes/index.cdxj': { deflate: true, uncompressedSize: 1025, compressedSize: 443, localEntryOffset: 327, filename: 'indexes/index.cdxj' },
-    'warcs/httpbin-resource.warc.gz': { deflate: false, uncompressedSize: 465, compressedSize: 465, localEntryOffset: 910, filename: 'warcs/httpbin-resource.warc.gz' },
-    'warcs/example-iana.org-chunked.warc': { deflate: false, uncompressedSize: 8831, compressedSize: 8831, localEntryOffset: 1463, filename:  'warcs/example-iana.org-chunked.warc' },
-    'warcs/example.warc.gz': { deflate: false, uncompressedSize: 3816, compressedSize: 3816, localEntryOffset: 10387, filename: 'warcs/example.warc.gz' },
-    'warcs/iana.warc.gz': { deflate: false, uncompressedSize: 786828, compressedSize: 786828, localEntryOffset: 14282, filename: 'warcs/iana.warc.gz' }
+    "collection.yaml": { deflate: true, uncompressedSize: 389, compressedSize: 188, localEntryOffset: 0, filename: "collection.yaml" },
+    "indexes/index.cdxj": { deflate: true, uncompressedSize: 1025, compressedSize: 443, localEntryOffset: 327, filename: "indexes/index.cdxj" },
+    "warcs/httpbin-resource.warc.gz": { deflate: false, uncompressedSize: 465, compressedSize: 465, localEntryOffset: 910, filename: "warcs/httpbin-resource.warc.gz" },
+    "warcs/example-iana.org-chunked.warc": { deflate: false, uncompressedSize: 8831, compressedSize: 8831, localEntryOffset: 1463, filename:  "warcs/example-iana.org-chunked.warc" },
+    "warcs/example.warc.gz": { deflate: false, uncompressedSize: 3816, compressedSize: 3816, localEntryOffset: 10387, filename: "warcs/example.warc.gz" },
+    "warcs/iana.warc.gz": { deflate: false, uncompressedSize: 786828, compressedSize: 786828, localEntryOffset: 14282, filename: "warcs/iana.warc.gz" }
   });
 });
 
 
-test('load test.zip file fully', async t => {
+test("load test.zip file fully", async t => {
   const zipreader = new ZipRangeReader(createLoader({url: t.context.baseUrl + "/example.zip"}));
 
-  const reader = await zipreader.loadFile('indexes/index.cdxj');
+  const reader = await zipreader.loadFile("indexes/index.cdxj");
 
   const contents = decoder.decode(await reader.readFully());
 
@@ -87,10 +84,10 @@ org,iana,www)/ 20140126200624 {"url":"http://www.iana.org/","mime":"text/html","
 });
 
 
-test('load test.zip WARC.GZ record', async t => {
+test("load test.zip WARC.GZ record", async t => {
   const zipreader = new ZipRangeReader(createLoader({url: t.context.baseUrl + "/example.zip"}));
 
-  const reader = await zipreader.loadFileCheckDirs('example.warc.gz', 784, 1228);
+  const reader = await zipreader.loadFileCheckDirs("example.warc.gz", 784, 1228);
 
   const parser = new WARCParser(reader);
   const record = await parser.parse();
@@ -102,13 +99,13 @@ test('load test.zip WARC.GZ record', async t => {
   t.is(record.httpHeaders.headers.get("Content-Type"), "text/html");
 
   const line = await record.readline();
-  t.is(line, '<!doctype html>\n');
+  t.is(line, "<!doctype html>\n");
 });
 
-test('load test.zip WARC record', async t => {
+test("load test.zip WARC record", async t => {
   const zipreader = new ZipRangeReader(createLoader({url: t.context.baseUrl + "/example.zip"}));
 
-  const reader = await zipreader.loadFileCheckDirs('example-iana.org-chunked.warc', 405, 7970);
+  const reader = await zipreader.loadFileCheckDirs("example-iana.org-chunked.warc", 405, 7970);
 
   const parser = new WARCParser(reader);
   const record = await parser.parse();

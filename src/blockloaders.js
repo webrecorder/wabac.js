@@ -1,6 +1,6 @@
 import { AuthNeededError, AccessDeniedError, sleep } from "./utils";
 
-import { AsyncIterReader } from 'warcio';
+import { AsyncIterReader } from "warcio";
 import { initIPFS } from "./ipfs";
 
 // todo: make configurable
@@ -14,24 +14,24 @@ function createLoader(opts) {
   const scheme = url.split(":", 1)[0];
 
   switch (scheme) {
-    case "blob":
-      return new BlobCacheLoader(opts);
+  case "blob":
+    return new BlobCacheLoader(opts);
 
-    case "http":
-    case "https":
-      return new HttpRangeLoader(opts);
+  case "http":
+  case "https":
+    return new HttpRangeLoader(opts);
 
-    case "file":
-      return new FileHandleLoader(opts);
+  case "file":
+    return new FileHandleLoader(opts);
 
-    case "googledrive":
-      return new GoogleDriveLoader(opts);
+  case "googledrive":
+    return new GoogleDriveLoader(opts);
 
-    case "ipfs":
-      return new IPFSRangeLoader(opts);
+  case "ipfs":
+    return new IPFSRangeLoader(opts);
 
-    default:
-      throw new Error("Invalid URL: " + url);
+  default:
+    throw new Error("Invalid URL: " + url);
   }
 }
 
@@ -61,8 +61,8 @@ class HttpRangeLoader
           this.canLoadOnDemand = ((response.status === 206) || response.headers.get("Accept-Ranges") === "bytes");
           this.isValid = true;
         }
-      } catch(e) {
-
+      } catch (e) {
+        // ignore fetch failure, considered invalid
       }
     }
 
@@ -112,7 +112,7 @@ class HttpRangeLoader
 
   async getLength() {
     if (this.length === null) {
-      const {response, abort} = await this.doInitialFetch(true);
+      const {abort} = await this.doInitialFetch(true);
       if (abort) {
         abort.abort();
       }
@@ -185,8 +185,9 @@ class GoogleDriveLoader
       loader = new HttpRangeLoader({url: this.publicUrl, length: this.length});
       try {
         result = await loader.doInitialFetch(tryHead);
-      } catch(e) {}
-
+      } catch(e) {
+        // catch and ignore, considered invalid
+      }
 
       if (!loader.isValid) {
         if (result && result.abort) {
@@ -197,7 +198,9 @@ class GoogleDriveLoader
           loader = new HttpRangeLoader({url: this.publicUrl, length: this.length});
           try {
             result = await loader.doInitialFetch(tryHead);
-          } catch(e) {}
+          } catch(e) {
+            // catch and ignore, considered invalid
+          }
 
           if (!loader.isValid && result && result.abort) {
             result.abort.abort();
@@ -232,8 +235,8 @@ class GoogleDriveLoader
           loader = new HttpRangeLoader({url: this.publicUrl, length: this.length});
           try {
             return await loader.getRange(offset, length, streaming, signal);
-          } catch(e) {
-
+          } catch (e) {
+            // ignore fetch failure, considered invalid
           }
         }
       }
@@ -252,7 +255,7 @@ class GoogleDriveLoader
       } catch(e) {
         if ((e instanceof AccessDeniedError) &&
             e.info && e.info.resp && e.info.resp.headers.get("content-type").
-            startsWith("application/json")) {
+          startsWith("application/json")) {
           const err = await e.info.resp.json();
           if (err.error && err.error.errors && err.error.errors[0].reason === "userRateLimitExceeded") {
             console.log(`Exponential backoff, waiting for: ${backoff}`);
@@ -275,6 +278,7 @@ class GoogleDriveLoader
         return true;
       }
     } catch (e) {
+      // ignore, return false
     }
 
     return false;
@@ -333,7 +337,7 @@ class BlobCacheLoader
     return {response};
   }
 
-  async getRange(offset, length, streaming = false, signal) {
+  async getRange(offset, length, streaming = false/*, signal*/) {
     if (!this.arrayBuffer) {
       await this.doInitialFetch(true);
     }
@@ -418,7 +422,7 @@ class FileHandleLoader
     return {response};
   }
 
-  async getRange(offset, length, streaming = false, signal) {
+  async getRange(offset, length, streaming = false/*, signal*/) {
     if (!this.file) {
       await this.initFileObject();
     }
@@ -533,4 +537,4 @@ class IPFSRangeLoader
   }
 }
 
-export { createLoader }
+export { createLoader };

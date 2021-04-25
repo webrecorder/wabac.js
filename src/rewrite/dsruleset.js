@@ -1,5 +1,5 @@
-import { rewriteDASH, DEFAULT_MAX_BAND } from './rewriteVideo';
-import unescapeJs from 'unescape-js';
+import { DEFAULT_MAX_BAND } from "./rewriteVideo";
+//import unescapeJs from "unescape-js";
 
 
 // ===========================================================================
@@ -7,19 +7,19 @@ const DEFAULT_RULES = [
   {
     contains: ["youtube.com", "youtube-nocookie.com"],
     rxRules: [
-      [/ytplayer.load\(\);/, ruleReplace('ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""; {0}')],
-      [/yt\.setConfig.*PLAYER_CONFIG.*args":\s*{/, ruleReplace('{0} "dash": "0", dashmpd: "", ')],
-      [/(?:"player":|ytplayer\.config).*"args":\s*{/, ruleReplace('{0}"dash":"0","dashmpd":"",')],
-      [/yt\.setConfig.*PLAYER_VARS.*?{/, ruleReplace('{0}"dash":"0","dashmpd":"",')],
-      [/ytplayer.config={args:\s*{/, ruleReplace('{0}"dash":"0","dashmpd":"",')],
-      [/"0"\s*?==\s*?\w+\.dash\&\&/m, ruleReplace('1&&')],
+      [/ytplayer.load\(\);/, ruleReplace("ytplayer.config.args.dash = \"0\"; ytplayer.config.args.dashmpd = \"\"; {0}")],
+      [/yt\.setConfig.*PLAYER_CONFIG.*args":\s*{/, ruleReplace("{0} \"dash\": \"0\", dashmpd: \"\", ")],
+      [/(?:"player":|ytplayer\.config).*"args":\s*{/, ruleReplace("{0}\"dash\":\"0\",\"dashmpd\":\"\",")],
+      [/yt\.setConfig.*PLAYER_VARS.*?{/, ruleReplace("{0}\"dash\":\"0\",\"dashmpd\":\"\",")],
+      [/ytplayer.config={args:\s*{/, ruleReplace("{0}\"dash\":\"0\",\"dashmpd\":\"\",")],
+      [/"0"\s*?==\s*?\w+\.dash&&/m, ruleReplace("1&&")],
     ]
   },
   {
     contains: ["vimeo.com/video"],
     rxRules: [
-      [/\"dash\"[:]/, ruleReplace('"__dash":')],
-      [/\"hls\"[:]/, ruleReplace('"__hls":')],
+      [/"dash"[:]/, ruleReplace("\"__dash\":")],
+      [/"hls"[:]/, ruleReplace("\"__hls\":")],
     ]
   },
   {
@@ -28,9 +28,9 @@ const DEFAULT_RULES = [
       //[/"dash_manifest":"?.*dash_prefetched_representation_ids"?:(\[.*\]|[^,]+)/, ruleRewriteFBDash],
       //[/"dash_manifest":"?.*?dash_prefetched_representation_ids"?:(?:null|(?:.+?\]))/, ruleRewriteFBDash],
 
-      [/"dash_/, ruleReplace('"__nodash__')],
-      [/_dash"/, ruleReplace('__nodash__"')],
-      [/_dash_/, ruleReplace('__nodash__')],
+      [/"dash_/, ruleReplace("\"__nodash__")],
+      [/_dash"/, ruleReplace("__nodash__\"")],
+      [/_dash_/, ruleReplace("__nodash__")],
     ]
   },
 
@@ -44,7 +44,7 @@ const DEFAULT_RULES = [
   {
     contains: ["/vqlweb.js"],
     rxRules: [
-      [/\b\w+\.updatePortSize\(\);this\.updateApplicationSize\(\)(?![*])/img,  ruleReplace('/*{0}*/')]
+      [/\b\w+\.updatePortSize\(\);this\.updateApplicationSize\(\)(?![*])/img,  ruleReplace("/*{0}*/")]
     ]
   }
 ];
@@ -52,43 +52,43 @@ const DEFAULT_RULES = [
 
 // ===========================================================================
 function ruleReplace(string) {
-  return x => string.replace('{0}', x); 
+  return x => string.replace("{0}", x); 
 }
 
 
 // ===========================================================================
 // For older captures, no longer applicable
-function ruleRewriteFBDash(string) {
-  let dashManifest = null;
+// function ruleRewriteFBDash(string) {
+//   let dashManifest = null;
 
-  try {
-    dashManifest = unescapeJs(string.match(/dash_manifest":"(.*?)","/)[1]);
-    dashManifest = dashManifest.replace(/\\\//g, '/');
-  } catch (e) {
-    console.warn(e);
-    return string;
-  }
+//   try {
+//     dashManifest = unescapeJs(string.match(/dash_manifest":"(.*?)","/)[1]);
+//     dashManifest = dashManifest.replace(/\\\//g, "/");
+//   } catch (e) {
+//     console.warn(e);
+//     return string;
+//   }
 
-  let bestIds;
+//   let bestIds;
 
-  if (string.endsWith("null")) {
-    bestIds = null;
-  } else {
-    bestIds = [];
-  }
+//   if (string.endsWith("null")) {
+//     bestIds = null;
+//   } else {
+//     bestIds = [];
+//   }
 
-  const newDashManifest = rewriteDASH(dashManifest, null, bestIds) + "\n";
+//   const newDashManifest = rewriteDASH(dashManifest, null, bestIds) + "\n";
 
-  if (bestIds != null && !bestIds.length) {
-    return string;
-  }
+//   if (bestIds != null && !bestIds.length) {
+//     return string;
+//   }
 
-  const resultJSON = {"dash_manifest": newDashManifest, "dash_prefetched_representation_ids": bestIds};   
+//   const resultJSON = {"dash_manifest": newDashManifest, "dash_prefetched_representation_ids": bestIds};   
 
-  const result = JSON.stringify(resultJSON).replace(/</g, "\\u003C").slice(1, -1);
+//   const result = JSON.stringify(resultJSON).replace(/</g, "\\u003C").slice(1, -1);
 
-  return result + ', "';
-}
+//   return result + ", \"";
+// }
 
 // ===========================================================================
 function ruleRewriteTwitterVideo(string, opts) {
@@ -103,7 +103,7 @@ function ruleRewriteTwitterVideo(string, opts) {
   const origString = string;
 
   try {
-    const prefix = `"video_info":`;
+    const prefix = "\"video_info\":";
 
     string = string.slice(prefix.length);
 

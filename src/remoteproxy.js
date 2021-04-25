@@ -1,12 +1,12 @@
-import { tsToDate } from './utils.js';
+import { tsToDate } from "./utils.js";
 
-import { ArchiveResponse } from './response';
-import { fuzzyMatcher } from './fuzzymatcher.js';
+import { ArchiveResponse } from "./response";
+import { fuzzyMatcher } from "./fuzzymatcher.js";
 
-import { WARCParser, AsyncIterReader } from 'warcio';
+import { WARCParser, AsyncIterReader } from "warcio";
 
 
-const EXTRACT_TS = /(?:([\d]+)[^\/]*\/)?(http.*)/;
+const EXTRACT_TS = /(?:([\d]+)[^/]*\/)?(http.*)/;
 
 
 // ===========================================================================
@@ -21,7 +21,7 @@ class RemoteWARCProxy {
     return [];
   }
 
-  async getResource(request, prefix, event) {
+  async getResource(request, prefix) {
     const { url, headers } = resolveRequestParams(request, prefix);
     let reqHeaders = headers;
 
@@ -180,12 +180,12 @@ class RemoteProxySource {
     return url + request.url;
   }
 
-  async getResource(request, prefix, event) {
+  async getResource(request, prefix) {
     let response = await fetch(this.getUrl(request, this.idMod),
       {
-        credentials: 'same-origin',
+        credentials: "same-origin",
         redirect: this.redirectMode,
-        mode: 'cors'
+        mode: "cors"
       });
 
     if (response.status >= 400 && !response.headers.get("memento-datetime")) {
@@ -218,9 +218,9 @@ class RemoteProxySource {
     if (response.type === "opaqueredirect") {
       response = await fetch(this.getUrl(request, this.redirMod),
         {
-          credentials: 'same-origin',
-          redirect: 'follow',
-          mode: 'cors'
+          credentials: "same-origin",
+          redirect: "follow",
+          mode: "cors"
         });
     } else if (!response.redirected) {
       return null;
@@ -234,7 +234,7 @@ class RemoteProxySource {
 
     if (m) {
       return {timestamp: m[1],
-              path: prefix + m[1] + "mp_/" + m[2]}
+        path: prefix + m[1] + "mp_/" + m[2]};
     } else {
       return {path: prefix + redirOrig};
     }
@@ -257,7 +257,7 @@ class LiveAccess {
     return [];
   }
 
-  async getResource(request, prefix, event) {
+  async getResource(request, prefix) {
 
     const { headers, credentials, url} = resolveRequestParams(request, prefix);
 
@@ -273,20 +273,20 @@ class LiveAccess {
     }
 
     const response = await fetch(fetchUrl,
-              {method: request.request.method,
-               body: request.request.body,
-               headers,
-               credentials,
-               mode: 'cors',
-               redirect: 'follow'
-              });
+      {method: request.request.method,
+        body: request.request.body,
+        headers,
+        credentials,
+        mode: "cors",
+        redirect: "follow"
+      });
 
     return ArchiveResponse.fromResponse({url,
-            response,
-            date: new Date(),
-            noRW: false,
-            isLive: this.isLive,
-           });
+      response,
+      date: new Date(),
+      noRW: false,
+      isLive: this.isLive,
+    });
   }
 }
 
@@ -307,7 +307,7 @@ function resolveRequestParams(request, prefix, isLive = true) {
     credentials = request.request.credentials;
   } else {
     headers = new Headers();
-    credentials = 'omit';
+    credentials = "omit";
   }
 
   let url = request.url;

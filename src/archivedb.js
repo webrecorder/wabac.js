@@ -1,10 +1,10 @@
 "use strict";
 
-import { openDB, deleteDB } from 'idb/with-async-ittr.js';
+import { openDB, deleteDB } from "idb/with-async-ittr.js";
 import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage,
-         getTS, getStatusText, randomId } from './utils';
-import { fuzzyMatcher } from './fuzzymatcher';
-import { ArchiveResponse } from './response';
+  getTS, getStatusText, randomId, PAGE_STATE_SYNCED } from "./utils";
+import { fuzzyMatcher } from "./fuzzymatcher";
+import { ArchiveResponse } from "./response";
 
 
 // ===========================================================================
@@ -43,13 +43,14 @@ class ArchiveDB {
     }
   }
 
-  _initDB(db, oldV, newV, tx) {
+  _initDB(db, oldV/*, newV, tx*/) {
     if (!oldV) {
       const pageStore = db.createObjectStore("pages", { keyPath: "id" });
       pageStore.createIndex("url", "url");
       pageStore.createIndex("ts", "ts");
+      pageStore.createIndex("state", "state");
 
-      const listStore = db.createObjectStore("pageLists", { keyPath: "id", autoIncrement: true});
+      db.createObjectStore("pageLists", { keyPath: "id", autoIncrement: true});
 
       const curatedPages = db.createObjectStore("curatedPages", { keyPath: "id", autoIncrement: true});
       curatedPages.createIndex("listPages", ["list", "pos"]);
@@ -60,8 +61,8 @@ class ArchiveDB {
       //urlStore.createIndex("ts", "ts");
       urlStore.createIndex("mimeStatusUrl", ["mime", "status", "url"]);
 
-      const payload = db.createObjectStore("payload", { keyPath: "digest", unique: true});
-      const digestRef = db.createObjectStore("digestRef", { keyPath: "digest", unique: true});
+      db.createObjectStore("payload", { keyPath: "digest", unique: true});
+      db.createObjectStore("digestRef", { keyPath: "digest", unique: true});
     }
   }
 
@@ -93,7 +94,9 @@ class ArchiveDB {
     const url = page.url;
     const title = page.title || page.url;
     const id = page.id || this.newPageId();
+    const state = page.state || PAGE_STATE_SYNCED;
     let ts = page.ts;
+
 
     if (typeof(ts) !== "number") {
       if (page.timestamp) {
@@ -106,7 +109,7 @@ class ArchiveDB {
       }
     }
 
-    const p = {...page, url, ts, title, id};
+    const p = {...page, url, ts, title, id, state};
 
     if (tx) {
       tx.store.put(p);
@@ -116,11 +119,15 @@ class ArchiveDB {
     }
   }
 
-  async addPages(pages, pagesTable = "pages") {
+  async addPages(pages, pagesTable = "pages", update = false) {
     const tx = this.db.transaction(pagesTable, "readwrite");
 
     for (const page of pages) {
-      this.addPage(page, tx);
+      if (update) {
+        tx.store.put(page);
+      } else {
+        this.addPage(page, tx);
+      }
     }
 
     try {
@@ -247,6 +254,10 @@ class ArchiveDB {
     return results;
   }
 
+  async getPagesWithState(state) {
+    return await this.db.getAllFromIndex("pages", "state", state);
+  }
+
   async dedupResource(digest, payload, tx, count = 1) {
     const digestRefStore = tx.objectStore("digestRef");
     const ref = await digestRefStore.get(digest);
@@ -345,11 +356,11 @@ class ArchiveDB {
       }
 
       const fuzzyRes = {url: fuzzyCanonUrl,
-                        ts: result.ts,
-                        origURL: result.url,
-                        origTS: result.ts,
-                        pageId: result.pageId,
-                        digest: result.digest};
+        ts: result.ts,
+        origURL: result.url,
+        origTS: result.ts,
+        pageId: result.pageId,
+        digest: result.digest};
 
       return fuzzyRes;
     }
@@ -411,20 +422,20 @@ class ArchiveDB {
     return isNew;
   }
 
-  async getResource(request, rwPrefix, event) {
+  async getResource(request, rwPrefix, event, opts = {}) {
     const datetime = tsToDate(request.timestamp).getTime();
     let url = request.url;
 
     let result = null;
 
     const skip = this.repeatTracker ? this.repeatTracker.getSkipCount(event, url, request.request.method) : 0;
-    const opts = {skip};
+    const newOpts = {...opts, skip};
 
     if (url.startsWith("//")) {
       let useHttp = false;
-      result = await this.lookupUrl("https:" + url, datetime, opts);
+      result = await this.lookupUrl("https:" + url, datetime, newOpts);
       if (!result) {
-        result = await this.lookupUrl("http:" + url, datetime, opts);
+        result = await this.lookupUrl("http:" + url, datetime, newOpts);
         // use http if found or if referrer contains an http replay path
         // otherwise, default to https
         if (result || request.request.referrer.indexOf("/http://", 2) > 0) {
@@ -433,10 +444,10 @@ class ArchiveDB {
       }
       url = (useHttp ? "http:" : "https:") + url;
     } else {
-      result = await this.lookupUrl(url, datetime, opts);
+      result = await this.lookupUrl(url, datetime, newOpts);
       if (!result && url.startsWith("http://")) {
         const httpsUrl = url.replace("http://", "https://");
-        result = await this.lookupUrl(httpsUrl, datetime, opts);
+        result = await this.lookupUrl(httpsUrl, datetime, newOpts);
         if (result) {
           url = httpsUrl;
         }
@@ -459,12 +470,12 @@ class ArchiveDB {
     // }
 
     if (!result && this.fuzzyPrefixSearch) {
-      result = await this.lookupQueryPrefix(url);
+      result = await this.lookupQueryPrefix(url, opts);
     }
 
     // check if redirect
     if (result && result.origURL) {
-      const origResult = await this.lookupUrl(result.origURL, result.origTS || result.ts);
+      const origResult = await this.lookupUrl(result.origURL, result.origTS || result.ts, opts);
       if (origResult) {
         url = origResult.url;
         result = origResult;
@@ -523,26 +534,32 @@ class ArchiveDB {
     let skip = opts.skip || 0;
 
     for await (const cursor of tx.store.iterate(this.getLookupRange(url))) {
-      if (lastValue && cursor.value.ts > datetime) {
+      const value = cursor.value;
+
+      if (lastValue && value.ts > datetime) {
+        if (opts.pageId && value.pageId && (value.pageId !== opts.pageId)) {
+          continue;
+        }
+
         if (skip == 0) {
-          const diff = cursor.value.ts - datetime;
+          const diff = value.ts - datetime;
           const diffLast = datetime - lastValue.ts;
-          return diff < diffLast ? cursor.value : lastValue;
+          return diff < diffLast ? value : lastValue;
         } else {
           skip--;
         }
       }
-      lastValue = cursor.value;
+      lastValue = value;
     }
 
     return lastValue;
   }
 
-  async lookupQueryPrefix(url) {
-    const {rule, prefix, fuzzyCanonUrl, fuzzyPrefix} = fuzzyMatcher.getRuleFor(url);
+  async lookupQueryPrefix(url, opts) {
+    const {rule, prefix, fuzzyCanonUrl/*, fuzzyPrefix*/} = fuzzyMatcher.getRuleFor(url);
 
     if (fuzzyCanonUrl !== url) {
-      const result = await this.lookupUrl(fuzzyCanonUrl);
+      const result = await this.lookupUrl(fuzzyCanonUrl, "", opts);
       if (result) {
         return result;
       }
@@ -564,7 +581,7 @@ class ArchiveDB {
       ts: getTS(date),
       mime: res.mime,
       status: res.status
-    }
+    };
   }
 
   async resourcesByPage(pageId) {
@@ -675,7 +692,7 @@ class ArchiveDB {
     }
 
     return results;
-/*
+    /*
     let i = 0;
     let cursor = await this.db.transaction("resources").store.index("mimeStatusUrl").openCursor();
 
@@ -706,7 +723,7 @@ class ArchiveDB {
 
     const size = await this.deletePageResources(id);
     return {pageSize: page && page.size || 0,
-            dedupSize: size};
+      dedupSize: size};
   }
 
   async deletePageResources(pageId) {
@@ -762,22 +779,23 @@ class ArchiveDB {
     let upper;
 
     switch (type) {
-      case "prefix":
-        upper = url.slice(0, -1) + String.fromCharCode(url.charCodeAt(url.length - 1) + 1);
-        lower = [url];
-        upper = [upper];
-        break;
+    case "prefix":
+      upper = url.slice(0, -1) + String.fromCharCode(url.charCodeAt(url.length - 1) + 1);
+      lower = [url];
+      upper = [upper];
+      break;
 
-      case "host":
-        const origin = new URL(url).origin;
-        lower = [origin + "/"];
-        upper = [origin + "0"];
-        break;
+    case "host": {
+      const origin = new URL(url).origin;
+      lower = [origin + "/"];
+      upper = [origin + "0"];
+      break;
+    }
 
-      case "exact":
-      default:
-        lower = [url];
-        upper = [url + "!"];
+    case "exact":
+    default:
+      lower = [url];
+      upper = [url + "!"];
     }
 
     let inclusive;

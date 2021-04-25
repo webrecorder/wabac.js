@@ -1,20 +1,21 @@
-"use strict";
+import { ArchiveDB } from "./archivedb.js";
+import { RemoteSourceArchiveDB, RemotePrefixArchiveDB } from "./remotearchivedb";
+import { WACZRemoteArchiveDB } from "./waczarchive";
 
-import { ArchiveDB } from './archivedb.js';
-import { RemoteSourceArchiveDB, RemotePrefixArchiveDB } from './remotearchivedb';
-import { ZipRemoteArchiveDB } from './ziparchive';
+import { HARLoader } from "./harloader";
+import { WBNLoader } from "./wbnloader";
+import { WARCLoader } from "./warcloader";
+import { CDXLoader, CDXFromWARCLoader } from "./cdxloader";
 
-import { HARLoader } from './harloader';
-import { WBNLoader } from './wbnloader';
-import { WARCLoader } from './warcloader';
-import { CDXLoader, CDXFromWARCLoader } from './cdxloader';
+import { createLoader } from "./blockloaders";
 
-import { createLoader } from './blockloaders';
+import { RemoteWARCProxy, RemoteProxySource, LiveAccess } from "./remoteproxy";
 
-import { RemoteWARCProxy, RemoteProxySource, LiveAccess } from './remoteproxy';
+import { deleteDB, openDB } from "idb/with-async-ittr.js";
+import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils.js";
+import { WACZLoader } from "./waczloader.js";
 
-import { deleteDB, openDB } from 'idb/with-async-ittr.js';
-import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from './utils.js';
+import { JSONMultiWACZLoader, MultiWACZCollection } from "./multiwacz.js";
 
 self.interruptLoads = {};
 
@@ -31,8 +32,10 @@ class CollectionLoader
 
   async _initDB() {
     this.colldb = await openDB("collDB", 1, {
-      upgrade: (db, oldV, newV, tx) => {
-        db.createObjectStore("colls", {keyPath: "name"});
+      upgrade: (db/*, oldV, newV, tx*/) => {
+        const collstore = db.createObjectStore("colls", {keyPath: "name"});
+
+        collstore.createIndex("type", "type");
       }
     });
   }
@@ -90,8 +93,8 @@ class CollectionLoader
     if (data.config.dbname) {
       try {
         await deleteDB(data.config.dbname, {
-          blocked(reason) {
-            console.log(`Unable to delete ${data.config.dbname}: ${reason}`);
+          blocked() {
+            console.log(`Unable to delete ${data.config.dbname}, blocked`);
           }
         });
       } catch(e) {
@@ -142,7 +145,7 @@ class CollectionLoader
     await this.colldb.put("colls", data);
   }
 
-  async initNewColl(metadata, extraConfig = {}) {
+  async initNewColl(metadata, extraConfig = {}, type = "archive") {
     await this._init_db;
     const id = randomId();
     const dbname = "db:" + id;
@@ -152,7 +155,7 @@ class CollectionLoader
 
     const data = {
       name: id,
-      type: "archive",
+      type,
       config: {
         dbname,
         ctime,
@@ -161,7 +164,7 @@ class CollectionLoader
         sourceUrl,
         extraConfig,
       }
-    }
+    };
 
     const coll = await this._initColl(data);
     await this.colldb.put("colls", data);
@@ -186,45 +189,48 @@ class CollectionLoader
     let store = null;
 
     switch (type) {
-      case "archive":
-        store = new ArchiveDB(config.dbname);
-        break;
+    case "archive":
+      store = new ArchiveDB(config.dbname);
+      break;
 
-      case "remotesource":
-        sourceLoader = createLoader({
-          url: config.loadUrl,
-          headers: config.headers,
-          size: config.size,
-          extra: config.extra
-        });
-        store = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
-        break;
+    case "remotesource":
+      sourceLoader = createLoader({
+        url: config.loadUrl,
+        headers: config.headers,
+        size: config.size,
+        extra: config.extra
+      });
+      store = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
+      break;
 
-      case "remoteprefix":
-        store = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
-        break;        
+    case "remoteprefix":
+      store = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
+      break;        
 
-      case "remotezip":
-        sourceLoader = createLoader({
-          url: config.loadUrl || config.sourceUrl,
-          headers: config.headers,
-          extra: config.extra
-        });
-        store = new ZipRemoteArchiveDB(config.dbname, sourceLoader, config.extraConfig, config.noCache, config);
-        break;
+    case "remotezip":
+      sourceLoader = createLoader({
+        url: config.loadUrl || config.sourceUrl,
+        headers: config.headers,
+        extra: config.extra
+      });
+      store = new WACZRemoteArchiveDB(config.dbname, sourceLoader, config);
+      break;
 
-      case "remoteproxy":
-        //TODO remove?
-        store = new RemoteProxySource(config);
-        break;
+    case "remoteproxy":
+      //TODO remove?
+      store = new RemoteProxySource(config);
+      break;
 
-      case "remotewarcproxy":
-        store = new RemoteWARCProxy(config);
-        break;
+    case "remotewarcproxy":
+      store = new RemoteWARCProxy(config);
+      break;
 
-      case "live":
-        store = new LiveAccess(config);
-        break;
+    case "live":
+      store = new LiveAccess(config);
+      break;
+
+    case "multiwacz":
+      store = new MultiWACZCollection(config);
     }
 
     if (!store) {
@@ -268,90 +274,90 @@ class WorkerLoader extends CollectionLoader
     const client = event.source || self;
 
     switch (event.data.msg_type) {
-      case "addColl":
-      {
-        const name = event.data.name; 
+    case "addColl":
+    {
+      const name = event.data.name; 
 
-        const progressUpdate = (percent, error, currentSize, totalSize, fileHandle = null) => {
-          client.postMessage({
-            "msg_type": "collProgress",
-            name,
-            percent,
-            error,
-            currentSize,
-            totalSize,
-            fileHandle
-          });
-        };
+      const progressUpdate = (percent, error, currentSize, totalSize, fileHandle = null) => {
+        client.postMessage({
+          "msg_type": "collProgress",
+          name,
+          percent,
+          error,
+          currentSize,
+          totalSize,
+          fileHandle
+        });
+      };
 
-        let res;
+      let res;
 
-        try {
-          if (await this.hasCollection(name)) {
-            if (!event.data.skipExisting) {
-              await this.deleteColl(name);
-              res = await this.addCollection(event.data, progressUpdate);
-            } else {
-              res = true;
-              //coll = this.collections[name];
-              //return;
-            }
-          } else {
+      try {
+        if (await this.hasCollection(name)) {
+          if (!event.data.skipExisting) {
+            await this.deleteColl(name);
             res = await this.addCollection(event.data, progressUpdate);
-          }
-  
-          if (!res) {
-            return;
-          }
-        } catch (e) {
-          console.warn(e);
-          if (e instanceof AuthNeededError) {
-            progressUpdate(0, "permission_needed", null, null, e.info && e.info.fileHandle);
           } else {
-            progressUpdate(0, "An unexpected error occured: " + e.toString());
+            res = true;
+            //coll = this.collections[name];
+            //return;
           }
+        } else {
+          res = await this.addCollection(event.data, progressUpdate);
+        }
+  
+        if (!res) {
           return;
         }
-
-        client.postMessage({
-          "msg_type": "collAdded",
-          //"prefix": coll.prefix,
-          "name": name
-        });
-
-        //this.doListAll(client);
-        break;
-      }
-
-      case "cancelLoad":
-      {
-        const name = event.data.name;
-
-        const p = new Promise((resolve) => self.interruptLoads[name] = resolve);
-
-        await p;
-
-        await this.deleteColl(name);
-
-        delete self.interruptLoads[name];
-
-        break;
-      }
-
-      case "removeColl":
-      {
-        const name = event.data.name;
-
-        if (await this.hasCollection(name)) {
-          await this.deleteColl(name);
-          this.doListAll(client);
+      } catch (e) {
+        console.warn(e);
+        if (e instanceof AuthNeededError) {
+          progressUpdate(0, "permission_needed", null, null, e.info && e.info.fileHandle);
+        } else {
+          progressUpdate(0, "An unexpected error occured: " + e.toString());
         }
-        break;
+        return;
       }
 
-      case "listAll":
+      client.postMessage({
+        msg_type: "collAdded",
+        name,
+        sourceUrl: res.config.sourceUrl
+      });
+
+      //this.doListAll(client);
+      break;
+    }
+
+    case "cancelLoad":
+    {
+      const name = event.data.name;
+
+      const p = new Promise((resolve) => self.interruptLoads[name] = resolve);
+
+      await p;
+
+      await this.deleteColl(name);
+
+      delete self.interruptLoads[name];
+
+      break;
+    }
+
+    case "removeColl":
+    {
+      const name = event.data.name;
+
+      if (await this.hasCollection(name)) {
+        await this.deleteColl(name);
         this.doListAll(client);
-        break;
+      }
+      break;
+    }
+
+    case "listAll":
+      this.doListAll(client);
+      break;
     }
   }
 
@@ -374,7 +380,7 @@ class WorkerLoader extends CollectionLoader
   }
   
   async addCollection(data, progressUpdate) {
-    const name = data.name;
+    let name = data.name;
 
     let type = null;
     let config = {root: data.root || false};
@@ -383,7 +389,7 @@ class WorkerLoader extends CollectionLoader
     const file = data.file;
 
     if (!file || !file.sourceUrl) {
-      progressUpdate(0, `Invalid Load Request`);
+      progressUpdate(0, "Invalid Load Request");
       return false;
     }
 
@@ -397,6 +403,13 @@ class WorkerLoader extends CollectionLoader
 
     } else {
       let loader = null;
+
+      if (file.newFullImport) {
+        name = randomId();
+        file.loadUrl = file.loadUrl || file.sourceUrl;
+        file.name = file.name || file.sourceUrl;
+        file.sourceUrl = "local://" + name;
+      }
 
       type = "archive";
       config.dbname = "db:" + name;
@@ -420,7 +433,7 @@ class WorkerLoader extends CollectionLoader
           config.sourceName = new URL(config.sourceName).pathname;
         }
       } catch (e) {
-
+        // ignore, keep sourceName as is
       }
       config.sourceName = config.sourceName.slice(config.sourceName.lastIndexOf("/") + 1);
 
@@ -451,17 +464,14 @@ class WorkerLoader extends CollectionLoader
       let tryHeadOnly = false;
 
       if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
-        db = new ZipRemoteArchiveDB(config.dbname, sourceLoader, config.extraConfig, config.noCache, config);
-        type = "remotezip";
-        // is its own loader
-        loader = db;
-
         // do HEAD request only
         tryHeadOnly = true;
       }
       
       let {abort, response} = await sourceLoader.doInitialFetch(tryHeadOnly);
       const stream = response.body;
+
+      config.onDemand = sourceLoader.canLoadOnDemand && !file.newFullImport;
 
       if (!sourceLoader.isValid) {
         const text = sourceLoader.length <= 1000 ? await response.text() : "";
@@ -489,7 +499,15 @@ Make sure this is a valid URL and you have access to this file.`);
 
       const contentLength = sourceLoader.length;
 
-      if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
+      if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
+        loader = new WACZLoader(sourceLoader, config, name);
+
+        if (config.onDemand) {
+          db = new WACZRemoteArchiveDB(config.dbname, sourceLoader, config);
+          type = "remotezip";
+        }
+
+      } else if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
         if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !sourceLoader.canLoadOnDemand) {
           loader = new WARCLoader(stream, abort, name);
         } else {
@@ -513,6 +531,9 @@ Make sure this is a valid URL and you have access to this file.`);
         //todo: fix
         loader = new HARLoader(await response.json());
         config.decode = false;
+      } else if (config.sourceName.endsWith(".json")) {
+        db = new MultiWACZCollection(config);
+        loader = new JSONMultiWACZLoader(await response.json(), config.loadUrl);
       }
 
       if (!loader) {
@@ -528,13 +549,12 @@ Make sure this is a valid URL and you have access to this file.`);
       }
       await db.initing;
 
-      config.onDemand = sourceLoader.canLoadOnDemand;
-
       try {
         config.metadata = await loader.load(db, progressUpdate, contentLength);
       } catch (e) {
         if (!(e instanceof Canceled)) {
           progressUpdate(0, `Unexpected Loading Error: ${e.toString()}`);
+          console.warn(e);
         }
         return false;
       }

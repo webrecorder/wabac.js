@@ -1,23 +1,23 @@
 "use strict";
 
-import test from 'ava';
+import test from "ava";
 
-import path from 'path';
+import path from "path";
 
-import { doRewrite } from './helpers';
+import { doRewrite } from "./helpers";
 
-import { promises as fs} from 'fs';
+import { promises as fs} from "fs";
 
-import { dashOutputOpts } from '../src/rewrite/rewriteVideo';
+import { dashOutputOpts } from "../src/rewrite/rewriteVideo";
 
 dashOutputOpts.format = true;
 
 
 // ===========================================================================
-test('DASH', async t => {
+test("DASH", async t => {
   const content = await fs.readFile(path.join(__dirname, "data", "sample_dash.mpd"), "utf-8");
 
-  const result = await doRewrite({content, contentType: "application/dash+xml", url: 'http://example.com/path/manifest.mpd', isLive: true});
+  const result = await doRewrite({content, contentType: "application/dash+xml", url: "http://example.com/path/manifest.mpd", isLive: true});
 
   const expected = `\
 <?xml version='1.0' encoding='UTF-8'?>
@@ -87,10 +87,10 @@ test('FB DASH 2', async t => {
 */
 
 
-test('HLS DEFAULT MAX', async t => {
+test("HLS DEFAULT MAX", async t => {
   const content = await fs.readFile(path.join(__dirname, "data", "sample_hls.m3u8"), "utf-8");
-  const contentType = 'application/vnd.apple.mpegurl';
-  const url = 'http://example.com/path/master.m3u8';
+  const contentType = "application/vnd.apple.mpegurl";
+  const url = "http://example.com/path/master.m3u8";
 
   const result = await doRewrite({content, contentType, url, isLive: true, isAjax: true});
 
@@ -105,10 +105,10 @@ http://example.com/video_1.m3u8`;
 });
 
 
-test('HLS DEFAULT MAX - NATIVE STREAMING', async t => {
+test("HLS DEFAULT MAX - NATIVE STREAMING", async t => {
   const content = await fs.readFile(path.join(__dirname, "data", "sample_hls.m3u8"), "utf-8");
-  const contentType = 'application/vnd.apple.mpegurl';
-  const url = 'http://example.com/path/master.m3u8';
+  const contentType = "application/vnd.apple.mpegurl";
+  const url = "http://example.com/path/master.m3u8";
 
   const result = await doRewrite({content, contentType, url, isLive: true});
 
@@ -125,10 +125,10 @@ http://localhost:8080/prefix/20201226101010/http://example.com/video_1.m3u8`;
 
 
 
-test('HLS DEFAULT OLD REPLAY MAX', async t => {
+test("HLS DEFAULT OLD REPLAY MAX", async t => {
   const content = await fs.readFile(path.join(__dirname, "data", "sample_hls.m3u8"), "utf-8");
-  const contentType = 'application/vnd.apple.mpegurl';
-  const url = 'http://example.com/path/master.m3u8';
+  const contentType = "application/vnd.apple.mpegurl";
+  const url = "http://example.com/path/master.m3u8";
 
   const result = await doRewrite({content, contentType, url, isLive: false, isAjax: true});
 
@@ -142,7 +142,7 @@ http://example.com/video_5.m3u8`;
 });
 
 
-test('YT rewrite', async t => {
+test("YT rewrite", async t => {
   const content = `
 <html>
 <body>
@@ -169,12 +169,12 @@ const test4 = ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""
 </html>
 `;
 
-  const result = await doRewrite({content, contentType: "text/html", url: 'https://youtube.com/example.html'});
+  const result = await doRewrite({content, contentType: "text/html", url: "https://youtube.com/example.html"});
   t.is(result, expected, result);
 });
 
 
-test('FB rewrite JS', async t => {
+test("FB rewrite JS", async t => {
 
   const content = `\
 <script>
@@ -188,7 +188,7 @@ const test1 = {"__nodash__url": "foo", {"some__nodash__": "a", "data__nodash__fo
 </script>
 `;
 
-  const result = await doRewrite({content, contentType: "text/html", url: 'https://www.facebook.com/data/example.html'});
+  const result = await doRewrite({content, contentType: "text/html", url: "https://www.facebook.com/data/example.html"});
   t.is(result, expected);
 });
 
@@ -197,38 +197,38 @@ test("Twitter rewrite json", async t => {
 
   const content = {
     "video_info": {
-        "some_data": "other",
-        "variants": [{
-            "content_type": "application\/x-mpegURL",
-            "url": "https://example.com/A"
-        }, {
-            "bitrate": 256000,
-            "content_type": "video\/mp4",
-            "url": "https://example.com/B"
-        }, {
-            "bitrate": 2176000,
-            "content_type": "video\/mp4",
-            "url": "https://example.com/C"
-        }, {
-            "bitrate": 832000,
-            "content_type": "video\/mp4",
-            "url": "https://example.com/D"
-        }]
+      "some_data": "other",
+      "variants": [{
+        "content_type": "application/x-mpegURL",
+        "url": "https://example.com/A"
+      }, {
+        "bitrate": 256000,
+        "content_type": "video/mp4",
+        "url": "https://example.com/B"
+      }, {
+        "bitrate": 2176000,
+        "content_type": "video/mp4",
+        "url": "https://example.com/C"
+      }, {
+        "bitrate": 832000,
+        "content_type": "video/mp4",
+        "url": "https://example.com/D"
+      }]
     }
   };
 
   const expected = {
     "video_info": {
-        "some_data": "other",
-        "variants": [{
-            "bitrate": 832000,
-            "content_type": "video\/mp4",
-            "url": "https://example.com/D"
-        }]
+      "some_data": "other",
+      "variants": [{
+        "bitrate": 832000,
+        "content_type": "video/mp4",
+        "url": "https://example.com/D"
+      }]
     }
   };
 
   const extraOpts = {rewritten: true};
-  const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: 'https://api.twitter.com/2/some/endpoint', extraOpts});
+  const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: "https://api.twitter.com/2/some/endpoint", extraOpts});
   t.deepEqual(JSON.parse(result), expected);
 });

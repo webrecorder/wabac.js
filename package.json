@@ -1,10 +1,10 @@
 {
   "name": "@webrecorder/wabac",
-  "version": "2.6.9",
+  "version": "2.7.0",
   "main": "index.js",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "@webrecorder/wombat": "^3.1.2",
+    "@webrecorder/wombat": "^3.1.4",
     "brotli": "github:foliojs/brotli.js",
     "fast-xml-parser": "^3.15.1",
     "format-link-header": "^3.1.1",
@@ -18,13 +18,13 @@
     "parse5-html-rewriting-stream": "^6.0.1",
     "parse5-sax-parser": "^6.0.1",
     "path-parser": "^6.1.0",
-    "unescape-js": "^1.1.4",
-    "warcio": "^1.4.2",
+    "warcio": "^1.4.4",
     "wbn": "^0.0.3"
   },
   "devDependencies": {
     "@titelmedia/node-fetch": "^3.0.1",
     "ava": "^3.14.0",
+    "eslint": "^7.23.0",
     "esm": "^3.2.25",
     "fake-indexeddb": "^3.0.0",
     "nyc": "^15.0.1",
@@ -43,7 +43,8 @@
     "build": "webpack --mode production",
     "build-dev": "webpack --mode development",
     "start-dev": "webpack-dev-server --mode development",
-    "test": "nyc --reporter=lcov --reporter=text ava"
+    "test": "nyc --reporter=lcov --reporter=text ava",
+    "lint": "eslint ./src/ ./test/ webpack.config.js"
   },
   "esm": {
     "mode": "all"

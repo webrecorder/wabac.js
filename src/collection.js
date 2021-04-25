@@ -1,14 +1,14 @@
 "use strict";
 
-import { Rewriter } from './rewrite';
+import { Rewriter } from "./rewrite";
 
-import { getTS, getSecondsStr, notFound, AuthNeededError, parseSetCookie } from './utils.js';
+import { getTS, getSecondsStr, notFound, AuthNeededError, parseSetCookie } from "./utils.js";
 
-import { ArchiveResponse } from './response';
+import { ArchiveResponse } from "./response";
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
-const REPLAY_REGEX = /^(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
+const REPLAY_REGEX = /^(?::([\w-]+)\/)?(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
 
 class Collection {
@@ -69,7 +69,7 @@ class Collection {
 
     // pageList
     if (wbUrlStr == "") {
-      content = '<html><body><h2>Available Pages</h2><ul>'
+      content = "<html><body><h2>Available Pages</h2><ul>";
 
       const pages = await this.store.getAllPages();
 
@@ -79,18 +79,19 @@ class Collection {
           href += page.date + "/";
         }
         href += page.url;
-        content += `<li><a href="${href}">${page.url}</a></li>`
+        content += `<li><a href="${href}">${page.url}</a></li>`;
       }
 
-      content += '</ul></body></html>'
+      content += "</ul></body></html>";
 
       return new Response(content, responseOpts);
     }
 
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
-    let requestTS = '';
-    let requestURL = '';
-    let mod = '';
+    let requestTS = "";
+    let requestURL = "";
+    let mod = "";
+    let pageId = "";
 
     if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:") || wbUrlStr.startsWith("blob:"))) {
       requestURL = wbUrlStr;
@@ -99,14 +100,15 @@ class Collection {
     } else if (!wbUrl) {
       return notFound(request, `Replay URL ${wbUrlStr} not found`);
     } else {
-      requestTS = wbUrl[1];
-      mod = wbUrl[2];
-      requestURL = wbUrl[3];
+      pageId = wbUrl[1] || "";
+      requestTS = wbUrl[2];
+      mod = wbUrl[3];
+      requestURL = wbUrl[4];
     }
 
     // force timestamp for root coll
     //if (!requestTS && this.isRoot) {
-      //requestTS = "2";
+    //requestTS = "2";
     //}
 
     if (!mod) {
@@ -137,7 +139,8 @@ class Collection {
           timestamp: requestTS,
           referrer: request.referrer,
           mod,
-          request
+          request,
+          pageId
         };
 
         response = await this.getReplayResponse(query, event);
@@ -158,7 +161,7 @@ class Collection {
           }
         } 
 
-        return notFound(request, `<p style="margin: auto">Please wait, this page will reload after authentication...</p>`, 401);
+        return notFound(request, "<p style=\"margin: auto\">Please wait, this page will reload after authentication...</p>", 401);
       }
     }
 
@@ -173,21 +176,26 @@ class Collection {
     }
 
     if (!response.noRW) {
+      const basePrefix = this.prefix + (pageId ? `:${pageId}/` : "");
+      const basePrefixTS = basePrefix + requestTS;
+
       const headInsertFunc = (url) => {
         let presetCookie = response.headers.get("x-wabac-preset-cookie") || "";
         const setCookie = response.headers.get("Set-Cookie");
-        return this.makeHeadInsert(url, requestTS, response.date, presetCookie, setCookie, response.isLive, request.referrer);
+        const topUrl = basePrefixTS + (requestTS ? "/" : "") + url;
+        return this.makeHeadInsert(url, requestTS, response.date, topUrl, basePrefix, presetCookie, setCookie, response.isLive, request.referrer);
       };
 
       const workerInsertFunc = (text) => {
         return `
         (function() { self.importScripts('${this.staticPrefix}wombatWorkers.js');\
-            new WBWombat({'prefix': '${this.prefix + requestTS}/', 'prefixMod': '${this.prefix + requestTS}wkrf_/', 'originalURL': '${requestURL}'});\
+            new WBWombat({'prefix': '${basePrefixTS}/', 'prefixMod': '${basePrefixTS}wkrf_/', 'originalURL': '${requestURL}'});\
         })();` + text;
       };
 
       const noRewrite = mod === "id_" || mod === "wkrf_";
-      const prefix = this.prefix + requestTS + mod + "/";
+
+      const prefix = basePrefixTS + mod + "/";
 
       const rewriteOpts = {
         baseUrl: requestURL,
@@ -242,12 +250,14 @@ class Collection {
           query.url = parsed.href;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // ignore invalid URLs, no redirect
+    }
 
     return null;
   }
 
-  getWrappedModuleDecl(url) {
+  getWrappedModuleDecl() {
     const string = `
     var wrapObj = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
     if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
@@ -305,7 +315,9 @@ class Collection {
       return response;
     }
 
-    response = await this.store.getResource(query, this.prefix, event);
+    const opts = {pageId: query.pageId};
+
+    response = await this.store.getResource(query, this.prefix, event, opts);
 
     const {request, url} = query;
 
@@ -315,14 +327,14 @@ class Collection {
         const newUrl = new URL(response.headers.get("location"), url);
         query.url = newUrl.href;
         console.log(`resolve redirect ${url} -> ${query.url}`);
-        response = await this.store.getResource(query, this.prefix, event);
+        response = await this.store.getResource(query, this.prefix, event, opts);
       }
     }
 
     return response;
   }
 
-  async makeTopFrame(url, requestTS, isLive) {
+  async makeTopFrame(url, requestTS) {
     let baseUrl = null;
 
     if (this.baseFrameUrl) {
@@ -389,7 +401,7 @@ window.home = "${this.rootPrefix}";
 </script>
 </body>
 </html>
-`
+`;
     }
 
     let responseData = {
@@ -401,9 +413,7 @@ window.home = "${this.rootPrefix}";
     return new Response(content, responseData);
   }
 
-  makeHeadInsert(url, requestTS, date, presetCookie, setCookie, isLive, referrer) {
-    const prefix = this.prefix;
-    const topUrl = prefix + requestTS + (requestTS ? "/" : "") + url;
+  makeHeadInsert(url, requestTS, date, topUrl, prefix, presetCookie, setCookie, isLive, referrer) {
     const coll = this.name;
 
     const seconds = getSecondsStr(date);
@@ -425,7 +435,7 @@ window.home = "${this.rootPrefix}";
       presetCookie = parseSetCookie(setCookie, scheme, presetCookie);
     }
 
-    const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
+    const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : "\"\"";
     return `
 <!-- WB Insert -->
 <style>
@@ -434,7 +444,7 @@ body {
   font-size: inherit;
 }
 </style>
-${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ``}
+${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
 <script>
   wbinfo = {};
   wbinfo.top_url = "${topUrl}";
@@ -453,13 +463,14 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ``}
   wbinfo.prefix = decodeURI("${prefix}");
   wbinfo.mod = "mp_";
   wbinfo.is_framed = true;
-  wbinfo.is_live = ${isLive ? 'true' : 'false'};
+  wbinfo.is_live = ${isLive ? "true" : "false"};
   wbinfo.coll = "${coll}";
   wbinfo.proxy_magic = "";
   wbinfo.static_prefix = "${this.staticPrefix}";
   wbinfo.enable_auto_fetch = true;
   wbinfo.presetCookie = ${presetCookieStr};
   wbinfo.isSW = true;
+  wbinfo.pixel_ratio = 2;
 </script>
 <script src='${this.staticPrefix}wombat.js'> </script>
 <script>
@@ -478,7 +489,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ``}
   }
 </script>
 ${this.injectScripts.map((script) => `<script src='${script}'> </script>`).join("")}
-  `
+  `;
   }
 }
 

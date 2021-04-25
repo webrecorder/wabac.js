@@ -1,7 +1,7 @@
-import SAXParser from 'parse5-sax-parser';
-import { PassThrough } from 'stream';
+import SAXParser from "parse5-sax-parser";
+import { PassThrough } from "stream";
 
-import { decodeContent } from './rewrite/decoder';
+import { decodeContent } from "./rewrite/decoder";
 
 
 const SKIPPED_TAGS = ["script", "style", "header", "footer", "banner-div", "noscript"];
@@ -13,7 +13,7 @@ async function extractText(url, buffer, ce, te) {
   const textChunks = [];
   let context = null;
 
-  parser.on("text", (data, raw) => {
+  parser.on("text", (data/*, raw*/) => {
     if (context) {
       return;
     }
@@ -23,13 +23,13 @@ async function extractText(url, buffer, ce, te) {
     }
   });
 
-  parser.on('startTag', startTag => {
+  parser.on("startTag", startTag => {
     if (!startTag.selfClosing && SKIPPED_TAGS.includes(startTag.tagName)) {
       context = startTag.tagName;
     }
   });
 
-  parser.on('endTag', endTag => {
+  parser.on("endTag", endTag => {
     if (endTag.tagName === context) {
       context = null;
     }
