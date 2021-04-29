@@ -123,9 +123,9 @@ class HTMLRewriter
     return rv.join(", ");
   }
 
-
   rewriteTagAndAttrs(tag, attrRules, rewriter) {
     const isUrl = (val) => { return startsWithAny(val, DATA_RW_PROTOCOLS); };
+    const tagName = tag.tagName;
 
     for (let attr of tag.attrs) {
       const name = attr.name;
@@ -149,15 +149,17 @@ class HTMLRewriter
         attr.value = this.rewriteSrcSet(value, rewriter);
       }
 
-      else if (name === "crossorigin" || name === "integrity") {
+      // for now, download attribute doesn't work in Chrome
+      // but disabling triggers default behavior which often does
+      else if (name === "crossorigin" || name === "integrity" || name === "download") {
         attr.name = "_" + attr.name;
       }
 
-      else if (tag.tagName === "meta" && name === "content") {
+      else if (tagName === "meta" && name === "content") {
         attr.value = this.rewriteMetaContent(tag.attrs, attr, rewriter);
       }
 
-      else if (tag.tagName === "param" && isUrl(value)) {
+      else if (tagName === "param" && isUrl(value)) {
         attr.value = rewriter.rewriteUrl(attr.value);
       }
 
@@ -165,7 +167,7 @@ class HTMLRewriter
         attr.value = rewriter.rewriteUrl(attr.value);
       }
 
-      else if (tag.tagName === "base" && name === "href") {
+      else if (tagName === "base" && name === "href") {
         try {
           // rewrite url, keeping relativeness intact
           attr.value = rewriter.updateBaseUrl(attr.value);
@@ -174,7 +176,7 @@ class HTMLRewriter
         }
       }
 
-      else if (tag.tagName === "script" && name === "src") {
+      else if (tagName === "script" && name === "src") {
         const newValue = rewriter.rewriteUrl(attr.value);
         if (newValue === attr.value) {// && this.isRewritableUrl(newValue)) {
           tag.attrs.push({"name": "__wb_orig_src", "value": attr.value});
@@ -184,7 +186,7 @@ class HTMLRewriter
         }
       }
 
-      else if (tag.tagName === "object" && name === "data") {
+      else if (tagName === "object" && name === "data") {
         const type = this.getAttr(tag.attrs, "type");
 
         // convert object tag to iframe

@@ -195,6 +195,11 @@ export class WACZLoader
 
     const root = yaml.safeLoad(text);
 
+    if (root.textIndex) {
+      metadata.textIndex = root.textIndex;
+      root.config.textIndex = root.textIndex;
+    }
+
     if (root.config !== undefined) {
       db.initConfig(root.config);
     }
@@ -206,10 +211,6 @@ export class WACZLoader
 
     if (!metadata.title) {
       metadata.title = this.config.sourceName;
-    }
-
-    if (root.textIndex) {
-      metadata.textIndex = root.textIndex;
     }
 
     // All pages
