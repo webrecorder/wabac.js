@@ -195,19 +195,22 @@ export class WACZLoader
 
     const root = yaml.safeLoad(text);
 
+    const metadata = {
+      desc: root.desc,
+      title: root.title
+    };
+
     if (root.textIndex) {
       metadata.textIndex = root.textIndex;
+      if (!root.config) {
+        root.config = {};
+      }
       root.config.textIndex = root.textIndex;
     }
 
     if (root.config !== undefined) {
       db.initConfig(root.config);
     }
-
-    const metadata = {
-      desc: root.desc,
-      title: root.title
-    };
 
     if (!metadata.title) {
       metadata.title = this.config.sourceName;
@@ -277,7 +280,7 @@ export class WACZLoader
 
         entry = {prefix, filename, offset, length, loaded: false};
 
-        this.useSurt = true;
+        db.useSurt = true;
 
       } else {
         const inx = line.indexOf(" {");
@@ -288,7 +291,7 @@ export class WACZLoader
         const prefix = line.slice(0, inx);
         let {offset, length, filename} = JSON.parse(line.slice(inx));
 
-        this.useSurt = prefix.indexOf(")/") > 0;
+        db.useSurt = prefix.indexOf(")/") > 0;
 
         filename = filename || defaultFilename;
 

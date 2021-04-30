@@ -94,6 +94,12 @@ test(rewriteJS,
   "window.eval(a)",
   "window.WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).eval(a)");
 
+test(rewriteJS,
+  "a = this.location.href; exports.Foo = Foo; /* export className */",
+  "a = _____WB$wombat$check$this$function_____(this).location.href; exports.Foo = Foo; /* export className */"
+);
+
+
 // import rewrite
 test(rewriteJSImport, `\
 

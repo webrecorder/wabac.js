@@ -16,7 +16,7 @@ export class WACZRemoteArchiveDB extends RemoteSourceArchiveDB
 
     this.externalSources = [];
     this.fuzzyUrlRules = [];
-    this.useSurt = true;
+    this.useSurt = false;
     this.fullConfig = fullConfig;
     this.textIndex = fullConfig && fullConfig.metadata && fullConfig.metadata.textIndex;
 
