@@ -220,6 +220,8 @@ class FuzzyMatcher {
 
     const reqQuery = new URLSearchParams(reqUrl.search);
 
+    console.log(`num fuzzy match results ${results.length}`);
+
     for (const result of results) {
       // skip 204s and 304s from fuzzy matching (todo: reexamine)
       if (result.status === 204 || result.status === 304) {

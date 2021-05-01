@@ -23,6 +23,8 @@ export class WACZRemoteArchiveDB extends RemoteSourceArchiveDB
     if (fullConfig.extraConfig) {
       this.initConfig(fullConfig.extraConfig);
     }
+
+    this.ziploadercache = {};
   }
 
   _initDB(db, oldV, newV, tx) {
@@ -198,19 +200,36 @@ export class WACZRemoteArchiveDB extends RemoteSourceArchiveDB
         continue;
       }
 
+      const cacheKey = zipblock.filename + ":" + zipblock.offset;
+
+      if (this.ziploadercache[cacheKey]) {
+        cdxloaders.push(this.ziploadercache[cacheKey]);
+      } else {
+        this.ziploadercache[cacheKey] = this._doIDXLoad(cacheKey, zipblock);
+        cdxloaders.push(this.ziploadercache[cacheKey]);
+
+        zipblock.loaded = true;
+        await this.db.put("ziplines", zipblock);
+        delete this.ziploadercache[cacheKey];
+      }
+    }
+
+    await Promise.allSettled(cdxloaders);
+
+    return cdxloaders.length > 0;
+  }
+
+  async _doIDXLoad(cacheKey, zipblock) {
+    try {
       const filename = "indexes/" + zipblock.filename;
       const params = {offset: zipblock.offset, length: zipblock.length, unzip: true};
       const reader = await this.zipreader.loadFile(filename, params);
 
-      cdxloaders.push(new CDXLoader(reader).load(this));
-
-      zipblock.loaded = true;
-      await this.db.put("ziplines", zipblock);
+      const loader = new CDXLoader(reader);
+      return await loader.load(this);
+    } catch (e) {
+      delete this.ziploadercache[cacheKey];
     }
-
-    await Promise.all(cdxloaders);
-
-    return cdxloaders.length > 0;
   }
 
   async addZipLines(batch) {

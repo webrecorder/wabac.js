@@ -10,10 +10,11 @@ const BATCH_SIZE = 3000;
 // ===========================================================================
 class CDXFromWARCLoader extends WARCLoader
 {
-  constructor(reader, abort, id, sourceExtra = {}) {
+  constructor(reader, abort, id, sourceExtra = {}, shaPrefix = "sha-256:") {
     super(reader, abort, id);
     this.cdxindexer = null;
     this.sourceExtra = sourceExtra;
+    this.shaPrefix = shaPrefix;
   }
 
   filterRecord(record) {
@@ -91,7 +92,7 @@ class CDXFromWARCLoader extends WARCLoader
 
     let { digest } = cdx;
     if (digest && digest.indexOf(":") === -1) {
-      digest = "sha1:" + digest;
+      digest = this.shaPrefix + digest;
     }
 
     const entry = {url, ts, status, digest, mime, loaded: false, source};

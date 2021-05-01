@@ -7,6 +7,8 @@ import { fuzzyMatcher } from "./fuzzymatcher";
 import { ArchiveResponse } from "./response";
 
 
+const MAX_FUZZY_MATCH = 128;
+
 // ===========================================================================
 class ArchiveDB {
   constructor(name, opts = {}) {
@@ -524,7 +526,14 @@ class ArchiveDB {
     const tx = this.db.transaction("resources", "readonly");
 
     if (datetime) {
-      const res = await tx.store.get([url, datetime]);
+      let key;
+
+      if (!opts.noRevisits && !opts.pageId) {
+        key = IDBKeyRange.bound([url, datetime], [url, Number.MAX_SAFE_INTEGER]);
+      } else {
+        key = [url, datetime];
+      }
+      const res = await tx.store.get("resources", key);
       if (res) {
         return res;
       }
@@ -536,11 +545,15 @@ class ArchiveDB {
     for await (const cursor of tx.store.iterate(this.getLookupRange(url))) {
       const value = cursor.value;
 
-      if (lastValue && value.ts > datetime) {
-        if (opts.pageId && value.pageId && (value.pageId !== opts.pageId)) {
-          continue;
-        }
+      if (opts.pageId && value.pageId && (value.pageId !== opts.pageId)) {
+        continue;
+      }
 
+      if (opts.noRevisits && value.mime === "warc/revisit") {
+        continue;
+      }
+
+      if (lastValue && value.ts > datetime) {
         if (skip == 0) {
           const diff = value.ts - datetime;
           const diffLast = datetime - lastValue.ts;
@@ -551,7 +564,6 @@ class ArchiveDB {
       }
       lastValue = value;
     }
-
     return lastValue;
   }
 
@@ -559,7 +571,7 @@ class ArchiveDB {
     const {rule, prefix, fuzzyCanonUrl/*, fuzzyPrefix*/} = fuzzyMatcher.getRuleFor(url);
 
     if (fuzzyCanonUrl !== url) {
-      const result = await this.lookupUrl(fuzzyCanonUrl, "", opts);
+      const result = await this.lookupUrl(fuzzyCanonUrl, 0, opts);
       if (result) {
         return result;
       }
@@ -568,7 +580,7 @@ class ArchiveDB {
       //return fuzzyMatcher.fuzzyCompareUrls(url, results, rule);
     }
 
-    const results = await this.db.getAll("resources", this.getLookupRange(prefix, "prefix"));
+    const results = await this.db.getAll("resources", this.getLookupRange(prefix, "prefix"), MAX_FUZZY_MATCH);
 
     return fuzzyMatcher.fuzzyCompareUrls(url, results, rule);
   }
@@ -780,9 +792,8 @@ class ArchiveDB {
 
     switch (type) {
     case "prefix":
-      upper = url.slice(0, -1) + String.fromCharCode(url.charCodeAt(url.length - 1) + 1);
       lower = [url];
-      upper = [upper];
+      upper = [url.slice(0, -1) + String.fromCharCode(url.charCodeAt(url.length - 1) + 1)];
       break;
 
     case "host": {
@@ -795,19 +806,20 @@ class ArchiveDB {
     case "exact":
     default:
       lower = [url];
-      upper = [url + "!"];
+      //upper = [url + "!"];
+      upper = [url, Number.MAX_SAFE_INTEGER];
     }
 
-    let inclusive;
+    let exclusive;
 
     if (fromUrl) {
       lower = [fromUrl, fromTs || ""];
-      inclusive = true;
+      exclusive = true;
     } else {
-      inclusive = false;
+      exclusive = false;
     }
 
-    return IDBKeyRange.bound(lower, upper, inclusive, true);
+    return IDBKeyRange.bound(lower, upper, exclusive, true);
   }
 }
 
