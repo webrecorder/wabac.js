@@ -150,15 +150,16 @@ test("Lookup Url Exact Ts", async t => {
 });
 
 
-test("Lookup Url Closest Ts", async t => {
+test("Lookup Url Closest Ts After", async t => {
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("2015")),
     URL_DATA[0]
   );
 
+  // matches next timestamp after
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("202003040507")),
-    URL_DATA[0]
+    URL_DATA[3]
   );
 
   t.deepEqual(
