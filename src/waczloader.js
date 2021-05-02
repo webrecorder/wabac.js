@@ -309,5 +309,9 @@ export class WACZLoader
     }
 
     db.addZipLines(batch);
+
+    if (db.useSurt) {
+      this.config.useSurt = db.useSurt;
+    }
   }
 }
