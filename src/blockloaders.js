@@ -392,6 +392,9 @@ class FileHandleLoader
   }
 
   async getLength() {
+    if (this.size === undefined) {
+      await this.initFileObject();
+    }
     return this.size;
   }
 
