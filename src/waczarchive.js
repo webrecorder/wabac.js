@@ -14,6 +14,8 @@ export class WACZRemoteArchiveDB extends RemoteSourceArchiveDB
     super(name, sourceLoader, fullConfig.noCache);
     this.zipreader = new ZipRangeReader(sourceLoader);
 
+    this.autoHttpsCheck = false;
+
     this.externalSources = [];
     this.fuzzyUrlRules = [];
     this.useSurt = false;
@@ -202,19 +204,18 @@ export class WACZRemoteArchiveDB extends RemoteSourceArchiveDB
 
       const cacheKey = zipblock.filename + ":" + zipblock.offset;
 
-      if (this.ziploadercache[cacheKey]) {
-        cdxloaders.push(this.ziploadercache[cacheKey]);
-      } else {
-        this.ziploadercache[cacheKey] = this._doIDXLoad(cacheKey, zipblock);
-        cdxloaders.push(this.ziploadercache[cacheKey]);
+      let cachedLoad = this.ziploadercache[cacheKey];
 
-        zipblock.loaded = true;
-        await this.db.put("ziplines", zipblock);
-        delete this.ziploadercache[cacheKey];
+      if (!cachedLoad) {
+        cachedLoad = this._doIDXLoad(cacheKey, zipblock);
+        this.ziploadercache[cacheKey] = cachedLoad;
       }
+      cdxloaders.push(cachedLoad);
     }
 
-    await Promise.allSettled(cdxloaders);
+    if (cdxloaders.length) {
+      await Promise.allSettled(cdxloaders);
+    }
 
     return cdxloaders.length > 0;
   }
@@ -226,8 +227,14 @@ export class WACZRemoteArchiveDB extends RemoteSourceArchiveDB
       const reader = await this.zipreader.loadFile(filename, params);
 
       const loader = new CDXLoader(reader);
-      return await loader.load(this);
+      await loader.load(this);
+
+      zipblock.loaded = true;
+      await this.db.put("ziplines", zipblock);
+
     } catch (e) {
+      console.warn(e);
+    } finally {
       delete this.ziploadercache[cacheKey];
     }
   }

@@ -8,6 +8,10 @@ import { ArchiveResponse } from "./response";
 
 
 const MAX_FUZZY_MATCH = 128;
+const MAX_RESULTS = 16;
+const MAX_DATE_TS = new Date("99999-01-01").getTime();
+
+const REVISIT = "warc/revisit";
 
 // ===========================================================================
 class ArchiveDB {
@@ -20,6 +24,7 @@ class ArchiveDB {
 
     this.version = 2;
 
+    this.autoHttpsCheck = true;
     this.useRefCounts = !noRefCounts;
 
     this.allowRepeats = true;
@@ -296,7 +301,7 @@ class ArchiveDB {
     for (const data of datas) {
       let refCount = 1;
 
-      const array = data.mime === "warc/revisit" ? revisits : regulars;
+      const array = data.mime === REVISIT ? revisits : regulars;
 
       array.push(data);
 
@@ -357,12 +362,14 @@ class ArchiveDB {
         return null;
       }
 
-      const fuzzyRes = {url: fuzzyCanonUrl,
+      const fuzzyRes = {
+        url: fuzzyCanonUrl,
         ts: result.ts,
         origURL: result.url,
         origTS: result.ts,
         pageId: result.pageId,
-        digest: result.digest};
+        digest: result.digest
+      };
 
       return fuzzyRes;
     }
@@ -390,7 +397,7 @@ class ArchiveDB {
       isNew = true;
     }
 
-    if (data.mime !== "warc/revisit") {
+    if (data.mime !== REVISIT) {
       tx.objectStore("resources").put(data);
 
       const fuzzyUrlData = this.getFuzzyUrl(data);
@@ -413,7 +420,7 @@ class ArchiveDB {
     try {
       await tx.done;
     } catch (e) {
-      if (data.mime === "warc/revisit") {
+      if (data.mime === REVISIT) {
         console.log("Skip Duplicate revisit for: " + data.url);
       } else {
         console.log("Add Error for " + data.url);
@@ -425,7 +432,7 @@ class ArchiveDB {
   }
 
   async getResource(request, rwPrefix, event, opts = {}) {
-    const datetime = tsToDate(request.timestamp).getTime();
+    const ts = tsToDate(request.timestamp).getTime();
     let url = request.url;
 
     let result = null;
@@ -435,9 +442,9 @@ class ArchiveDB {
 
     if (url.startsWith("//")) {
       let useHttp = false;
-      result = await this.lookupUrl("https:" + url, datetime, newOpts);
+      result = await this.lookupUrl("https:" + url, ts, newOpts);
       if (!result) {
-        result = await this.lookupUrl("http:" + url, datetime, newOpts);
+        result = await this.lookupUrl("http:" + url, ts, newOpts);
         // use http if found or if referrer contains an http replay path
         // otherwise, default to https
         if (result || request.request.referrer.indexOf("/http://", 2) > 0) {
@@ -446,30 +453,15 @@ class ArchiveDB {
       }
       url = (useHttp ? "http:" : "https:") + url;
     } else {
-      result = await this.lookupUrl(url, datetime, newOpts);
-      if (!result && url.startsWith("http://")) {
+      result = await this.lookupUrl(url, ts, newOpts);
+      if (!result && this.autoHttpsCheck && url.startsWith("http://")) {
         const httpsUrl = url.replace("http://", "https://");
-        result = await this.lookupUrl(httpsUrl, datetime, newOpts);
+        result = await this.lookupUrl(httpsUrl, ts, newOpts);
         if (result) {
           url = httpsUrl;
         }
       }
     }
-
-    // let fuzzySearchData;
-
-    // if (!result) {
-    //   for await (const [fuzzyUrl, fuzzyData] of fuzzyMatcher.fuzzyUrls(url, true)) {
-    //     // result = await this.lookupUrl(fuzzyUrl);
-    //     // if (result) {
-    //     //   break;
-    //     // }
-    //     if (!fuzzySearchData) {
-    //       fuzzySearchData = fuzzyData;
-    //       break;
-    //     }
-    //   }
-    // }
 
     if (!result && this.fuzzyPrefixSearch) {
       result = await this.lookupQueryPrefix(url, opts);
@@ -522,49 +514,53 @@ class ArchiveDB {
     return result.payload;
   }
 
-  async lookupUrl(url, datetime, opts = {}) {
+  async lookupUrl(url, ts, opts = {}) {
     const tx = this.db.transaction("resources", "readonly");
 
-    if (datetime) {
-      let key;
+    if (ts) {
+      const range = IDBKeyRange.bound([url, ts], [url, MAX_DATE_TS]);
 
       if (!opts.noRevisits && !opts.pageId) {
-        key = IDBKeyRange.bound([url, datetime], [url, Number.MAX_SAFE_INTEGER]);
+        const result = await tx.store.get(range);
+        if (result) {
+          return result;
+        }
       } else {
-        key = [url, datetime];
-      }
-      const res = await tx.store.get("resources", key);
-      if (res) {
-        return res;
-      }
-    }
+        let results = await tx.store.getAll(range, MAX_RESULTS);
+        results = results || [];
 
-    let lastValue = null;
-    let skip = opts.skip || 0;
+        for (const result of results) {
+          if (opts.pageId && result.pageId && (result.pageId !== opts.pageId)) {
+            continue;
+          }
 
-    for await (const cursor of tx.store.iterate(this.getLookupRange(url))) {
-      const value = cursor.value;
+          if (opts.noRevisits && result.mime === REVISIT) {
+            continue;
+          }
 
-      if (opts.pageId && value.pageId && (value.pageId !== opts.pageId)) {
-        continue;
-      }
-
-      if (opts.noRevisits && value.mime === "warc/revisit") {
-        continue;
-      }
-
-      if (lastValue && value.ts > datetime) {
-        if (skip == 0) {
-          const diff = value.ts - datetime;
-          const diffLast = datetime - lastValue.ts;
-          return diff < diffLast ? value : lastValue;
-        } else {
-          skip--;
+          return result;
         }
       }
-      lastValue = value;
+    } 
+
+    // search reverse from ts (or from latest capture)
+    const range = IDBKeyRange.bound([url], [url, ts || MAX_DATE_TS]);
+
+    for await (const cursor of tx.store.iterate(range, "prev")) {
+      const result = cursor.value;
+
+      if (opts.pageId && result.pageId && (result.pageId !== opts.pageId)) {
+        continue;
+      }
+
+      if (opts.noRevisits && result.mime === REVISIT) {
+        continue;
+      }
+
+      return result;
     }
-    return lastValue;
+
+    return null;
   }
 
   async lookupQueryPrefix(url, opts) {
