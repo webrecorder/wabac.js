@@ -7,7 +7,7 @@ import { fuzzyMatcher } from "./fuzzymatcher";
 import { ArchiveResponse } from "./response";
 
 
-const MAX_FUZZY_MATCH = 128;
+const MAX_FUZZY_MATCH = 128000;
 const MAX_RESULTS = 16;
 const MAX_DATE_TS = new Date("99999-01-01").getTime();
 
@@ -576,6 +576,7 @@ class ArchiveDB {
       //return fuzzyMatcher.fuzzyCompareUrls(url, results, rule);
     }
 
+    //todo: explore optimizing with incremental loading?
     const results = await this.db.getAll("resources", this.getLookupRange(prefix, "prefix"), MAX_FUZZY_MATCH);
 
     return fuzzyMatcher.fuzzyCompareUrls(url, results, rule);
