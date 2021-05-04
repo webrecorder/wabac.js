@@ -59,8 +59,15 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       }
     }
 
-    if (remote.digest !== cdx.digest) {
-      console.log(`Wrong digest: expected ${cdx.digest}, got ${remote.digest}`);
+    if (remote.digest !== cdx.digest && cdx.digest && remote.digest) {
+      const remoteDigestParts = remote.digest.split(":");
+      const cdxDigestParts = cdx.digest.split(":");
+      if (remoteDigestParts.length === 2 && cdxDigestParts.length === 2 && 
+        cdxDigestParts[1] === remoteDigestParts[1]) {
+        cdx.digest = remoteDigestParts[0] + ":" + cdxDigestParts[1];
+      } else {
+        console.log(`Wrong digest: expected ${cdx.digest}, got ${remote.digest}`);
+      }
       //return null;
     }
 

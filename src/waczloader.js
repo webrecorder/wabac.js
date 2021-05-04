@@ -7,6 +7,7 @@ import { MAX_FULL_DOWNLOAD_SIZE } from "./utils";
 import { ZipRangeReader } from "./ziprangereader";
 
 const MAIN_PAGES_JSON = "pages/pages.jsonl";
+const EXTRA_PAGES_JSON = "pages/extraPages.jsonl";
 
 
 // ============================================================================
@@ -29,7 +30,7 @@ export class WACZLoader
 
     const singleEntryProgressUpdate = (percent, error, currentSize, totalSize, fileHandle = null) => {
       currentSize = currentSize || 0;
-      console.log(currentSize, fullCurrSize);
+      //console.log(currentSize, fullCurrSize);
       progressUpdate(Math.round((fullCurrSize + currentSize) * 100.0 / fullTotalSize), error, fullCurrSize + currentSize, fullTotalSize, fileHandle);
     };
 
@@ -99,8 +100,8 @@ export class WACZLoader
             metadata = warcMetadata;
           }
         }
-      } else if (filename.endsWith(".jsonl") && filename.startsWith("pages/") && filename !== MAIN_PAGES_JSON) {
-        await this.loadPagesJSONL(filename, false);
+      } else if (filename.endsWith(".jsonl") && filename.startsWith("pages/") && filename !== MAIN_PAGES_JSON && filename !== EXTRA_PAGES_JSON) {
+        await this.loadPagesJSONL(db, filename, false);
       }
 
       fullCurrSize += entryTotal;
@@ -144,6 +145,10 @@ export class WACZLoader
       if (pageInfo.hasText) {
         db.textIndex = metadata.textIndex = MAIN_PAGES_JSON;
       }
+    }
+
+    if (entries[EXTRA_PAGES_JSON]) {
+      db.textIndex = metadata.textIndex = EXTRA_PAGES_JSON;
     }
 
     return metadata;
