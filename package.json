@@ -18,7 +18,7 @@
     "parse5-html-rewriting-stream": "^6.0.1",
     "parse5-sax-parser": "^6.0.1",
     "path-parser": "^6.1.0",
-    "warcio": "^1.4.4",
+    "warcio": "^1.4.5",
     "wbn": "^0.0.3"
   },
   "devDependencies": {
