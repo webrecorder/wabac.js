@@ -9,7 +9,7 @@ import { ArchiveResponse } from "./response";
 
 const MAX_FUZZY_MATCH = 128000;
 const MAX_RESULTS = 16;
-const MAX_DATE_TS = new Date("99999-01-01").getTime();
+const MAX_DATE_TS = new Date("9999-01-01").getTime();
 
 const REVISIT = "warc/revisit";
 

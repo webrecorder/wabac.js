@@ -35,6 +35,8 @@ class Collection {
     this.baseFrameUrl = extraConfig.baseUrl;
     this.baseFrameHashReplay = extraConfig.baseUrlHashReplay || false;
 
+    this.liveRedirectOnNotFound = extraConfig.liveRedirectOnNotFound || false;
+
     this.rootPrefix = prefixes.root || prefixes.main;
 
     this.prefix = prefixes.main;
@@ -167,8 +169,15 @@ class Collection {
 
     if (!response) {
       const msg = `
-      <p>Sorry, the URL <b>${requestURL}</b> is not in this archive.</p>
-      <p><a target="_blank" href="${requestURL}">Try Live Version?</a></p>`;
+      <p>This page (${requestURL}) is not part of this archive.</p>
+      <p id="message"><a target="_blank" href="${requestURL}">Click Here</a> to load the live page in a new tab.</p>
+      ${this.liveRedirectOnNotFound && request.mode === "navigate" ? `
+      <script>
+      document.querySelector("#message").innerText = "Redirecting to live page...";
+      window.top.location.href = "${requestURL}";
+      </script>
+      ` : `
+      `}`; 
       return notFound(request, msg);
     } else if (response instanceof Response) {
       // custom Response, not an ArchiveResponse, just return
