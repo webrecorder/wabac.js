@@ -146,6 +146,7 @@ class Collection {
         };
 
         response = await this.getReplayResponse(query, event);
+        requestURL = query.url;
       }
     } catch (e) {
       if (e instanceof AuthNeededError) {
