@@ -498,6 +498,8 @@ class ArchiveDB {
 
     const extraOpts = result.extraOpts || null;
 
+    url = result.url;
+
     return new ArchiveResponse({url, payload, status, statusText, headers, date, extraOpts});
   }
 
@@ -574,6 +576,11 @@ class ArchiveDB {
 
       //const results = await this.db.getAll("resources", this.getLookupRange(fuzzyPrefix, "prefix"));
       //return fuzzyMatcher.fuzzyCompareUrls(url, results, rule);
+    }
+
+    // only do fuzzy prefix match for custom rules that have a query
+    if (!rule && prefix === url && prefix === fuzzyCanonUrl && !url.endsWith("?")) {
+      return null;
     }
 
     //todo: explore optimizing with incremental loading?
