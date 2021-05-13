@@ -169,16 +169,19 @@ class Collection {
     }
 
     if (!response) {
+      requestURL = decodeURIComponent(requestURL);
+
       const msg = `
-      <p>This page (${requestURL}) is not part of this archive.</p>
-      <p id="message"><a target="_blank" href="${requestURL}">Click Here</a> to load the live page in a new tab.</p>
+      <p>This page <i>${requestURL}</i> is not part of this archive.</p>
       ${this.liveRedirectOnNotFound && request.mode === "navigate" ? `
+      <p>Redirecting to live page now... (If this URL is a file download, the download should have started).</p>
       <script>
-      document.querySelector("#message").innerText = "Redirecting to live page...";
       window.top.location.href = "${requestURL}";
       </script>
       ` : `
-      `}`; 
+      `}
+      <p><a target="_blank" href="${requestURL}">Click Here</a> to load the live page in a new tab (or to download the URL as a file).</p>
+      `; 
       return notFound(request, msg);
     } else if (response instanceof Response) {
       // custom Response, not an ArchiveResponse, just return
