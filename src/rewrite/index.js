@@ -70,6 +70,7 @@ class Rewriter {
 
     this.headInsertFunc = headInsertFunc;
     this.workerInsertFunc = workerInsertFunc;
+    this.responseUrl = responseUrl;
   }
 
   getRewriteMode(request, response, url = "", mime = null) {
@@ -455,6 +456,16 @@ class Rewriter {
 
       case "url-rewrite":
         if (urlRewrite) {
+
+          // if location and redirect just to change scheme of the responseUrl
+          if (header[0] === "location" && this.url !== this.responseUrl) {
+            const otherScheme = (this.scheme === "http:" ? "https:" : "http:");
+            const responseUrlOtherScheme = otherScheme + this.responseUrl.slice(this.scheme.length);
+            if (header[1] === responseUrlOtherScheme) {
+              header[1] = otherScheme + this.url.slice(this.url.indexOf("//"));
+            }
+          }
+
           new_headers.append(header[0], this.rewriteUrl(header[1]));
         } else {
           new_headers.append(header[0], header[1]);

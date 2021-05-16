@@ -35,6 +35,8 @@ class Collection {
     this.baseFrameUrl = extraConfig.baseUrl;
     this.baseFrameHashReplay = extraConfig.baseUrlHashReplay || false;
 
+    this.liveRedirectOnNotFound = extraConfig.liveRedirectOnNotFound || false;
+
     this.rootPrefix = prefixes.root || prefixes.main;
 
     this.prefix = prefixes.main;
@@ -144,6 +146,7 @@ class Collection {
         };
 
         response = await this.getReplayResponse(query, event);
+        requestURL = query.url;
       }
     } catch (e) {
       if (e instanceof AuthNeededError) {
@@ -166,9 +169,19 @@ class Collection {
     }
 
     if (!response) {
+      requestURL = decodeURIComponent(requestURL);
+
       const msg = `
-      <p>Sorry, the URL <b>${requestURL}</b> is not in this archive.</p>
-      <p><a target="_blank" href="${requestURL}">Try Live Version?</a></p>`;
+      <p>This page <i>${requestURL}</i> is not part of this archive.</p>
+      ${this.liveRedirectOnNotFound && request.mode === "navigate" ? `
+      <p>Redirecting to live page now... (If this URL is a file download, the download should have started).</p>
+      <script>
+      window.top.location.href = "${requestURL}";
+      </script>
+      ` : `
+      `}
+      <p><a target="_blank" href="${requestURL}">Click Here</a> to load the live page in a new tab (or to download the URL as a file).</p>
+      `; 
       return notFound(request, msg);
     } else if (response instanceof Response) {
       // custom Response, not an ArchiveResponse, just return

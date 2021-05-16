@@ -9,7 +9,7 @@ import { ArchiveResponse } from "./response";
 
 const MAX_FUZZY_MATCH = 128000;
 const MAX_RESULTS = 16;
-const MAX_DATE_TS = new Date("99999-01-01").getTime();
+const MAX_DATE_TS = new Date("9999-01-01").getTime();
 
 const REVISIT = "warc/revisit";
 
@@ -498,6 +498,8 @@ class ArchiveDB {
 
     const extraOpts = result.extraOpts || null;
 
+    url = result.url;
+
     return new ArchiveResponse({url, payload, status, statusText, headers, date, extraOpts});
   }
 
@@ -574,6 +576,11 @@ class ArchiveDB {
 
       //const results = await this.db.getAll("resources", this.getLookupRange(fuzzyPrefix, "prefix"));
       //return fuzzyMatcher.fuzzyCompareUrls(url, results, rule);
+    }
+
+    // only do fuzzy prefix match for custom rules that have a query
+    if (!rule && prefix === url && prefix === fuzzyCanonUrl && !url.endsWith("?")) {
+      return null;
     }
 
     //todo: explore optimizing with incremental loading?

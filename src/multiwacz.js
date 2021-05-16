@@ -3,7 +3,7 @@ import { ZipRangeReader } from "./ziprangereader";
 import { OnDemandPayloadArchiveDB } from "./remotearchivedb";
 import { SingleRecordWARCLoader } from "./warcloader";
 import { CDXLoader } from "./cdxloader";
-import { getTS, tsToDate } from "./utils";
+import { tsToDate } from "./utils";
 import { getSurt } from "warcio";
 import { createLoader } from "./blockloaders";
 
@@ -274,15 +274,15 @@ export class MultiWACZCollection extends OnDemandPayloadArchiveDB
     }
   }
 
-  async loadCDXFromIDX(waczname, url, datetime) {
-    const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
+  async loadCDXFromIDX(waczname, url/*, datetime*/) {
+    //const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
 
     let prefix;
     let checkPrefix;
 
     const surt = this.waczfiles[waczname].useSurt ? getSurt(url) : url;
 
-    prefix = surt + " " + timestamp;
+    prefix = surt + " 9999";
     checkPrefix = surt;
 
     const tx = this.db.transaction("ziplines", "readonly");
