@@ -1,7 +1,6 @@
 import { RemoteSourceArchiveDB } from "./remotearchivedb";
 import { SingleRecordWARCLoader } from "./warcloader";
 import { CDXLoader } from "./cdxloader";
-import { getTS } from "./utils";
 import { LiveAccess } from "./remoteproxy";
 import { getSurt } from "warcio";
 import { ZipRangeReader } from "./ziprangereader";
@@ -167,15 +166,15 @@ export class WACZRemoteArchiveDB extends RemoteSourceArchiveDB
     return await loader.load();
   }
 
-  async loadFromZiplines(url, datetime) {
-    const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
+  async loadFromZiplines(url/*, datetime*/) {
+    //const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
 
     let prefix;
     let checkPrefix;
 
     const surt = this.useSurt ? getSurt(url) : url;
 
-    prefix = surt + " " + timestamp;
+    prefix = surt + " 9999";
     checkPrefix = surt;
 
     const tx = this.db.transaction("ziplines", "readonly");
