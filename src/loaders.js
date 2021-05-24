@@ -293,14 +293,11 @@ class WorkerLoader extends CollectionLoader
       let res;
 
       try {
-        if (await this.hasCollection(name)) {
+        res = await this.colldb.get("colls", name);
+        if (res) {
           if (!event.data.skipExisting) {
             await this.deleteColl(name);
             res = await this.addCollection(event.data, progressUpdate);
-          } else {
-            res = true;
-            //coll = this.collections[name];
-            //return;
           }
         } else {
           res = await this.addCollection(event.data, progressUpdate);
