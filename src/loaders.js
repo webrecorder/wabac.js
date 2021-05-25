@@ -507,6 +507,7 @@ Make sure this is a valid URL and you have access to this file.`);
           if (abort) {
             abort.abort();
           }
+          return false;
         }
 
       } else if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
