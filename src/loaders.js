@@ -503,7 +503,7 @@ Make sure this is a valid URL and you have access to this file.`);
           db = new WACZRemoteArchiveDB(config.dbname, sourceLoader, config);
           type = "remotezip";
         } else {
-          progressUpdate(0, `Sorry, can't load this WACZ file due to lack of range request support on the server`);
+          progressUpdate(0, "Sorry, can't load this WACZ file due to lack of range request support on the server");
           if (abort) {
             abort.abort();
           }
