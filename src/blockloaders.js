@@ -1,4 +1,4 @@
-import { AuthNeededError, AccessDeniedError, sleep } from "./utils";
+import { AuthNeededError, AccessDeniedError, RangeError, sleep } from "./utils";
 
 import { AsyncIterReader } from "warcio";
 import { initIPFS } from "./ipfs";
@@ -66,7 +66,7 @@ class HttpRangeLoader
       }
     }
 
-    if (!this.isValid) {
+    if (!this.isValid || !this.canLoadOnDemand) {
       abort = new AbortController();
       const signal = abort.signal;
       response = await fetch(this.url, {headers, signal});
@@ -124,7 +124,9 @@ class HttpRangeLoader
     const headers = new Headers(this.headers);
     headers.set("Range", `bytes=${offset}-${offset + length - 1}`);
 
-    const options = {signal, headers};
+    const cache = "no-store";
+
+    const options = {signal, headers, cache};
 
     let resp = null;
 

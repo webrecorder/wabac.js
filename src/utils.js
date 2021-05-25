@@ -200,6 +200,10 @@ export class RangeError
   constructor(info = {}) {
     this.info = info;
   }
+
+  toString() {
+    return JSON.stringify(this.info);
+  }
 }
 
 export class AuthNeededError extends RangeError
