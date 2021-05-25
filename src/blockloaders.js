@@ -56,7 +56,7 @@ class HttpRangeLoader
 
     if (tryHead) {
       try {
-        response = await fetch(this.url, {headers, method: "HEAD"});
+        response = await fetch(this.url, {headers, method: "HEAD", cache: "no-store"});
         if (response.status === 200 || response.status == 206) {
           this.canLoadOnDemand = ((response.status === 206) || response.headers.get("Accept-Ranges") === "bytes");
           this.isValid = true;
@@ -69,7 +69,7 @@ class HttpRangeLoader
     if (!this.isValid || !this.canLoadOnDemand) {
       abort = new AbortController();
       const signal = abort.signal;
-      response = await fetch(this.url, {headers, signal});
+      response = await fetch(this.url, {headers, signal, cache: "no-store"});
       this.canLoadOnDemand = ((response.status === 206) || response.headers.get("Accept-Ranges") === "bytes");
       this.isValid = (response.status === 206 || response.status === 200);
       // if emulating HEAD, abort here
