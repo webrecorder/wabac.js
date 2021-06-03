@@ -162,7 +162,15 @@ export function getStatusText(status) {
 }
 
 export function isAjaxRequest(request) {
-  return request.headers.get("X-Pywb-Requested-With") === "XMLHttpRequest";
+  if (request.headers.get("X-Pywb-Requested-With") === "XMLHttpRequest") {
+    return true;
+  }
+
+  if (request.mode === "cors") {
+    return true;
+  }
+
+  return false;
 }
 
 

@@ -304,8 +304,20 @@ class WorkerLoader extends CollectionLoader
         }
   
         if (!res) {
+          if (event.data.name) {
+            try {
+              await deleteDB("db:" + event.data.name, {
+                blocked(reason) {
+                  console.log(`Load failed and unable to delete ${event.data.name}: ${reason}`);
+                }
+              });
+            } catch (e) {
+              console.warn(e);
+            }
+          }
           return;
         }
+
       } catch (e) {
         console.warn(e);
         if (e instanceof AuthNeededError) {

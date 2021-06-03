@@ -196,7 +196,7 @@ class Collection {
         let presetCookie = response.headers.get("x-wabac-preset-cookie") || "";
         const setCookie = response.headers.get("Set-Cookie");
         const topUrl = basePrefixTS + (requestTS ? "/" : "") + url;
-        return this.makeHeadInsert(url, requestTS, response.date, topUrl, basePrefix, presetCookie, setCookie, response.isLive, request.referrer);
+        return this.makeHeadInsert(url, requestTS, response.date, topUrl, basePrefix, presetCookie, setCookie, response.isLive, request.referrer, response.extraOpts);
       };
 
       const workerInsertFunc = (text) => {
@@ -426,7 +426,7 @@ window.home = "${this.rootPrefix}";
     return new Response(content, responseData);
   }
 
-  makeHeadInsert(url, requestTS, date, topUrl, prefix, presetCookie, setCookie, isLive, referrer) {
+  makeHeadInsert(url, requestTS, date, topUrl, prefix, presetCookie, setCookie, isLive, referrer, extraOpts) {
     const coll = this.name;
 
     const seconds = getSecondsStr(date);
@@ -447,6 +447,8 @@ window.home = "${this.rootPrefix}";
     if (setCookie) {
       presetCookie = parseSetCookie(setCookie, scheme, presetCookie);
     }
+
+    const pixelRatio = extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 1;
 
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : "\"\"";
     return `
@@ -483,7 +485,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   wbinfo.enable_auto_fetch = true;
   wbinfo.presetCookie = ${presetCookieStr};
   wbinfo.isSW = true;
-  wbinfo.pixel_ratio = 2;
+  wbinfo.pixel_ratio = ${pixelRatio};
 </script>
 <script src='${this.staticPrefix}wombat.js'> </script>
 <script>
