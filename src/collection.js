@@ -169,7 +169,11 @@ class Collection {
     }
 
     if (!response) {
-      requestURL = decodeURIComponent(requestURL);
+      try {
+        requestURL = decodeURIComponent(requestURL);
+      } catch(e) {
+        // ignore invalid URL
+      }
 
       const msg = `
       <p>This page <i>${requestURL}</i> is not part of this archive.</p>
