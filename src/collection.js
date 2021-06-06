@@ -453,7 +453,7 @@ window.home = "${this.rootPrefix}";
     }
 
     const pixelRatio = extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 1;
-
+    const storage = extraOpts && extraOpts.storage ? btoa(extraOpts.storage) : "";
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : "\"\"";
     return `
 <!-- WB Insert -->
@@ -488,6 +488,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   wbinfo.static_prefix = "${this.staticPrefix}";
   wbinfo.enable_auto_fetch = true;
   wbinfo.presetCookie = ${presetCookieStr};
+  wbinfo.storage = "${storage}";
   wbinfo.isSW = true;
   wbinfo.pixel_ratio = ${pixelRatio};
 </script>

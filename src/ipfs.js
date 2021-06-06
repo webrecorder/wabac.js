@@ -46,7 +46,8 @@ class IPFSClient
 
     if (!self.IpfsCore && IPFS_CORE_JS) {
       const resp = await fetch(IPFS_CORE_JS);
-      eval(await resp.text());
+      const loadFunc = new Function(await resp.text());
+      loadFunc();
     }
   
     this.ipfs = await self.IpfsCore.create(this.initOptions);
