@@ -35,6 +35,13 @@ const DEFAULT_RULES = [
   },
 
   {
+    contains: ["instagram.com/"],
+    rxRules: [
+      [/"is_dash_eligible":true/, ruleReplace("\"is_dash_eligible\":false")]
+    ]
+  },
+
+  {
     contains: ["api.twitter.com/2/", "twitter.com/i/api/2/"],
     rxRules: [
       [/"video_info".*?}]}/, ruleRewriteTwitterVideo]

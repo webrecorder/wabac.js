@@ -117,9 +117,11 @@ class Collection {
       return await this.makeTopFrame(requestURL, requestTS);
     }
 
-    const hash = requestURL.indexOf("#");
-    if (hash > 0) {
-      requestURL = requestURL.substring(0, hash);
+    const hashIndex = requestURL.indexOf("#");
+    let hash = null;
+    if (hashIndex > 0) {
+      hash = requestURL.slice(hashIndex);
+      requestURL = requestURL.substring(0, hashIndex);
     }
 
     // exact or fuzzy match
@@ -171,6 +173,7 @@ class Collection {
     if (!response) {
       try {
         requestURL = decodeURIComponent(requestURL);
+        requestURL += hash;
       } catch(e) {
         // ignore invalid URL
       }
