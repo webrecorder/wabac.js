@@ -118,7 +118,7 @@ class Collection {
     }
 
     const hashIndex = requestURL.indexOf("#");
-    let hash = null;
+    let hash = "";
     if (hashIndex > 0) {
       hash = requestURL.slice(hashIndex);
       requestURL = requestURL.substring(0, hashIndex);

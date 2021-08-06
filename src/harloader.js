@@ -48,27 +48,32 @@ class HARLoader extends BaseParser {
 
   parseEntries(har) {
     for (const entry of har.log.entries) {
-      if (!entry.response.content || !entry.response.content.text) {
-        console.log("Skipping: " + entry.request.url);
-        continue;
-      }
-
-      let payload = null;
-
-      try {
-        payload = Uint8Array.from(atob(entry.response.content.text), c => c.charCodeAt(0));
-      } catch (e) {
-        payload = entry.response.content.text;
-      }
-
-      console.log("Added: " + entry.request.url);
-
       const ts = new Date(entry.startedDateTime).getTime();
 
       const respHeaders = {};
 
       for (const {name, value} of entry.response.headers) {
         respHeaders[name] = value;
+      }
+
+      let payload = null;
+
+      const encoder = new TextEncoder();
+
+      if (entry.response.content && entry.response.content.text) {
+        try {
+          payload = Uint8Array.from(atob(entry.response.content.text), c => c.charCodeAt(0));
+        } catch (e) {
+          payload = entry.response.content.text;
+        }
+      } else {
+        const cl = respHeaders["Content-Length"];
+        if (cl && cl !== "0") {
+          console.log(`Warning: Content-Length ${cl} but no content found for ${entry.request.url}`);
+          payload = encoder.encode("Sorry, the HAR file did not include the content for this resource.");
+        } else {
+          payload = Uint8Array.from([]);
+        }
       }
 
       this.addResource({url: entry.request.url,
