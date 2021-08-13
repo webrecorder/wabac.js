@@ -6,11 +6,15 @@ import { doRewrite } from "./helpers";
 
 
 // ===========================================================================
-async function rewriteHtml(t, content, expected, {useBaseRules = true, url = ""} = {}) {
+async function rewriteHtml(t, content, expected, {useBaseRules = true, url = "", headInsertText} = {}) {
   const rwArgs = {content, contentType: "text/html", useBaseRules};
 
   if (url) {
     rwArgs.url = url;
+  }
+
+  if (headInsertText) {
+    rwArgs.headInsertFunc = () => { return headInsertText; };
   }
 
   let actual = await doRewrite(rwArgs);
@@ -309,6 +313,33 @@ test("textarea text 2", rewriteHtml,
   "<textarea>&quot;loadOrderID&quot;&#x3d;0&amp;&quot;</textarea>",
   "<textarea>&quot;loadOrderID&quot;&#x3d;12&amp;&quot;</textarea>",
   {url: "https://example.com/foo/bar?a=b&:loadOrderID=12&some=param"});
+
+test("head insert with head", rewriteHtml,
+  "<html><head></head><body></body></html>",
+  "<html><head><!-- head insert --></head><body></body></html>",
+  {headInsertText: "<!-- head insert -->"}
+);
+
+test("head insert with html", rewriteHtml,
+  "<html><body>content</body></html>",
+  "<html><!-- head insert --><body>content</body></html>",
+  {headInsertText: "<!-- head insert -->"}
+);
+
+test("head insert body only", rewriteHtml,
+  "<body>content</body>",
+  "<!-- head insert --><body>content</body>",
+  {headInsertText: "<!-- head insert -->"}
+);
+
+test("head insert no tags", rewriteHtml,
+  "content",
+  "<!-- head insert -->content",
+  {headInsertText: "<!-- head insert -->"}
+);
+
+
+
 
 
 

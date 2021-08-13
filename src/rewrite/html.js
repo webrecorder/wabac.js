@@ -246,14 +246,13 @@ class HTMLRewriter
     rwStream.tokenizer.preprocessor.bufferWaterline = MAX_STREAM_CHUNK_SIZE;
 
     let insertAdded = false;
-    let hasData = false;
 
     let context = "";
     let scriptRw = false;
     let replaceTag = null;
 
     const addInsert = () => {
-      if (!insertAdded && hasData && rewriter.headInsertFunc) {
+      if (!insertAdded && rewriter.headInsertFunc) {
         const headInsert = rewriter.headInsertFunc(rewriter.url);
         if (headInsert) {
           rwStream.emitRaw(headInsert);
@@ -271,7 +270,6 @@ class HTMLRewriter
       this.rewriteTagAndAttrs(startTag, tagRules || {}, rewriter);
 
       if (!insertAdded && !["head", "html"].includes(startTag.tagName)) {
-        hasData = true;
         addInsert();
       }
 
@@ -295,6 +293,10 @@ class HTMLRewriter
         if (!startTag.selfClosing) {
           context = startTag.tagName;
         }
+        break;
+
+      case "head":
+        addInsert();
         break;
       }
 
@@ -337,6 +339,7 @@ class HTMLRewriter
     }
 
     const sourceGen = response.createIter();
+    let hasData = false;
 
     response.setReader(new ReadableStream({
       async start(controller) {
@@ -351,6 +354,9 @@ class HTMLRewriter
         for await (const chunk of sourceGen) {
           rwStream.write(decodeLatin1(chunk), {encoding: "latin1"});
           hasData = true;
+        }
+        if (hasData) {
+          addInsert();
         }
 
         rwStream.end();
