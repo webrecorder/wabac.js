@@ -279,20 +279,18 @@ class ChunkStore
     this.nextChunk = new Promise(resolve => this._nextResolve = resolve);
   }
 
-  async consume(readable) {
-    for await (const chunk of AsyncIterReader.fromReadable(readable.getReader())) {
-      this.chunks.push(chunk);
-      this.size += chunk.byteLength;
-      this._nextResolve(true);
-      this.nextChunk = new Promise(resolve => this._nextResolve = resolve);
-    }
+  add(chunk) {
+    this.chunks.push(chunk);
+    this.size += chunk.byteLength;
+    this._nextResolve(true);
+    this.nextChunk = new Promise(resolve => this._nextResolve = resolve);
+  }
 
+  concatChunks() {
     this._nextResolve(false);
     this.done = true;
 
-    const buff = BaseAsyncIterReader.concatChunks(this.chunks, this.size);
-
-    return buff;
+    return BaseAsyncIterReader.concatChunks(this.chunks, this.size);
   }
 
   async* getChunkIter() {
@@ -326,9 +324,8 @@ class PayloadBufferingReader extends BaseAsyncIterReader
     this.digest = digest;
     this.url = url;
 
-    this.fullbuff = null;
-
     this.commit = true;
+    this.fullbuff = null;
 
     this.isRange = false;
     this.totalLength = -1;
@@ -356,43 +353,50 @@ class PayloadBufferingReader extends BaseAsyncIterReader
   }
 
   async* [Symbol.asyncIterator]() {
-    for await (const chunk of this.reader) {
-      yield chunk;
-    }
-  }
+    let chunkstore = null;
 
-  async doCommit(readable) {
-    const chunkstore = new ChunkStore(this.totalLength);
+    if (this.commit) {
+      chunkstore = new ChunkStore(this.totalLength);
 
-    try {
       if (this.isRange) {
         console.log(`Store stream for ${this.url}, ${this.totalLength}`);
         this.streamMap.set(this.url, chunkstore);
       }
-
-      this.fullbuff = await chunkstore.consume(readable);
-
-      // if limit is not 0, didn't consume expected amount... something likely wrong
-      if (this.reader.limit !== 0) {
-        console.warn(`Expected payload not consumed, ${this.reader.limit} bytes left`);
-      } else if (this.commit) {
-        await this.db.commitPayload(this.fullbuff, this.digest);
-      }
-    } catch (e) {
-      console.warn(e);
     }
 
-    if (this.isRange) {
+    for await (const chunk of this.reader) {
+      if (chunkstore) {
+        chunkstore.add(chunk);
+      }
+
+      yield chunk;
+    }
+
+    if (this.reader.limit !== 0) {
+      console.warn(`Expected payload not consumed, ${this.reader.limit} bytes left`);
+    } else if (this.commit) {
+      this.fullbuff = chunkstore.concatChunks();
+      await this.db.commitPayload(this.fullbuff, this.digest);
+    }
+
+    if (this.commit && this.isRange) {
       this.streamMap.delete(this.url);
       console.log(`Delete stream for ${this.url}`);
     }
-
-    return this.fullbuff;
   }
 
-  readFully() {
-    this.commit = true;
-    return this.doCommit(super.getReadableStream());
+  async _consumeIter(iter) {
+    // eslint-disable-next-line no-unused-vars
+    for await (const chunk of iter);
+  }
+
+  async readFully() {
+    if (!this.fullbuff) {
+      // should not set if already false
+      //this.commit = true;
+      await this._consumeIter(this);
+    }
+    return this.fullbuff;
   }
 
   getReadableStream() {
@@ -402,16 +406,17 @@ class PayloadBufferingReader extends BaseAsyncIterReader
       return stream;
     }
 
+    // if committing, need to consume entire stream, so tee reader and consume async
     const tees = stream.tee();
 
-    this.doCommit(tees[1]);
+    this._consumeIter(AsyncIterReader.fromReadable(tees[1].getReader()));
 
     // load a single, fixed chunk (only used for 0-1 safari range)
     if (this.fixedSize) {
       return this.getFixedSizeReader(tees[0].getReader(), this.fixedSize);
+    } else {
+      return tees[0];
     }
-
-    return tees[0];
   }
 
   getFixedSizeReader(reader, size) {

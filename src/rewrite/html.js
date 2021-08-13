@@ -10,6 +10,8 @@ const DATA_RW_PROTOCOLS = ["http://", "https://", "//"];
 
 const defmod = "mp_";
 
+const MAX_HTML_REWRITE_SIZE = 5000000;
+
 const rewriteTags = {
   "a": { "href": defmod },
   "applet": {
@@ -233,6 +235,11 @@ class HTMLRewriter
       return response;
     }
 
+    if (response.expectedLength() > MAX_HTML_REWRITE_SIZE) {
+      console.warn("Skipping rewriting, HTML file too big: " + response.expectedLength());
+      return response;
+    }
+
     const rewriter = this.rewriter;
 
     const rwStream = new RewritingStream();
@@ -331,7 +338,7 @@ class HTMLRewriter
 
     const sourceGen = response.createIter();
 
-    const rs = new ReadableStream({
+    response.setReader(new ReadableStream({
       async start(controller) {
         rwStream.on("data", (text) => {
           controller.enqueue(encodeLatin1(text));
@@ -348,9 +355,7 @@ class HTMLRewriter
 
         rwStream.end();
       },
-    });
-
-    response.setReader(rs);
+    }));
     
     return response;
   }

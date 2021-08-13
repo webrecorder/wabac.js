@@ -89,6 +89,14 @@ class ArchiveResponse
     }
   }
 
+  expectedLength() {
+    if (this.buffer) {
+      return this.buffer.length;
+    } else if (this.reader && this.reader.reader) {
+      return this.reader.reader.length;
+    }
+  }
+
   createIter() {
     const buffer = this.buffer;
     const reader = this.reader;
