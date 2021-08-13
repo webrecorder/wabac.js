@@ -3,7 +3,7 @@
 import parseLinkHeader from "parse-link-header";
 import formatLinkHeader from "format-link-header";
 
-import { containsAny, isAjaxRequest } from "../utils.js";
+import { isAjaxRequest } from "../utils.js";
 
 import { decodeResponse } from "./decoder";
 import { ArchiveResponse } from "../response";
@@ -28,14 +28,7 @@ const NO_WOMBAT_REGEX = /WB_wombat_/g;
 //const JSONP_REGEX = /^(?:[ \t]*(?:(?:\/\*[^\*]*\*\/)|(?:\/\/[^\n]+[\n])))*[ \t]*(\w+)\(\{/m;
 const JSONP_REGEX = /^(?:\s*(?:(?:\/\*[^*]*\*\/)|(?:\/\/[^\n]+[\n])))*\s*([\w.]+)\([{[]/;
 
-const JSONP_CALLBACK_REGEX = /[?].*(?:callback|jsonp)=([^&]+)/;
-
-const JSONP_CONTAINS = [
-  "callback=jQuery",
-  "callback=jsonp",
-  ".json?",
-  "jsonp="
-];
+const JSONP_CALLBACK_REGEX = /[?].*(?:callback|jsonp)=([^&]+)/i;
 
 // JS Rewriters
 const jsRules = new DomainSpecificRuleSet(JSRewriter);
@@ -71,6 +64,8 @@ class Rewriter {
     this.headInsertFunc = headInsertFunc;
     this.workerInsertFunc = workerInsertFunc;
     this.responseUrl = responseUrl;
+
+    this._jsonpCallback = null;
   }
 
   getRewriteMode(request, response, url = "", mime = null) {
@@ -119,7 +114,7 @@ class Rewriter {
     case "text/javascript":
     case "application/javascript":
     case "application/x-javascript":
-      if (containsAny(url, JSONP_CONTAINS)) {
+      if (this.parseJSONPCallback(url)) {
         return "jsonp";
       }
       return url.endsWith(".json") ? "json" : "js";
@@ -348,6 +343,17 @@ class Rewriter {
     return text;
   }
 
+  parseJSONPCallback(url) {
+    const callback = url.match(JSONP_CALLBACK_REGEX);
+    if (!callback || callback[1] === "?") {
+      this._jsonpCallback = false;
+      return false;
+    }
+
+    this._jsonpCallback = callback[1];
+    return true;
+  }
+
   // JSONP
   rewriteJSONP(text) {
     const jsonM = text.match(JSONP_REGEX);
@@ -355,14 +361,16 @@ class Rewriter {
       return text;
     }
 
-    const callback = this.baseUrl.match(JSONP_CALLBACK_REGEX);
+    // if null, hasn't been parsed yet
+    if (this._jsonpCallback === null) {
+      this.parseJSONPCallback(this.baseUrl);
+    }
 
-    // if no callback found, or callback is just '?', not jsonp
-    if (!callback || callback[1] === "?") {
+    if (this._jsonpCallback === false) {
       return text;
     }
 
-    return callback[1] + text.slice(text.indexOf(jsonM[1]) + jsonM[1].length);
+    return this._jsonpCallback + text.slice(text.indexOf(jsonM[1]) + jsonM[1].length);
   }
 
   //Headers

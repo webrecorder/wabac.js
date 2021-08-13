@@ -9,7 +9,7 @@ class JSRewriter extends RxRewriter {
   constructor(extraRules) {
     super();
 
-    this.thisRw = "_____WB$wombat$check$this$function_____(this)";
+    const thisRw = "_____WB$wombat$check$this$function_____(this)";
 
     const checkLoc = "((self.__WB_check_loc && self.__WB_check_loc(location)) || {}).href = ";
 
@@ -28,35 +28,75 @@ class JSRewriter extends RxRewriter {
 
     const evalStr = "WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).";
 
+    function addPrefix(prefix) {
+      return x => prefix + x;
+    }
+  
+    function addPrefixAfter1(prefix) {
+      return x => x[0] + prefix + x.slice(1);
+    }
+  
+    function addSuffix(suffix) {
+      return (x, offset, string) => {
+        if (offset > 0) {
+          const prev = string[offset - 1];
+          if (prev === "." || prev === "$") {
+            return x;
+          }
+        }
+        return x + suffix;
+      };
+    }
+  
+    function replaceThis() {
+      return x => x.replace("this", thisRw);
+    }
+
+    function replace(src, target) {
+      return x => x.replace(src, target);
+    }
+  
+    function replaceThisProp() {
+      return (x, offset, string) => {
+        const prev = (offset > 0 ? string[offset - 1] : "");
+        if (prev === "\n") {
+          return x.replace("this", ";" + thisRw);
+        } else if (prev !== "." && prev !== "$") {
+          return x.replace("this", thisRw);
+        } else {
+          return x;
+        }
+      };
+    }
 
     this.rules = [
-      // rewriting 'eval(....)' - invocation
-      [/[^$,]\beval\s*\(/, this.addPrefixAfter1(evalStr)],
+      // rewriting 'eval(...)' - invocation
+      [/(?:^|\s)eval\s*\(/, addPrefixAfter1(evalStr)],
 
       // rewriting 'x = eval' - no invocation
-      [/[^$]\beval\b/, this.addPrefixAfter1("WB_wombat_")],
+      [/[=]\s*\beval\b(?![(:.$])/, replace("eval", "self.eval")],
 
       // rewriting .postMessage -> __WB_pmw(self).postMessage
-      [/\.postMessage\b\(/, this.addPrefix(".__WB_pmw(self)")],
+      [/\.postMessage\b\(/, addPrefix(".__WB_pmw(self)")],
 
       // rewriting 'location = ' to custom expression '(...).href =' assignment
-      [/[^$.]\s*\blocation\b\s*[=]\s*(?![\s=])/, this.addSuffix(checkLoc)],
+      [/[^$.]\s*\blocation\b\s*[=]\s*(?![\s=])/, addSuffix(checkLoc)],
 
       // rewriting 'return this'
-      [/\breturn\s+this\b\s*(?![\s\w.$])/, this.replaceThis()],
+      [/\breturn\s+this\b\s*(?![\s\w.$])/, replaceThis()],
 
       // rewriting 'this.' special properties access on new line, with ; prepended
       // if prev char is '\n', or if prev is not '.' or '$', no semi
-      [new RegExp(`[^$.]\\s*\\bthis\\b(?=(?:\\.(?:${propStr})\\b))`), this.replaceThisProp()],
+      [new RegExp(`[^$.]\\s*\\bthis\\b(?=(?:\\.(?:${propStr})\\b))`), replaceThisProp()],
 
       // rewrite '= this' or ', this'
-      [/[=,]\s*\bthis\b\s*(?![\s\w:.$])/, this.replaceThis()],
+      [/[=,]\s*\bthis\b\s*(?![\s\w:.$])/, replaceThis()],
 
       // rewrite '})(this)'
-      [/\}(?:\s*\))?\s*\(this\)/, this.replaceThis()],
+      [/\}(?:\s*\))?\s*\(this\)/, replaceThis()],
 
       // rewrite this in && or || expr?
-      [/[^|&][|&]{2}\s*this\b\s*(?![|\s&.$](?:[^|&]|$))/, this.replaceThis()],
+      [/[^|&][|&]{2}\s*this\b\s*(?![|\s&.$](?:[^|&]|$))/, replaceThis()],
     ];
 
     if (extraRules) {
@@ -68,43 +108,6 @@ class JSRewriter extends RxRewriter {
     this.localObjs = localObjs;
     this.firstBuff = this.initLocalDecl(localObjs);
     this.lastBuff = "\n\n}";
-  }
-
-  addPrefix(prefix) {
-    return x => prefix + x;
-  }
-
-  addPrefixAfter1(prefix) {
-    return x => x[0] + prefix + x.slice(1);
-  }
-
-  addSuffix(suffix) {
-    return (x, offset, string) => {
-      if (offset > 0) {
-        const prev = string[offset - 1];
-        if (prev === "." || prev === "$") {
-          return x;
-        }
-      }
-      return x + suffix;
-    };
-  }
-
-  replaceThis() {
-    return x => x.replace("this", this.thisRw);
-  }
-
-  replaceThisProp() {
-    return (x, offset, string) => {
-      const prev = (offset > 0 ? string[offset - 1] : "");
-      if (prev === "\n") {
-        return x.replace("this", ";" + this.thisRw);
-      } else if (prev !== "." && prev !== "$") {
-        return x.replace("this", this.thisRw);
-      } else {
-        return x;
-      }
-    };
   }
 
   initLocalDecl(localDecls) {

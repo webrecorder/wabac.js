@@ -8,6 +8,8 @@ export const PAGE_STATE_NEED_REMOTE_SYNC = 0x10;
 export const PAGE_STATE_NEED_LOCAL_SYNC = 0x01;
 export const PAGE_STATE_SYNCED = 0x11;
 
+export const MAX_STREAM_CHUNK_SIZE = 65536 * 4;
+
 
 export  function startsWithAny(value, iter) {
   for (const str of iter) {

@@ -1,5 +1,4 @@
 import SAXParser from "parse5-sax-parser";
-import { PassThrough } from "stream";
 
 import { decodeContent } from "./rewrite/decoder";
 
@@ -35,16 +34,11 @@ async function extractText(url, buffer, ce, te) {
     }
   });
 
-  const pass = new PassThrough({encoding: "utf8"});
-
   if (ce || te) {
     buffer = await decodeContent(buffer, ce, te);
   }
 
-  pass.push(buffer);
-  pass.push(null);
-
-  pass.pipe(parser);
+  parser.end(new TextDecoder().decode(buffer));
 
   const p = new Promise((resolve) => {
     parser.on("end", () => {

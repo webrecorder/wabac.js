@@ -1,8 +1,6 @@
-import { PassThrough } from "stream";
-
 import RewritingStream from "parse5-html-rewriting-stream";
 
-import { startsWithAny, decodeLatin1, encodeLatin1 } from "../utils";
+import { startsWithAny, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE } from "../utils";
 
 
 // ===========================================================================
@@ -70,6 +68,7 @@ const TEXT_NODE_REWRITE_RULES = [
     replace: "$1$U1"
   }
 ];
+
 
 // ===========================================================================
 class HTMLRewriter
@@ -237,6 +236,7 @@ class HTMLRewriter
     const rewriter = this.rewriter;
 
     const rwStream = new RewritingStream();
+    rwStream.tokenizer.preprocessor.bufferWaterline = MAX_STREAM_CHUNK_SIZE;
 
     let insertAdded = false;
     let hasData = false;
@@ -244,46 +244,6 @@ class HTMLRewriter
     let context = "";
     let scriptRw = false;
     let replaceTag = null;
-
-    let cacheChunks = [];
-    let cacheOffset = 0;
-
-    function getRawText(loc) {
-      let offset = cacheOffset;
-
-      while (cacheChunks.length) {
-        const nextOffset = offset + cacheChunks[0].byteLength;
-        if (loc.startOffset > nextOffset) {
-          cacheChunks.shift();
-          offset = nextOffset;
-        } else {
-          break;
-        }
-      }
-
-      if (!cacheChunks.length) {
-        return "";
-      }
-
-      cacheOffset = offset;
-      offset = loc.startOffset - offset;
-
-      let remainder = loc.endOffset - loc.startOffset;
-      let text = "";
-
-      for (const chunk of cacheChunks) {
-        if (remainder <= 0) {
-          break;
-        }
-
-        const slice =  chunk.slice(offset, offset + remainder);
-        offset = 0;
-        remainder -= slice.byteLength;
-        text += decodeLatin1(slice);
-      }
-
-      return text;
-    }
 
     const addInsert = () => {
       if (!insertAdded && hasData && rewriter.headInsertFunc) {
@@ -350,39 +310,48 @@ class HTMLRewriter
 
     rwStream.on("text", (textToken, raw) => {
       if (context === "script") {
-        rwStream.emitRaw(scriptRw ? rewriter.rewriteJS(textToken.text) : textToken.text);
+        doEmit(scriptRw ? rewriter.rewriteJS(textToken.text) : textToken.text);
       } else if (context === "style") {
-        rwStream.emitRaw(rewriter.rewriteCSS(textToken.text));
+        doEmit(rewriter.rewriteCSS(textToken.text));
       } else {
-        // if initial offset is <0, then raw text was cutoff, so use our own tracked buffer
-        if ((textToken.sourceCodeLocation.startOffset - rwStream.posTracker.droppedBufferSize) < 0) {
-          raw = getRawText(textToken.sourceCodeLocation);
+        // if raw data is different and raw data potentially cut off, just use the parsedText
+        if (raw !== textToken.text && (textToken.sourceCodeLocation.startOffset - rwStream.posTracker.droppedBufferSize) < 0) {
+          raw = textToken.text;
         }
         raw = this.rewriteHTMLText(raw);
-        rwStream.emitRaw(raw);
+        doEmit(raw);
       }
     });
 
-    const buff = new PassThrough({ encoding: "latin1" });
-    buff.pipe(rwStream);
-    buff.on("end", addInsert);
+    function doEmit(text) {
+      for (let i = 0; i < text.length; i += MAX_STREAM_CHUNK_SIZE) {
+        rwStream.emitRaw(text.slice(i, i + MAX_STREAM_CHUNK_SIZE));
+      }
+    }
+
+    const sourceGen = response.createIter();
 
     const rs = new ReadableStream({
       async start(controller) {
-        rwStream.on("data", (chunk) => controller.enqueue(encodeLatin1(chunk)));
-        rwStream.on("end", () => controller.close());
+        rwStream.on("data", (text) => {
+          controller.enqueue(encodeLatin1(text));
+        });
 
-        for await (const chunk of response) {
-          cacheChunks.push(chunk);
-          buff.push(chunk);
+        rwStream.on("end", () => {
+          controller.close();
+        });
+
+        for await (const chunk of sourceGen) {
+          rwStream.write(decodeLatin1(chunk), {encoding: "latin1"});
           hasData = true;
         }
 
-        buff.push(null);
-      }
+        rwStream.end();
+      },
     });
 
     response.setReader(rs);
+    
     return response;
   }
 

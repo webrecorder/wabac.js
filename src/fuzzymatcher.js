@@ -239,9 +239,9 @@ class FuzzyMatcher {
       total += this.getMatch(foundQuery, reqQuery, reqArgs);
       total /= 2.0;
 
-      // subtract points for non-200 status codes to prefer 200
+      // lower total score for status >200
       if (result.status > 200) {
-        total -= 0.01 * (result.status - 200);
+        total *= 10 ** ((200 - result.status) * 0.0003);
       }
 
       //console.log('total: ' + total + ' ' + url.href + ' <=> ' + reqUrl);

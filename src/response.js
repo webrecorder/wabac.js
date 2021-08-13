@@ -1,5 +1,5 @@
 import { BaseAsyncIterReader, AsyncIterReader } from "warcio";
-import { isNullBodyStatus, decodeLatin1, encodeLatin1 } from "./utils";
+import { isNullBodyStatus, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE } from "./utils";
 
 
 class ArchiveResponse
@@ -89,12 +89,26 @@ class ArchiveResponse
     }
   }
 
-  async* [Symbol.asyncIterator]() {
-    if (this.buffer) {
-      yield this.buffer;
-    } else if (this.reader) {
-      yield* this.reader;
+  createIter() {
+    const buffer = this.buffer;
+    const reader = this.reader;
+
+    async function* iter() {
+      if (buffer) {
+        for (let i = 0; i < buffer.length; i += MAX_STREAM_CHUNK_SIZE) {
+          yield buffer.slice(i, i + MAX_STREAM_CHUNK_SIZE);
+        }
+
+      } else if (reader) {
+        yield* reader;
+      }
     }
+
+    return iter();
+  }
+
+  async* [Symbol.asyncIterator]() {
+    yield* this.createIter();
   }
 
   setRange(range) {

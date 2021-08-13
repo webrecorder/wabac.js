@@ -88,17 +88,26 @@ test(rewriteJS,
 
 test(rewriteJS,
   "x = eval; x(a);",
-  "x = WB_wombat_eval; x(a);");
+  "x = self.eval; x(a);");
 
-test(rewriteJS,
-  "window.eval(a)",
-  "window.WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).eval(a)");
+//test(rewriteJS,
+//  "window.eval(a)",
+//  "window.WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).eval(a)");
 
 test(rewriteJS,
   "a = this.location.href; exports.Foo = Foo; /* export className */",
   "a = _____WB$wombat$check$this$function_____(this).location.href; exports.Foo = Foo; /* export className */"
 );
 
+test(rewriteJS,
+  "$eval = eval; $eval(a);",
+  "$eval = self.eval; $eval(a);"
+);
+
+test(rewriteJS,
+  "foo(a, eval(data));",
+  "foo(a, WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).eval(data));"
+);
 
 // import rewrite
 test(rewriteJSImport, `\
@@ -159,6 +168,20 @@ test(rewriteJS, "this. alocation = http://example.com/");
 
 test(rewriteJS, "this.location = http://example.com/");
 
+test(rewriteJS, ",eval(a)");
+
 test(rewriteJS, "this.$eval(a)");
 
 test(rewriteJS, "x = $eval; x(a);");
+
+test(rewriteJS, "window.eval(a)");
+
+test(rewriteJS, "x = window.eval; x(a);");
+
+test(rewriteJS, "obj = { eval : 1 }");
+
+test(rewriteJS, "x = obj.eval");
+
+test(rewriteJS, "x = obj.eval(a)");
+
+
