@@ -24,8 +24,10 @@ async function doRewrite({
   isAjax = false,
   extraOpts = null,
   returnHeaders = false,
+  headInsertFunc = null,
   headers={}}) {
-  const RW = new Rewriter({baseUrl: url, prefix: "http://localhost:8080/prefix/20201226101010/", useBaseRules});
+
+  const RW = new Rewriter({baseUrl: url, prefix: "http://localhost:8080/prefix/20201226101010/", useBaseRules, headInsertFunc});
   //const resp = new Response(content, {"headers": {"Content-Type": contentType}});
   const date = new Date("2019-01-02T03:00:00Z");
   const payload = encoder.encode(content);
