@@ -175,6 +175,27 @@ export function isAjaxRequest(request) {
   return false;
 }
 
+export async function handleAuthNeeded(e, config) {
+  if (e instanceof AuthNeededError) {
+    //const client = await self.clients.get(event.clientId || event.resultingClientId);
+    const clients = await self.clients.matchAll({ "type": "window" });
+    for (const client of clients) {
+      const url = new URL(client.url);
+      if (url.searchParams.get("source") === config.sourceUrl) {
+        client.postMessage({
+          source: config.sourceUrl,
+          coll: config.dbname.slice(3),
+          type: "authneeded",
+          fileHandle: e.info && e.info.fileHandle,
+        });
+      }
+    }
+    return true;
+  }
+
+  return false;
+}
+
 
 export function notFound(request, msg, status = 404) {
   let content;

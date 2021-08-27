@@ -33,6 +33,11 @@ export class ZipRangeReader
     //  * Published under a MIT license.
     // * https://github.com/Rob--W/zipinfo.js
     const length = data.byteLength;
+
+    if (!length) {
+      return null;
+    }
+
     const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
 
     const utf8Decoder = new TextDecoder("utf8");
