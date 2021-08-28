@@ -9,9 +9,6 @@ import { postToGetUrl } from "warcio";
 
 import { API } from "./api.js";
 
-import { Rewriter } from "./rewrite";
-import { ArchiveResponse } from "./response";
-
 import WOMBAT from "../dist/wombat.js";
 import WOMBAT_WORKERS from "@webrecorder/wombat/src/wombatWorkers.js";
 
@@ -129,7 +126,8 @@ class SWReplay {
     this.staticPrefix = this.prefix + "static/";
     this.distPrefix = this.prefix + "dist/";
 
-    const prefixes = {static: this.staticPrefix,
+    const prefixes = {
+      static: this.staticPrefix,
       root: this.prefix,
       main: this.replayPrefix
     };
@@ -137,6 +135,10 @@ class SWReplay {
     this.staticData = staticData || new Map();
     this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
     this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
+
+    if (defaultConfig.injectScripts) {
+      defaultConfig.injectScripts = defaultConfig.injectScripts.map(url => this.staticPrefix + "proxy/" + url);
+    }
 
     this.collections = new CollectionsClass(prefixes, sp.get("root"), useIPFS, defaultConfig);
     this.collections.loadAll(sp.get("dbColl"));
@@ -182,8 +184,8 @@ class SWReplay {
     }
 
     // JS rewrite on static/external files not from archive
-    if (url.startsWith(this.staticPrefix + "js_/")) {
-      return this.rewriteJSLive(url, event.request);
+    if (url.startsWith(this.staticPrefix + "proxy/")) {
+      return this.staticPathProxy(url, event.request);
     }
 
     // handle replay / api
@@ -212,27 +214,11 @@ class SWReplay {
     }
   }
 
-  async rewriteJSLive(url, request) {
-    url = url.slice((this.staticPrefix + "js_/").length);
+  staticPathProxy(url, request) {
+    url = url.slice((this.staticPrefix + "proxy/").length);
     url = new URL(url, self.location.href).href;
     request = new Request(url);
-    let response = await this.defaultFetch(request);
-
-    response = ArchiveResponse.fromResponse({url, response});
-
-    const rewriteOpts = {
-      baseUrl: url,
-      responseUrl: url,
-      prefix: this.prefix,
-      urlRewrite: true,
-      contentRewrite: true,
-    };
-
-    const rewriter = new Rewriter(rewriteOpts);
-
-    response = await rewriter.rewrite(response, request);
-
-    return response.makeResponse();
+    return this.defaultFetch(request);
   }
 
   defaultFetch(request) {

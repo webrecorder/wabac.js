@@ -494,10 +494,10 @@
     "@webassemblyjs/wast-parser" "1.9.0"
     "@xtuc/long" "4.2.2"
 
-"@webrecorder/wombat@^3.3.1":
-  version "3.3.1"
-  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.3.1.tgz#f1c5a0725f8893b68871303449b36bac69de0325"
-  integrity sha512-cEl794AU6k0AI7/xwPNy6M8isoCdj/1DisHgW64tT1P4dkeO5wC8inZOf859Dq/YgYjSCfKwQTAelzTxXsuvDw==
+"@webrecorder/wombat@^3.3.2":
+  version "3.3.2"
+  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.3.2.tgz#123193e9ebf6ed7899c497b94f2fd18d99c11448"
+  integrity sha512-TiDEzSebV/XpurEiJD7FT8Xj8SpJfuukT9AsMH/2j9qcukPMXWruhI5qV3Nu97Xzu2FuOZlqBtsL72BHlVOv8w==
   dependencies:
     warcio "^1.4.6"
 
