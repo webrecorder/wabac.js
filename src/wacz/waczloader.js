@@ -50,12 +50,7 @@ export class SingleWACZLoader
     }
 
     if (!this.canLoadOnDemand) {
-      const progressCallback = (offset) => {
-        progressUpdate(Math.round(offset * 100.0 / fullTotalSize), null, offset, fullTotalSize);
-        //progressUpdate(Math.round((fullCurrSize + currentSize) * 100.0 / fullTotalSize), error, fullCurrSize + currentSize, fullTotalSize, fileHandle);
-      };
-
-      await db.loadWACZ(this.waczname, false, progressCallback);
+      await db.loadWACZ(this.waczname, true, progressUpdate, fullTotalSize);
     }
 
     return metadata || {};

@@ -117,7 +117,7 @@ class CDXFromWARCLoader extends WARCLoader
 // ===========================================================================
 class CDXLoader extends CDXFromWARCLoader
 {
-  async load(db) {
+  async load(db, progressUpdate, totalSize) {
     this.db = db;
 
     let reader = this.reader;
@@ -126,10 +126,13 @@ class CDXLoader extends CDXFromWARCLoader
       reader = new AsyncIterReader(this.reader);
     }
 
+    let numRead = 0;
+
     for await (const origLine of reader.iterLines()) {
       let cdx;
       let urlkey;
       let timestamp;
+      numRead += origLine.length;
       let line = origLine.trimEnd();
 
       if (!line.startsWith("{")) {
@@ -152,10 +155,17 @@ class CDXLoader extends CDXFromWARCLoader
       if (!cdx.url) {
         cdx.url = urlkey;
       }
+      if (progressUpdate && this.batch.length >= BATCH_SIZE) {
+        progressUpdate(Math.round((numRead / totalSize) * 100), null, numRead, totalSize);
+      }
       this.addCdx(cdx);
     }
 
     await this.finishIndexing();
+
+    if (progressUpdate) {
+      progressUpdate(100, null, totalSize, totalSize);
+    }
   }
 }
 

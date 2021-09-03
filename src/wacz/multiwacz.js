@@ -142,7 +142,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     return await loader.load();
   }
 
-  async loadWACZ(waczname, indexOnly = true, callback = null) {
+  async loadWACZ(waczname, fullLoad = false, progressUpdateCallback = null, fullTotalSize = 0) {
     if (!this.waczfiles[waczname]) {
       throw new Error("unknown waczfile: " + waczname);
     }
@@ -153,10 +153,18 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
     const zipreader = this.getReaderForWACZ(waczname);
 
-    const indexloaders = [];
+    //const indexloaders = [];
     let indexType = INDEX_NOT_LOADED;
 
     let offsetTotal = 0;
+
+    const progressUpdate = (percent, error, offset/*, total*/) => {
+      offset += offsetTotal;
+      if (progressUpdateCallback && fullTotalSize) {
+        progressUpdateCallback(Math.round(offset * 100.0 / fullTotalSize), null, offset, fullTotalSize);
+      }
+      //progressUpdate(Math.round((fullCurrSize + currentSize) * 100.0 / fullTotalSize), error, fullCurrSize + currentSize, fullTotalSize, fileHandle);
+    };
 
     // load CDX and IDX
     for (const filename of Object.keys(this.waczfiles[waczname].entries)) {
@@ -164,11 +172,10 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
       if (filename.endsWith(".cdx") || filename.endsWith(".cdxj")) {
 
-        if (indexOnly) {
+        if (!fullLoad) {
           console.log(`Loading CDX for ${waczname}`);
 
-          indexloaders.push(this.loadCDX(zipreader, filename, waczname));
-
+          await this.loadCDX(zipreader, filename, waczname, progressUpdate, entryTotal);
 
           indexType = INDEX_CDX;
         }
@@ -176,58 +183,57 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
       } else if (filename.endsWith(".idx")) {
         // For compressed indices
 
-        if (indexOnly) {
+        if (!fullLoad) {
           console.log(`Loading IDX for ${waczname}`);
 
-          indexloaders.push(this.loadIDX(zipreader, filename, waczname, callback, offsetTotal));
+          await this.loadIDX(zipreader, filename, waczname, progressUpdate, entryTotal);
 
           indexType = INDEX_IDX;
         }
   
       } else if (filename.endsWith(".warc.gz") || filename.endsWith(".warc")) {
 
-        if (!indexOnly) {
+        if (fullLoad) {
           // otherwise, need to load the full WARCs
           console.log(`Loading full WARC for ${waczname}`);
 
-          indexloaders.push(this.loadWARC(zipreader, filename, waczname));
+          await this.loadWARC(zipreader, filename, waczname, progressUpdate, entryTotal);
 
           indexType = INDEX_FULL;
         }
       }
 
       offsetTotal += entryTotal;
-      if (callback) {
-        callback(offsetTotal);
-      }
     }
 
-    await Promise.allSettled(indexloaders);
-
     this.waczfiles[waczname].indexType = indexType;
-    await this.db.put("waczfiles", this.waczfiles[waczname]);
+
+    // only store waczfiles if not doing a full load, otherwise will be used as regular db
+    if (!fullLoad) {
+      await this.db.put("waczfiles", this.waczfiles[waczname]);
+    }
 
     return {indexType, isNew: true};
   }
 
-  async loadWARC(zipreader, filename, waczname) {
+  async loadWARC(zipreader, filename, waczname, progressUpdate, total) {
     const reader = await zipreader.loadFile(filename, {unzip: true});
 
-    const loader = new WARCLoader(reader, null, null, {wacz: waczname});
+    const loader = new WARCLoader(reader, null, waczname, {wacz: waczname});
     loader.detectPages = false;
 
-    return loader.load(this);
+    return await loader.load(this, progressUpdate, total);
   }
 
-  async loadCDX(zipreader, filename, waczname) {
+  async loadCDX(zipreader, filename, waczname, progressUpdate, total) {
     const reader = await zipreader.loadFile(filename);
 
-    const loader = new CDXLoader(reader, null, null, {wacz: waczname});
+    const loader = new CDXLoader(reader, null, waczname, {wacz: waczname});
 
-    return loader.load(this);
+    return await loader.load(this, progressUpdate, total);
   }
 
-  async loadIDX(zipreader, filename, waczname, callback = null, startOffset = 0) {
+  async loadIDX(zipreader, filename, waczname, progressUpdate, total) {
     const reader = await zipreader.loadFile(filename);
 
     let batch = [];
@@ -287,8 +293,8 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
         entry = {waczname, prefix, filename, offset, length, loaded: false};
       }
 
-      if (callback) {
-        callback(startOffset + currOffset);
+      if (progressUpdate) {
+        progressUpdate(currOffset / total, currOffset, total);
       }
 
       batch.push(entry);

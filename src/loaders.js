@@ -396,6 +396,8 @@ class WorkerLoader extends CollectionLoader
     let config = {root: data.root || false};
     let db = null;
 
+    let replaceDB = false;
+
     const file = data.file;
 
     if (!file || !file.sourceUrl) {
@@ -513,9 +515,15 @@ Make sure this is a valid URL and you have access to this file.`);
         loader = new SingleWACZLoader(sourceLoader, config, name);
 
         if (config.onDemand) {
-          //db = new WACZRemoteArchiveDB(config.dbname, sourceLoader, config);
           db = new SingleWACZ(config, sourceLoader);
           type = "remotezip";
+
+        // can load on demand, but want a full import
+        } else if (sourceLoader.canLoadOnDemand && file.newFullImport) {
+          db = new SingleWACZ(config, sourceLoader);
+          // after loading, replace will regular archivedb
+          replaceDB = true;
+
         } else {
           progressUpdate(0, "Sorry, can't load this WACZ file due to lack of range request support on the server");
           if (abort) {
@@ -584,6 +592,11 @@ Make sure this is a valid URL and you have access to this file.`);
 
     if (config.extra && config.extra.fileHandle) {
       delete this._fileHandles[config.sourceUrl];
+    }
+
+    if (replaceDB) {
+      db = new ArchiveDB(config.dbname);
+      delete config.extra;
     }
 
     const collData = {name, type, config};

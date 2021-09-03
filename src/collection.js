@@ -25,6 +25,8 @@ class Collection {
     this.injectScripts = extraConfig.injectScripts || [];
     this.noRewritePrefixes = extraConfig.noRewritePrefixes || null;
 
+    this.convertPostToGet = !!extraConfig.convertPostToGet;
+
     this.coHeaders = extraConfig.coHeaders || false;
 
     this.csp = extraConfig.csp || DEFAULT_CSP;
@@ -480,6 +482,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   wbinfo.storage = "${storage}";
   wbinfo.isSW = true;
   wbinfo.pixel_ratio = ${pixelRatio};
+  wbinfo.convert_post_to_get = ${this.convertPostToGet};
 </script>
 <script src='${this.staticPrefix}wombat.js'> </script>
 <script>
