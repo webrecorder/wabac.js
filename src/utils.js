@@ -225,6 +225,30 @@ export function notFound(request, msg, status = 404) {
 }
 
 
+export function getCollData(coll) {
+  const metadata = coll.config.metadata ? coll.config.metadata : {};
+
+  const res = {
+    "title": metadata.title || "",
+    "desc": metadata.desc || "",
+    "size": metadata.size || 0,
+    "filename": coll.config.sourceName,
+    "loadUrl": coll.config.loadUrl,
+    "sourceUrl": coll.config.sourceUrl,
+    "id": coll.name,
+    "ctime": coll.config.ctime,
+    "mtime": metadata.mtime || coll.config.ctime,
+    "onDemand": coll.config.onDemand,
+  };
+
+  if (metadata.ipfsPins) {
+    res.ipfsPins = metadata.ipfsPins;
+  }
+
+  return res;
+}
+
+
 // ===========================================================================
 export class RangeError
 {
