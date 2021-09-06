@@ -10,7 +10,7 @@ const BATCH_SIZE = 3000;
 // ===========================================================================
 class CDXFromWARCLoader extends WARCLoader
 {
-  constructor(reader, abort, id, sourceExtra = {}, shaPrefix = "sha-256:") {
+  constructor(reader, abort, id, sourceExtra = {}, shaPrefix = "sha256:") {
     super(reader, abort, id);
     this.cdxindexer = null;
     this.sourceExtra = sourceExtra;
@@ -62,6 +62,10 @@ class CDXFromWARCLoader extends WARCLoader
     const cdx = this.cdxindexer.indexRecordPair(record, reqRecord, parser, "");
 
     if (cdx) {
+      if (reqRecord && cdx.method && cdx.method !== "GET") {
+        // set the raw request payload, to be added to db entry
+        cdx.payload = reqRecord.payload;
+      }
       this.addCdx(cdx);
     }
   }
@@ -101,9 +105,14 @@ class CDXFromWARCLoader extends WARCLoader
       entry.method = cdx.method;
     }
 
-    // url with post query appended
+    // cdx.requestBody is the encoded payload, to be added to the url
     if (cdx.requestBody) {
-      entry.url = cdx.urlkey ? cdx.urlkey : appendRequestQuery(cdx.url, cdx.requestBody, cdx.method);
+      entry.url = appendRequestQuery(cdx.url, cdx.requestBody, cdx.method);
+    }
+
+    // cdx.payload is the raw payload, to be stored on the db entry
+    if (cdx.payload) {
+      entry.requestBody = cdx.payload;
     }
 
     if (this.batch.length >= BATCH_SIZE) {
@@ -153,6 +162,7 @@ class CDXLoader extends CDXFromWARCLoader
 
       cdx.timestamp = timestamp;
       if (!cdx.url) {
+        console.warn(`URL missing, using urlkey ${urlkey}`);
         cdx.url = urlkey;
       }
       if (progressUpdate && this.batch.length >= BATCH_SIZE) {

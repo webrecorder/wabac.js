@@ -80,10 +80,10 @@ function base16(hashBuffer) {
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-export async function digestMessage(message, hashtype) {
+export async function digestMessage(message, hashtype, prefix = null) {
   const msgUint8 = typeof(message) === "string" ? new TextEncoder().encode(message) : message;
   const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);
-  return hashtype + ":" + base16(hashBuffer);
+  return (prefix || hashtype) + ":" + base16(hashBuffer);
 
 }
 
