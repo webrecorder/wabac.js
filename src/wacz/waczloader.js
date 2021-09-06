@@ -1,10 +1,13 @@
 import yaml from "js-yaml";
 
 import { MAX_FULL_DOWNLOAD_SIZE } from "../utils";
+import { WARCLoader } from "../warcloader";
 import { ZipRangeReader } from "./ziprangereader";
 
 export const MAIN_PAGES_JSON = "pages/pages.jsonl";
 export const EXTRA_PAGES_JSON = "pages/extraPages.jsonl";
+
+const PAGE_BATCH_SIZE = 500;
 
 
 // ============================================================================
@@ -39,8 +42,6 @@ export class SingleWACZLoader
       }
     }
 
-    await db.addWACZFile(this.waczname, entries);
-
     let metadata;
 
     if (entries["datapackage.json"]) {
@@ -49,11 +50,75 @@ export class SingleWACZLoader
       metadata = await this.loadMetadataYAML(db, entries, "webarchive.yaml");
     }
 
-    if (!this.canLoadOnDemand) {
-      await db.loadWACZ(this.waczname, true, progressUpdate, fullTotalSize);
+    if (this.canLoadOnDemand) {
+      // just add wacz file here
+      await db.addWACZFile(this.waczname, entries);
+    } else {
+
+      await this.loadWACZFull(db, entries, progressUpdate, fullTotalSize);
     }
 
     return metadata || {};
+  }
+
+  async loadWACZFull(db, entries, progressUpdateCallback = null, fullTotalSize = 0) {
+    let offsetTotal = 0;
+
+    const progressUpdate = (percent, error, offset/*, total*/) => {
+      offset += offsetTotal;
+      if (progressUpdateCallback && fullTotalSize) {
+        progressUpdateCallback(Math.round(offset * 100.0 / fullTotalSize), null, offset, fullTotalSize);
+      }
+    };
+
+    // load CDX and IDX
+    for (const filename of Object.keys(entries)) {
+      const entryTotal = this.zipreader.getCompressedSize(filename);
+      if (filename.endsWith(".warc.gz") || filename.endsWith(".warc")) {
+        await this.loadWARC(db, filename, progressUpdate, entryTotal);
+      }
+
+      offsetTotal += entryTotal;
+    }
+  }
+
+  async loadPages(db, filename = MAIN_PAGES_JSON) {
+    const reader = await this.zipreader.loadFile(filename, {unzip: true});
+
+    let pageListInfo = null;
+
+    let pages = [];
+
+    for await (const textLine of reader.iterLines()) {
+      const page = JSON.parse(textLine);
+
+      if (!pageListInfo) {
+        pageListInfo = page;
+        continue;
+      }
+
+      pages.push(page);
+
+      if (pages.length === PAGE_BATCH_SIZE) {
+        await db.addPages(pages);
+        pages = [];
+      }
+    }
+
+    if (pages.length) {
+      await db.addPages(pages);
+    }
+
+    return pageListInfo;
+  }
+
+  async loadWARC(db, filename, progressUpdate, total) {
+    const reader = await this.zipreader.loadFile(filename, {unzip: true});
+
+    const loader = new WARCLoader(reader, null, filename);
+    loader.detectPages = false;
+
+    return await loader.load(db, progressUpdate, total);
   }
 
   async loadTextEntry(db, filename) {
@@ -76,8 +141,7 @@ export class SingleWACZLoader
 
     // All Pages
     if (entries[MAIN_PAGES_JSON]) {
-      //const pageInfo = await this.loadPagesJSONL(db, MAIN_PAGES_JSON);
-      const pageInfo = await db.loadPages(this.zipreader, this.waczname, MAIN_PAGES_JSON);
+      const pageInfo = await loadPages(db, this.zipreader, this.waczname, MAIN_PAGES_JSON);
 
       if (pageInfo.hasText) {
         db.textIndex = metadata.textIndex = MAIN_PAGES_JSON;
@@ -166,4 +230,37 @@ export class JSONMultiWACZLoader
       return new URL(res.path, this.baseUrl).href;
     });
   }
+}
+
+// ==========================================================================
+export async function loadPages(db, zipreader, waczname, filename = MAIN_PAGES_JSON) {
+  const reader = await zipreader.loadFile(filename, {unzip: true});
+
+  let pageListInfo = null;
+
+  let pages = [];
+
+  for await (const textLine of reader.iterLines()) {
+    const page = JSON.parse(textLine);
+
+    page.wacz = waczname;
+
+    if (!pageListInfo) {
+      pageListInfo = page;
+      continue;
+    }
+
+    pages.push(page);
+
+    if (pages.length === PAGE_BATCH_SIZE) {
+      await db.addPages(pages);
+      pages = [];
+    }
+  }
+
+  if (pages.length) {
+    await db.addPages(pages);
+  }
+
+  return pageListInfo;
 }

@@ -396,7 +396,7 @@ class WorkerLoader extends CollectionLoader
     let config = {root: data.root || false};
     let db = null;
 
-    let replaceDB = false;
+    let updateExistingConfig = null;
 
     const file = data.file;
 
@@ -425,6 +425,16 @@ class WorkerLoader extends CollectionLoader
 
       type = "archive";
       config.dbname = "db:" + name;
+
+      if (file.newFullImport && file.importCollId) {
+        const existing = await this.colldb.get("colls", file.importCollId);
+        if (!existing || existing.type !== "archive") {
+          progressUpdate(0, "Invalid Existing Collection: " + file.importCollId);
+          return;
+        }
+        config.dbname = existing.config.dbname;
+        updateExistingConfig = existing.config;
+      }
 
       let loadUrl = file.loadUrl || file.sourceUrl;
 
@@ -520,9 +530,9 @@ Make sure this is a valid URL and you have access to this file.`);
 
         // can load on demand, but want a full import
         } else if (sourceLoader.canLoadOnDemand && file.newFullImport) {
-          db = new SingleWACZ(config, sourceLoader);
-          // after loading, replace will regular archivedb
-          replaceDB = true;
+          //use default db
+          db = null;
+          delete config.extra;
 
         } else {
           progressUpdate(0, "Sorry, can't load this WACZ file due to lack of range request support on the server");
@@ -533,7 +543,7 @@ Make sure this is a valid URL and you have access to this file.`);
         }
 
       } else if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
-        if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !sourceLoader.canLoadOnDemand) {
+        if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand) {
           loader = new WARCLoader(stream, abort, name);
         } else {
           loader = new CDXFromWARCLoader(stream, abort, name);
@@ -583,8 +593,16 @@ Make sure this is a valid URL and you have access to this file.`);
         return false;
       }
 
+      if (updateExistingConfig) {
+        return {config: updateExistingConfig};
+      }
+
       if (!config.metadata.size) {
         config.metadata.size = contentLength;
+      }
+
+      if (!config.metadata.title) {
+        config.metadata.title = config.sourceName;
       }
     }
 
@@ -592,11 +610,6 @@ Make sure this is a valid URL and you have access to this file.`);
 
     if (config.extra && config.extra.fileHandle) {
       delete this._fileHandles[config.sourceUrl];
-    }
-
-    if (replaceDB) {
-      db = new ArchiveDB(config.dbname);
-      delete config.extra;
     }
 
     const collData = {name, type, config};
