@@ -594,6 +594,7 @@ Make sure this is a valid URL and you have access to this file.`);
       }
 
       if (updateExistingConfig) {
+        await this.updateSize(file.importCollId, contentLength, contentLength);
         return {config: updateExistingConfig};
       }
 
