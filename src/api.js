@@ -1,6 +1,7 @@
 "use strict";
 
 import { Path } from "path-parser";
+import { getCollData } from "./utils";
 
 // ===========================================================================
 class APIRouter {
@@ -75,29 +76,6 @@ class API {
     return this.makeResponse(response, status);
   }
 
-  getCollData(coll) {
-    const metadata = coll.config.metadata ? coll.config.metadata : {};
-
-    const res = {
-      "title": metadata.title || "",
-      "desc": metadata.desc || "",
-      "size": metadata.size || 0,
-      "filename": coll.config.sourceName,
-      "loadUrl": coll.config.loadUrl,
-      "sourceUrl": coll.config.sourceUrl,
-      "id": coll.name,
-      "ctime": coll.config.ctime,
-      "mtime": metadata.mtime || coll.config.ctime,
-      "onDemand": coll.config.onDemand,
-    };
-
-    if (metadata.ipfsPins) {
-      res.ipfsPins = metadata.ipfsPins;
-    }
-
-    return res;
-  }
-
   async handleApi(request, params) {
     switch (params._route) {
     case "index":
@@ -106,7 +84,7 @@ class API {
     case "createColl": {
       const requestJSON = await request.json();
       const coll = await this.collections.initNewColl(requestJSON.metadata || {}, requestJSON.extraConfig || {});
-      return this.getCollData(coll);
+      return getCollData(coll);
     }
 
     case "coll": {
@@ -114,7 +92,7 @@ class API {
       if (!coll) {
         return {error: "collection_not_found"};
       }
-      const data = this.getCollData(coll);
+      const data = getCollData(coll);
 
       if (params._query.get("all") === "1") {
         data.pages = await coll.store.getAllPages();
@@ -250,7 +228,7 @@ class API {
         return;
       }
 
-      collections.push(this.getCollData(coll));
+      collections.push(getCollData(coll));
     });
 
     return {"colls": collections};

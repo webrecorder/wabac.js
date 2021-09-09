@@ -80,10 +80,10 @@ function base16(hashBuffer) {
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-export async function digestMessage(message, hashtype) {
+export async function digestMessage(message, hashtype, prefix = null) {
   const msgUint8 = typeof(message) === "string" ? new TextEncoder().encode(message) : message;
   const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);
-  return hashtype + ":" + base16(hashBuffer);
+  return (prefix || hashtype) + ":" + base16(hashBuffer);
 
 }
 
@@ -222,6 +222,30 @@ export function notFound(request, msg, status = 404) {
   };
 
   return new Response(content, initOpt);
+}
+
+
+export function getCollData(coll) {
+  const metadata = coll.config.metadata ? coll.config.metadata : {};
+
+  const res = {
+    "title": metadata.title || "",
+    "desc": metadata.desc || "",
+    "size": metadata.size || 0,
+    "filename": coll.config.sourceName,
+    "loadUrl": coll.config.loadUrl,
+    "sourceUrl": coll.config.sourceUrl,
+    "id": coll.name,
+    "ctime": coll.config.ctime,
+    "mtime": metadata.mtime || coll.config.ctime,
+    "onDemand": coll.config.onDemand,
+  };
+
+  if (metadata.ipfsPins) {
+    res.ipfsPins = metadata.ipfsPins;
+  }
+
+  return res;
 }
 
 

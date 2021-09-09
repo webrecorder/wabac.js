@@ -10,7 +10,7 @@ const BATCH_SIZE = 3000;
 // ===========================================================================
 class CDXFromWARCLoader extends WARCLoader
 {
-  constructor(reader, abort, id, sourceExtra = {}, shaPrefix = "sha-256:") {
+  constructor(reader, abort, id, sourceExtra = {}, shaPrefix = "sha256:") {
     super(reader, abort, id);
     this.cdxindexer = null;
     this.sourceExtra = sourceExtra;
@@ -103,7 +103,7 @@ class CDXFromWARCLoader extends WARCLoader
 
     // url with post query appended
     if (cdx.requestBody) {
-      entry.url = cdx.urlkey ? cdx.urlkey : appendRequestQuery(cdx.url, cdx.requestBody, cdx.method);
+      entry.url = appendRequestQuery(cdx.url, cdx.requestBody, cdx.method);
     }
 
     if (this.batch.length >= BATCH_SIZE) {
@@ -154,6 +154,7 @@ class CDXLoader extends CDXFromWARCLoader
       cdx.timestamp = timestamp;
       if (!cdx.url) {
         cdx.url = urlkey;
+        console.warn(`URL missing, using urlkey ${urlkey}`);
       }
       if (progressUpdate && this.batch.length >= BATCH_SIZE) {
         progressUpdate(Math.round((numRead / totalSize) * 100), null, numRead, totalSize);

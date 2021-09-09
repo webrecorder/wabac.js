@@ -344,7 +344,9 @@ class ArchiveDB {
     }
 
     for (const data of regulars) {
-      tx.store.put(data);
+      if (!Number.isNaN(data.ts)) {
+        tx.store.put(data);
+      }
     }
 
     try {

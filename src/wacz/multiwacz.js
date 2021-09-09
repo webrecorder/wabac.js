@@ -1,20 +1,18 @@
 
 import { ZipRangeReader } from "./ziprangereader";
 import { OnDemandPayloadArchiveDB } from "../remotearchivedb";
-import { SingleRecordWARCLoader, WARCLoader } from "../warcloader";
+import { SingleRecordWARCLoader } from "../warcloader";
 import { CDXLoader } from "../cdxloader";
 import { handleAuthNeeded, tsToDate } from "../utils";
 import { getSurt } from "warcio";
 import { createLoader } from "../blockloaders";
 import { LiveAccess } from "../remoteproxy";
-import { JSONMultiWACZLoader, MAIN_PAGES_JSON } from "./waczloader";
-
-const PAGE_BATCH_SIZE = 500;
+import { JSONMultiWACZLoader, loadPages } from "./waczloader";
 
 const INDEX_NOT_LOADED = 0;
 const INDEX_CDX = 1;
 const INDEX_IDX = 2;
-const INDEX_FULL = 3;
+//const INDEX_FULL = 3;
 
 
 // ==========================================================================
@@ -92,40 +90,6 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     this.waczfiles[waczname] = filedata;
   }
 
-  async loadPages(zipreader, waczname, filename = MAIN_PAGES_JSON) {
-    const reader = await zipreader.loadFile(filename, {unzip: true});
-
-    await this.updateEntriesIfNeeded(zipreader, waczname);
-
-    let pageListInfo = null;
-
-    let pages = [];
-
-    for await (const textLine of reader.iterLines()) {
-      const page = JSON.parse(textLine);
-
-      page.wacz = waczname;
-
-      if (!pageListInfo) {
-        pageListInfo = page;
-        continue;
-      }
-
-      pages.push(page);
-
-      if (pages.length === PAGE_BATCH_SIZE) {
-        await this.addPages(pages);
-        pages = [];
-      }
-    }
-
-    if (pages.length) {
-      await this.addPages(pages);
-    }
-
-    return pageListInfo;
-  }
-
   async loadRecordFromSource(cdx) {
     const {start, length, path} = cdx.source;
     const wacz = this.getWACZName(cdx);
@@ -142,7 +106,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     return await loader.load();
   }
 
-  async loadWACZ(waczname, fullLoad = false, progressUpdateCallback = null, fullTotalSize = 0) {
+  async loadWACZ(waczname) {
     if (!this.waczfiles[waczname]) {
       throw new Error("unknown waczfile: " + waczname);
     }
@@ -156,73 +120,31 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     //const indexloaders = [];
     let indexType = INDEX_NOT_LOADED;
 
-    let offsetTotal = 0;
-
-    const progressUpdate = (percent, error, offset/*, total*/) => {
-      offset += offsetTotal;
-      if (progressUpdateCallback && fullTotalSize) {
-        progressUpdateCallback(Math.round(offset * 100.0 / fullTotalSize), null, offset, fullTotalSize);
-      }
-      //progressUpdate(Math.round((fullCurrSize + currentSize) * 100.0 / fullTotalSize), error, fullCurrSize + currentSize, fullTotalSize, fileHandle);
-    };
-
     // load CDX and IDX
     for (const filename of Object.keys(this.waczfiles[waczname].entries)) {
-      const entryTotal = zipreader.getCompressedSize(filename);
-
       if (filename.endsWith(".cdx") || filename.endsWith(".cdxj")) {
 
-        if (!fullLoad) {
-          console.log(`Loading CDX for ${waczname}`);
+        console.log(`Loading CDX for ${waczname}`);
 
-          await this.loadCDX(zipreader, filename, waczname, progressUpdate, entryTotal);
+        await this.loadCDX(zipreader, filename, waczname);
 
-          indexType = INDEX_CDX;
-        }
+        indexType = INDEX_CDX;
 
       } else if (filename.endsWith(".idx")) {
         // For compressed indices
+        console.log(`Loading IDX for ${waczname}`);
 
-        if (!fullLoad) {
-          console.log(`Loading IDX for ${waczname}`);
+        await this.loadIDX(zipreader, filename, waczname);
 
-          await this.loadIDX(zipreader, filename, waczname, progressUpdate, entryTotal);
-
-          indexType = INDEX_IDX;
-        }
-  
-      } else if (filename.endsWith(".warc.gz") || filename.endsWith(".warc")) {
-
-        if (fullLoad) {
-          // otherwise, need to load the full WARCs
-          console.log(`Loading full WARC for ${waczname}`);
-
-          await this.loadWARC(zipreader, filename, waczname, progressUpdate, entryTotal);
-
-          indexType = INDEX_FULL;
-        }
+        indexType = INDEX_IDX;
       }
-
-      offsetTotal += entryTotal;
     }
 
     this.waczfiles[waczname].indexType = indexType;
 
-    // only store waczfiles if not doing a full load, otherwise will be used as regular db
-    if (!fullLoad) {
-      await this.db.put("waczfiles", this.waczfiles[waczname]);
-    }
+    await this.db.put("waczfiles", this.waczfiles[waczname]);
 
     return {indexType, isNew: true};
-  }
-
-  async loadWARC(zipreader, filename, waczname, progressUpdate, total) {
-    const reader = await zipreader.loadFile(filename, {unzip: true});
-
-    const loader = new WARCLoader(reader, null, waczname, {wacz: waczname});
-    loader.detectPages = false;
-
-    return await loader.load(this, progressUpdate, total);
   }
 
   async loadCDX(zipreader, filename, waczname, progressUpdate, total) {
@@ -566,7 +488,9 @@ export class MultiWACZCollection extends WACZArchiveDB
 
     await this.addWACZFile(waczname, entries);
 
-    await this.loadPages(zipreader, waczname, MAIN_PAGES_JSON);
+    await loadPages(this, zipreader, waczname);
+
+    await this.updateEntriesIfNeeded(zipreader, waczname);
   }
 
   async getResource(request, prefix, event, {pageId} = {}) {

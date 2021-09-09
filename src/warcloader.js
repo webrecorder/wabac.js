@@ -230,31 +230,43 @@ class WARCLoader extends BaseParser {
     }
 
     let referrer = null;
+    let requestBody = null;
+    let requestUrl;
+    let reqHeaders;
 
     if (reqRecord && reqRecord.httpHeaders.headers) {
-      let reqHeaders = null;
+      let requestHeaders = null;
       try {
-        reqHeaders = new Headers(reqRecord.httpHeaders.headers);
-        const cookie = reqHeaders.get("cookie");
+        requestHeaders = new Headers(reqRecord.httpHeaders.headers);
+        const cookie = requestHeaders.get("cookie");
         if (cookie) {
           headers.set("x-wabac-preset-cookie", cookie);
         }
         referrer = reqRecord.httpHeaders.headers.get("Referer");
       } catch(e) {
-        reqHeaders = new Headers();
+        requestHeaders = new Headers();
         console.warn(e);
       }
 
-      if (method === "POST") {
+      reqHeaders = Object.fromEntries(requestHeaders.entries());
+
+      if (method !== "GET") {
         const data = {
-          headers: reqHeaders,
+          headers: requestHeaders,
           method,
           url,
           postData: reqRecord.payload
         };
 
         if (postToGetUrl(data)) {
+          // original requestUrl
+          requestUrl = url;
+
+          // url with post data appended
           url = data.url;
+
+          // raw request payload (for future serialization)
+          requestBody = reqRecord.payload;
         }
       }
     }
@@ -280,7 +292,7 @@ class WARCLoader extends BaseParser {
     const payload = record.payload;
     const reader = payload ? null : record.reader;
 
-    const entry = {url, ts, status, mime, respHeaders, digest, payload, reader, referrer};
+    const entry = {url, ts, status, mime, respHeaders, reqHeaders, digest, payload, reader, referrer};
 
     if (this.pageMap[ts + "/" + url] && payload && mime.startsWith("text/")) {
       this.pageMap[ts + "/" + url].textPromise = extractText(
@@ -308,6 +320,12 @@ class WARCLoader extends BaseParser {
 
     if (this.sourceExtra) {
       entry.source = this.sourceExtra;
+    }
+
+    if (method !== "GET" && requestUrl && requestBody !== null) {
+      entry.requestUrl = requestUrl;
+      entry.method = method;
+      entry.requestBody = requestBody;
     }
 
     return entry;
