@@ -59,7 +59,7 @@ module.exports = {
       __IPFS_CORE_URL__: JSON.stringify("https://cdn.jsdelivr.net/npm/ipfs-core@0.10.8/dist/index.min.js")
     }),
     new webpack.ProvidePlugin({
-      process: 'process/browser',
+      process: "process/browser",
     }),
   ],
 };
