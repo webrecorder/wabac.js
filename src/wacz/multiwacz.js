@@ -24,8 +24,6 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
     this.waczfiles = {};
     this.ziploadercache = {};
-
-    this.autoHttpsCheck = false;
   }
 
   _initDB(db, oldV, newV, tx) {
