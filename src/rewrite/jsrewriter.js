@@ -80,14 +80,14 @@ class JSRewriter extends RxRewriter {
       [/\.postMessage\b\(/, addPrefix(".__WB_pmw(self)")],
 
       // rewriting 'location = ' to custom expression '(...).href =' assignment
-      [/[^$.]\s*\blocation\b\s*[=]\s*(?![\s=])/, addSuffix(checkLoc)],
+      [/[^$.]\s?\blocation\b\s*[=]\s*(?![\s=])/, addSuffix(checkLoc)],
 
       // rewriting 'return this'
       [/\breturn\s+this\b\s*(?![\s\w.$])/, replaceThis()],
 
       // rewriting 'this.' special properties access on new line, with ; prepended
       // if prev char is '\n', or if prev is not '.' or '$', no semi
-      [new RegExp(`[^$.]\\s*\\bthis\\b(?=(?:\\.(?:${propStr})\\b))`), replaceThisProp()],
+      [new RegExp(`[^$.]\\s?\\bthis\\b(?=(?:\\.(?:${propStr})\\b))`), replaceThisProp()],
 
       // rewrite '= this' or ', this'
       [/[=,]\s*\bthis\b\s*(?![\s\w:.$])/, replaceThis()],

@@ -229,6 +229,13 @@ test("Twitter rewrite json", async t => {
   };
 
   const extraOpts = {rewritten: true};
-  const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: "https://api.twitter.com/2/some/endpoint", extraOpts});
-  t.deepEqual(JSON.parse(result), expected);
+
+  for (const api of ["https://api.twitter.com/2/", "https://twitter.com/i/api/graphql/"]) {
+    const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: api + "some/endpoint", extraOpts});
+    t.deepEqual(JSON.parse(result), expected);
+  }
+
+
+
+
 });

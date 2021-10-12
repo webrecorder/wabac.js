@@ -185,11 +185,20 @@ class IPFSClient
     }
 
     const arg = filename;
+
+    let url;
     const {offset, length} = opts;
 
-    const params = new URLSearchParams({arg, offset, length});
+    if (offset !== undefined || length !== undefined) {
+      const params = new URLSearchParams({arg, offset, length});
 
-    const url = `${preloadBaseUrl}/api/v0/cat?${params}`;
+      url = `${preloadBaseUrl}/api/v0/cat?${params}`;
+
+    } else {
+      const params = new URLSearchParams({arg, r: "true"});
+
+      url = `${preloadBaseUrl}/api/v0/refs?${params}`;
+    }
 
     return fetch(url, {method: "HEAD"});
   }

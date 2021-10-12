@@ -1,4 +1,3 @@
-import { DEFAULT_MAX_BAND } from "./rewriteVideo";
 //import unescapeJs from "unescape-js";
 
 
@@ -42,7 +41,7 @@ const DEFAULT_RULES = [
   },
 
   {
-    contains: ["api.twitter.com/2/", "twitter.com/i/api/2/"],
+    contains: ["api.twitter.com/2/", "twitter.com/i/api/2/", "twitter.com/i/api/graphql/"],
     rxRules: [
       [/"video_info".*?}]}/, ruleRewriteTwitterVideo]
     ]
@@ -103,14 +102,16 @@ function ruleRewriteTwitterVideo(string, opts) {
     return string;
   }
 
-  if (!opts.live && !(opts.response && opts.response.extraOpts && opts.response.extraOpts.rewritten)) {
-    return string;
-  }
+  // if (!opts.live && !(opts.response && opts.response.extraOpts && opts.response.extraOpts.rewritten)) {
+  //   return string;
+  // }
 
   const origString = string;
 
   try {
     const prefix = "\"video_info\":";
+
+    const MAX_BITRATE = 2000000;
 
     string = string.slice(prefix.length);
 
@@ -124,7 +125,7 @@ function ruleRewriteTwitterVideo(string, opts) {
         continue;
       }
 
-      if (variant.bitrate && variant.bitrate > bestBitrate && variant.bitrate <= DEFAULT_MAX_BAND) {
+      if (variant.bitrate && variant.bitrate > bestBitrate && variant.bitrate <= MAX_BITRATE) {
         bestVariant = variant;
         bestBitrate = variant.bitrate;
       }

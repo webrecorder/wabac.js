@@ -175,6 +175,9 @@ class SWReplay {
 
     // if not on our domain, just pass through (loading handled in local worker)
     if (!url.startsWith(this.prefix)) {
+      if (url === "chrome-extension://invalid/") {
+        return notFound(event.request, "Invalid URL");
+      }
       return this.defaultFetch(event.request);
     }
 
