@@ -8,9 +8,8 @@ import { ArchiveResponse } from "./response";
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
-const REPLAY_REGEX = /^(?::([\w-]+)\/)?(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
-
+// ===========================================================================
 class Collection {
   constructor(opts, prefixes, defaultConfig = {}) {
     const { name, store, config } = opts;
@@ -56,80 +55,20 @@ class Collection {
     this.staticPrefix = prefixes.static;
   }
 
-  noPostToGet() {
-    return this.noPostToGet;
-  }
-
   async handleRequest(request, event) {
-    let wbUrlStr = request.url;
-
-    if (wbUrlStr.startsWith(this.prefix)) {
-      wbUrlStr = wbUrlStr.substring(this.prefix.length);
-    } else {
-      return null;
-    }
-
-    const responseOpts = {
-      "status": 200,
-      "statusText": "OK",
-      "headers": { "Content-Type": "text/html" }
-    };
-
-    let content = null;
-
-    // pageList
-    if (wbUrlStr == "") {
-      content = "<html><body><h2>Available Pages</h2><ul>";
-
-      const pages = await this.store.getAllPages();
-
-      for (const page of pages) {
-        let href = this.prefix;
-        if (page.date) {
-          href += page.date + "/";
-        }
-        href += page.url;
-        content += `<li><a href="${href}">${page.url}</a></li>`;
-      }
-
-      content += "</ul></body></html>";
-
-      return new Response(content, responseOpts);
-    }
-
-    const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
-    let requestTS = "";
-    let requestURL = "";
-    let mod = "";
-    let pageId = "";
-
-    if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:") || wbUrlStr.startsWith("blob:"))) {
-      requestURL = wbUrlStr;
-    } else if (!wbUrl && this.isRoot) {
-      requestURL = "https://" + wbUrlStr;
-    } else if (!wbUrl) {
-      return notFound(request, `Replay URL ${wbUrlStr} not found`);
-    } else {
-      pageId = wbUrl[1] || "";
-      requestTS = wbUrl[2];
-      mod = wbUrl[3];
-      requestURL = wbUrl[4];
-    }
-
     // force timestamp for root coll
     //if (!requestTS && this.isRoot) {
     //requestTS = "2";
     //}
+    let requestURL = request.url;
+    const requestTS = request.timestamp;
 
-    if (!mod) {
+    if (!request.mod) {
       return await this.makeTopFrame(requestURL, requestTS);
     }
 
-    const hashIndex = requestURL.indexOf("#");
-    let hash = "";
-    if (hashIndex > 0) {
-      hash = requestURL.slice(hashIndex);
-      requestURL = requestURL.substring(0, hashIndex);
+    if (!this.noPostToGet) {
+      requestURL = await request.convertPostToGet();
     }
 
     // exact or fuzzy match
@@ -145,18 +84,8 @@ class Collection {
       } else if (requestURL === "__wb_module_decl.js") {
         response = await this.getWrappedModuleDecl(requestURL);
       } else {
-        const query = {
-          url: requestURL,
-          method: request.method,
-          timestamp: requestTS,
-          referrer: request.referrer,
-          mod,
-          request,
-          pageId
-        };
-
-        response = await this.getReplayResponse(query, event);
-        requestURL = query.url;
+        response = await this.getReplayResponse(request, event);
+        requestURL = request.url;
       }
     } catch (e) { 
       if (await handleAuthNeeded(e, this.config)) {
@@ -167,7 +96,7 @@ class Collection {
     if (!response) {
       try {
         requestURL = decodeURIComponent(requestURL);
-        requestURL += hash;
+        requestURL += request.hash;
       } catch(e) {
         // ignore invalid URL
       }
@@ -190,7 +119,7 @@ class Collection {
     }
 
     if (!response.noRW) {
-      const basePrefix = this.prefix + (pageId ? `:${pageId}/` : "");
+      const basePrefix = this.prefix + (request.pageId ? `:${request.pageId}/` : "");
       const basePrefixTS = basePrefix + requestTS;
 
       const headInsertFunc = (url) => {
@@ -206,6 +135,8 @@ class Collection {
             new WBWombat({'prefix': '${basePrefixTS}/', 'prefixMod': '${basePrefixTS}wkrf_/', 'originalURL': '${requestURL}'});\
         })();` + text;
       };
+
+      const mod = request.mod;
 
       const noRewrite = mod === "id_" || mod === "wkrf_";
 

@@ -22,7 +22,7 @@ class RemoteWARCProxy {
   }
 
   async getResource(request, prefix) {
-    const { url, headers } = resolveRequestParams(request.url, request.request, prefix);
+    const { url, headers } = request.prepareProxyRequest(prefix);
     let reqHeaders = headers;
 
     if (this.type === "kiwix") {
@@ -42,7 +42,7 @@ class RemoteWARCProxy {
       if (!headersData) {
 
         // use custom error page for navigate events
-        if (this.notFoundPageUrl && request.request.mode === "navigate") {
+        if (this.notFoundPageUrl && request.mode === "navigate") {
           const resp = await fetch(this.notFoundPageUrl);
           // load 'not found' page template
           if (resp.status === 200) {
@@ -264,7 +264,7 @@ class LiveAccess {
   }
 
   async getResource(request, prefix) {
-    const { headers, credentials, url} = resolveRequestParams(request.url, request.request, prefix, true, request.cookie);
+    const { headers, credentials, url} = request.prepareProxyRequest(prefix, true);
 
     let fetchUrl;
 
@@ -280,7 +280,7 @@ class LiveAccess {
     let body = null;
 
     if (this.allowBody && (request.method === "POST" || request.method === "PUT")) {
-      body = new Uint8Array(await request.request.arrayBuffer());
+      body = await request.getBody();
     }
 
     const response = await fetch(fetchUrl, {
@@ -311,40 +311,6 @@ class LiveAccess {
 
     return archiveResponse;
   }
-}
-
-
-function resolveRequestParams(url, request, prefix, isLive = true, cookie = "") {
-  let headers;
-  let referrer;
-  let credentials;
-
-  if (isLive) {
-    headers = new Headers(request.headers);
-    referrer = request.referrer;
-    const inx = referrer.indexOf("/http", prefix.length - 1);
-    if (inx > 0) {
-      referrer = referrer.slice(inx + 1);
-      headers.set("X-Proxy-Referer", referrer);
-    }
-    credentials = request.credentials;
-    if (cookie) {
-      headers.set("X-Proxy-Cookie", cookie);
-    }
-  } else {
-    headers = new Headers();
-    credentials = "omit";
-  }
-
-  if (url.startsWith("//")) {
-    try {
-      url = new URL(referrer).protocol + url;
-    } catch(e) {
-      url = "https:" + url;
-    }
-  }
-
-  return {referrer, headers, credentials, url};
 }
 
 
