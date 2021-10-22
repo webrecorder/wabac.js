@@ -25,6 +25,8 @@ class Collection {
     this.injectScripts = extraConfig.injectScripts || [];
     this.noRewritePrefixes = extraConfig.noRewritePrefixes || null;
 
+    this.noPostToGet = !!extraConfig.noPostToGet;
+
     this.convertPostToGet = !!extraConfig.convertPostToGet;
 
     this.coHeaders = extraConfig.coHeaders || false;
@@ -52,6 +54,10 @@ class Collection {
     }
 
     this.staticPrefix = prefixes.static;
+  }
+
+  noPostToGet() {
+    return this.noPostToGet;
   }
 
   async handleRequest(request, event) {

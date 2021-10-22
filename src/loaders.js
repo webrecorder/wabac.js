@@ -143,6 +143,7 @@ class CollectionLoader
     metadata.size = (metadata.size || 0) + dedupSize;
     metadata.mtime = new Date().getTime();
     await this.colldb.put("colls", data);
+    return metadata;
   }
 
   async initNewColl(metadata, extraConfig = {}, type = "archive") {
@@ -405,10 +406,13 @@ class WorkerLoader extends CollectionLoader
       return false;
     }
 
+    config.dbname = "db:" + name;
+
     if (file.sourceUrl.startsWith("proxy:")) {
       config.sourceUrl = file.sourceUrl.slice("proxy:".length);
       config.extraConfig = data.extraConfig;
       config.topTemplateUrl = data.topTemplateUrl;
+      config.metadata = {};
       type = data.type || "remotewarcproxy";
 
       db = await this._initStore(type, config);
@@ -424,7 +428,6 @@ class WorkerLoader extends CollectionLoader
       }
 
       type = "archive";
-      config.dbname = "db:" + name;
 
       if (file.newFullImport && file.importCollId) {
         const existing = await this.colldb.get("colls", file.importCollId);

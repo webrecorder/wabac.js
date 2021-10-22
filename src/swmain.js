@@ -101,6 +101,15 @@ class SWCollections extends WorkerLoader
     }
     return metadata;
   }
+
+  async updateSize(name, fullSize, dedupSize) {
+    const metadata = await super.updateSize(name, fullSize, dedupSize);
+    if (this.colls[name] && metadata) {
+      this.colls[name].config.metadata = metadata;
+      this.colls[name].metadata = metadata;
+    }
+    return metadata;
+  }
 }
 
 
@@ -292,10 +301,6 @@ class SWReplay {
       return await this.api.apiResponse(request.url.slice(this.apiPrefix.length), request);
     }
 
-    if (request.method === "POST" || request.method === "PUT") {
-      request = await this.toGetRequest(request);
-    }
-
     await this.collections.inited;
 
     let response = null;
@@ -321,6 +326,12 @@ class SWReplay {
     }
 
     const coll = await this.collections.getColl(collId);
+
+    if (coll && !coll.noPostToGet) {
+      if (request.method === "POST" || request.method === "PUT") {
+        request = await this.toGetRequest(request);
+      }
+    }
 
     if (coll && (response = await coll.handleRequest(request, event))) {
       if (this.stats) {

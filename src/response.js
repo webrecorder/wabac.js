@@ -1,5 +1,5 @@
 import { BaseAsyncIterReader, AsyncIterReader } from "warcio";
-import { isNullBodyStatus, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE } from "./utils";
+import { isNullBodyStatus, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, tsToDate } from "./utils";
 
 
 class ArchiveResponse
@@ -15,6 +15,19 @@ class ArchiveResponse
     const origLoc = headers.get("x-orig-location");
     if (origLoc) {
       headers.set("location", origLoc);
+      headers.delete("x-orig-location");
+      headers.delete("x-redirect-status");
+      headers.delete("x-redirect-statusText");
+    }
+
+    const origTs = headers.get("x-orig-ts");
+    if (origTs) {
+      date = tsToDate(origTs);
+      headers.delete("x-orig-ts");
+    }
+    const mementoDt = headers.get("memento-datetime");
+    if (mementoDt) {
+      date = new Date(mementoDt);
     }
 
     const cookie = (headers.get("x-proxy-set-cookie"));

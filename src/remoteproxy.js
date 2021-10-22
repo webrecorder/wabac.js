@@ -22,7 +22,7 @@ class RemoteWARCProxy {
   }
 
   async getResource(request, prefix) {
-    const { url, headers } = resolveRequestParams(request, prefix);
+    const { url, headers } = resolveRequestParams(request.url, request.request, prefix);
     let reqHeaders = headers;
 
     if (this.type === "kiwix") {
@@ -244,13 +244,15 @@ class RemoteProxySource {
 
 // ===========================================================================
 class LiveAccess {
-  constructor(config) {
+  constructor(config, {cloneResponse = false, allowBody = false} = {}) {
     const extraConfig = config.extraConfig || {};
 
     this.prefix = extraConfig.prefix || "";
     this.proxyPathOnly = extraConfig.proxyPathOnly || false;
     this.isLive = extraConfig.isLive !== undefined ? extraConfig.isLive : true;
     this.archivePrefix = extraConfig.archivePrefix || "";
+    this.cloneResponse = cloneResponse;
+    this.allowBody = allowBody;
   }
 
   async getAllPages() {
@@ -258,8 +260,7 @@ class LiveAccess {
   }
 
   async getResource(request, prefix) {
-
-    const { headers, credentials, url} = resolveRequestParams(request, prefix);
+    const { headers, credentials, url} = resolveRequestParams(request.url, request.request, prefix, true, request.cookie);
 
     let fetchUrl;
 
@@ -272,45 +273,64 @@ class LiveAccess {
       fetchUrl = this.prefix + this.archivePrefix + request.timestamp + "id_/" + url;
     }
 
-    const response = await fetch(fetchUrl,
-      {method: request.request.method,
-        body: request.request.body,
-        headers,
-        credentials,
-        mode: "cors",
-        redirect: "follow"
-      });
+    let body = null;
 
-    return ArchiveResponse.fromResponse({url,
+    if (this.allowBody && (request.method === "POST" || request.method === "PUT")) {
+      body = new Uint8Array(await request.request.arrayBuffer());
+    }
+
+    const response = await fetch(fetchUrl, {
+      method: request.method,
+      body,
+      headers,
+      credentials,
+      mode: "cors",
+      redirect: "follow"
+    });
+
+    let clonedResponse = null;
+
+    if (this.cloneResponse) {
+      clonedResponse = response.clone();
+    }
+
+    const archiveResponse = ArchiveResponse.fromResponse({url,
       response,
       date: new Date(),
       noRW: false,
       isLive: this.isLive,
     });
+
+    if (clonedResponse) {
+      archiveResponse.clonedResponse = clonedResponse;
+    }
+
+    return archiveResponse;
   }
 }
 
 
-function resolveRequestParams(request, prefix, isLive = true) {
+function resolveRequestParams(url, request, prefix, isLive = true, cookie = "") {
   let headers;
   let referrer;
   let credentials;
 
   if (isLive) {
-    headers = new Headers(request.request.headers);
-    referrer = request.request.referrer;
+    headers = new Headers(request.headers);
+    referrer = request.referrer;
     const inx = referrer.indexOf("/http", prefix.length - 1);
     if (inx > 0) {
       referrer = referrer.slice(inx + 1);
       headers.set("X-Proxy-Referer", referrer);
     }
-    credentials = request.request.credentials;
+    credentials = request.credentials;
+    if (cookie) {
+      headers.set("X-Proxy-Cookie", cookie);
+    }
   } else {
     headers = new Headers();
     credentials = "omit";
   }
-
-  let url = request.url;
 
   if (url.startsWith("//")) {
     try {

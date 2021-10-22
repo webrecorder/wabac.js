@@ -6,6 +6,7 @@ const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
   mode: "production",
+  target: "web",
   entry: {
     "wombat": "@webrecorder/wombat/src/wbWombat.js",
     "wombatWorkers": "@webrecorder/wombat/src/wombatWorkers.js",
@@ -14,7 +15,6 @@ module.exports = {
   output: {
     path: path.join(__dirname, "dist"),
     filename: "[name].js",
-    libraryTarget: "global",
     globalObject: "self",
     publicPath: "/dist/"
   },
