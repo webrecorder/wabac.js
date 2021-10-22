@@ -115,7 +115,7 @@ const DEFAULT_RULES =
     "replace": ""
   },
   {
-    "match": /(\.(?:php|js|webm|mp4|gif|jpg|png|css|json|m3u8))\?.*/i,
+    "match": /(\.(?:js|webm|mp4|gif|jpg|png|css|json|m3u8))\?.*/i,
     "replace": "$1"
   }
 ];
