@@ -39,10 +39,11 @@ class ArchiveResponse
           cookies.push(cval);
         }
       });
+      headers.delete("x-proxy-set-cookie");
 
       if (cookies.length) {
         headers.set("x-wabac-preset-cookie", cookies.join(";"));
-        console.log("cookies", cookies.join(";"));
+        //console.log("cookies", cookies.join(";"));
       }
     }
 

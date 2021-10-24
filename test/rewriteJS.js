@@ -11,10 +11,26 @@ async function rewriteJS(t, content, expected, useBaseRules = false) {
     expected = content;
   }
 
-  t.is(actual, wrapScript(expected));
+  t.is(actual, expected);
 }
 
 rewriteJS.title = (providedTitle = "JS", input/*, expected*/) => `${providedTitle}: ${input.replace(/\n/g, "\\n")}`.trim();
+
+
+// ===========================================================================
+async function rewriteJSWrapped(t, content, expected, useBaseRules = false) {
+  const actual = await doRewrite({content, contentType: "application/javascript", useBaseRules});
+
+  if (!expected) {
+    expected = content;
+  }
+
+  t.is(actual, wrapScript(expected));
+}
+
+rewriteJSWrapped.title = (providedTitle = "JS Wrapped Globals", input/*, expected*/) => `${providedTitle}: ${input.replace(/\n/g, "\\n")}`.trim();
+
+
 
 
 // ===========================================================================
@@ -78,7 +94,7 @@ test(rewriteJS,
   "(a,b,Q.contains(i[t], this))",
   "(a,b,Q.contains(i[t], _____WB$wombat$check$this$function_____(this)))");
 
-test(rewriteJS,
+test(rewriteJSWrapped,
   "this. location = http://example.com/",
   "this. location = ((self.__WB_check_loc && self.__WB_check_loc(location)) || {}).href = http://example.com/");
 
@@ -174,9 +190,9 @@ test(rewriteJS, "this.$eval(a)");
 
 test(rewriteJS, "x = $eval; x(a);");
 
-test(rewriteJS, "window.eval(a)");
+test(rewriteJSWrapped, "window.eval(a)");
 
-test(rewriteJS, "x = window.eval; x(a);");
+test(rewriteJSWrapped, "x = window.eval; x(a);");
 
 test(rewriteJS, "obj = { eval : 1 }");
 

@@ -293,38 +293,10 @@ class Rewriter {
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
 
-    // optimize: if default rewriter, only rewrite if contains JS props
-    if (dsRewriter === dsRules.defaultRewriter) {
-      if (noUrlProxyRewrite) {
-        return text;
-      }
 
-      const overrideProps = [
-        "window",
-        "self",
-        "document",
-        "location",
-        "top",
-        "parent",
-        "frames",
-        "opener",
-        "this",
-        "eval",
-        "postMessage"
-      ];
-
-      let containsProps = false;
-
-      for (let prop of overrideProps) {
-        if (text.indexOf(prop) >= 0) {
-          containsProps = true;
-          break;
-        }
-      }
-
-      if (!containsProps) {
-        return text;
-      }
+    // optimize: if default rewriter and not rewriting urls, skip
+    if (dsRewriter === dsRules.defaultRewriter && noUrlProxyRewrite) {
+      return text;
     }
 
     return dsRewriter.rewrite(text, opts);

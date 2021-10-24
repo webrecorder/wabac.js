@@ -3,6 +3,21 @@ import { RxRewriter } from "./rxrewriter";
 const IMPORT_RX = /^\s*?import\s*?[{"']/;
 const EXPORT_RX = /export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/;
 
+const GLOBAL_OVERRIDES = [
+  "window",
+  "self",
+  "document",
+  "location",
+  "top",
+  "parent",
+  "frames",
+  "opener"
+];
+
+const GLOBALS_CONCAT_STR = GLOBAL_OVERRIDES.map((x) => `(?:^|\\s)${x}\\b(?:$|[^$])`).join("|");
+
+const GLOBALS_RX = new RegExp(`(${GLOBALS_CONCAT_STR})`);
+
 
 // ===========================================================================
 class JSRewriter extends RxRewriter {
@@ -12,19 +27,6 @@ class JSRewriter extends RxRewriter {
     const thisRw = "_____WB$wombat$check$this$function_____(this)";
 
     const checkLoc = "((self.__WB_check_loc && self.__WB_check_loc(location)) || {}).href = ";
-
-    const localObjs = [
-      "window",
-      "self",
-      "document",
-      "location",
-      "top",
-      "parent",
-      "frames",
-      "opener"
-    ];
-
-    const propStr = localObjs.join("|");
 
     const evalStr = "WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).";
 
@@ -87,7 +89,7 @@ class JSRewriter extends RxRewriter {
 
       // rewriting 'this.' special properties access on new line, with ; prepended
       // if prev char is '\n', or if prev is not '.' or '$', no semi
-      [new RegExp(`[^$.]\\s?\\bthis\\b(?=(?:\\.(?:${propStr})\\b))`), replaceThisProp()],
+      [new RegExp(`[^$.]\\s?\\bthis\\b(?=(?:\\.(?:${GLOBAL_OVERRIDES.join("|")})\\b))`), replaceThisProp()],
 
       // rewrite '= this' or ', this'
       [/[=,]\s*\bthis\b\s*(?![\s\w:.$])/, replaceThis()],
@@ -105,8 +107,7 @@ class JSRewriter extends RxRewriter {
 
     this.compileRules();
 
-    this.localObjs = localObjs;
-    this.firstBuff = this.initLocalDecl(localObjs);
+    this.firstBuff = this.initLocalDecl(GLOBAL_OVERRIDES);
     this.lastBuff = "\n\n}";
   }
 
@@ -135,12 +136,22 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     if ((text.indexOf("import") >= 0 && text.match(IMPORT_RX)) ||
         (text.indexOf("export") >= 0 && text.match(EXPORT_RX))) {
-      newText = this.getModuleDecl(this.localObjs, opts.prefix) + super.rewrite(text, opts);
-    } else {
-      newText = this.firstBuff + super.rewrite(text, opts) + this.lastBuff;
+      return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) + super.rewrite(text, opts);
     }
 
-    return opts && opts.inline ? newText.replace(/\n/g, " ") : newText;
+    const wrapGlobals = GLOBALS_RX.exec(text);
+
+    newText = super.rewrite(text, opts);
+
+    if (wrapGlobals) {
+      newText = this.firstBuff + newText + this.lastBuff;
+    }
+
+    if (opts && opts.inline) {
+      newText = newText.replace(/\n/g, " ") ;
+    }
+
+    return newText;
   }
 }
 
