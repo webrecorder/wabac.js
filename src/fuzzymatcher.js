@@ -36,8 +36,8 @@ const DEFAULT_RULES =
     "splitLast": true
   },
   {
-    "match": /^https?:\/\/(youtube\.com\/embed\/[^?]+)[?].*/i,
-    "replace": "$1"
+    "match": /^https?:\/\/(?:www\.)?(youtube\.com\/embed\/[^?]+)[?].*/i,
+    "replace": "$1",
   },
   {
     "match": /\/\/(?:www\.)?youtube(?:-nocookie)?\.com\/(get_video_info)/i,
@@ -51,7 +51,7 @@ const DEFAULT_RULES =
   },
   {
     "match": /\/\/.*googlevideo.com\/(videoplayback\?).*(id=[^&]+).*([&]itag=[^&]+)/i,
-    "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1$2$3",
+    "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1$2",
     "args": [["id", "itag"],
       ["id"]],
     "fuzzyArgs": true
