@@ -45,13 +45,13 @@ const DEFAULT_RULES =
     "args": [["video_id"]],
   },
   {
-    "match": /\/\/(?:www\.)?youtube(?:-nocookie)?\.com\/(youtubei\/v1\/[^?]+\?).*(videoId[^,]+).*/i,
-    "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1?$2",
+    "match": /\/\/(?:www\.)?youtube(?:-nocookie)?\.com\/(youtubei\/v1\/[^?]+\?).*(videoId[^&]+).*/i,
+    "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1$2",
     "args": [["videoId"]]
   },
   {
-    "match": /\/\/.*googlevideo.com\/(videoplayback)/i,
-    "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1",
+    "match": /\/\/.*googlevideo.com\/(videoplayback\?).*(id=[^&]+).*([&]itag=[^&]+)/i,
+    "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1$2$3",
     "args": [["id", "itag"],
       ["id"]],
     "fuzzyArgs": true
