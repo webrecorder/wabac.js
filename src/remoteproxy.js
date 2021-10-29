@@ -29,9 +29,13 @@ class RemoteWARCProxy {
       let headersData = await this.resolveHeaders(url);
 
       if (!headersData) {
-        const newUrl = fuzzyMatcher.getFuzzyCanonWithArgs(url);
-        if (newUrl !== url) {
-          headersData = await this.resolveHeaders(newUrl);
+        for (const newUrl of fuzzyMatcher.getFuzzyCanonsWithArgs(url)) {
+          if (newUrl !== url) {
+            headersData = await this.resolveHeaders(newUrl);
+            if (headersData) {
+              break;
+            }
+          }
         }
       }
 
