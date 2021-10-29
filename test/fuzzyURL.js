@@ -14,28 +14,29 @@ function fuzzyMatchMany(t, url, results, expected) {
 }
 
 function fuzzyCanonWithArgs(t, url, expected) {
-  const fuzzyCanonUrl = fuzzy.getFuzzyCanonWithArgs(url);
-  t.is(fuzzyCanonUrl, expected);
+  const fuzzyCanonUrls = fuzzy.getFuzzyCanonsWithArgs(url);
+  t.deepEqual(fuzzyCanonUrls, expected);
 }
 
 test("fuzzy canon args yt", fuzzyCanonWithArgs,
   "https://www.youtube.com/get_video_info?foo=bar&html5=1&video_id=12345678&pn=JiUSOZ2NVdJy1uam&eurl=baz",
-  "https://youtube.fuzzy.replayweb.page/get_video_info?video_id=12345678"
+  ["https://youtube.fuzzy.replayweb.page/get_video_info?video_id=12345678"]
 );
 
 test("fuzzy canon args yt 2", fuzzyCanonWithArgs,
   "https://blah.blah.boo.googlevideo.com/videoplayback?foo=bar&itag=3&id=12345678&pn=JiUSOZ2NVdJy1uam&eurl=baz",
-  "https://youtube.fuzzy.replayweb.page/videoplayback?id=12345678&itag=3"
+  ["https://youtube.fuzzy.replayweb.page/videoplayback?id=12345678&itag=3",
+   "https://youtube.fuzzy.replayweb.page/videoplayback?id=12345678"]
 );
 
 test("fuzzy canon args timestamp", fuzzyCanonWithArgs,
   "https://example.com?1234",
-  "https://example.com?"
+  ["https://example.com?"]
 );
 
 test("fuzzy canon args timestamp 2", fuzzyCanonWithArgs,
   "https://example.com?_=1234",
-  "https://example.com?"
+  ["https://example.com?"]
 );
 
 
