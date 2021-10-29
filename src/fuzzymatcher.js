@@ -36,8 +36,8 @@ const DEFAULT_RULES =
     "splitLast": true
   },
   {
-    "match": /^https?:\/\/(youtube\.com\/embed\/[^?]+)[?].*/i,
-    "replace": "$1"
+    "match": /^https?:\/\/(?:www\.)?(youtube\.com\/embed\/[^?]+)[?].*/i,
+    "replace": "$1",
   },
   {
     "match": /\/\/(?:www\.)?youtube(?:-nocookie)?\.com\/(get_video_info)/i,
@@ -45,15 +45,17 @@ const DEFAULT_RULES =
     "args": [["video_id"]],
   },
   {
-    "match": /\/\/(?:www\.)?youtube(?:-nocookie)?\.com\/(youtubei\/v1\/[^?]+\?).*(videoId[^,]+).*/i,
-    "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1?$2",
+    "match": /\/\/(?:www\.)?youtube(?:-nocookie)?\.com\/(youtubei\/v1\/[^?]+\?).*(videoId[^&]+).*/i,
+    "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1$2",
     "args": [["videoId"]]
   },
   {
     "match": /\/\/.*googlevideo.com\/(videoplayback)/i,
     "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1",
-    "args": [["id", "itag"],
-      ["id"]],
+    "args": [
+      ["id", "itag"],
+      ["id"]
+    ],
     "fuzzyArgs": true
   },
   {
@@ -151,25 +153,32 @@ class FuzzyMatcher {
     return {prefix, rule, fuzzyCanonUrl};
   }
 
-  getFuzzyCanonWithArgs(reqUrl) {
+  getFuzzyCanonsWithArgs(reqUrl) {
     let { fuzzyCanonUrl, prefix, rule } = this.getRuleFor(reqUrl);
 
     if (fuzzyCanonUrl === reqUrl) {
       fuzzyCanonUrl = prefix;
     }
 
+    const urls = [];
+
     if (rule && rule.args) {
       const fuzzUrl = new URL(fuzzyCanonUrl);
       const origUrl = new URL(reqUrl);
-      const query = new URLSearchParams();
-      for (const arg of rule.args[0]) {
-        query.set(arg, origUrl.searchParams.get(arg) || "");
+
+      for (const args of rule.args) {
+        const query = new URLSearchParams();
+
+        for (const arg of args) {
+          query.set(arg, origUrl.searchParams.get(arg) || "");
+        }
+        fuzzUrl.search = query.toString();
+        urls.push(fuzzUrl.href);
       }
-      fuzzUrl.search = query.toString();
-      return fuzzUrl.href;
+      return urls;
     }
 
-    return fuzzyCanonUrl;
+    return [fuzzyCanonUrl];
   }
 
   fuzzyCompareUrls(reqUrl, results, matchedRule) {
