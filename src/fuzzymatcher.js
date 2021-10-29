@@ -50,7 +50,7 @@ const DEFAULT_RULES =
     "args": [["videoId"]]
   },
   {
-    "match": /\/\/.*googlevideo.com\/(videoplayback\?).*(id=[^&]+).*([&]itag=[^&]+)/i,
+    "match": /\/\/.*googlevideo.com\/(videoplayback\?).*(id=[^&]+).*/i,
     "fuzzyCanonReplace": "//youtube.fuzzy.replayweb.page/$1$2",
     "args": [["id", "itag"],
       ["id"]],
