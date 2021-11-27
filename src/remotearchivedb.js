@@ -1,6 +1,6 @@
 import { ArchiveDB } from "./archivedb";
 import { SingleRecordWARCLoader } from "./warcloader";
-import { BaseAsyncIterReader, AsyncIterReader, LimitReader } from "warcio";
+import { BaseAsyncIterReader, AsyncIterReader, LimitReader, concatChunks } from "warcio";
 
 import { createLoader } from "./blockloaders";
 
@@ -292,7 +292,7 @@ class ChunkStore
     this._nextResolve(false);
     this.done = true;
 
-    return BaseAsyncIterReader.concatChunks(this.chunks, this.size);
+    return concatChunks(this.chunks, this.size);
   }
 
   async* getChunkIter() {

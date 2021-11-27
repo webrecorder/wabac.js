@@ -1,6 +1,6 @@
 import { AuthNeededError, AccessDeniedError, RangeError, sleep } from "./utils";
 
-import { AsyncIterReader } from "warcio";
+import { concatChunks } from "warcio";
 import { initIPFS } from "./ipfs";
 
 // todo: make configurable
@@ -56,7 +56,7 @@ class HttpRangeLoader
 
     if (tryHead) {
       try {
-        response = await fetch(this.url, {headers, method: "HEAD", cache: "no-store"});
+        response = await this.retryFetch(this.url, {headers, method: "HEAD", cache: "no-store"});
         if (response.status === 200 || response.status == 206) {
           this.canLoadOnDemand = ((response.status === 206) || response.headers.get("Accept-Ranges") === "bytes");
           this.isValid = true;
@@ -69,7 +69,7 @@ class HttpRangeLoader
     if (!this.isValid || !this.canLoadOnDemand) {
       abort = new AbortController();
       const signal = abort.signal;
-      response = await fetch(this.url, {headers, signal, cache: "no-store"});
+      response = await this.retryFetch(this.url, {headers, signal, cache: "no-store"});
       this.canLoadOnDemand = ((response.status === 206) || response.headers.get("Accept-Ranges") === "bytes");
       this.isValid = (response.status === 206 || response.status === 200);
       // if emulating HEAD, abort here
@@ -131,7 +131,7 @@ class HttpRangeLoader
     let resp = null;
 
     try {
-      resp = await fetch(this.url, options);
+      resp = await this.retryFetch(this.url, options);
     } catch(e) {
       console.log(e);
       throw new RangeError(this.url);
@@ -154,7 +154,21 @@ class HttpRangeLoader
     } else {
       return new Uint8Array(await resp.arrayBuffer());
     }
-  } 
+  }
+
+  async retryFetch(url, options) {
+    let resp = null;
+    let backoff = 1000;
+    for (let count = 0; count < 20; count++) {
+      resp = await fetch(url, options);
+      if (resp.status !== 429) {
+        break;
+      }
+      await sleep(backoff);
+      backoff += 2000;
+    }
+    return resp;
+  }
 }
 
 // ===========================================================================
@@ -310,7 +324,7 @@ class BlobCacheLoader
   }
 
   async getLength() {
-    if (!this.blob && !this.blob.size) {
+    if (!this.blob || !this.blob.size) {
       let response = await fetch(this.url);
       this.blob = await response.blob();
       this.size = this.blob.size;
@@ -519,7 +533,7 @@ class IPFSRangeLoader
           size += chunk.byteLength;
         }
 
-        return AsyncIterReader.concatChunks(chunks, size);
+        return concatChunks(chunks, size);
       }
     } catch (e) {
       return await this.httpFallback.getRange(offset, length, streaming, signal);
