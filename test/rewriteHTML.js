@@ -44,6 +44,7 @@ let top = _____WB$wombat$assign$function_____("top");
 let parent = _____WB$wombat$assign$function_____("parent");
 let frames = _____WB$wombat$assign$function_____("frames");
 let opener = _____WB$wombat$assign$function_____("opener");
+let arguments;
 \n` + text + "\n\n}";
 
 }

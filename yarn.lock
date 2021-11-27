@@ -511,7 +511,7 @@
   resolved "https://registry.yarnpkg.com/@webpack-cli/serve/-/serve-1.5.2.tgz#ea584b637ff63c5a477f6f21604b5a205b72c9ec"
   integrity sha512-vgJ5OLWadI8aKjDlOH3rb+dYyPd2GTZuQC/Tihjct6F9GpXGZINo3Y/IVuZVTM1eDQB+/AOsjPUWH/WySDaXvw==
 
-"@webrecorder/wombat@^3.3.4":
+"@webrecorder/wombat@^3.3.5":
   version "3.3.5"
   resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.3.5.tgz#89aa8e48c58ca3d18ae9ceb52d229c1c04a3d458"
   integrity sha512-mj/TtahJjhRf/TSyO0Nr8nwCH373Fyd5mqtqkTlacMsSMZdAfp/t7bY2aVr1rFqEb7KC+U7xkVn6fmDUecLZng==

@@ -62,6 +62,7 @@ let top = _____WB$wombat$assign$function_____("top");
 let parent = _____WB$wombat$assign$function_____("parent");
 let frames = _____WB$wombat$assign$function_____("frames");
 let opener = _____WB$wombat$assign$function_____("opener");
+let arguments;
 \n` + text + "\n\n}";
 
 }
@@ -96,7 +97,7 @@ test(rewriteJS,
 
 test(rewriteJSWrapped,
   "this. location = http://example.com/",
-  "this. location = ((self.__WB_check_loc && self.__WB_check_loc(location)) || {}).href = http://example.com/");
+  "this. location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/");
 
 test(rewriteJS,
   " eval(a)",
