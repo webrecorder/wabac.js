@@ -5,12 +5,13 @@ const REPLAY_REGEX = /^(?::([\w-]+)\/)?(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%
 
 export class ArchiveRequest
 {
-  constructor(wbUrlStr, request, isRoot = false)
+  constructor(wbUrlStr, request, {isRoot = false, mod = "", ts = "", proxyOrigin = null, localOrigin = null} = {})
   {
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
 
     this.url = "";
-    this.mod = "";
+    this.timestamp = ts;
+    this.mod = mod;
     this.pageId = "";
     this.hash = "";
 
@@ -26,6 +27,13 @@ export class ArchiveRequest
       this.timestamp = wbUrl[2];
       this.mod = wbUrl[3];
       this.url = wbUrl[4];
+    }
+
+    if (proxyOrigin && localOrigin) {
+      const url = new URL(this.url);
+      if (url.origin === localOrigin) {
+        this.url = proxyOrigin + url.pathname + (url.search ? url.search : "");
+      }
     }
 
     const hashIndex = this.url.indexOf("#");

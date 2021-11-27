@@ -152,6 +152,8 @@ class SWReplay {
     this.collections = new CollectionsClass(prefixes, sp.get("root"), useIPFS, defaultConfig);
     this.collections.loadAll(sp.get("dbColl"));
 
+    this.proxyOriginMode = !!sp.get("proxyOriginMode");
+
     this.api = new ApiClass(this.collections);
     this.apiPrefix = this.replayPrefix + "api/";
 
@@ -181,6 +183,10 @@ class SWReplay {
 
   handleFetch(event) {
     const url = event.request.url;
+
+    if (this.proxyOriginMode) {
+      return this.getResponseFor(event.request, event);
+    }
 
     // if not on our domain, just pass through (loading handled in local worker)
     if (!url.startsWith(this.prefix)) {
@@ -294,7 +300,7 @@ class SWReplay {
 
   async getResponseFor(request, event) {
     // API
-    if (request.url.startsWith(this.apiPrefix)) {
+    if (!this.proxyOriginMode && request.url.startsWith(this.apiPrefix)) {
       if (this.stats && request.url.startsWith(this.apiPrefix + "stats.json")) {
         return await this.stats.getStats(event);
       }
@@ -325,13 +331,21 @@ class SWReplay {
 
     const coll = await this.collections.getColl(collId);
 
-    if (!coll || !request.url.startsWith(coll.prefix)) {
+    if (!coll || (!this.proxyOriginMode && !request.url.startsWith(coll.prefix))) {
       return notFound(request);
     }
 
-    const wbUrlStr = request.url.substring(coll.prefix.length);
+    const wbUrlStr = this.proxyOriginMode ? request.url : request.url.substring(coll.prefix.length);
 
-    const archiveRequest = new ArchiveRequest(wbUrlStr, request);
+    const opts = {};
+
+    if (this.proxyOriginMode) {
+      opts.mod = "id_";
+      opts.proxyOrigin = coll.config.extraConfig.proxyOrigin;
+      opts.localOrigin = self.location.origin;
+    }
+
+    const archiveRequest = new ArchiveRequest(wbUrlStr, request, opts);
 
     if (!archiveRequest.url) {
       return notFound(request, `Replay URL ${wbUrlStr} not found`);

@@ -123,7 +123,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     for (let decl of localDecls) {
       buffer += `let ${decl} = ${assignFunc}("${decl}");\n`;
     }
-    buffer += `let arguments;\n`;
+    buffer += "let arguments;\n";
 
     return buffer + "\n";
   }
