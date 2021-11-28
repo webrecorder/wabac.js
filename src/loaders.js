@@ -208,6 +208,7 @@ class CollectionLoader
       store = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
       break;        
 
+    case "wacz":
     case "remotezip":
       sourceLoader = createLoader({
         url: config.loadUrl || config.sourceUrl,
@@ -267,7 +268,13 @@ class WorkerLoader extends CollectionLoader
   }
 
   registerListener(worker) {
-    worker.addEventListener("message", event => event.waitUntil(this._handleMessage(event)));
+    worker.addEventListener("message", event => {
+      if (event.waitUntil) {
+        event.waitUntil(this._handleMessage(event));
+      } else {
+        this._handleMessage(event);
+      }
+    });
   }
 
   async _handleMessage(event) {
@@ -280,7 +287,7 @@ class WorkerLoader extends CollectionLoader
     {
       const name = event.data.name; 
 
-      const progressUpdate = (percent, error, currentSize, totalSize, fileHandle = null) => {
+      const progressUpdate = (percent, error, currentSize, totalSize, fileHandle = null, extraMsg = null) => {
         client.postMessage({
           "msg_type": "collProgress",
           name,
@@ -288,7 +295,8 @@ class WorkerLoader extends CollectionLoader
           error,
           currentSize,
           totalSize,
-          fileHandle
+          fileHandle,
+          extraMsg
         });
       };
 
@@ -612,7 +620,7 @@ Make sure this is a valid URL and you have access to this file.`);
 
     config.ctime = new Date().getTime();
 
-    if (config.extra && config.extra.fileHandle) {
+    if (this._fileHandles && config.extra && config.extra.fileHandle) {
       delete this._fileHandles[config.sourceUrl];
     }
 

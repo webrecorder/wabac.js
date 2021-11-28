@@ -26,7 +26,7 @@ class JSRewriter extends RxRewriter {
 
     const thisRw = "_____WB$wombat$check$this$function_____(this)";
 
-    const checkLoc = "((self.__WB_check_loc && self.__WB_check_loc(location)) || {}).href = ";
+    const checkLoc = "((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = ";
 
     const evalStr = "WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).";
 
@@ -123,6 +123,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     for (let decl of localDecls) {
       buffer += `let ${decl} = ${assignFunc}("${decl}");\n`;
     }
+    buffer += "let arguments;\n";
 
     return buffer + "\n";
   }

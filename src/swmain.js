@@ -5,12 +5,12 @@ import { WorkerLoader } from "./loaders";
 
 import { notFound, isAjaxRequest } from "./utils.js";
 import { StatsTracker } from "./statstracker.js";
-import { postToGetUrl } from "warcio";
 
 import { API } from "./api.js";
 
 import WOMBAT from "../dist/wombat.js";
 import WOMBAT_WORKERS from "@webrecorder/wombat/src/wombatWorkers.js";
+import { ArchiveRequest } from "./request";
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
@@ -152,6 +152,8 @@ class SWReplay {
     this.collections = new CollectionsClass(prefixes, sp.get("root"), useIPFS, defaultConfig);
     this.collections.loadAll(sp.get("dbColl"));
 
+    this.proxyOriginMode = !!sp.get("proxyOriginMode");
+
     this.api = new ApiClass(this.collections);
     this.apiPrefix = this.replayPrefix + "api/";
 
@@ -181,6 +183,10 @@ class SWReplay {
 
   handleFetch(event) {
     const url = event.request.url;
+
+    if (this.proxyOriginMode) {
+      return this.getResponseFor(event.request, event);
+    }
 
     // if not on our domain, just pass through (loading handled in local worker)
     if (!url.startsWith(this.prefix)) {
@@ -294,7 +300,7 @@ class SWReplay {
 
   async getResponseFor(request, event) {
     // API
-    if (request.url.startsWith(this.apiPrefix)) {
+    if (!this.proxyOriginMode && request.url.startsWith(this.apiPrefix)) {
       if (this.stats && request.url.startsWith(this.apiPrefix + "stats.json")) {
         return await this.stats.getStats(event);
       }
@@ -303,20 +309,18 @@ class SWReplay {
 
     await this.collections.inited;
 
-    let response = null;
-
     const isAjax = isAjaxRequest(request);
     const range = request.headers.get("range");
 
     try {
       if (this.allowRewrittenCache && !range) {
-        response = await self.caches.match(request);
+        const response = await self.caches.match(request);
         if (response && !!response.headers.get(IS_AJAX_HEADER) === isAjax) {
           return response;
         }
       }
     } catch (e) {
-      response = null;
+      // ignore, not cached
     }
 
     let collId = this.collections.root;
@@ -327,13 +331,29 @@ class SWReplay {
 
     const coll = await this.collections.getColl(collId);
 
-    if (coll && !coll.noPostToGet) {
-      if (request.method === "POST" || request.method === "PUT") {
-        request = await this.toGetRequest(request);
-      }
+    if (!coll || (!this.proxyOriginMode && !request.url.startsWith(coll.prefix))) {
+      return notFound(request);
     }
 
-    if (coll && (response = await coll.handleRequest(request, event))) {
+    const wbUrlStr = this.proxyOriginMode ? request.url : request.url.substring(coll.prefix.length);
+
+    const opts = {};
+
+    if (this.proxyOriginMode) {
+      opts.mod = "id_";
+      opts.proxyOrigin = coll.config.extraConfig.proxyOrigin;
+      opts.localOrigin = self.location.origin;
+    }
+
+    const archiveRequest = new ArchiveRequest(wbUrlStr, request, opts);
+
+    if (!archiveRequest.url) {
+      return notFound(request, `Replay URL ${wbUrlStr} not found`);
+    }
+
+    const response = await coll.handleRequest(archiveRequest, event);
+
+    if (response) {
       if (this.stats) {
         this.stats.updateStats(response.date, response.status, request, event);
       }
@@ -359,36 +379,6 @@ class SWReplay {
     }
 
     return notFound(request);
-  }
-
-  async toGetRequest(request) {
-    let newUrl = request.url;
-
-    if (request.method === "POST" || request.method === "PUT") {
-      const data = {
-        method: request.method,
-        postData: await request.text(),
-        headers: request.headers,
-        url: request.url
-      };
-
-      if (postToGetUrl(data)) {
-        newUrl = data.url;
-      }
-    }
-
-    const options = {
-      method: "GET",
-      headers: request.headers,
-      mode: (request.mode === "navigate" ? "same-origin" : request.mode),
-      credentials: request.credentials,
-      cache: request.cache,
-      redirect: request.redirect,
-      referrer: request.referrer,
-      integrity: request.integrity,
-    };
-
-    return new Request(newUrl, options);
   }
 }
 

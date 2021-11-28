@@ -341,9 +341,12 @@ class WARCLoader extends BaseParser {
     const parser = new WARCParser(this.reader);
 
     let lastUpdate = 0, updateTime = 0;
+    let count = 0;
 
     try {
       for await (const record of parser) {
+        count++;
+
         if (!record.warcType) {
           console.log("skip empty record");
           continue;
@@ -360,7 +363,8 @@ class WARCLoader extends BaseParser {
 
         updateTime = new Date().getTime();
         if ((updateTime - lastUpdate) > 500) {
-          progressUpdate(Math.round((parser.offset / totalSize) * 95.0), null, parser.offset, totalSize);
+          const extraMsg = `Processed ${count} records`;
+          progressUpdate(Math.round((parser.offset / totalSize) * 95.0), null, parser.offset, totalSize, null, extraMsg);
           lastUpdate = updateTime;
         }
 
@@ -379,7 +383,9 @@ class WARCLoader extends BaseParser {
         } else {
           await record.readFully();
         }
-        
+
+        count++;
+
         this.index(record, parser);
 
         if (this.promises.length > 0) {

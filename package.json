@@ -1,10 +1,10 @@
 {
   "name": "@webrecorder/wabac",
-  "version": "2.9.6",
+  "version": "2.10.0-beta.0",
   "main": "index.js",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "@webrecorder/wombat": "^3.3.4",
+    "@webrecorder/wombat": "^3.3.5",
     "brotli": "github:foliojs/brotli.js",
     "buffer": "^6.0.3",
     "fast-xml-parser": "^3.19.0",
@@ -20,7 +20,7 @@
     "path-parser": "^6.1.0",
     "process": "^0.11.10",
     "stream-browserify": "^3.0.0",
-    "warcio": "^1.4.8"
+    "warcio": "^1.5.0"
   },
   "devDependencies": {
     "@titelmedia/node-fetch": "^3.0.1",
