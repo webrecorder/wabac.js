@@ -337,7 +337,9 @@ class SWReplay {
 
     const wbUrlStr = this.proxyOriginMode ? request.url : request.url.substring(coll.prefix.length);
 
-    const opts = {};
+    const opts = {
+      isRoot: !!this.collections.root
+    };
 
     if (this.proxyOriginMode) {
       opts.mod = "id_";

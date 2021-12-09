@@ -20,10 +20,17 @@ class ArchiveResponse
       headers.delete("x-redirect-statusText");
     }
 
+    let updateTS = null;
+
     const origTs = headers.get("x-orig-ts");
     if (origTs) {
       date = tsToDate(origTs);
       headers.delete("x-orig-ts");
+
+      // force TS update downstream
+      if (origTs && origLoc) {
+        updateTS = origTs;
+      }
     }
     const mementoDt = headers.get("memento-datetime");
     if (mementoDt) {
@@ -47,10 +54,10 @@ class ArchiveResponse
       }
     }
 
-    return new ArchiveResponse({payload, status, statusText, headers, url, date, noRW, isLive});
+    return new ArchiveResponse({payload, status, statusText, headers, url, date, noRW, isLive, updateTS});
   }
 
-  constructor({payload, status, statusText, headers, url, date, extraOpts = null, noRW = false, isLive = false}) {
+  constructor({payload, status, statusText, headers, url, date, extraOpts = null, noRW = false, isLive = false, updateTS = null}) {
     this.reader = null;
     this.buffer = null;
 
@@ -68,6 +75,7 @@ class ArchiveResponse
     this.extraOpts = extraOpts;
     this.noRW = noRW;
     this.isLive = isLive;
+    this.updateTS = updateTS;
   }
 
   async getText() {
