@@ -61,7 +61,7 @@ class Collection {
     //requestTS = "2";
     //}
     let requestURL = request.url;
-    const requestTS = request.timestamp;
+    let requestTS = request.timestamp;
 
     if (!request.mod) {
       return await this.makeTopFrame(requestURL, requestTS);
@@ -86,6 +86,9 @@ class Collection {
       } else {
         response = await this.getReplayResponse(request, event);
         requestURL = request.url;
+        if (response && response.updateTS) {
+          requestTS = response.updateTS;
+        }
       }
     } catch (e) { 
       if (await handleAuthNeeded(e, this.config)) {
