@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
-    "@webrecorder/wombat": "^3.3.5",
+    "@webrecorder/wombat": "^3.3.6",
     "brotli": "github:foliojs/brotli.js",
     "buffer": "^6.0.3",
     "fast-xml-parser": "^3.19.0",

@@ -511,12 +511,12 @@
   resolved "https://registry.yarnpkg.com/@webpack-cli/serve/-/serve-1.5.2.tgz#ea584b637ff63c5a477f6f21604b5a205b72c9ec"
   integrity sha512-vgJ5OLWadI8aKjDlOH3rb+dYyPd2GTZuQC/Tihjct6F9GpXGZINo3Y/IVuZVTM1eDQB+/AOsjPUWH/WySDaXvw==
 
-"@webrecorder/wombat@^3.3.5":
-  version "3.3.5"
-  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.3.5.tgz#89aa8e48c58ca3d18ae9ceb52d229c1c04a3d458"
-  integrity sha512-mj/TtahJjhRf/TSyO0Nr8nwCH373Fyd5mqtqkTlacMsSMZdAfp/t7bY2aVr1rFqEb7KC+U7xkVn6fmDUecLZng==
+"@webrecorder/wombat@^3.3.6":
+  version "3.3.6"
+  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.3.6.tgz#adaf63afa934511afc082bb38d4662dc821ccf8a"
+  integrity sha512-l3OrPr2qLHbzMIQ3OT+DzhRf9Tbyy33LxJtCcAcYTWGzkUkr0uSXLiRyC7qS7b32wcwNm72junL8fiT+OS8hOQ==
   dependencies:
-    warcio "^1.4.6"
+    warcio "^1.5.0"
 
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"
@@ -3134,11 +3134,6 @@ neo-async@^2.6.2:
   resolved "https://registry.yarnpkg.com/neo-async/-/neo-async-2.6.2.tgz#b4aafb93e3aeb2d8174ca53cf163ab7d7308305f"
   integrity sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==
 
-node-fetch@^2.6.0:
-  version "2.6.1"
-  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.6.1.tgz#045bd323631f76ed2e2b55573394416b639a0052"
-  integrity sha512-V4aYg89jEoVRxRb2fJdAg8FHvI7cEyYdVAh94HH0UIK8oJxUfkjlDQN9RbMx+bEjP7+ggMiFRprSti032Oipxw==
-
 node-fetch@^2.6.1:
   version "2.6.6"
   resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.6.6.tgz#1751a7c01834e8e1697758732e9efb6eeadfaf89"
@@ -4644,19 +4639,6 @@ vary@~1.1.2:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/vary/-/vary-1.1.2.tgz#2299f02c6ded30d4a5961b0b9f74524a18f634fc"
   integrity sha1-IpnwLG3tMNSllhsLn3RSShj2NPw=
-
-warcio@^1.4.6:
-  version "1.4.6"
-  resolved "https://registry.yarnpkg.com/warcio/-/warcio-1.4.6.tgz#56ea9a118b89b7b9c71eec493d140876f65d94ee"
-  integrity sha512-uncb/Xokc9XL4/1UMHPteAWpiLToOkcu2qhT2ivhVN1t8HwApHGAmLY4y9gqewgtO3s5aRq6T7lJ6WSP5IlA+A==
-  dependencies:
-    "@peculiar/webcrypto" "^1.1.1"
-    esm "^3.2.25"
-    hi-base32 "^0.5.0"
-    node-fetch "^2.6.0"
-    pako "^1.0.11"
-    uuid-random "^1.3.0"
-    yargs "^15.3.1"
 
 warcio@^1.5.0:
   version "1.5.0"
