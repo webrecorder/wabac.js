@@ -14,7 +14,7 @@ const GLOBAL_OVERRIDES = [
   "opener"
 ];
 
-const GLOBALS_CONCAT_STR = GLOBAL_OVERRIDES.map((x) => `(?:^|\\s)${x}\\b(?:$|[^$])`).join("|");
+const GLOBALS_CONCAT_STR = GLOBAL_OVERRIDES.map((x) => `(?:^|[^$.])\\b${x}\\b(?:$|[^$])`).join("|");
 
 const GLOBALS_RX = new RegExp(`(${GLOBALS_CONCAT_STR})`);
 

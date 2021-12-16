@@ -201,4 +201,11 @@ test(rewriteJS, "x = obj.eval");
 
 test(rewriteJS, "x = obj.eval(a)");
 
+test(rewriteJSWrapped, "if (self.foo) { console.log('blah') }");
+
+test(rewriteJS, "if (a.self.foo) { console.log('blah') }");
+
+test(rewriteJSWrapped, "window.x = 5");
+
+test(rewriteJS, "a.window.x = 5");
 
