@@ -288,7 +288,7 @@ class Collection {
     if (this.baseFrameUrl) {
       baseUrl = this.baseFrameUrl;
     } else if (!this.isRoot && this.config.sourceUrl) {
-      baseUrl = this.baseFramePrefix || "/";
+      baseUrl = this.baseFramePrefix || "./";
       baseUrl += `?source=${this.config.sourceUrl}`;
     }
 
