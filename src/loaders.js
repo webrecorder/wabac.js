@@ -215,7 +215,6 @@ class CollectionLoader
         headers: config.headers,
         extra: config.extra
       });
-      //store = new WACZRemoteArchiveDB(config.dbname, sourceLoader, config);
       store = new SingleWACZ(config, sourceLoader);
       break;
 
@@ -537,7 +536,7 @@ Make sure this is a valid URL and you have access to this file.`);
 
         if (config.onDemand) {
           db = new SingleWACZ(config, sourceLoader);
-          type = "remotezip";
+          type = "wacz";
 
         // can load on demand, but want a full import
         } else if (sourceLoader.canLoadOnDemand && file.newFullImport) {
@@ -579,6 +578,7 @@ Make sure this is a valid URL and you have access to this file.`);
       } else if (config.sourceName.endsWith(".json")) {
         db = new MultiWACZCollection(config);
         loader = new JSONMultiWACZLoader(await response.json(), config.loadUrl);
+        type = "multiwacz";
       }
 
       if (!loader) {
