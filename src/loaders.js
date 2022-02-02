@@ -83,6 +83,10 @@ class CollectionLoader
     return await this._initColl(data);
   }
 
+  async reload(name) {
+    return this.loadColl(name);
+  }
+
   async deleteColl(name) {
     await this._init_db;
     const data = await this.colldb.get("colls", name);
@@ -380,6 +384,10 @@ class WorkerLoader extends CollectionLoader
 
     case "listAll":
       this.doListAll(client);
+      break;
+
+    case "reload":
+      this.reload(event.data.name);
       break;
     }
   }

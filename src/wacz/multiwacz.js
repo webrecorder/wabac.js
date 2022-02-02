@@ -443,9 +443,6 @@ export class MultiWACZCollection extends WACZArchiveDB
     });
 
     this.checkUpdates();
-
-    this._updatedInterval = 30000;
-    this._updateId = setInterval(() => this.checkUpdates(), this._updatedInterval);
   }
 
   getWACZName(cdx) {
