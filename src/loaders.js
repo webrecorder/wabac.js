@@ -131,7 +131,7 @@ class CollectionLoader
     return data.config.metadata;
   }
 
-  async updateSize(name, fullSize, dedupSize) {
+  async updateSize(name, fullSize, dedupSize, decodeUpdate) {
     await this._init_db;
     const data = await this.colldb.get("colls", name);
     if (!data) {
@@ -142,6 +142,11 @@ class CollectionLoader
     metadata.fullSize = (metadata.fullSize || 0) + fullSize;
     metadata.size = (metadata.size || 0) + dedupSize;
     metadata.mtime = new Date().getTime();
+
+    // if set, also update decode (a little hacky)
+    if (decodeUpdate !== undefined) {
+      data.config.decode = decodeUpdate;
+    }
     await this.colldb.put("colls", data);
     return metadata;
   }
@@ -444,6 +449,7 @@ class WorkerLoader extends CollectionLoader
         }
         config.dbname = existing.config.dbname;
         updateExistingConfig = existing.config;
+        updateExistingConfig.decode = true;
       }
 
       let loadUrl = file.loadUrl || file.sourceUrl;
@@ -605,7 +611,7 @@ Make sure this is a valid URL and you have access to this file.`);
       }
 
       if (updateExistingConfig) {
-        await this.updateSize(file.importCollId, contentLength, contentLength);
+        await this.updateSize(file.importCollId, contentLength, contentLength, updateExistingConfig.decode);
         return {config: updateExistingConfig};
       }
 

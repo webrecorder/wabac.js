@@ -102,11 +102,14 @@ class SWCollections extends WorkerLoader
     return metadata;
   }
 
-  async updateSize(name, fullSize, dedupSize) {
-    const metadata = await super.updateSize(name, fullSize, dedupSize);
+  async updateSize(name, fullSize, dedupSize, updateDecode) {
+    const metadata = await super.updateSize(name, fullSize, dedupSize, updateDecode);
     if (this.colls[name] && metadata) {
       this.colls[name].config.metadata = metadata;
       this.colls[name].metadata = metadata;
+    }
+    if (updateDecode !== undefined && this.colls[name]) {
+      this.colls[name].config.decode = updateDecode;
     }
     return metadata;
   }
