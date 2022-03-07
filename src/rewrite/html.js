@@ -2,6 +2,9 @@ import RewritingStream from "parse5-html-rewriting-stream";
 
 import { startsWithAny, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE } from "../utils";
 
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
 
 // ===========================================================================
 const META_REFRESH_REGEX = /([\d.]+\s*;\s*url\s*=\s*)(.+)(\s*)/mi;
@@ -75,7 +78,7 @@ const TEXT_NODE_REWRITE_RULES = [
 // ===========================================================================
 class HTMLRewriter
 {
-  constructor(rewriter) {
+  constructor(rewriter, isCharsetUTF8 = false) {
     this.rewriter = rewriter;
     this.rule = null;
 
@@ -87,6 +90,8 @@ class HTMLRewriter
         break;
       }
     }
+
+    this.isCharsetUTF8 = isCharsetUTF8;
   }
 
   rewriteMetaContent(attrs, attr, rewriter) {
@@ -98,11 +103,11 @@ class HTMLRewriter
     if (equiv === "content-security-policy") {
       attr.name = "_" + attr.name;
     } else if (equiv === "refresh") {
-      return attr.value.replace(META_REFRESH_REGEX, (m, p1, p2, p3) => p1 + rewriter.rewriteUrl(p2) + p3);
+      return attr.value.replace(META_REFRESH_REGEX, (m, p1, p2, p3) => p1 + this.rewriteUrl(rewriter, p2) + p3);
     } else if (this.getAttr(attrs, "name") === "referrer") {
       return "no-referrer-when-downgrade";
     } else if (startsWithAny(attr.value, DATA_RW_PROTOCOLS)) {
-      return rewriter.rewriteUrl(attr.value);
+      return this.rewriteUrl(rewriter, attr.value);
     }
 
     return attr.value;
@@ -116,7 +121,7 @@ class HTMLRewriter
     for (let v of value.split(SRCSET_REGEX)) {
       if (v) {
         const parts = v.trim().split(" ");
-        parts[0] = rewriter.rewriteUrl(parts[0]);
+        parts[0] = this.rewriteUrl(rewriter, parts[0]);
         rv.push(parts.join(" "));
       }
     }
@@ -143,7 +148,7 @@ class HTMLRewriter
 
       // background attr
       else if (name === "background") {
-        attr.value = rewriter.rewriteUrl(value);
+        attr.value = this.rewriteUrl(rewriter, value);
       }
 
       else if (name === "srcset") {
@@ -161,27 +166,27 @@ class HTMLRewriter
       }
 
       else if (tagName === "param" && isUrl(value)) {
-        attr.value = rewriter.rewriteUrl(attr.value);
+        attr.value = this.rewriteUrl(rewriter, attr.value);
       }
 
       else if (name.startsWith("data-") && isUrl(value)) {
-        attr.value = rewriter.rewriteUrl(attr.value);
+        attr.value = this.rewriteUrl(rewriter, attr.value);
       }
 
       else if (tagName === "base" && name === "href") {
         try {
           // rewrite url, keeping relativeness intact
-          attr.value = rewriter.updateBaseUrl(attr.value);
+          attr.value = this.rewriter.updateBaseUrl(attr.value);
         } catch (e) {
           console.warn("Invalid <base>: " + attr.value);
         }
       }
 
       else if (tagName === "script" && name === "src") {
-        const newValue = rewriter.rewriteUrl(attr.value);
+        const newValue = this.rewriteUrl(rewriter, attr.value);
         if (newValue === attr.value) {// && this.isRewritableUrl(newValue)) {
           tag.attrs.push({"name": "__wb_orig_src", "value": attr.value});
-          attr.value = rewriter.rewriteUrl(attr.value, true);
+          attr.value = this.rewriteUrl(rewriter, attr.value, true);
         } else {
           attr.value = newValue;
         }
@@ -199,7 +204,7 @@ class HTMLRewriter
             const value = attr.value.replace(rule.match, rule.replace);
             if (value !== attr.value) {
               attr.name = "src";
-              attr.value = rewriter.rewriteUrl(value);
+              attr.value = this.rewriteUrl(rewriter, value);
               tag.tagName = "iframe";
               break;
             }
@@ -208,12 +213,12 @@ class HTMLRewriter
       }
 
       else if (name === "href" || name === "src") {
-        attr.value = rewriter.rewriteUrl(attr.value);
+        attr.value = this.rewriteUrl(rewriter, attr.value);
       }
 
       else {
         if (attrRules[attr.name]) {
-          attr.value = rewriter.rewriteUrl(attr.value);
+          attr.value = this.rewriteUrl(rewriter, attr.value);
         }
       }
     }
@@ -341,10 +346,12 @@ class HTMLRewriter
     const sourceGen = response.createIter();
     let hasData = false;
 
+    const isCharsetUTF8 = this.isCharsetUTF8;
+
     response.setReader(new ReadableStream({
       async start(controller) {
         rwStream.on("data", (text) => {
-          controller.enqueue(encodeLatin1(text));
+          controller.enqueue(isCharsetUTF8 ? encoder.encode(text) : encodeLatin1(text));
         });
 
         rwStream.on("end", () => {
@@ -352,7 +359,11 @@ class HTMLRewriter
         });
 
         for await (const chunk of sourceGen) {
-          rwStream.write(decodeLatin1(chunk), {encoding: "latin1"});
+          if (isCharsetUTF8) {
+            rwStream.write(decoder.decode(chunk), {"encoding": "utf8"});
+          } else {
+            rwStream.write(decodeLatin1(chunk), {encoding: "latin1"});
+          }
           hasData = true;
         }
         if (hasData) {
@@ -364,6 +375,14 @@ class HTMLRewriter
     }));
     
     return response;
+  }
+
+  rewriteUrl(rewriter, text, forceAbs = false) {
+    // if html charset not utf-8, just convert the url to utf-8 for rewriting
+    if (!this.isCharsetUTF8) {
+      text = decoder.decode(encodeLatin1(text));
+    }
+    return rewriter.rewriteUrl(text, forceAbs);
   }
 
   rewriteHTMLText(text) {
