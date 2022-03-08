@@ -1,7 +1,11 @@
 import { BaseAsyncIterReader, AsyncIterReader } from "warcio";
 import { isNullBodyStatus, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, tsToDate } from "./utils";
 
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
+
+// ===========================================================================
 class ArchiveResponse
 {
 
@@ -78,13 +82,17 @@ class ArchiveResponse
     this.updateTS = updateTS;
   }
 
-  async getText() {
+  async getText(isUTF8 = false) {
     const buff = await this.getBuffer();
-    return typeof(buff) === "string" ? buff : decodeLatin1(buff);
+    if (typeof(buff) === "string") {
+      return buff;
+    }
+
+    return isUTF8 ? decoder.decode(buff) : decodeLatin1(buff);
   }
 
-  setText(text) {
-    this.setBuffer(encodeLatin1(text));
+  setText(text, isUTF8 = false) {
+    this.setBuffer(isUTF8 ? encoder.encode(text) : encodeLatin1(text));
   }
 
   async getBuffer() {

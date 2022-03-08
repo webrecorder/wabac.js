@@ -6,8 +6,8 @@ import { doRewrite } from "./helpers";
 
 
 // ===========================================================================
-async function rewriteHtml(t, content, expected, {useBaseRules = true, url = "", headInsertText} = {}) {
-  const rwArgs = {content, contentType: "text/html", useBaseRules};
+async function rewriteHtml(t, content, expected, {useBaseRules = true, url = "", contentType="text/html; charset=UTF-8", headInsertText=null, encoding="utf8"} = {}) {
+  const rwArgs = {content, contentType, useBaseRules, encoding};
 
   if (url) {
     rwArgs.url = url;
@@ -17,9 +17,7 @@ async function rewriteHtml(t, content, expected, {useBaseRules = true, url = "",
     rwArgs.headInsertFunc = () => { return headInsertText; };
   }
 
-  let actual = await doRewrite(rwArgs);
-
-  actual = Buffer.from(actual, "latin1").toString("utf8");
+  const actual = await doRewrite(rwArgs);
 
   t.is(actual, expected);
 }
@@ -155,12 +153,6 @@ test("empty attr", rewriteHtml,
 test("unicode", rewriteHtml,
   "<a href=\"http://испытание.испытание/\">испытание</a>",
   "<a href=\"http://localhost:8080/prefix/20201226101010/http://испытание.испытание/\">испытание</a>");
-
-//#<a href="/prefix/20201226101010/http://%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5.%D0%B8%D1%81%D0%BF%D1%8B%D1%82%D0%B0%D0%BD%D0%B8%D0%B5/">испытание</a>
-
-//#(u'<a href="http://испытание.испытание/">испытание</a>', urlrewriter=urlrewriter_pencode)
-//#<a href="/prefix/20201226101010/http://испытание.испытание/">испытание</a>
-
 
 // diff from pywb: decoded
 test("HTML Unescape URL", rewriteHtml,

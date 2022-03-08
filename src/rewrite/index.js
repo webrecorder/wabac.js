@@ -64,6 +64,7 @@ class Rewriter {
     this.headInsertFunc = headInsertFunc;
     this.workerInsertFunc = workerInsertFunc;
     this.responseUrl = responseUrl;
+    this.isCharsetUTF8 = false;
 
     this._jsonpCallback = null;
   }
@@ -71,7 +72,11 @@ class Rewriter {
   getRewriteMode(request, response, url = "", mime = null) {
     if (!mime && response) {
       mime = response.headers.get("Content-Type") || "";
-      mime = mime.split(";", 1)[0];
+      const parts = mime.split(";");
+      mime = parts[0];
+      if (parts.length > 1) {
+        this.isCharsetUTF8 = parts[1].trim().toLowerCase().replace("charset=", "").replace("-", "") === "utf8";
+      }
     }
 
     if (request) {
@@ -194,9 +199,9 @@ class Rewriter {
     }
 
     if (rwFunc) {
-      let text = await response.getText();
+      let text = await response.getText(this.isCharsetUTF8);
       text = rwFunc.call(this, text, opts);
-      response.setText(text);
+      response.setText(text, this.isCharsetUTF8);
     }
 
     return response;
@@ -268,7 +273,7 @@ class Rewriter {
 
   // HTML
   rewriteHtml(response) {
-    const htmlRW = new HTMLRewriter(this);
+    const htmlRW = new HTMLRewriter(this, this.isCharsetUTF8);
     return htmlRW.rewrite(response);
   }
 
