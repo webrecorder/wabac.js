@@ -12,8 +12,6 @@ global.fetch = fetch;
 
 global.__IPFS_CORE_URL__ = "";
 
-const encoder = new TextEncoder("utf-8");
-
 
 async function doRewrite({
   content,
@@ -25,12 +23,13 @@ async function doRewrite({
   extraOpts = null,
   returnHeaders = false,
   headInsertFunc = null,
+  encoding = "utf-8",
   headers={}}) {
 
   const RW = new Rewriter({baseUrl: url, prefix: "http://localhost:8080/prefix/20201226101010/", useBaseRules, headInsertFunc});
   //const resp = new Response(content, {"headers": {"Content-Type": contentType}});
   const date = new Date("2019-01-02T03:00:00Z");
-  const payload = encoder.encode(content);
+  const payload = new TextEncoder(encoding).encode(content);
 
   headers = new Headers({...headers, "Content-Type": contentType});
 
@@ -44,7 +43,7 @@ async function doRewrite({
 
   const res = await RW.rewrite(resp, new Request(url, {headers: respHeaders}));
 
-  return returnHeaders ? res.headers : await res.getText();
+  return returnHeaders ? res.headers : await res.getText(encoding === "utf-8");
 }
 
 export { doRewrite, fetch, ReadableStream };

@@ -360,9 +360,9 @@ class HTMLRewriter
 
         for await (const chunk of sourceGen) {
           if (isCharsetUTF8) {
-            rwStream.write(decoder.decode(chunk), {"encoding": "utf8"});
+            rwStream.write(decoder.decode(chunk), "utf8");
           } else {
-            rwStream.write(decodeLatin1(chunk), {encoding: "latin1"});
+            rwStream.write(decodeLatin1(chunk), "latin1");
           }
           hasData = true;
         }
