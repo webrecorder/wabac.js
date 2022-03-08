@@ -4,17 +4,10 @@ import test from "ava";
 
 import { doRewrite } from "./helpers";
 
-import { decodeLatin1 } from "../src/utils";
-
 
 // ===========================================================================
-async function rewriteHtml(t, content, expected, {useBaseRules = true, url = "", contentType="text/html; charset=UTF-8", headInsertText=null, encoding="utf-8"} = {}) {
-  if (encoding === "latin1") {
-    //content = Buffer.from(content, "utf-8").toString("latin1");
-    //content = decodeLatin1(new TextEncoder().encode());
-  }
-
-  const rwArgs = {content, contentType, useBaseRules};
+async function rewriteHtml(t, content, expected, {useBaseRules = true, url = "", contentType="text/html; charset=UTF-8", headInsertText=null, encoding="utf8"} = {}) {
+  const rwArgs = {content, contentType, useBaseRules, encoding};
 
   if (url) {
     rwArgs.url = url;

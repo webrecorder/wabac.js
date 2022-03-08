@@ -23,7 +23,7 @@ async function doRewrite({
   extraOpts = null,
   returnHeaders = false,
   headInsertFunc = null,
-  encoding = "utf-8",
+  encoding = "utf8",
   headers={}}) {
 
   const RW = new Rewriter({baseUrl: url, prefix: "http://localhost:8080/prefix/20201226101010/", useBaseRules, headInsertFunc});
@@ -43,7 +43,7 @@ async function doRewrite({
 
   const res = await RW.rewrite(resp, new Request(url, {headers: respHeaders}));
 
-  return returnHeaders ? res.headers : await res.getText(encoding === "utf-8");
+  return returnHeaders ? res.headers : await res.getText(encoding === "utf8");
 }
 
 export { doRewrite, fetch, ReadableStream };
