@@ -1,8 +1,18 @@
-import { AsyncIterReader } from "warcio";
+import { AsyncIterReader, concatChunks } from "warcio";
 
 // ===========================================================================
 const MAX_INT32 = 0xFFFFFFFF;
 const MAX_INT16 = 0xFFFF;
+
+
+// ===========================================================================
+class LoadMoreException
+{
+  constructor(start, length) {
+    this.start = start;
+    this.length = length;
+  }
+}
 
 
 // ===========================================================================
@@ -17,11 +27,21 @@ export class ZipRangeReader
   async load(always = false) {
     if (!this.entries || always) {
       const totalLength = await this.loader.getLength();
+
       const length = Math.min(MAX_INT16 + 23, totalLength);
       const start = totalLength - length;
       const endChunk = await this.loader.getRange(start, length);
 
-      this.entries = this._loadEntries(endChunk, start);
+      try {
+        this.entries = this._loadEntries(endChunk, start);
+      } catch (e) {
+        if (e instanceof LoadMoreException) {
+          const extraChunk = await this.loader.getRange(e.start, e.length);
+          const combinedChunk = concatChunks([extraChunk, endChunk], e.length + length);
+          this.entries = this._loadEntries(combinedChunk, e.start);
+        }
+      }
+
       this.entriesUpdated = true;
     }
     return this.entries;
@@ -79,11 +99,13 @@ export class ZipRangeReader
       //zip64 = true;
     }
 
-    if (dataStartOffset) {
+    if (offset >= dataStartOffset) {
       offset -= dataStartOffset;
+    } else if (offset < dataStartOffset && offset > 0) {
+      throw new LoadMoreException(offset, dataStartOffset - offset);
     }
 
-    if (offset >= length || offset <= 0) {
+    if (offset >= length || offset < 0) {
       // EOCD not found or malformed. Try to recover if possible (the result is
       // most likely going to be incomplete or bogus, but we can try...).
       offset = -1;
