@@ -4653,6 +4653,19 @@ warcio@^1.5.0:
     uuid-random "^1.3.0"
     yargs "^15.3.1"
 
+warcio@^1.5.1:
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/warcio/-/warcio-1.5.1.tgz#4e0db94ced22919ce2f6daa72a60bcd1cefc5c54"
+  integrity sha512-H1BTLMEufutoR5E3Hrpg3mc2gcWVxl+gwXH0BBglR+ISYoXikgvTA2YuiunoLeSARybCkUQI3WgnyeKEIcHV4Q==
+  dependencies:
+    "@peculiar/webcrypto" "^1.1.1"
+    esm "^3.2.25"
+    hi-base32 "^0.5.0"
+    node-fetch "^2.6.1"
+    pako "^1.0.11"
+    uuid-random "^1.3.0"
+    yargs "^15.3.1"
+
 watchpack@^2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/watchpack/-/watchpack-2.2.0.tgz#47d78f5415fe550ecd740f99fe2882323a58b1ce"
