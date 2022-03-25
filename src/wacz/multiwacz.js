@@ -6,13 +6,16 @@ import { CDXLoader } from "../cdxloader";
 import { handleAuthNeeded, tsToDate } from "../utils";
 import { getSurt } from "warcio";
 import { createLoader } from "../blockloaders";
-import { LiveAccess } from "../remoteproxy";
+import { LiveProxy } from "../liveproxy";
 import { JSONMultiWACZLoader, loadPages } from "./waczloader";
+
 
 const INDEX_NOT_LOADED = 0;
 const INDEX_CDX = 1;
 const INDEX_IDX = 2;
 //const INDEX_FULL = 3;
+
+const MAX_BLOCKS = 3;
 
 
 // ==========================================================================
@@ -114,6 +117,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     }
 
     const zipreader = this.getReaderForWACZ(waczname);
+    await zipreader.load();
 
     //const indexloaders = [];
     let indexType = INDEX_NOT_LOADED;
@@ -239,7 +243,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     }
   }
 
-  async loadCDXFromIDX(waczname, url, isPrefix) {
+  async loadCDXFromIDX(waczname, url, datetime = 0, isPrefix = false) {
     //const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
 
     const surt = this.waczfiles[waczname].useSurt ? getSurt(url) : url;
@@ -275,6 +279,24 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
       wacz: waczname
     };
 
+    if (values.length > MAX_BLOCKS && datetime) {
+      values.sort((a, b) => {
+        const ts1 = a.prefix.split(" ")[1];
+        const ts2 = b.prefix.split(" ")[1];
+        if (!ts1 || !ts2) {
+          return 0;
+        }
+        const diff1 = Math.abs(tsToDate(ts1).getTime() - datetime);
+        const diff2 = Math.abs(tsToDate(ts2).getTime() - datetime);
+        if (diff1 === diff2) {
+          return 0;
+        }
+        return diff1 < diff2 ? -1 : 1;
+      });
+    }
+
+    let count = 0;
+
     for (const zipblock of values) {
       if (zipblock.loaded) {
         continue;
@@ -289,6 +311,10 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
         this.ziploadercache[cacheKey] = cachedLoad;
       }
       cdxloaders.push(cachedLoad);
+
+      if (++count > MAX_BLOCKS) {
+        break;
+      }
     }
 
     if (cdxloaders.length) {
@@ -362,7 +388,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
         
         switch (indexType) {
         case INDEX_IDX:
-          if (!await this.loadCDXFromIDX(waczname, url, false)) {
+          if (!await this.loadCDXFromIDX(waczname, url, datetime, false)) {
             // no new idx lines loaded
             return null;
           }
@@ -401,7 +427,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
         
         switch (indexType) {
         case INDEX_IDX:
-          if (!await this.loadCDXFromIDX(waczname, url, true)) {
+          if (!await this.loadCDXFromIDX(waczname, url, 0, true)) {
             // no new idx lines loaded
             return null;
           }
@@ -546,7 +572,7 @@ export class SingleWACZ extends WACZArchiveDB
 
     this.zipreader = new ZipRangeReader(sourceLoader);
 
-    this.externalSources = [];
+    this.externalSource = null;
     this.fuzzyUrlRules = [];
     this.useSurt = false;
     this.fullConfig = fullConfig;
@@ -612,11 +638,8 @@ export class SingleWACZ extends WACZArchiveDB
     if (config.useSurt !== undefined) {
       this.useSurt = config.useSurt;
     }
-    if (config.es) {
-      for (const [prefix, externalPath] of config.es) {
-        const external = new LiveAccess(externalPath, true, false);
-        this.externalSources.push({prefix, external});
-      }
+    if (config.hostProxy) {
+      this.externalSource = new LiveProxy(config, {hostProxyOnly: true});
     }
     if (config.fuzzy) {
       for (const [matchStr, replace] of config.fuzzy) {
@@ -655,22 +678,18 @@ export class SingleWACZ extends WACZArchiveDB
   }
 
   async getResource(request, rwPrefix, event, {pageId} = {}) {
-    if (this.externalSources.length) {
-      for (const {prefix, external} of this.externalSources) {
-        if (request.url.startsWith(prefix)) {
-          try {
-            return await external.getResource(request, rwPrefix, event);
-          } catch(e) {
-            console.warn("Upstream Error", e);
-            //return new Response("Upstream Error", {status: 503});
-          }
-        }
+    let res = null;
+
+    if (this.externalSource) {
+      res = await this.externalSource.getResource(request, rwPrefix, event);
+      if (res) {
+        return res;
       }
     }
 
     const waczname = this.getWACZName();
 
-    let res = await super.getResource(request, rwPrefix, event, {pageId, waczname});
+    res = await super.getResource(request, rwPrefix, event, {pageId, waczname});
 
     if (res) {
       return res;

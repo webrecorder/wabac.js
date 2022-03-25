@@ -12,7 +12,8 @@ import { MultiWACZCollection, SingleWACZ } from "./wacz/multiwacz.js";
 
 import { createLoader } from "./blockloaders";
 
-import { RemoteWARCProxy, RemoteProxySource, LiveAccess } from "./remoteproxy";
+import { RemoteWARCProxy } from "./remotewarcproxy";
+import { LiveProxy } from "./liveproxy";
 
 import { deleteDB, openDB } from "idb/with-async-ittr.js";
 import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils.js";
@@ -227,17 +228,12 @@ class CollectionLoader
       store = new SingleWACZ(config, sourceLoader);
       break;
 
-    case "remoteproxy":
-      //TODO remove?
-      store = new RemoteProxySource(config);
-      break;
-
     case "remotewarcproxy":
       store = new RemoteWARCProxy(config);
       break;
 
     case "live":
-      store = new LiveAccess(config);
+      store = new LiveProxy(config.extraConfig);
       break;
 
     case "multiwacz":
@@ -429,11 +425,14 @@ class WorkerLoader extends CollectionLoader
     config.dbname = "db:" + name;
 
     if (file.sourceUrl.startsWith("proxy:")) {
-      config.sourceUrl = file.sourceUrl.slice("proxy:".length);
+      config.sourceUrl = file.sourceUrl;
       config.extraConfig = data.extraConfig;
+      if (!config.extraConfig.prefix) {
+        config.extraConfig.prefix = file.sourceUrl.slice("proxy:".length);
+      }
       config.topTemplateUrl = data.topTemplateUrl;
       config.metadata = {};
-      type = data.type || "remotewarcproxy";
+      type = data.type || config.extraConfig.type || "remotewarcproxy";
 
       db = await this._initStore(type, config);
 

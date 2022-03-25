@@ -163,6 +163,8 @@ class API {
         urls = await coll.store.resourcesByMime(mime, count, fromMime, fromUrl, fromStatus);
       }
 
+      urls = urls || [];
+
       return {urls};
     }
 
