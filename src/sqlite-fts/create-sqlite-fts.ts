@@ -1,7 +1,9 @@
-// this is a standalone nodejs script
+// this is a standalone nodejs script. run via `yarn ts-node --project tsconfig.node.json src/sqlite-fts/create-sqlite-fts.ts .../extraPages.jsonl`
 import fs from "fs";
 import Database from "better-sqlite3";
 
+const mode: "minimal" | "full" = "minimal"; // if minimal: create a contentless table without columnsize and with detail=none
+const pageSize = 4096;
 const pagesJson = process.argv[2];
 if (!pagesJson) throw Error(`usage: create-sqlite-fts pagesJson`);
 
@@ -12,12 +14,13 @@ const content = fs
   .slice(1) // skip first line
   .map((e) => JSON.parse(e));
 const pagesSqlite = pagesJson.replace(".jsonl", "-fts.sqlite3");
+console.log("writing result to", pagesSqlite);
 const db = new Database(pagesSqlite);
 
 // todo: this is somewhat specific to english language, maybe also try trigram
 // todo: change pgsz option?
-const pageSize = 32768;
-const ftsPageSize = Math.round(4050 / 4096 * pageSize);
+
+const ftsPageSize = Math.round((4050 / 4096) * pageSize); //
 db.exec(`
 pragma page_size = ${ftsPageSize}; -- trade off of number of requests that need to be made vs overhead. 
 pragma journal_mode = WAL;
@@ -29,13 +32,35 @@ create virtual table pages_fts using fts5(
     title,
     text,
     tokenize = 'porter unicode61'
+    ${mode === "minimal" ? ", content='pages', columnsize=0, detail=none" : ""}
 );
 insert into pages_fts(pages_fts, rank) values ('pgsz', ${ftsPageSize});
 `);
 
-const ins = db.prepare(
-  `insert into pages_fts (id, url, ts, title, text) values (:id, :url, :ts, :title, :text)`
-);
+let insert;
+if (mode === "minimal") {
+  // create separate table with the data to prevent sqlite from storing the title and text
+  db.exec(`
+  create table pages(id text, url text, ts text, title text, text text);
+  `);
+
+  const insContent = db.prepare(
+    `insert into pages (id, url, ts, title, text) values (:id, :url, :ts, :title, :text)`
+  );
+  const insFts = db.prepare(
+    `insert into pages_fts (rowid, id, url, ts, title, text) values ((select rowid from pages where id = :id), :id, :url, :ts, :title, :text)`
+  );
+  insert = (data: any) => {
+    const res = insContent.run({ ...data, ts: null, text: null });
+    insFts.run({ ...data, rowid: res.lastInsertRowid });
+  };
+} else {
+  const insQuery = db.prepare(
+    `insert into pages_fts (id, url, ts, title, text) values (:id, :url, :ts, :title, :text)`
+  );
+  insert = (data: any) => insQuery.run(data);
+}
+
 for (const entry of content) {
   const entryWithDefaults = {
     url: null,
@@ -43,7 +68,7 @@ for (const entry of content) {
     ...entry,
   };
   try {
-    ins.run(entryWithDefaults);
+    insert(entryWithDefaults);
   } catch (e: unknown) {
     (e as any).context = entryWithDefaults;
     throw e;
@@ -54,6 +79,5 @@ insert into pages_fts(pages_fts) values ('optimize'); -- for every FTS table you
 pragma journal_mode = DELETE;
 vacuum; -- reorganize database and apply changed page size
 `);
-
 
 // todo: select *, snippet(pages_fts, -1, '[[', ']]', '...', 32) from pages_fts where pages_fts match 'hello';

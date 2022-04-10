@@ -20,13 +20,14 @@ type SearchResponse =
   | {
       type: "row";
       row: any;
-    };
+    }
+  | { type: "error"; message: string };
 export class SqliteFtsEngine {
   private readonly config: SqliteFtsConfig;
   private sqlite3: SQLiteAPI | null = null;
   private db: number | null = null; // pointer to database
   private progressStream = new ProgressStream();
-
+  private queryIsRunning = false;
   constructor(config: SqliteFtsConfig) {
     console.log("new SqliteFtsEngine", config);
     this.config = config;
@@ -55,13 +56,20 @@ export class SqliteFtsEngine {
     return new ReadableStream<Uint8Array>({
       async pull(controller) {
         console.log("[stream] pulling from stream!");
-        const res = await results.next();
-        if (res.done) {
-          console.log("[stream] done!");
-          controller.close();
-          return;
+        let value;
+        try {
+          const res = await results.next();
+          if (res.done) {
+            console.log("[stream] done!");
+            controller.close();
+            return;
+          }
+          value = res.value;
+        } catch (e) {
+          console.error("error while reading query response", e);
+          value = { type: "error", message: String(e) };
         }
-        const text = JSON.stringify(res.value) + "\n";
+        const text = JSON.stringify(value) + "\n";
         controller.enqueue(new TextEncoder().encode(text));
       },
     });
@@ -70,52 +78,69 @@ export class SqliteFtsEngine {
     strings: TemplateStringsArray,
     ...insertions: (string | number)[]
   ): AsyncIterator<SearchResponse> {
-    const assembledExpression = strings.join("?");
-    const { sqlite3, db } = await this.initDb();
-    const str = sqlite3.str_new(db, assembledExpression);
-    const prepared = await sqlite3.prepare_v2(db, sqlite3.str_value(str));
-    if (!prepared) throw Error("statement could not be prepared");
-    console.log(`sql: ${assembledExpression} ${JSON.stringify(insertions)}`);
-    sqlite3.bind_collection(prepared.stmt, insertions);
-    const columns = sqlite3.column_names(prepared.stmt);
-    let sqlitestep = sqlite3.step(prepared.stmt);
-    while (true) {
-      const resp = await Promise.race([
-        this.progressStream.nextProgressEvent,
-        sqlitestep,
-      ]);
-      if (resp === SQLITE.SQLITE_DONE) {
-        sqlite3.finalize(prepared.stmt);
-        return;
+    if (this.queryIsRunning) throw Error("a query is already running");
+    this.queryIsRunning = true;
+    try {
+      const assembledExpression = strings.join("?");
+      const { sqlite3, db } = await this.initDb();
+      const str = sqlite3.str_new(db, assembledExpression);
+      const prepared = await sqlite3.prepare_v2(db, sqlite3.str_value(str));
+      if (!prepared) throw Error("statement could not be prepared");
+      console.log(`sql: ${assembledExpression} ${JSON.stringify(insertions)}`);
+      sqlite3.bind_collection(prepared.stmt, insertions);
+      const columns = sqlite3.column_names(prepared.stmt);
+      let sqlitestep = sqlite3.step(prepared.stmt);
+      while (true) {
+        const resp = await Promise.race([
+          this.progressStream.haveProgressEvent,
+          sqlitestep,
+        ]);
+        yield* this.progressStream.consume().map(progress => ({ type: "progress" as const, progress }));
+        if (resp === "progress") {
+          continue;
+        }
+        if (resp === SQLITE.SQLITE_DONE) {
+          sqlite3.finalize(prepared.stmt);
+          break;
+        }
+        if (resp === SQLITE.SQLITE_ROW) {
+          const row = sqlite3.row(prepared.stmt);
+          yield {
+            type: "row",
+            row: Object.fromEntries(columns.map((c, i) => [c, row[i]])),
+          };
+          sqlitestep = sqlite3.step(prepared.stmt);
+          continue;
+        }
+        throw Error("unknown sqlite state " + resp);
       }
-      if (resp === SQLITE.SQLITE_ROW) {
-        const row = sqlite3.row(prepared.stmt);
-        yield {
-          type: "row",
-          row: Object.fromEntries(columns.map((c, i) => [c, row[i]])),
-        };
-        sqlitestep = sqlite3.step(prepared.stmt);
-        continue;
-      }
-      if (typeof resp === "number") throw Error("unknown sqlite state " + resp);
-      yield { type: "progress", progress: resp };
+    } finally {
+      this.queryIsRunning = false;
     }
   }
 }
 
 class ProgressStream {
-  nextProgressEvent!: Promise<HttpVfsProgressEvent>;
-  private resolveNextProgressEvent!: (e: HttpVfsProgressEvent) => void;
+  haveProgressEvent!: Promise<"progress">;
+  private progressEvents: HttpVfsProgressEvent[] = [];
+  private sendHaveProgressEvent!: () => void;
   constructor() {
     this.newNextProgressEvent();
   }
   private newNextProgressEvent() {
-    this.nextProgressEvent = new Promise(
-      (r) => (this.resolveNextProgressEvent = r)
+    this.haveProgressEvent = new Promise(
+      (r) => {
+        this.sendHaveProgressEvent = () => r("progress");
+      }
     );
   }
+  consume(): HttpVfsProgressEvent[] {
+    return this.progressEvents.splice(0, this.progressEvents.length);
+  }
   setProgress(p: HttpVfsProgressEvent) {
-    this.resolveNextProgressEvent(p);
+    console.log("SET PROGRESS", p);
+    this.progressEvents.push(p);
+    this.sendHaveProgressEvent();
     this.newNextProgressEvent();
   }
 }

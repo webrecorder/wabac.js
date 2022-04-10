@@ -708,7 +708,7 @@ export class SingleWACZ extends WACZArchiveDB
           url: this.zipreader.loader.url,
           startOffset: ftsFile.offset,
           length: ftsFile.uncompressedSize,
-          pageSize: 32768,
+          pageSize: 4096,
         });
         await this.sqliteEngine.initDb();
       }

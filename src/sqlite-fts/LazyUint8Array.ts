@@ -200,7 +200,6 @@ export class LazyUint8Array {
         lastChunkSize: this.chunkSize - shorter,
       });
     }
-    console.log("ranges", byteRanges);
     if (this.logPageReads) {
       // TODO: improve log fidelity
       const totalChunksFetched = byteRanges.reduce(
@@ -338,7 +337,6 @@ export class LazyUint8Array {
       const resp = await fetch(url, {
         headers,
       });
-      console.log(`[xhr resp ${resp.status}]`);
       if (!resp.ok)
         throw new Error("Couldn't load " + url + ". Status: " + resp.status);
       const buf = await resp.arrayBuffer();
