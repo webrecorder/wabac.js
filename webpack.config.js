@@ -20,6 +20,7 @@ module.exports = {
   },
 
   resolve: {
+    extensions: [".ts", "..."],
     fallback: {
       "stream": require.resolve("stream-browserify"),
       //"buffer": false,
@@ -49,6 +50,11 @@ module.exports = {
       {
         test: /(dist\/wombat.js|src\/wombatWorkers.js)$/i,
         use: "raw-loader",
+      },
+      {
+        test: /\.tsx?$/,
+        use: "ts-loader",
+        exclude: /node_modules/
       }
     ]
   },

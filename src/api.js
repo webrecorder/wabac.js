@@ -62,6 +62,7 @@ class API {
       "curated": "c/:coll/curated/:list",
       "pages": "c/:coll/pages",
       "textIndex": "c/:coll/textIndex",
+      "sqliteFtsSearch": "c/:coll/sqliteFtsSearch",
       "deletePage": ["c/:coll/page/:page", "DELETE"],
     };
   }
@@ -184,6 +185,17 @@ class API {
       }
       if (coll.store.getTextIndex) {
         return await coll.store.getTextIndex();
+      } else {
+        return {};
+      }
+    }
+    case "sqliteFtsSearch": {
+      const coll = await this.collections.getColl(params.coll);
+      if (!coll) {
+        return {error: "collection_not_found"};
+      }
+      if (coll.store.sqliteFtsSearch) {
+        return await coll.store.sqliteFtsSearch(Object.fromEntries(params._query));
       } else {
         return {};
       }

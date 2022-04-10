@@ -228,17 +228,8 @@ export class ZipRangeReader
     return isNaN(entry.compressedSize) ? 0 : entry.compressedSize;
   }
 
-  async loadFile(name, {offset = 0, length = -1, signal = null, unzip = false} = {}) {
-    if (this.entries === null) {
-      await this.load();
-    }
-
+  async ensureOffsetKnown(name) {
     const entry = this.entries[name];
-
-    if (!entry) {
-      return null;
-    }
-
     if (entry.offset === undefined) {
       const header = await this.loader.getRange(entry.localEntryOffset, 30);
       const view = new DataView(header.buffer, header.byteOffset, header.byteLength);
@@ -249,6 +240,20 @@ export class ZipRangeReader
       entry.offset = 30 + fileNameLength + extraFieldLength + entry.localEntryOffset;
       this.entriesUpdated = true;
     }
+  }
+
+  async loadFile(name, {offset = 0, length = -1, signal = null, unzip = false} = {}) {
+    if (this.entries === null) {
+      await this.load();
+    }
+
+    const entry = this.entries[name];
+
+    if (!entry) {
+      return null;
+    }
+    await this.ensureOffsetKnown(name);
+
 
     length = length < 0 ? entry.compressedSize : Math.min(length, entry.compressedSize - offset);
 

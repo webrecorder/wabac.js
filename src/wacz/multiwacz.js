@@ -1,4 +1,3 @@
-
 import { ZipRangeReader } from "./ziprangereader";
 import { OnDemandPayloadArchiveDB } from "../remotearchivedb";
 import { SingleRecordWARCLoader } from "../warcloader";
@@ -8,7 +7,8 @@ import { getSurt } from "warcio";
 import { createLoader } from "../blockloaders";
 import { LiveProxy } from "../liveproxy";
 import { JSONMultiWACZLoader, loadPages } from "./waczloader";
-
+import { SqliteFtsEngine } from "../sqlite-fts/SqliteFtsEngine";
+const SQLITE_FTS_FNAME = "pages/extraPages-fts.sqlite3";
 
 const INDEX_NOT_LOADED = 0;
 const INDEX_CDX = 1;
@@ -35,14 +35,14 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     if (!oldV) {
       db.createObjectStore("ziplines", { keyPath: ["waczname", "prefix"] });
 
-      db.createObjectStore("waczfiles", { keyPath: "waczname"} );
+      db.createObjectStore("waczfiles", { keyPath: "waczname" });
     }
   }
 
   async init() {
     await super.init();
 
-    const fileDatas = await this.db.getAll("waczfiles") || [];
+    const fileDatas = (await this.db.getAll("waczfiles")) || [];
 
     for (const file of fileDatas) {
       this.waczfiles[file.waczname] = file;
@@ -51,9 +51,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     this.initLoader();
   }
 
-  initLoader() {
-    
-  }
+  initLoader() {}
 
   getReaderForWACZ() {
     throw new Error("Unimplemented here");
@@ -82,9 +80,8 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     await this.clearZipData();
   }
 
-
   async addWACZFile(waczname, entries) {
-    const filedata = {waczname, entries, indexType: INDEX_NOT_LOADED};
+    const filedata = { waczname, entries, indexType: INDEX_NOT_LOADED };
 
     await this.db.put("waczfiles", filedata);
 
@@ -165,7 +162,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     let useSurt = false;
 
     let currOffset = 0;
-    
+
     for await (const line of reader.iterLines()) {
       currOffset += line.length;
 
@@ -672,12 +669,64 @@ export class SingleWACZ extends WACZArchiveDB
       headers["Content-Length"] = "" + size;
     }
 
-    const reader = await this.zipreader.loadFile(this.textIndex, {unzip: true});
+    const reader = await this.zipreader.loadFile(this.textIndex, {
+      unzip: true,
+    });
 
-    return new Response(reader.getReadableStream(), {headers});
+    return new Response(reader.getReadableStream(), { headers });
   }
 
-  async getResource(request, rwPrefix, event, {pageId} = {}) {
+  async sqliteFtsSearch(query = { matchString: "foo" }) {
+    const headers = { "Content-Type": "application/ndjson" };
+    try {
+      await this.zipreader.load();
+    } catch (e) {
+      await handleAuthNeeded(e, this.config);
+      return new Response(JSON.stringify({ error: String(e) }), {
+        headers,
+        status: 500,
+      });
+    }
+    const ftsFile = this.zipreader.entries[SQLITE_FTS_FNAME];
+    if (!ftsFile) {
+      return new Response(
+        JSON.stringify({ error: "no FTS index in this wacz" }),
+        { headers, status: 400 }
+      );
+    }
+    if (ftsFile.deflate) {
+      return new Response(
+        JSON.stringify({ error: "FTS file must not be compressed" }),
+        { headers, status: 500 }
+      );
+    }
+    await this.zipreader.ensureOffsetKnown(SQLITE_FTS_FNAME);
+    try {
+      if (!this.sqliteEngine) {
+        console.log("url", this.zipreader.loader.url);
+        this.sqliteEngine = new SqliteFtsEngine({
+          url: this.zipreader.loader.url,
+          startOffset: ftsFile.offset,
+          length: ftsFile.uncompressedSize,
+          pageSize: 32768,
+        });
+        await this.sqliteEngine.initDb();
+      }
+      return new Response(await this.sqliteEngine.search(query.matchString), {
+        headers,
+      });
+    } catch (e) {
+      console.error("sqlite fts", e.code, e);
+      return new Response(JSON.stringify({ error: String(e) }), {
+        headers,
+        status: 500,
+      });
+    }
+    const response = { ftsFile, matchString: query.matchString };
+    return new Response(JSON.stringify(response), { headers });
+  }
+
+  async getResource(request, rwPrefix, event, { pageId } = {}) {
     let res = null;
 
     if (this.externalSource) {
