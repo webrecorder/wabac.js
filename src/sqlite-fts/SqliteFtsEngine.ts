@@ -21,7 +21,10 @@ type SearchResponse =
       type: "row";
       row: any;
     }
-  | { type: "error"; message: string };
+  | {
+      type: "error";
+      message: string;
+    };
 export class SqliteFtsEngine {
   private readonly config: SqliteFtsConfig;
   private sqlite3: SQLiteAPI | null = null;
@@ -49,9 +52,9 @@ export class SqliteFtsEngine {
     return { sqlite3: this.sqlite3, db: this.db };
   }
 
-  async search(matchString: string): Promise<ReadableStream> {
+  async search(matchString: string, limit: number): Promise<ReadableStream> {
     const results = this
-      .sql`select *, snippet(pages_fts, -1, '<b>', '</b>', '...', 32) from pages_fts where pages_fts match ${matchString} limit ${10}`;
+      .sql`select *, snippet(pages_fts, -1, '<b>', '</b>', '...', 32) from pages_fts where pages_fts match ${matchString} limit ${limit}`;
 
     return new ReadableStream<Uint8Array>({
       async pull(controller) {
@@ -95,7 +98,9 @@ export class SqliteFtsEngine {
           this.progressStream.haveProgressEvent,
           sqlitestep,
         ]);
-        yield* this.progressStream.consume().map(progress => ({ type: "progress" as const, progress }));
+        yield* this.progressStream
+          .consume()
+          .map((progress) => ({ type: "progress" as const, progress }));
         if (resp === "progress") {
           continue;
         }
@@ -128,11 +133,9 @@ class ProgressStream {
     this.newNextProgressEvent();
   }
   private newNextProgressEvent() {
-    this.haveProgressEvent = new Promise(
-      (r) => {
-        this.sendHaveProgressEvent = () => r("progress");
-      }
-    );
+    this.haveProgressEvent = new Promise((r) => {
+      this.sendHaveProgressEvent = () => r("progress");
+    });
   }
   consume(): HttpVfsProgressEvent[] {
     return this.progressEvents.splice(0, this.progressEvents.length);

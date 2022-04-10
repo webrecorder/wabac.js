@@ -676,7 +676,7 @@ export class SingleWACZ extends WACZArchiveDB
     return new Response(reader.getReadableStream(), { headers });
   }
 
-  async sqliteFtsSearch(query = { matchString: "foo" }) {
+  async sqliteFtsSearch(query = { matchString: "foo", limit: "10" }) {
     const headers = { "Content-Type": "application/ndjson" };
     try {
       await this.zipreader.load();
@@ -712,7 +712,7 @@ export class SingleWACZ extends WACZArchiveDB
         });
         await this.sqliteEngine.initDb();
       }
-      return new Response(await this.sqliteEngine.search(query.matchString), {
+      return new Response(await this.sqliteEngine.search(query.matchString, parseInt(query.limit) || 10), {
         headers,
       });
     } catch (e) {
