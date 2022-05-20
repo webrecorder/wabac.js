@@ -14,6 +14,15 @@ export class LiveProxy {
     this.allowBody = allowBody;
 
     this.hostProxy = extraConfig.hostProxy;
+
+    if (this.hostProxy instanceof Array) {
+      const byHost = {};
+      for (const entry of this.hostProxy) {
+        byHost[entry.host] = entry;
+      }
+      this.hostProxy = byHost;
+    }
+
     this.hostProxyOnly = hostProxyOnly;
   }
 

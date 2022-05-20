@@ -16,8 +16,11 @@ class ArchiveResponse
 
     let headers = new Headers(response.headers);
 
-    const origLoc = headers.get("x-orig-location");
+    let origLoc = headers.get("x-orig-location");
     if (origLoc) {
+      if (origLoc.startsWith(self.location.origin)) {
+        origLoc = origLoc.slice(self.location.origin.length);
+      }
       headers.set("location", origLoc);
       headers.delete("x-orig-location");
       headers.delete("x-redirect-status");
