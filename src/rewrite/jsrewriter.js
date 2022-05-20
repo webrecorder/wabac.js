@@ -5,6 +5,7 @@ const EXPORT_RX = /export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/;
 
 const GLOBAL_OVERRIDES = [
   "window",
+  "globalThis",
   "self",
   "document",
   "location",
