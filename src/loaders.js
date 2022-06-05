@@ -544,6 +544,12 @@ Make sure this is a valid URL and you have access to this file.`);
 
       const contentLength = sourceLoader.length;
 
+      /** 
+       * hack to add file extension to ssb blobs 
+       * todo: discuss better way to solve this
+       * */
+      if (config.loadUrl.includes("ssb://")) config.sourceName = `${config.sourceName}.wacz`;
+
       if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
         loader = new SingleWACZLoader(sourceLoader, config, name);
 
