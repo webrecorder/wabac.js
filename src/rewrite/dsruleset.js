@@ -111,7 +111,17 @@ function ruleRewriteTwitterVideo(string, opts) {
   try {
     const prefix = "\"video_info\":";
 
-    const MAX_BITRATE = 2000000;
+    const MAX_BITRATE = 5000000;
+
+    const extraOpts = opts.response && opts.response.extraOpts;
+
+    let maxBitrate = MAX_BITRATE;
+
+    if (opts.save) {
+      opts.save.maxBitrate = maxBitrate;
+    } else if (extraOpts.maxBitrate) {
+      maxBitrate = extraOpts.maxBitrate;
+    }
 
     string = string.slice(prefix.length);
 
@@ -125,7 +135,7 @@ function ruleRewriteTwitterVideo(string, opts) {
         continue;
       }
 
-      if (variant.bitrate && variant.bitrate > bestBitrate && variant.bitrate <= MAX_BITRATE) {
+      if (variant.bitrate && variant.bitrate > bestBitrate && variant.bitrate <= maxBitrate) {
         bestVariant = variant;
         bestBitrate = variant.bitrate;
       }
