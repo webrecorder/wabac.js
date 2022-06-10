@@ -14,8 +14,12 @@ function createLoader(opts) {
   const scheme = url.split(":", 1)[0];
 
   // if URL has same scheme as current origin, use regular http fetch
-  if (globalThis && globalThis.location && scheme === globalThis.location.protocol.split(":")[0]) {
-    return new HttpRangeLoader(opts);
+  try {
+    if (self.location && scheme === self.location.protocol.split(":")[0]) {
+      return new HttpRangeLoader(opts);
+    }
+  } catch (e) {
+    // likely no self and self.location, so ignore
   }
 
   switch (scheme) {
