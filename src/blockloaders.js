@@ -13,29 +13,42 @@ function createLoader(opts) {
 
   const scheme = url.split(":", 1)[0];
 
-  // if URL has same scheme as current origin, use regular http fetch
-  try {
-    if (self.location && scheme === self.location.protocol.split(":")[0]) {
-      return new HttpRangeLoader(opts);
-    }
-  } catch (e) {
-    // likely no self and self.location, so ignore
-  }
-
+  // built-in loaders
   switch (scheme) {
   case "blob":
     return new BlobCacheLoader(opts);
 
   case "http":
   case "https":
-    return new HttpRangeLoader(opts);
+    return new FetchRangeLoader(opts);
 
   case "file":
     return new FileHandleLoader(opts);
 
   case "googledrive":
     return new GoogleDriveLoader(opts);
+  }
 
+  // if URL has same scheme as current origin, use regular http fetch
+  try {
+    if (self.location && scheme === self.location.protocol.split(":")[0]) {
+      return new FetchRangeLoader(opts);
+    }
+  } catch (e) {
+    // likely no self and self.location, so ignore
+  }
+
+  // see if the specified scheme is generally fetchable
+  try {
+    fetch(`${scheme}://localhost`, {method: "HEAD"});
+    // if reached here, scheme is supported, so use fetch loader
+    return new FetchRangeLoader(opts);
+  } catch (e) {
+    // if raised exception, scheme not supported, don't use fetch loader
+  }
+
+  // custom provided loaders
+  switch (scheme) {
   case "ipfs":
     return new IPFSRangeLoader(opts);
 
@@ -45,7 +58,7 @@ function createLoader(opts) {
 }
 
 // ===========================================================================
-class HttpRangeLoader
+class FetchRangeLoader
 {
   constructor({url, headers, length = null, canLoadOnDemand = false}) {
     this.url = url;
@@ -207,7 +220,7 @@ class GoogleDriveLoader
     let result = null;
 
     if (this.publicUrl) {
-      loader = new HttpRangeLoader({url: this.publicUrl, length: this.length});
+      loader = new FetchRangeLoader({url: this.publicUrl, length: this.length});
       try {
         result = await loader.doInitialFetch(tryHead);
       } catch(e) {
@@ -220,7 +233,7 @@ class GoogleDriveLoader
         }
 
         if (await this.refreshPublicUrl()) {
-          loader = new HttpRangeLoader({url: this.publicUrl, length: this.length});
+          loader = new FetchRangeLoader({url: this.publicUrl, length: this.length});
           try {
             result = await loader.doInitialFetch(tryHead);
           } catch(e) {
@@ -236,7 +249,7 @@ class GoogleDriveLoader
 
     if (!loader || !loader.isValid) {
       this.publicUrl = null;
-      loader = new HttpRangeLoader({url: this.apiUrl, headers: this.headers, length: this.length});
+      loader = new FetchRangeLoader({url: this.apiUrl, headers: this.headers, length: this.length});
       result = await loader.doInitialFetch(tryHead);
     }
 
@@ -251,13 +264,13 @@ class GoogleDriveLoader
     let loader = null;
 
     if (this.publicUrl) {
-      loader = new HttpRangeLoader({url: this.publicUrl, length: this.length});
+      loader = new FetchRangeLoader({url: this.publicUrl, length: this.length});
 
       try {
         return await loader.getRange(offset, length, streaming, signal);
       } catch (e) {
         if (await this.refreshPublicUrl()) {
-          loader = new HttpRangeLoader({url: this.publicUrl, length: this.length});
+          loader = new FetchRangeLoader({url: this.publicUrl, length: this.length});
           try {
             return await loader.getRange(offset, length, streaming, signal);
           } catch (e) {
@@ -270,7 +283,7 @@ class GoogleDriveLoader
       this.publicUrl = null;
     }
 
-    loader = new HttpRangeLoader({url: this.apiUrl, headers: this.headers, length: this.length});
+    loader = new FetchRangeLoader({url: this.apiUrl, headers: this.headers, length: this.length});
 
     let backoff = 50;
 
@@ -478,7 +491,7 @@ class IPFSRangeLoader
     this.length = null;
     this.canLoadOnDemand = true;
 
-    this.httpFallback = new HttpRangeLoader({url: "https://ipfs.io/ipfs/" + this.cid});
+    this.httpFallback = new FetchRangeLoader({url: "https://ipfs.io/ipfs/" + this.cid});
   }
 
   async getLength() {
