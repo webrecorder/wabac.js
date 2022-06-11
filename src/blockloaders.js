@@ -19,6 +19,7 @@ function createLoader(opts) {
 
   case "http":
   case "https":
+  case "ssb":
     return new HttpRangeLoader(opts);
 
   case "file":
@@ -29,8 +30,6 @@ function createLoader(opts) {
 
   case "ipfs":
       return new IPFSRangeLoader(opts);
-  case "ssb":
-    return new SSBRangeLoader(opts);
 
   default:
     throw new Error("Invalid URL: " + url);
@@ -557,143 +556,5 @@ class IPFSRangeLoader
     });
   }
 }
-
-// ===========================================================================
-class SSBRangeLoader
-{
-  constructor({url, headers, length = null, canLoadOnDemand = false}) {
-    this.url = url;
-    this.headers = headers || {};
-    this.length = length;
-    this.canLoadOnDemand = canLoadOnDemand;
-    this.isValid = false;
-  }
-
-  async doInitialFetch(tryHead) {
-    const headers = new Headers(this.headers);
-    headers.set("Range", "bytes=0-");
-
-    this.isValid = false;
-    let abort = null;
-    let response = null;
-
-    if (tryHead) {
-      try {
-        response = await this.retryFetch(this.url, {headers, method: "HEAD", cache: "no-store"});
-        if (response.status === 200 || response.status == 206) {
-          this.canLoadOnDemand = ((response.status === 206) || response.headers.get("Accept-Ranges") === "bytes");
-          this.isValid = true;
-        }
-      } catch (e) {
-        // ignore fetch failure, considered invalid
-      }
-    }
-
-    if (!this.isValid || !this.canLoadOnDemand) {
-      abort = new AbortController();
-      const signal = abort.signal;
-      response = await this.retryFetch(this.url, {headers, signal, cache: "no-store"});
-      this.canLoadOnDemand = ((response.status === 206) || response.headers.get("Accept-Ranges") === "bytes");
-      this.isValid = (response.status === 206 || response.status === 200);
-      // if emulating HEAD, abort here
-      if (tryHead) {
-        abort.abort();
-        abort = null;
-      }
-    }
-
-    if (this.length === null) {
-      this.length = Number(response.headers.get("Content-Length"));
-      if (!this.length && response.status === 206) {
-        let range = response.headers.get("Content-Range");
-        if (range) {
-          range = range.split("/");
-          if (range.length === 2){
-            this.length = range[1];
-          }
-        }
-      }
-    }
-
-    if (this.length === null) {
-      // attempt to get length via proxy
-      try {
-        const resp = await fetch(`${HELPER_PROXY}/c/${this.url}`);
-        const json = await resp.json();
-        if (json.size) {
-          this.length = json.size;
-        }
-      } catch (e) { 
-        console.log("Error fetching from helper: " + e.toString());
-      }
-    }
-    
-    this.length = Number(this.length || 0);
-
-    return {response, abort};
-  }
-
-  async getLength() {
-    if (this.length === null) {
-      const {abort} = await this.doInitialFetch(true);
-      if (abort) {
-        abort.abort();
-      }
-    }
-    return this.length;
-  }
-
-  async getRange(offset, length, streaming = false, signal = null) {
-    const headers = new Headers(this.headers);
-    headers.set("Range", `bytes=${offset}-${offset + length}`);
-
-    const cache = "no-store";
-
-    const options = {signal, headers, cache};
-
-    let resp = null;
-
-    try {
-      resp = await this.retryFetch(this.url, options);
-    } catch(e) {
-      console.log(e);
-      throw new RangeError(this.url);
-    }
-
-    if (resp.status != 206) {
-      const info = {url: this.url, status: resp.status, resp};
-
-      if (resp.status === 401) {
-        throw new AuthNeededError(info);
-      } else if (resp.status == 403) {
-        throw new AccessDeniedError(info);
-      } else {
-        throw new RangeError(info);
-      }
-    }
-
-    if (streaming) {
-      return resp.body;
-    } else {
-      return new Uint8Array(await resp.arrayBuffer());
-    }
-  }
-
-  async retryFetch(url, options) {
-    let resp = null;
-    let backoff = 1000;
-    for (let count = 0; count < 20; count++) {
-      resp = await fetch(url, options);
-      if (resp.status !== 429) {
-        break;
-      }
-      await sleep(backoff);
-      backoff += 2000;
-    }
-    return resp;
-  }
-}
-
-// ===========================================================================
 
 export { createLoader };
