@@ -42,7 +42,7 @@ class JSRewriter extends RxRewriter {
         } else {
           return x.slice(0, start) + prefix;
         }
-      }
+      };
     }
   
     function addSuffix(suffix) {
