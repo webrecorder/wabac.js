@@ -295,13 +295,13 @@ test("script", rewriteHtml,
 // eval in script
 test("script", rewriteHtml,
   "<script>eval('a = foo;');</script>",
-  "<script>WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return !arguments.callee.caller })(),'a = foo;');</script>",
+  "<script>WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),'a = foo;');</script>",
   {useBaseRules: false}
 );
 
 test("script", rewriteHtml,
   "<script>a = b;\n eval  ( 'a = \"foo\";');</script>",
-  "<script>a = b;\n WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return !arguments.callee.caller })(), 'a = \"foo\";');</script>",
+  "<script>a = b;\n WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(), 'a = \"foo\";');</script>",
   {useBaseRules: false}
 );
 

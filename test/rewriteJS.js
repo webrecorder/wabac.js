@@ -101,7 +101,7 @@ test(rewriteJSWrapped,
 
 test(rewriteJS,
   " eval(a)",
-  " WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return !arguments.callee.caller })(),a)"
+  " WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),a)"
 );
 
 test(rewriteJS,
@@ -120,7 +120,7 @@ test(rewriteJS,
 
 test(rewriteJS,
   "foo(a, eval(data));",
-  "foo(a, WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return !arguments.callee.caller })(),data));"
+  "foo(a, WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),data));"
 );
 
 // import rewrite
