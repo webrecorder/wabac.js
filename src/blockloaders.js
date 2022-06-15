@@ -66,6 +66,7 @@ class FetchRangeLoader
     this.length = length;
     this.canLoadOnDemand = canLoadOnDemand;
     this.isValid = false;
+    this.fileType = undefined;
   }
 
   async doInitialFetch(tryHead) {
@@ -94,6 +95,10 @@ class FetchRangeLoader
       response = await this.retryFetch(this.url, {headers, signal, cache: "no-store"});
       this.canLoadOnDemand = ((response.status === 206) || response.headers.get("Accept-Ranges") === "bytes");
       this.isValid = (response.status === 206 || response.status === 200);
+
+      const fileType = await readFileType(response.clone());
+      this.fileType = fileType ? fileType : undefined
+
       // if emulating HEAD, abort here
       if (tryHead) {
         abort.abort();
@@ -129,7 +134,7 @@ class FetchRangeLoader
     
     this.length = Number(this.length || 0);
 
-    return {response, abort};
+    return {response, abort, fileType: this.fileType};
   }
 
   async getLength() {
@@ -579,3 +584,43 @@ class IPFSRangeLoader
 }
 
 export { createLoader };
+
+const zipMagicBytes = [0x50, 0x4B, 0x3, 0x4];
+const isZipFile = hasMagicBytes(zipMagicBytes);
+
+function hasMagicBytes(magicBytes) {
+  return fileBytes => {
+    for(const [index,value] of magicBytes.entries()){
+      if(value !== fileBytes[index]) return false;
+    }
+    return true;
+  };
+}
+
+function readFileType(response) {
+  const reader = response.body.getReader();
+  return new Promise((resolve) => {
+    new ReadableStream({
+      start(controller) {
+        return pump();
+        function pump() {
+          return reader.read().then(({ done, value }) => {
+            if (done) {
+              controller.close();
+              return;
+            }
+            if (value.length >= 4) {
+              const fileBytes = value.slice(0, 4);
+              const fileType = isZipFile(fileBytes) ? "zip" : "json";
+              // todo: better test for json
+              controller.close();
+              return resolve(fileType);
+            }
+            controller.enqueue(value);
+            return pump();
+          });
+        }
+      }
+    });
+  });
+}
