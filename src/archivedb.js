@@ -465,7 +465,7 @@ class ArchiveDB {
       }
     }
 
-    if (!result && this.fuzzyPrefixSearch) {
+    if (!result && this.fuzzyPrefixSearch && !opts.noFuzzyCheck) {
       result = await this.lookupQueryPrefix(url, opts);
     }
 

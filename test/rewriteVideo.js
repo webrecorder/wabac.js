@@ -210,7 +210,7 @@ test("Twitter rewrite json", async t => {
         "content_type": "video/mp4",
         "url": "https://example.com/C"
       }, {
-        "bitrate": 832000,
+        "bitrate": 5832000,
         "content_type": "video/mp4",
         "url": "https://example.com/D"
       }]
@@ -221,9 +221,9 @@ test("Twitter rewrite json", async t => {
     "video_info": {
       "some_data": "other",
       "variants": [{
-        "bitrate": 832000,
+        "bitrate": 2176000,
         "content_type": "video/mp4",
-        "url": "https://example.com/D"
+        "url": "https://example.com/C"
       }]
     }
   };

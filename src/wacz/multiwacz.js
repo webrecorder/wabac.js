@@ -3,7 +3,7 @@ import { ZipRangeReader } from "./ziprangereader";
 import { OnDemandPayloadArchiveDB } from "../remotearchivedb";
 import { SingleRecordWARCLoader } from "../warcloader";
 import { CDXLoader } from "../cdxloader";
-import { handleAuthNeeded, tsToDate } from "../utils";
+import { digestMessage, handleAuthNeeded, tsToDate } from "../utils";
 import { getSurt } from "warcio";
 import { createLoader } from "../blockloaders";
 import { LiveProxy } from "../liveproxy";
@@ -26,6 +26,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     this.config = config;
 
     this.waczfiles = {};
+    this.waczhashes = {};
     this.ziploadercache = {};
   }
 
@@ -89,6 +90,22 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     await this.db.put("waczfiles", filedata);
 
     this.waczfiles[waczname] = filedata;
+
+    const digest = await this.getWACZHash(waczname);
+
+    this.waczhashes[digest] = waczname;
+  }
+
+  async getWACZHash(waczname) {
+    return await digestMessage(waczname, "sha-256", "");
+  }
+
+  async computeWACZHashes() {
+    for (const waczname of Object.keys(this.waczfiles)) {
+      const digest = await this.getWACZHash(waczname);
+
+      this.waczhashes[digest] = waczname;
+    }
   }
 
   async loadRecordFromSource(cdx) {
@@ -384,27 +401,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
       const { waczname } = opts;
 
       if (waczname && waczname !== "local") {
-        const {indexType, isNew} = await this.loadWACZ(waczname);
-        
-        switch (indexType) {
-        case INDEX_IDX:
-          if (!await this.loadCDXFromIDX(waczname, url, datetime, false)) {
-            // no new idx lines loaded
-            return null;
-          }
-          break;
-
-        case INDEX_CDX:
-          if (!isNew) {
-            return null;
-          }
-          break;
-
-        default:
-          return null;
-        }
-
-        result = await super.lookupUrl(url, datetime, opts);
+        result = await this.lookupUrlForWACZ(waczname, url, datetime, opts);
       }
 
       return result;
@@ -412,6 +409,30 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
       console.warn(e);
       return null;
     }
+  }
+
+  async lookupUrlForWACZ(waczname, url, datetime, opts) {
+    const {indexType, isNew} = await this.loadWACZ(waczname);
+
+    switch (indexType) {
+    case INDEX_IDX:
+      if (!await this.loadCDXFromIDX(waczname, url, datetime, false)) {
+        // no new idx lines loaded
+        return null;
+      }
+      break;
+
+    case INDEX_CDX:
+      if (!isNew) {
+        return null;
+      }
+      break;
+
+    default:
+      return null;
+    }
+
+    return await super.lookupUrl(url, datetime, opts);
   }
 
   async resourcesByUrlAndMime(url, ...args) {
@@ -429,18 +450,18 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
         case INDEX_IDX:
           if (!await this.loadCDXFromIDX(waczname, url, 0, true)) {
             // no new idx lines loaded
-            return null;
+            continue;
           }
           break;
   
         case INDEX_CDX:
           if (!isNew) {
-            return null;
+            continue;
           }
           break;
   
         default:
-          return null;
+          continue;
         }
   
         const newRes = await super.resourcesByUrlAndMime(url, ...args);
@@ -519,34 +540,69 @@ export class MultiWACZCollection extends WACZArchiveDB
 
     const isNavigate = event.request.mode === "navigate";
 
-    let waczname;
+    let waczhash = pageId;
+    let waczname = null;
 
-    if (pageId) {
-      const page = await this.db.get("pages", pageId);
-      if (page) {
-        waczname = page.wacz;
+    let resp = null;
+
+    if (waczhash) {
+      if (!Object.keys(this.waczhashes).length) {
+        await this.computeWACZHashes();
       }
+      waczname = this.waczhashes[waczhash];
+      if (!waczname) {
+        return null;
+      }
+      resp = await super.getResource(request, prefix, event, {waczname});
     }
 
-    // if waczname, attempt to load from specific wacz
-    const resp = await super.getResource(request, prefix, event, {pageId, waczname});
-    if (resp) {
+    if (resp || !isNavigate) {
       return resp;
     }
 
-    // if navigate, attempt to try to match by page
-    if (isNavigate) {
-      const ts = tsToDate(request.timestamp).getTime();
-      const url = request.url;
-      const page = await this.findPageAtUrl(url, ts);
-
-      // redirect to page (if different from current)
-      if (page && page.id !== pageId) {
-        return Response.redirect(`${prefix}:${page.id}/${request.timestamp}mp_/${request.url}`);
+    for (const checkWaczname of Object.keys(this.waczfiles)) {
+      resp = await super.getResource(request, prefix, event, {waczname: checkWaczname, noFuzzyCheck: true});
+      if (resp) {
+        waczname = checkWaczname;
+        waczhash = await this.getWACZHash(waczname);
+        break;
       }
     }
 
-    return resp;
+    if (!waczname) {
+      return;
+    }
+    
+    return Response.redirect(`${prefix}:${waczhash}/${request.timestamp}mp_/${request.url}`);
+
+    // let waczname;
+
+    // if (pageId) {
+    //   const page = await this.db.get("pages", pageId);
+    //   if (page) {
+    //     waczname = page.wacz;
+    //   }
+    // }
+
+    // // if waczname, attempt to load from specific wacz
+    // const resp = await super.getResource(request, prefix, event, {pageId, waczname});
+    // if (resp) {
+    //   return resp;
+    // }
+
+    // // if navigate, attempt to try to match by page
+    // if (isNavigate) {
+    //   const ts = tsToDate(request.timestamp).getTime();
+    //   const url = request.url;
+    //   const page = await this.findPageAtUrl(url, ts);
+
+    //   // redirect to page (if different from current)
+    //   if (page && page.id !== pageId) {
+    //     return Response.redirect(`${prefix}:${page.id}/${request.timestamp}mp_/${request.url}`);
+    //   }
+    // }
+
+    // return resp;
   }
 
   getReaderForWACZ(waczname) {

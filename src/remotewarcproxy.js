@@ -6,10 +6,12 @@ import { WARCParser, AsyncIterReader } from "warcio";
 
 // ===========================================================================
 export class RemoteWARCProxy {
-  constructor(config) {
-    this.sourceUrl = config.sourceUrl;
-    this.type = config.extraConfig && config.extraConfig.sourceType || "kiwix";
-    this.notFoundPageUrl = config.extraConfig && config.extraConfig.notFoundPageUrl;
+  constructor(rootConfig) {
+    const config = rootConfig.extraConfig || {};
+
+    this.sourceUrl = config.prefix;
+    this.type = config.sourceType || "kiwix";
+    this.notFoundPageUrl = config.notFoundPageUrl;
   }
 
   async getAllPages() {

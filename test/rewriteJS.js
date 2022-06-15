@@ -102,15 +102,12 @@ test(rewriteJSWrapped,
 
 test(rewriteJS,
   " eval(a)",
-  " WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).eval(a)");
+  " WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),a)"
+);
 
 test(rewriteJS,
   "x = eval; x(a);",
   "x = self.eval; x(a);");
-
-//test(rewriteJS,
-//  "window.eval(a)",
-//  "window.WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).eval(a)");
 
 test(rewriteJS,
   "a = this.location.href; exports.Foo = Foo; /* export className */",
@@ -124,7 +121,7 @@ test(rewriteJS,
 
 test(rewriteJS,
   "foo(a, eval(data));",
-  "foo(a, WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).eval(data));"
+  "foo(a, WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),data));"
 );
 
 // import rewrite
@@ -201,6 +198,10 @@ test(rewriteJS, "obj = { eval : 1 }");
 test(rewriteJS, "x = obj.eval");
 
 test(rewriteJS, "x = obj.eval(a)");
+
+test(rewriteJS, "x = obj._eval(a)");
+
+test(rewriteJS, "x = obj.$eval(a)");
 
 test(rewriteJSWrapped, "if (self.foo) { console.log('blah') }");
 
