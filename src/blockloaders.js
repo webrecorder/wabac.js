@@ -603,7 +603,7 @@ function hasMagicBytes(magicBytes) {
 // todo: test for json
 function checkMagicBytes(fileBytes) {
   if(isZipFile(fileBytes)) return "zip"
-  if(isGzFile(fileBytes))  return ".warc.gz"
+  if(isGzFile(fileBytes))  return "warc.gz"
   return undefined
 }
 
