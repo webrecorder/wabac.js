@@ -14,7 +14,7 @@
     "js-levenshtein": "^1.1.6",
     "js-yaml": "^4.1.0",
     "pako": "^2.0.4",
-    "parse-link-header": "^1.0.1",
+    "parse-link-header": "^2.0.0",
     "parse5-html-rewriting-stream": "^6.0.1",
     "parse5-sax-parser": "^6.0.1",
     "path-parser": "^6.1.0",
