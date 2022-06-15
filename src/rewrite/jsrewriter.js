@@ -28,14 +28,21 @@ class JSRewriter extends RxRewriter {
 
     const checkLoc = "((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = ";
 
-    const evalStr = "WB_wombat_runEval(function _____evalIsEvil(_______eval_arg$$) { return eval(_______eval_arg$$); }.bind(this)).";
+    const evalStr = "WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),";
 
     function addPrefix(prefix) {
       return x => prefix + x;
     }
   
-    function addPrefixAfter1(prefix) {
-      return x => x[0] + prefix + x.slice(1);
+    function replacePrefixFrom(prefix, match) {
+      return x => {
+        const start = x.indexOf(match);
+        if (start === 0) {
+          return prefix;
+        } else {
+          return x.slice(0, start) + prefix;
+        }
+      };
     }
   
     function addSuffix(suffix) {
@@ -73,7 +80,7 @@ class JSRewriter extends RxRewriter {
 
     this.rules = [
       // rewriting 'eval(...)' - invocation
-      [/(?:^|\s)\beval\s*\(/, addPrefixAfter1(evalStr)],
+      [/(?:^|\s)\beval\s*\(/, replacePrefixFrom(evalStr, "eval")],
 
       // rewriting 'x = eval' - no invocation
       [/[=]\s*\beval\b(?![(:.$])/, replace("eval", "self.eval")],
