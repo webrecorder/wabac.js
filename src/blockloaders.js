@@ -585,8 +585,11 @@ class IPFSRangeLoader
 
 export { createLoader };
 
+// https://en.wikipedia.org/wiki/List_of_file_signatures
 const zipMagicBytes = [0x50, 0x4B, 0x3, 0x4];
 const isZipFile = hasMagicBytes(zipMagicBytes);
+const gzMagicBytes = [0x1F, 0x8B, 0x8];
+const isGzFile = hasMagicBytes(gzMagicBytes);
 
 function hasMagicBytes(magicBytes) {
   return fileBytes => {
@@ -595,6 +598,13 @@ function hasMagicBytes(magicBytes) {
     }
     return true;
   };
+}
+
+// todo: test for json
+function checkMagicBytes(fileBytes) {
+  if(isZipFile(fileBytes)) return "zip"
+  if(isGzFile(fileBytes))  return ".warc.gz"
+  return undefined
 }
 
 function readFileType(response) {
@@ -611,8 +621,7 @@ function readFileType(response) {
             }
             if (value.length >= 4) {
               const fileBytes = value.slice(0, 4);
-              const fileType = isZipFile(fileBytes) ? "zip" : "json";
-              // todo: better test for json
+              const fileType = checkMagicBytes(fileBytes)
               controller.close();
               return resolve(fileType);
             }
