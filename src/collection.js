@@ -211,6 +211,7 @@ class Collection {
     if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
 
     const window = wrapObj("window");
+    const globalThis = wrapObj("globalThis");
     const document = wrapObj("document");
     const location = wrapObj("location");
     const top = wrapObj("top");
