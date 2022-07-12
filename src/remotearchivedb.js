@@ -231,7 +231,7 @@ class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB
     const headers =  new Headers(this.headers);
     const url = new URL(source.path, this.remoteUrlPrefix).href;
 
-    const loader = createLoader(url, headers);
+    const loader = await createLoader(url, headers);
 
     return await loader.getRange(start, length, true);
   }

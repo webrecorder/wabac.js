@@ -313,7 +313,7 @@ class SWReplay {
       if (this.stats && request.url.startsWith(this.apiPrefix + "stats.json")) {
         return await this.stats.getStats(event);
       }
-      return await this.api.apiResponse(request.url.slice(this.apiPrefix.length), request);
+      return await this.api.apiResponse(request.url.slice(this.apiPrefix.length), request, event);
     }
 
     await this.collections.inited;

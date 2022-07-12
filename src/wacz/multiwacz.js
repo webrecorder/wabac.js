@@ -49,7 +49,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
       this.waczfiles[file.waczname] = file;
     }
 
-    this.initLoader();
+    await this.initLoader();
   }
 
   initLoader() {
@@ -114,7 +114,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     const offset = start;
     const unzip = true;
 
-    const zipreader = this.getReaderForWACZ(wacz);
+    const zipreader = await this.getReaderForWACZ(wacz);
 
     const fileStream = await zipreader.loadFile("archive/" + path, {offset, length, unzip});
     const loader = new SingleRecordWARCLoader(fileStream);
@@ -133,7 +133,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
       return {indexType: this.waczfiles[waczname].indexType, isNew: false};
     }
 
-    const zipreader = this.getReaderForWACZ(waczname);
+    const zipreader = await this.getReaderForWACZ(waczname);
     await zipreader.load();
 
     //const indexloaders = [];
@@ -290,7 +290,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
     const cdxloaders = [];
 
-    const zipreader = this.getReaderForWACZ(waczname);
+    const zipreader = await this.getReaderForWACZ(waczname);
 
     const waczSource = {
       wacz: waczname
@@ -479,17 +479,17 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 // ==========================================================================
 export class MultiWACZCollection extends WACZArchiveDB
 {
-  initLoader() {
+  async initLoader() {
     const config = this.config;
 
-    this.indexLoader = createLoader({
+    this.indexLoader = await createLoader({
       url: config.loadUrl,
       headers: config.headers,
       size: config.size,
       extra: config.extra
     });
 
-    this.checkUpdates();
+    await this.checkUpdates();
   }
 
   getWACZName(cdx) {
@@ -522,7 +522,7 @@ export class MultiWACZCollection extends WACZArchiveDB
   }
 
   async loadNewWACZ(waczname) {
-    const loader = this.getBlockLoader(waczname);
+    const loader = await this.getBlockLoader(waczname);
 
     const zipreader = new ZipRangeReader(loader);
 
@@ -605,9 +605,9 @@ export class MultiWACZCollection extends WACZArchiveDB
     // return resp;
   }
 
-  getReaderForWACZ(waczname) {
+  async getReaderForWACZ(waczname) {
     return new ZipRangeReader(
-      this.getBlockLoader(waczname),
+      await this.getBlockLoader(waczname),
       this.waczfiles[waczname].entries
     );
   }

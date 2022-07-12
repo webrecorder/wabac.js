@@ -66,9 +66,9 @@ class API {
     };
   }
 
-  async apiResponse(url, request) {
+  async apiResponse(url, request, event) {
     const params = this.router.match(url, request.method);
-    const response = await this.handleApi(request, params);
+    const response = await this.handleApi(request, params, event);
     if (response instanceof Response) {
       return response;
     }
@@ -76,7 +76,7 @@ class API {
     return this.makeResponse(response, status);
   }
 
-  async handleApi(request, params) {
+  async handleApi(request, params/*, event*/) {
     switch (params._route) {
     case "index":
       return await this.listAll(params._query.get("filter"));

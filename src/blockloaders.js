@@ -8,7 +8,7 @@ const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
 
 
 // ===========================================================================
-function createLoader(opts) {
+async function createLoader(opts) {
   const { url } = opts;
 
   const scheme = url.split(":", 1)[0];
@@ -40,7 +40,7 @@ function createLoader(opts) {
 
   // see if the specified scheme is generally fetchable
   try {
-    fetch(`${scheme}://localhost`, {method: "HEAD"});
+    await fetch(`${scheme}://localhost`, {method: "HEAD"});
     // if reached here, scheme is supported, so use fetch loader
     return new FetchRangeLoader(opts);
   } catch (e) {
@@ -94,6 +94,7 @@ class FetchRangeLoader
       response = await this.retryFetch(this.url, {headers, signal, cache: "no-store"});
       this.canLoadOnDemand = ((response.status === 206) || response.headers.get("Accept-Ranges") === "bytes");
       this.isValid = (response.status === 206 || response.status === 200);
+
       // if emulating HEAD, abort here
       if (tryHead) {
         abort.abort();

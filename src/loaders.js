@@ -205,7 +205,7 @@ class CollectionLoader
       break;
 
     case "remotesource":
-      sourceLoader = createLoader({
+      sourceLoader = await createLoader({
         url: config.loadUrl,
         headers: config.headers,
         size: config.size,
@@ -220,7 +220,7 @@ class CollectionLoader
 
     case "wacz":
     case "remotezip":
-      sourceLoader = createLoader({
+      sourceLoader = await createLoader({
         url: config.loadUrl || config.sourceUrl,
         headers: config.headers,
         extra: config.extra
@@ -498,7 +498,7 @@ class WorkerLoader extends CollectionLoader
       config.extraConfig = data.extraConfig;
       config.noCache = file.noCache;
 
-      const sourceLoader = createLoader({
+      const sourceLoader = await createLoader({
         url: loadUrl,
         headers: file.headers,
         size: file.size,
