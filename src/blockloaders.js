@@ -591,6 +591,8 @@ const zipMagicBytes = [0x50, 0x4B, 0x3, 0x4];
 const isZipFile = hasMagicBytes(zipMagicBytes);
 const gzMagicBytes = [0x1F, 0x8B, 0x8];
 const isGzFile = hasMagicBytes(gzMagicBytes);
+const warcMagicBytes = [0x57, 0x41, 0x52, 0x43];
+const isWarcFile = hasMagicBytes(warcMagicBytes);
 
 function hasMagicBytes(magicBytes) {
   return fileBytes => {
@@ -604,6 +606,7 @@ function hasMagicBytes(magicBytes) {
 // todo: test for json
 function checkMagicBytes(fileBytes) {
   if (isZipFile(fileBytes)) return "zip";
+  if (isWarcFile(fileBytes)) return "warc";
   if (isGzFile(fileBytes)) return "warc.gz";
   return undefined;
 }
