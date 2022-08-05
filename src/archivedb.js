@@ -13,6 +13,9 @@ const MAX_DATE_TS = new Date("9999-01-01").getTime();
 
 const REVISIT = "warc/revisit";
 
+const EMPTY_PAYLOAD_SHA256 = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+const EMPTY_PAYLOAD_SHA1 = "sha1:da39a3ee5e6b4b0d3255bfef95601890afd80709";
+
 // ===========================================================================
 class ArchiveDB {
   constructor(name, opts = {}) {
@@ -507,6 +510,9 @@ class ArchiveDB {
 
   async loadPayload(result/*, opts*/) {
     if (result.digest && !result.payload) {
+      if (result.digest === EMPTY_PAYLOAD_SHA256 || result.digest === EMPTY_PAYLOAD_SHA1) {
+        return new Uint8Array([]);
+      }
       const payloadRes = await this.db.get("payload", result.digest);
       if (!payloadRes) {
         return null;

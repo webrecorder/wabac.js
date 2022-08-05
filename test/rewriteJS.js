@@ -165,6 +165,11 @@ export{ a, $ as b };
 
 
 // Not Rewritten
+test(rewriteJS, `\
+(function() { return "export class foo"; })
+`);
+
+
 test(rewriteJS, "return this.abc");
 
 test(rewriteJS, "return this object");

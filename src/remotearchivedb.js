@@ -91,7 +91,8 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
         }
       }
 
-      cdx.respHeaders = origResult.respHeaders;
+      // if revisit record has header, use those, otherwise use headers from original
+      cdx.respHeaders = remote.respHeaders ? remote.respHeaders : origResult.respHeaders;
       cdx.mime = origResult.mime;
 
       if (origResult.extraOpts) {

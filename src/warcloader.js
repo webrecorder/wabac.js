@@ -120,10 +120,17 @@ class WARCLoader extends BaseParser {
     return false;
   }
 
-  parseRevisitRecord(record) {
+  parseRevisitRecord(record, reqRecord) {
     const url = record.warcTargetURI.split("#")[0];
     const date = record.warcDate;
     const ts = new Date(date).getTime();
+
+    let respHeaders = undefined;
+
+    if (record.httpHeaders) {
+      const parsed = this.parseResponseHttpHeaders(record, url, reqRecord);
+      respHeaders = parsed && Object.fromEntries(parsed.headers.entries());
+    }
 
     const origURL = record.warcRefersToTargetURI;
     const origTS = new Date(record.warcRefersToDate).getTime();
@@ -135,49 +142,15 @@ class WARCLoader extends BaseParser {
 
     const digest = record.warcPayloadDigest;
 
-    return {url, ts, origURL, origTS, digest, pageId: null};
+    return {url, ts, origURL, origTS, digest, pageId: null, respHeaders};
   }
 
-  indexReqResponse(record, reqRecord) {
-    const entry = this.parseRecords(record, reqRecord);
-
-    if (entry) {
-      this.addResource(entry);
-    }
-  }
-
-  parseRecords(record, reqRecord) {
-    switch (record.warcType) {
-    case "revisit":
-      return this.parseRevisitRecord(record);
-
-    case "resource":
-      reqRecord = null;
-      break;
-
-    case "response":
-      break;
-
-    case "metadata":
-      if (!this.shouldIndexMetadataRecord(record)) {
-        return null;
-      }
-      break;
-
-    default:
-      return null;
-    }
-
-    let url = record.warcTargetURI.split("#")[0];
-    const date = record.warcDate;
-
-    let headers;
+  parseResponseHttpHeaders(record, url, reqRecord) {
     let status = 200;
-    //let statusText = "OK";
-    //let content = record.content;
-    let cl = 0;
+    let headers = null;
     let mime = "";
-    let method = (reqRecord && reqRecord.httpHeaders.method);
+
+    const method = (reqRecord && reqRecord.httpHeaders.method);
 
     if (record.httpHeaders) {
       status = Number(record.httpHeaders.statusCode) || 200;
@@ -197,7 +170,7 @@ class WARCLoader extends BaseParser {
 
       mime = (headers.get("content-type") || "").split(";")[0];
 
-      cl = parseInt(headers.get("content-length") || 0);
+      const cl = parseInt(headers.get("content-length") || 0);
 
       // skip partial responses (not starting from 0)
       if (status === 206) {
@@ -226,8 +199,52 @@ class WARCLoader extends BaseParser {
       headers.set("content-length", record.warcContentLength);
       mime = record.warcContentType;
 
-      cl = record.warcContentLength;
+      //cl = record.warcContentLength;
     }
+
+    return {status, method, headers, mime};
+  }
+
+  indexReqResponse(record, reqRecord) {
+    const entry = this.parseRecords(record, reqRecord);
+
+    if (entry) {
+      this.addResource(entry);
+    }
+  }
+
+  parseRecords(record, reqRecord) {
+    switch (record.warcType) {
+    case "revisit":
+      return this.parseRevisitRecord(record, reqRecord);
+
+    case "resource":
+      reqRecord = null;
+      break;
+
+    case "response":
+      break;
+
+    case "metadata":
+      if (!this.shouldIndexMetadataRecord(record)) {
+        return null;
+      }
+      break;
+
+    default:
+      return null;
+    }
+
+    let url = record.warcTargetURI.split("#")[0];
+    const date = record.warcDate;
+
+    const parsed = this.parseResponseHttpHeaders(record, url, reqRecord);
+
+    if (!parsed) {
+      return null;
+    }
+
+    const {status, method, headers, mime} = parsed;
 
     let referrer = null;
     let requestBody = null;

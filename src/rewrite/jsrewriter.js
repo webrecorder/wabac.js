@@ -1,7 +1,7 @@
 import { RxRewriter } from "./rxrewriter";
 
 const IMPORT_RX = /^\s*?import\s*?[{"']/;
-const EXPORT_RX = /export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/;
+const EXPORT_RX = /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/m;
 
 const GLOBAL_OVERRIDES = [
   "window",
@@ -140,11 +140,22 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return `import { ${localDecls.join(", ")} } from "${prefix}__wb_module_decl.js";\n`;
   }
 
+  isModule(text) {
+    if (text.indexOf("import") >= 0 && text.match(IMPORT_RX)) {
+      return true;
+    }
+
+    if (text.indexOf("export") >= 0 && text.match(EXPORT_RX)) {
+      return true;
+    }
+
+    return false;
+  }
+
   rewrite(text, opts) {
     let newText;
 
-    if ((text.indexOf("import") >= 0 && text.match(IMPORT_RX)) ||
-        (text.indexOf("export") >= 0 && text.match(EXPORT_RX))) {
+    if (this.isModule(text)) {
       return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) + super.rewrite(text, opts);
     }
 
