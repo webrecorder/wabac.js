@@ -14,7 +14,9 @@ const MAX_DATE_TS = new Date("9999-01-01").getTime();
 const REVISIT = "warc/revisit";
 
 const EMPTY_PAYLOAD_SHA256 = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-const EMPTY_PAYLOAD_SHA1 = "sha1:da39a3ee5e6b4b0d3255bfef95601890afd80709";
+
+// sha-1 digests often base32 encoded
+const EMPTY_PAYLOAD_SHA1 = "sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ";
 
 // ===========================================================================
 class ArchiveDB {

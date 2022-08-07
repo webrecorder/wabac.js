@@ -28,7 +28,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
   async loadPayload(cdx, opts) {
     let payload = await super.loadPayload(cdx, opts);
     if (payload) {
-      if (cdx.respHeaders && cdx.mime !== "warc/revisit") {
+      if (cdx.respHeaders && (cdx.mime !== "warc/revisit" || (cdx.status >= 300 && cdx.status < 400))) {
         return payload;
       }
     }
@@ -73,6 +73,19 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
 
     // Revisit
     if (remote.origURL) {
+      // optimize: if revisit of redirect, just set the respHeaders and return empty payload
+      if (!payload && cdx.status >= 300 && cdx.status < 400 && remote.respHeaders) {
+        cdx.respHeaders = remote.respHeaders;
+        if (!this.noCache) {
+          try {
+            await this.db.put("resources", cdx);
+          } catch(e) {
+            console.log(e);
+          }
+        }
+        return new Uint8Array([]);
+      }
+
       const origResult = await this.lookupUrl(remote.origURL, remote.origTS, {...opts, noRevisits: true});
       if (!origResult) {
         return null;

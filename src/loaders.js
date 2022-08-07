@@ -566,7 +566,7 @@ Make sure this is a valid URL and you have access to this file.`);
         }
 
       } else if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
-        if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand) {
+        if (!config.noCache && (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand)) {
           loader = new WARCLoader(stream, abort, name);
         } else {
           loader = new CDXFromWARCLoader(stream, abort, name);
