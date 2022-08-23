@@ -75,7 +75,7 @@ export function getSecondsStr(date) {
   }
 }
 
-function base16(hashBuffer) {
+export function base16(hashBuffer) {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }

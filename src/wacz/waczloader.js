@@ -1,11 +1,18 @@
 import yaml from "js-yaml";
 
-import { MAX_FULL_DOWNLOAD_SIZE } from "../utils";
+import { MAX_FULL_DOWNLOAD_SIZE, base16 } from "../utils";
 import { WARCLoader } from "../warcloader";
 import { ZipRangeReader } from "./ziprangereader";
 
+import { toByteArray as decodeBase64 } from "base64-js";
+import * as pkijs from "pkijs";
+import * as asn1js from "asn1js";
+import * as pvutils from "pvutils";
+
 export const MAIN_PAGES_JSON = "pages/pages.jsonl";
 export const EXTRA_PAGES_JSON = "pages/extraPages.jsonl";
+
+export const DATAPACKAGE_JSON = "datapackage.json";
 
 const PAGE_BATCH_SIZE = 500;
 
@@ -44,8 +51,14 @@ export class SingleWACZLoader
 
     let metadata;
 
-    if (entries["datapackage.json"]) {
-      metadata = await this.loadMetadata(db, entries, "datapackage.json");
+    let datapackageDigest = null;
+
+    if (entries["datapackage-digest.json"]) {
+      datapackageDigest = await this.loadDigestData(db, "datapackage-digest.json");
+    }
+
+    if (entries[DATAPACKAGE_JSON]) {
+      metadata = await this.loadMetadata(db, entries, DATAPACKAGE_JSON, datapackageDigest);
     } else if (entries["webarchive.yaml"]) {
       metadata = await this.loadMetadataYAML(db, entries, "webarchive.yaml");
     }
@@ -82,38 +95,8 @@ export class SingleWACZLoader
     }
   }
 
-  async loadPages(db, filename = MAIN_PAGES_JSON) {
-    const reader = await this.zipreader.loadFile(filename, {unzip: true});
-
-    let pageListInfo = null;
-
-    let pages = [];
-
-    for await (const textLine of reader.iterLines()) {
-      const page = JSON.parse(textLine);
-
-      if (!pageListInfo) {
-        pageListInfo = page;
-        continue;
-      }
-
-      pages.push(page);
-
-      if (pages.length === PAGE_BATCH_SIZE) {
-        await db.addPages(pages);
-        pages = [];
-      }
-    }
-
-    if (pages.length) {
-      await db.addPages(pages);
-    }
-
-    return pageListInfo;
-  }
-
   async loadWARC(db, filename, progressUpdate, total) {
-    const reader = await this.zipreader.loadFile(filename, {unzip: true});
+    const {reader} = await this.zipreader.loadFile(filename, {unzip: true});
 
     const loader = new WARCLoader(reader, null, filename);
     loader.detectPages = false;
@@ -121,15 +104,121 @@ export class SingleWACZLoader
     return await loader.load(db, progressUpdate, total);
   }
 
-  async loadTextEntry(db, filename) {
-    const reader = await this.zipreader.loadFile(filename);
+  async loadTextEntry(db, filename, expectedHash) {
+    const { reader, hasher } = await this.zipreader.loadFile(filename, {computeHash: !!expectedHash});
     const text = new TextDecoder().decode(await reader.readFully());
+    if (expectedHash) {
+      await db.addVerifyData(filename, expectedHash, hasher.getHash());
+    }
     return text;
   }
 
+  async loadDigestData(db, filename) {
+    try {
+      const digestData = JSON.parse(await this.loadTextEntry(db, filename));
+      let datapackageHash;
+
+      if (digestData.path === DATAPACKAGE_JSON && digestData.hash) {
+        datapackageHash = digestData.hash;
+      }
+      if (!digestData.signedData) {
+        await db.addVerifyData("$signature");
+        return;
+      }
+
+      let {hash, signature, publicKey, domain, domainCert, created} = digestData.signedData;
+
+      if (hash !== datapackageHash) {
+        await db.addVerifyData("$signature");
+        return;
+      }
+
+      signature = decodeBase64(signature);
+
+      let domainActual;
+
+      if (domainCert && domain && !publicKey) {
+        const certs = domainCert.split("\n\n");
+
+        let certBuffer = decodeBase64(certs[0].replace(/-{5}(BEGIN|END) .*-{5}/gm, "").replace(/\s/gm, ""));
+
+        const cert = pkijs.Certificate.fromBER(certBuffer);
+
+        const fingerprint = base16(await crypto.subtle.digest("SHA-256", certBuffer));
+
+        if (fingerprint) {
+          await db.addVerifyData("certFingerprint", fingerprint);
+        }
+
+        publicKey = await cert.getPublicKey();
+
+        // extract r|s values from asn1
+
+        try {
+          const sigasn1 = asn1js.fromBER(signature.buffer);
+
+          const sigvalues = sigasn1.result.valueBlock.value;
+
+          if (sigvalues.length === 2) {
+            const n0 = new Uint8Array(sigvalues[0].valueBlock.valueHex);
+            const n1 = new Uint8Array(sigvalues[1].valueBlock.valueHex);
+
+            const inx0 = n0[0] === 0 ? 1 : 0;
+            const inx1 = n1[0] === 0 ? 1 : 0;
+
+            signature = pvutils.utilConcatBuf(n0.slice(inx0), n1.slice(inx1));
+          }
+        } catch (se) {
+          console.log(se);
+        }
+
+        const CN = "2.5.4.3";
+
+        for (const typeAndVal of cert.subject.typesAndValues) {
+          if (typeAndVal.type === CN) {
+            domainActual = typeAndVal.value.valueBlock.value;
+            break;
+          }
+        }
+      
+      } else {
+        const ecdsaImportParams = {
+          name: "ECDSA",
+          namedCurve: "P-384"
+        };
+
+        publicKey = await crypto.subtle.importKey("spki", decodeBase64(publicKey), ecdsaImportParams, true, ["verify"]);
+      }
+
+      const ecdsaSignParams = {
+        name: "ECDSA",
+        hash: "SHA-256"
+      };
+
+      const encoder = new TextEncoder();
+
+      const sigValid = await crypto.subtle.verify(ecdsaSignParams, publicKey, signature, encoder.encode(hash));
+
+      await db.addVerifyData("signature", true, sigValid);
+
+      if (created) {
+        await db.addVerifyData("created", created);
+      }
+
+      if (domain) {
+        await db.addVerifyData("domain", domain, domainActual);
+      }
+
+      return datapackageHash;
+
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
   // New WACZ 1.0.0 Format
-  async loadMetadata(db, entries, filename) {
-    const text = await this.loadTextEntry(db, filename);
+  async loadMetadata(db, entries, filename, expectedDigest) {
+    const text = await this.loadTextEntry(db, filename, expectedDigest);
 
     const root = JSON.parse(text);
 
@@ -139,9 +228,20 @@ export class SingleWACZLoader
 
     const metadata = root.metadata || {};
 
+    let pagesHash = null;
+
+    for (const res of root.resources) {
+      if (res.path === MAIN_PAGES_JSON) {
+        pagesHash = res.hash;
+        await db.addVerifyData(res.path, res.hash);
+      } else if (res.path.endsWith(".idx") || res.path.endsWith(".cdx")) {
+        await db.addVerifyData(res.path, res.hash);
+      }
+    }
+
     // All Pages
     if (entries[MAIN_PAGES_JSON]) {
-      const pageInfo = await loadPages(db, this.zipreader, this.waczname, MAIN_PAGES_JSON);
+      const pageInfo = await loadPages(db, this.zipreader, this.waczname, MAIN_PAGES_JSON, pagesHash);
 
       if (pageInfo.hasText) {
         db.textIndex = metadata.textIndex = MAIN_PAGES_JSON;
@@ -233,8 +333,8 @@ export class JSONMultiWACZLoader
 }
 
 // ==========================================================================
-export async function loadPages(db, zipreader, waczname, filename = MAIN_PAGES_JSON) {
-  const reader = await zipreader.loadFile(filename, {unzip: true});
+export async function loadPages(db, zipreader, waczname, filename = MAIN_PAGES_JSON, expectedHash = null) {
+  const {reader, hasher} = await zipreader.loadFile(filename, {unzip: true, computeHash: true});
 
   let pageListInfo = null;
 
@@ -260,6 +360,10 @@ export async function loadPages(db, zipreader, waczname, filename = MAIN_PAGES_J
 
   if (pages.length) {
     await db.addPages(pages);
+  }
+
+  if (hasher && expectedHash) {
+    await db.addVerifyData(filename, expectedHash, hasher.getHash());
   }
 
   return pageListInfo;

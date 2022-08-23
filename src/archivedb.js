@@ -270,6 +270,10 @@ class ArchiveDB {
     return await this.db.getAllFromIndex("pages", "state", state);
   }
 
+  async getVerifyInfo() {
+    return {};
+  }
+
   async dedupResource(digest, payload, tx, count = 1) {
     const digestRefStore = tx.objectStore("digestRef");
     const ref = await digestRefStore.get(digest);
