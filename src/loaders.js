@@ -472,10 +472,11 @@ class WorkerLoader extends CollectionLoader
 
       config.sourceName = file.name || file.sourceUrl;
 
-      // parse to strip out query and fragment
+      // parse to strip out query, keep hash/fragment (if any)
       try {
         if (config.sourceName.match(/https?:\/\//)) {
-          config.sourceName = new URL(config.sourceName).pathname;
+          const sourceUrl = new URL(config.sourceName);
+          config.sourceName = sourceUrl.pathname + sourceUrl.hash;
         }
       } catch (e) {
         // ignore, keep sourceName as is
