@@ -95,24 +95,26 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
   async getVerifyInfo() {
     const results =  await this.db.getAll("verification");
-    let dataValid = true;
-    let sigValid = true;
-    let count = 0;
+
+    let numValid = 0;
+    let numInvalid = 0;
+
     let info = {};
 
     for (const res of results) {
       if (res.id === "domain" || res.id === "created" || res.id === "certFingerprint") {
         info[res.id] = res.expected;
       } else if (res.id === "signature") {
-        sigValid = res.matched;
-      } else if (res.matched !== null) {
-        count++;
-        dataValid = dataValid && res.matched;
+        numValid++;
+      } else if (res.matched === true) {
+        numValid++;
+      } else if (res.matched === false) {
+        numInvalid++;
       }
     }
 
-    info.verified = sigValid && dataValid;
-    info.numSigs = count;
+    info.numInvalid = numInvalid;
+    info.numValid = numValid;
 
     return info;
   }
