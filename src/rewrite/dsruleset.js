@@ -43,7 +43,14 @@ const DEFAULT_RULES = [
   {
     contains: ["api.twitter.com/2/", "twitter.com/i/api/2/", "twitter.com/i/api/graphql/"],
     rxRules: [
-      [/"video_info".*?}]}/, ruleRewriteTwitterVideo]
+      [/"video_info".*?}]}/, ruleRewriteTwitterVideo("\"video_info\":")]
+    ]
+  },
+
+  {
+    contains: ["cdn.syndication.twimg.com/tweet-result"],
+    rxRules: [
+      [/"video".*?viewCount":\d+}/, ruleRewriteTwitterVideo("\"video\":")]
     ]
   },
 
@@ -97,59 +104,67 @@ function ruleReplace(string) {
 // }
 
 // ===========================================================================
-function ruleRewriteTwitterVideo(string, opts) {
-  if (!opts) {
-    return string;
-  }
+function ruleRewriteTwitterVideo(prefix) {
 
-  // if (!opts.live && !(opts.response && opts.response.extraOpts && opts.response.extraOpts.rewritten)) {
-  //   return string;
-  // }
-
-  const origString = string;
-
-  try {
-    const prefix = "\"video_info\":";
-
-    const MAX_BITRATE = 5000000;
-
-    const extraOpts = opts.response && opts.response.extraOpts;
-
-    let maxBitrate = MAX_BITRATE;
-
-    if (opts.save) {
-      opts.save.maxBitrate = maxBitrate;
-    } else if (extraOpts.maxBitrate) {
-      maxBitrate = extraOpts.maxBitrate;
+  return (string, opts) => {
+    if (!opts) {
+      return string;
     }
 
-    string = string.slice(prefix.length);
+    // if (!opts.live && !(opts.response && opts.response.extraOpts && opts.response.extraOpts.rewritten)) {
+    //   return string;
+    // }
 
-    const data = JSON.parse(string);
+    const origString = string;
 
-    let bestVariant = null;
-    let bestBitrate = 0;
+    try {
+      const MAX_BITRATE = 5000000;
 
-    for (const variant of data.variants) {
-      if (variant.content_type !== "video/mp4") {
-        continue;
+      const extraOpts = opts.response && opts.response.extraOpts;
+
+      let maxBitrate = MAX_BITRATE;
+
+      if (opts.save) {
+        opts.save.maxBitrate = maxBitrate;
+      } else if (extraOpts && extraOpts.maxBitrate) {
+        maxBitrate = extraOpts.maxBitrate;
       }
 
-      if (variant.bitrate && variant.bitrate > bestBitrate && variant.bitrate <= maxBitrate) {
-        bestVariant = variant;
-        bestBitrate = variant.bitrate;
+      string = string.slice(prefix.length);
+
+      const data = JSON.parse(string);
+
+      let bestVariant = null;
+      let bestBitrate = 0;
+      //sort by src
+      let bestSrc = "";
+
+      for (const variant of data.variants) {
+        if ((variant.content_type && variant.content_type !== "video/mp4") ||
+            (variant.type && variant.type !== "video/mp4")) {
+          continue;
+        }
+
+        if (variant.bitrate && variant.bitrate > bestBitrate && variant.bitrate <= maxBitrate) {
+          bestVariant = variant;
+          bestBitrate = variant.bitrate;
+        } else if (variant.src && variant.src > bestSrc) {
+          bestVariant = variant;
+          bestSrc = variant.src;
+        }
       }
+
+      if (bestVariant) {
+        data.variants = [bestVariant];
+      }
+
+      return prefix + JSON.stringify(data);
+
+    } catch (e) {
+      console.warn("rewriter error: ", e);
+      return origString;
     }
-
-    if (bestVariant) {
-      data.variants = [bestVariant];
-    }
-
-    return prefix + JSON.stringify(data);
-
-  } catch (e) {
-    return origString;
-  }
+  };
 }
 
 // ===========================================================================

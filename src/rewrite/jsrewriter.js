@@ -140,7 +140,11 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return `import { ${localDecls.join(", ")} } from "${prefix}__wb_module_decl.js";\n`;
   }
 
-  isModule(text) {
+  isModule(text, opts) {
+    if (opts && opts.isModule) {
+      return true;
+    }
+
     if (text.indexOf("import") >= 0 && text.match(IMPORT_RX)) {
       return true;
     }
@@ -155,7 +159,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
   rewrite(text, opts) {
     let newText;
 
-    if (this.isModule(text)) {
+    if (this.isModule(text, opts)) {
       return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) + super.rewrite(text, opts);
     }
 
