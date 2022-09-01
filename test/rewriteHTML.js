@@ -318,8 +318,8 @@ test("script", rewriteHtml,
 
 // module script
 test("script", rewriteHtml,
-  `<script type="module">console.log(window.parent.location.href);</script>`,
-  wrapScriptModule(`console.log(window.parent.location.href);`),
+  "<script type=\"module\">console.log(window.parent.location.href);</script>",
+  wrapScriptModule("console.log(window.parent.location.href);"),
   {useBaseRules: false}
 );
 

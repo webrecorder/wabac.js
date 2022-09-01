@@ -37,4 +37,13 @@ test(rewriteHeaders,
   true
 );
 
+// Not rewritten, not a url
+test(rewriteHeaders,
+  "Link",
+  "<sometext>; rel=\"test\"; as=\"script\"",
+  "<sometext>; rel=\"test\"; as=\"script\"",
+);
+
+
+
 
