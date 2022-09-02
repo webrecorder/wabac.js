@@ -44,8 +44,18 @@ let parent = _____WB$wombat$assign$function_____("parent");
 let frames = _____WB$wombat$assign$function_____("frames");
 let opener = _____WB$wombat$assign$function_____("opener");
 let arguments;
-\n` + text + "\n\n}";
 
+${text}
+
+}`;
+
+}
+
+
+function wrapScriptModule(text) {
+  return `\
+<script type="module">import { window, globalThis, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010/__wb_module_decl.js";
+${text}</script>`;
 }
 
 
@@ -303,6 +313,13 @@ test("script", rewriteHtml,
 test("script", rewriteHtml,
   "<script>a = b;\n eval  ( 'a = \"foo\";');</script>",
   "<script>a = b;\n WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(), 'a = \"foo\";');</script>",
+  {useBaseRules: false}
+);
+
+// module script
+test("script", rewriteHtml,
+  "<script type=\"module\">console.log(window.parent.location.href);</script>",
+  wrapScriptModule("console.log(window.parent.location.href);"),
   {useBaseRules: false}
 );
 

@@ -253,7 +253,7 @@ class HTMLRewriter
     let insertAdded = false;
 
     let context = "";
-    let scriptRw = false;
+    let scriptRw = "";
     let replaceTag = null;
 
     const addInsert = () => {
@@ -290,7 +290,11 @@ class HTMLRewriter
 
         const scriptType = this.getAttr(startTag.attrs, "type");
 
-        scriptRw = !scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0);
+        if (scriptType === "module") {
+          scriptRw = "module";
+        } else if (!scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0)) {
+          scriptRw = "script";
+        }
         break;
       }
 
@@ -323,25 +327,30 @@ class HTMLRewriter
     });
 
     rwStream.on("text", (textToken, raw) => {
-      if (context === "script") {
-        doEmit(scriptRw ? rewriter.rewriteJS(textToken.text) : textToken.text);
-      } else if (context === "style") {
-        doEmit(rewriter.rewriteCSS(textToken.text));
-      } else {
-        // if raw data is different and raw data potentially cut off, just use the parsedText
-        if (raw !== textToken.text && (textToken.sourceCodeLocation.startOffset - rwStream.posTracker.droppedBufferSize) < 0) {
-          raw = textToken.text;
+      const text = (() => {
+        if (context === "script") {
+          if (scriptRw) {
+            const isModule = scriptRw === "module";
+            const prefix = rewriter.prefix;
+            return rewriter.rewriteJS(textToken.text, {isModule, prefix});
+          } else {
+            return textToken.text;
+          }
+        } else if (context === "style") {
+          return rewriter.rewriteCSS(textToken.text);
+        } else {
+          // if raw data is different and raw data potentially cut off, just use the parsedText
+          if (raw !== textToken.text && (textToken.sourceCodeLocation.startOffset - rwStream.posTracker.droppedBufferSize) < 0) {
+            raw = textToken.text;
+          }
+          return this.rewriteHTMLText(raw);
         }
-        raw = this.rewriteHTMLText(raw);
-        doEmit(raw);
-      }
-    });
+      })();
 
-    function doEmit(text) {
       for (let i = 0; i < text.length; i += MAX_STREAM_CHUNK_SIZE) {
         rwStream.emitRaw(text.slice(i, i + MAX_STREAM_CHUNK_SIZE));
       }
-    }
+    });
 
     const sourceGen = response.createIter();
     let hasData = false;

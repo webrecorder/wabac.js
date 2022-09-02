@@ -234,8 +234,46 @@ test("Twitter rewrite json", async t => {
     const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: api + "some/endpoint", extraOpts});
     t.deepEqual(JSON.parse(result), expected);
   }
+});
 
 
+test("Twitter rewrite embedded json", async t => {
 
+  const content = {
+    "video": {
+      "some_data": "other",
+      "variants": [{
+        "type": "application/x-mpegURL",
+        "src": "https://example.com/100x100/A"
+      }, {
+        "type": "video/mp4",
+        "src": "https://example.com/100x100/B"
+      }, {
+        "type": "video/mp4",
+        "src": "https://example.com/200x200/B"
+      }, {
+        "type": "video/mp4",
+        "src": "https://example.com/300x300/B"
+      }],
+      "viewCount": 1234
+    }
+  };
 
+  const expected = {
+    "video": {
+      "some_data": "other",
+      "variants": [{
+        "type": "video/mp4",
+        "src": "https://example.com/300x300/B"
+      }],
+      "viewCount": 1234
+    }
+  };
+
+  const extraOpts = {rewritten: true};
+
+  for (const api of ["https://cdn.syndication.twimg.com/tweet-result?some=value"]) {
+    const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: api + "some/endpoint", extraOpts});
+    t.deepEqual(JSON.parse(result), expected);
+  }
 });

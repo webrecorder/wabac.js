@@ -294,7 +294,7 @@ class Rewriter {
 
   // JS
   rewriteJS(text, opts) {
-    const noUrlProxyRewrite = opts && !opts.rewriteUrl;
+    const noUrlProxyRewrite = opts && !opts.rewriteUrl && opts.isModule === undefined;
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
 
@@ -509,15 +509,7 @@ class Rewriter {
 
       case "link":
         if (urlRewrite && !isAjax) {
-          const parsed = parseLinkHeader(header[1]);
-
-          for (const entry of Object.values(parsed)) {
-            if (entry.url) {
-              entry.url = this.rewriteUrl(entry.url);
-            }
-          }
-
-          new_headers.append(header[0], formatLinkHeader(parsed));
+          new_headers.append(header[0], this.rewriteLinkHeader(header[1]));
         } else {
           new_headers.append(header[0], header[1]);
         }
@@ -529,6 +521,23 @@ class Rewriter {
     }
 
     return new_headers;
+  }
+
+  rewriteLinkHeader(value) {
+    try {
+      const parsed = parseLinkHeader(value);
+
+      for (const entry of Object.values(parsed)) {
+        if (entry.url) {
+          entry.url = this.rewriteUrl(entry.url);
+        }
+      }
+
+      return formatLinkHeader(parsed);
+    } catch (e) {
+      console.warn("Error parsing link header: " + value);
+      return value;
+    }
   }
 }
 

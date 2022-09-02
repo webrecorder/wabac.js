@@ -211,7 +211,6 @@ class Collection {
     if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
 
     const window = wrapObj("window");
-    const globalThis = wrapObj("globalThis");
     const document = wrapObj("document");
     const location = wrapObj("location");
     const top = wrapObj("top");
@@ -219,8 +218,9 @@ class Collection {
     const frames = wrapObj("frames");
     const opener = wrapObj("opener");
     const __self = wrapObj("self");
+    const __globalThis = wrapObj("globalThis");
 
-    export { window, document, location, top, parent, frames, opener, __self as self };
+    export { window, document, location, top, parent, frames, opener, __self as self, __globalThis as globalThis };
     `;
 
     const payload = new TextEncoder().encode(string);
