@@ -1,13 +1,10 @@
 import yaml from "js-yaml";
 
-import { MAX_FULL_DOWNLOAD_SIZE, base16 } from "../utils";
+import { MAX_FULL_DOWNLOAD_SIZE } from "../utils";
 import { WARCLoader } from "../warcloader";
 import { ZipRangeReader } from "./ziprangereader";
 
-import { toByteArray as decodeBase64 } from "base64-js";
-import * as pkijs from "pkijs";
-import * as asn1js from "asn1js";
-import * as pvutils from "pvutils";
+import { verifyWACZSignature } from "./certutils";
 
 export const MAIN_PAGES_JSON = "pages/pages.jsonl";
 export const EXTRA_PAGES_JSON = "pages/extraPages.jsonl";
@@ -121,93 +118,15 @@ export class SingleWACZLoader
       if (digestData.path === DATAPACKAGE_JSON && digestData.hash) {
         datapackageHash = digestData.hash;
       }
-      if (!digestData.signedData) {
-        await db.addVerifyData("$signature");
+
+      if (!digestData.signedData || digestData.signedData.hash !== datapackageHash) {
+        await db.addVerifyData("signature");
         return;
       }
 
-      let {hash, signature, publicKey, domain, domainCert, created} = digestData.signedData;
+      const results = await verifyWACZSignature(digestData.signedData);
 
-      if (hash !== datapackageHash) {
-        await db.addVerifyData("$signature");
-        return;
-      }
-
-      signature = decodeBase64(signature);
-
-      let domainActual;
-
-      if (domainCert && domain && !publicKey) {
-        const certs = domainCert.split("\n\n");
-
-        let certBuffer = decodeBase64(certs[0].replace(/-{5}(BEGIN|END) .*-{5}/gm, "").replace(/\s/gm, ""));
-
-        const cert = pkijs.Certificate.fromBER(certBuffer);
-
-        const fingerprint = base16(await crypto.subtle.digest("SHA-256", certBuffer));
-
-        if (fingerprint) {
-          await db.addVerifyData("certFingerprint", fingerprint);
-        }
-
-        publicKey = await cert.getPublicKey();
-
-        // extract r|s values from asn1
-
-        try {
-          const sigasn1 = asn1js.fromBER(signature.buffer);
-
-          const sigvalues = sigasn1.result.valueBlock.value;
-
-          if (sigvalues.length === 2) {
-            const n0 = new Uint8Array(sigvalues[0].valueBlock.valueHex);
-            const n1 = new Uint8Array(sigvalues[1].valueBlock.valueHex);
-
-            const inx0 = n0[0] === 0 ? 1 : 0;
-            const inx1 = n1[0] === 0 ? 1 : 0;
-
-            signature = pvutils.utilConcatBuf(n0.slice(inx0), n1.slice(inx1));
-          }
-        } catch (se) {
-          console.log(se);
-        }
-
-        const CN = "2.5.4.3";
-
-        for (const typeAndVal of cert.subject.typesAndValues) {
-          if (typeAndVal.type === CN) {
-            domainActual = typeAndVal.value.valueBlock.value;
-            break;
-          }
-        }
-      
-      } else {
-        const ecdsaImportParams = {
-          name: "ECDSA",
-          namedCurve: "P-384"
-        };
-
-        publicKey = await crypto.subtle.importKey("spki", decodeBase64(publicKey), ecdsaImportParams, true, ["verify"]);
-      }
-
-      const ecdsaSignParams = {
-        name: "ECDSA",
-        hash: "SHA-256"
-      };
-
-      const encoder = new TextEncoder();
-
-      const sigValid = await crypto.subtle.verify(ecdsaSignParams, publicKey, signature, encoder.encode(hash));
-
-      await db.addVerifyData("signature", true, sigValid);
-
-      if (created) {
-        await db.addVerifyData("created", created);
-      }
-
-      if (domain) {
-        await db.addVerifyData("domain", domain, domainActual);
-      }
+      await db.addVerifyDataList(results);
 
       return datapackageHash;
 

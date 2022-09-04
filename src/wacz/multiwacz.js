@@ -93,6 +93,20 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     await this.db.put("verification", {id, expected, matched});
   }
 
+  async addVerifyDataList(datalist) {
+    const tx = this.db.transaction("verification", "readwrite");
+
+    for (const data in datalist) {
+      tx.store.put(data);
+    }
+
+    try {
+      await tx.done;
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
   async getVerifyInfo() {
     const results =  await this.db.getAll("verification");
 
