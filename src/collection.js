@@ -286,7 +286,7 @@ class Collection {
   async makeTopFrame(url, requestTS) {
     let baseUrl = null;
 
-    if (this.baseFrameUrl) {
+    if (this.baseFrameUrl && !this.baseFramePrefix) {
       baseUrl = this.baseFrameUrl;
     } else if (!this.isRoot && this.config.sourceUrl) {
       baseUrl = this.baseFramePrefix || "./";
