@@ -96,7 +96,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
   async addVerifyDataList(datalist) {
     const tx = this.db.transaction("verification", "readwrite");
 
-    for (const data in datalist) {
+    for (const data of datalist) {
       tx.store.put(data);
     }
 
