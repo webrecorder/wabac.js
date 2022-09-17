@@ -105,7 +105,11 @@ class Collection {
       }
 
       const msg = `
-      <p>This page <i>${requestURL}</i> is not part of this archive.</p>
+      <html>
+      <body style="font-family: sans-serif">
+      <h2>Archived Page Not Found</h2>
+      <p>Sorry, this page was not found in this archive:</p>
+      <p><code style="word-break: break-all; font-size: larger">${requestURL}</code></p>
       ${this.liveRedirectOnNotFound && request.mode === "navigate" ? `
       <p>Redirecting to live page now... (If this URL is a file download, the download should have started).</p>
       <script>
@@ -113,7 +117,10 @@ class Collection {
       </script>
       ` : `
       `}
-      <p><a target="_blank" href="${requestURL}">Click Here</a> to load the live page in a new tab (or to download the URL as a file).</p>
+      <p>
+      <a target="_blank" href="${requestURL}">Click Here</a> to try to load the live page in a new tab (or to download the URL as a file).</p>
+      </body>
+      </html>
       `; 
       return notFound(request, msg);
     } else if (response instanceof Response) {
