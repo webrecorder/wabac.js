@@ -18,6 +18,8 @@ const EMPTY_PAYLOAD_SHA256 = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649
 // sha-1 digests often base32 encoded
 const EMPTY_PAYLOAD_SHA1 = "sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ";
 
+const DB_VERSION = 4;
+
 // ===========================================================================
 class ArchiveDB {
   constructor(name, opts = {}) {
@@ -27,7 +29,7 @@ class ArchiveDB {
     const { minDedupSize, noRefCounts } = opts;
     this.minDedupSize = Number.isInteger(minDedupSize) ? minDedupSize : 1024;
 
-    this.version = 3;
+    this.version = DB_VERSION;
 
     this.autoHttpsCheck = true;
     this.useRefCounts = !noRefCounts;

@@ -732,6 +732,10 @@ export class SingleWACZ extends WACZArchiveDB
     if (oldV === 2) {
       this.convertV2WACZDB(db, tx);
     }
+
+    if (oldV === 3) {
+      db.createObjectStore("verification", {keyPath: "id"});
+    }
   }
 
   async convertV2WACZDB(db, tx) {
