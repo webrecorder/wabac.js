@@ -12,8 +12,9 @@ const SPLIT_PEM = /-{5}(BEGIN|END) .*-{5}/gm;
 
 export async function verifyWACZSignature({hash, signature, publicKey, domain, domainCert, created} = {}) {
   let domainActual;
-
   const results = [];
+
+  signature = decodeBase64(signature);
 
   if (domainCert && domain && !publicKey) {
     const certs = domainCert.split("\n\n");
@@ -31,7 +32,7 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
       domainActual = cert.subject.split(3);
     }
 
-    signature = parseSignature(signature);
+    signature = parseASN1Signature(signature);
   
   } else {
     const ecdsaImportParams = {
@@ -64,11 +65,9 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
   return results;
 }
 
-function parseSignature(signature) {
+function parseASN1Signature(signature) {
   // extract r|s values from asn1
   try {
-    signature = decodeBase64(signature);
-
     const sig = AsnParser.parse(signature, ECDSASigValue);
 
     const r = sig.r[0] === 0 ? sig.r.slice(1) : sig.r;
