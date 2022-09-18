@@ -4,14 +4,13 @@ import { base16 } from "../utils";
 import * as x509 from "@peculiar/x509";
 import { AsnParser } from "@peculiar/asn1-schema";
 import { ECDSASigValue } from "@peculiar/asn1-ecc";
+//import { ASN1 } from "asn1-parser";
 
 import { concatChunks } from "warcio";
 
 const SPLIT_PEM = /-{5}(BEGIN|END) .*-{5}/gm;
 
 export async function verifyWACZSignature({hash, signature, publicKey, domain, domainCert, created} = {}) {
-  signature = decodeBase64(signature);
-
   let domainActual;
 
   const results = [];
@@ -22,28 +21,17 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
     const certBuffer = decodeBase64(certs[0].replace(SPLIT_PEM, "").replace(/\s/gm, ""));
 
     const fingerprint = base16(await crypto.subtle.digest("SHA-256", certBuffer));
+    results.push({id: "certFingerprint", expected: fingerprint, matched: null});
 
     const cert = new x509.X509Certificate(certBuffer);
 
-    results.push({id: "certFingerprint", expected: fingerprint, matched: null});
-
     publicKey = await cert.publicKey.export();
-
-    // extract r|s values from asn1
-    try {
-      const sig = AsnParser.parse(signature, ECDSASigValue);
-
-      const r = sig.r[0] === 0 ? sig.r.slice(1) : sig.r;
-      const s = sig.s[0] === 0 ? sig.s.slice(1) : sig.s;
-      signature = concatChunks([r, s], r.length + s.length);
-
-    } catch (se) {
-      console.log(se);
-    }
 
     if (cert.subject && cert.subject.startsWith("CN=")) {
       domainActual = cert.subject.split(3);
     }
+
+    signature = parseSignature(signature);
   
   } else {
     const ecdsaImportParams = {
@@ -75,3 +63,43 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
 
   return results;
 }
+
+function parseSignature(signature) {
+  // extract r|s values from asn1
+  try {
+    signature = decodeBase64(signature);
+
+    const sig = AsnParser.parse(signature, ECDSASigValue);
+
+    const r = sig.r[0] === 0 ? sig.r.slice(1) : sig.r;
+    const s = sig.s[0] === 0 ? sig.s.slice(1) : sig.s;
+    signature = concatChunks([r, s], r.length + s.length);
+
+  } catch (se) {
+    console.log(se);
+  }
+
+  return signature;
+}
+
+
+// function parseSignature2(signature) {
+//   // extract r|s values from asn1
+//     try {
+//       signature = decodeBase64(signature);
+  
+//       const result = ASN1.parse(signature);
+//  
+//       if (result && result.children && result.children.length == 2) {
+//         const r = result.children[0].value;
+//         const s = result.children[1].value;
+//  
+//         signature = concatChunks([r, s], r.length + s.length);
+//       }
+//  
+//     } catch (se) {
+//       console.log(se);
+//     }
+//  
+//     return signature;
+//   }
