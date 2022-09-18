@@ -4,6 +4,9 @@
   "main": "index.js",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
+    "@peculiar/asn1-ecc": "^2.3.0",
+    "@peculiar/asn1-schema": "^2.3.0",
+    "@peculiar/x509": "^1.8.3",
     "@webrecorder/wombat": "^3.3.7",
     "base64-js": "^1.5.1",
     "brotli": "github:foliojs/brotli.js",
@@ -20,7 +23,6 @@
     "parse5-html-rewriting-stream": "^6.0.1",
     "parse5-sax-parser": "^6.0.1",
     "path-parser": "^6.1.0",
-    "pkijs": "^3.0.7",
     "process": "^0.11.10",
     "stream-browserify": "^3.0.0",
     "warcio": "^1.5.1"

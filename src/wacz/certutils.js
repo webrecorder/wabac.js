@@ -1,11 +1,13 @@
 import { toByteArray as decodeBase64 } from "base64-js";
 import { base16 } from "../utils";
-import * as pkijs from "pkijs";
-import * as asn1js from "asn1js";
-import * as pvutils from "pvutils";
+
+import * as x509 from "@peculiar/x509";
+import { AsnParser } from "@peculiar/asn1-schema";
+import { ECDSASigValue } from "@peculiar/asn1-ecc";
+
+import { concatChunks } from "warcio";
 
 const SPLIT_PEM = /-{5}(BEGIN|END) .*-{5}/gm;
-
 
 export async function verifyWACZSignature({hash, signature, publicKey, domain, domainCert, created} = {}) {
   signature = decodeBase64(signature);
@@ -17,44 +19,30 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
   if (domainCert && domain && !publicKey) {
     const certs = domainCert.split("\n\n");
 
-    let certBuffer = decodeBase64(certs[0].replace(SPLIT_PEM, "").replace(/\s/gm, ""));
-
-    const cert = pkijs.Certificate.fromBER(certBuffer);
+    const certBuffer = decodeBase64(certs[0].replace(SPLIT_PEM, "").replace(/\s/gm, ""));
 
     const fingerprint = base16(await crypto.subtle.digest("SHA-256", certBuffer));
 
+    const cert = new x509.X509Certificate(certBuffer);
+
     results.push({id: "certFingerprint", expected: fingerprint, matched: null});
 
-    publicKey = await cert.getPublicKey();
+    publicKey = await cert.publicKey.export();
 
     // extract r|s values from asn1
-
     try {
-      const sigasn1 = asn1js.fromBER(signature.buffer);
+      const sig = AsnParser.parse(signature, ECDSASigValue);
 
-      const sigvalues = sigasn1.result.valueBlock.value;
+      const r = sig.r[0] === 0 ? sig.r.slice(1) : sig.r;
+      const s = sig.s[0] === 0 ? sig.s.slice(1) : sig.s;
+      signature = concatChunks([r, s], r.length + s.length);
 
-      if (sigvalues.length === 2) {
-        const n0 = new Uint8Array(sigvalues[0].valueBlock.valueHex);
-        const n1 = new Uint8Array(sigvalues[1].valueBlock.valueHex);
-
-        const inx0 = n0[0] === 0 ? 1 : 0;
-        const inx1 = n1[0] === 0 ? 1 : 0;
-
-        signature = pvutils.utilConcatBuf(n0.slice(inx0), n1.slice(inx1));
-      }
     } catch (se) {
       console.log(se);
     }
 
-    // CommonName Field
-    const CN = "2.5.4.3";
-
-    for (const typeAndVal of cert.subject.typesAndValues) {
-      if (typeAndVal.type === CN) {
-        domainActual = typeAndVal.value.valueBlock.value;
-        break;
-      }
+    if (cert.subject && cert.subject.startsWith("CN=")) {
+      domainActual = cert.subject.split(3);
     }
   
   } else {
