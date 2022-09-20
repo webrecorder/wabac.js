@@ -115,11 +115,13 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
     let info = {};
 
+    const includeProps = ["domain", "created", "certFingerprint", "software", "datapackageHash"];
+
     for (const res of results) {
-      if (res.id === "domain" || res.id === "created" || res.id === "certFingerprint") {
+      if (includeProps.includes(res.id)) {
         info[res.id] = res.expected;
       } else if (res.id === "signature") {
-        info.sigValid = true;
+        numValid++;
       } else if (res.matched === true) {
         numValid++;
       } else if (res.matched === false) {

@@ -124,6 +124,8 @@ export class SingleWACZLoader
         return;
       }
 
+      await db.addVerifyData("datapackageHash", datapackageHash);
+
       const results = await verifyWACZSignature(digestData.signedData);
 
       await db.addVerifyDataList(results);

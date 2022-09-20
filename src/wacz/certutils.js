@@ -10,7 +10,7 @@ import { concatChunks } from "warcio";
 
 const SPLIT_PEM = /-{5}(BEGIN|END) .*-{5}/gm;
 
-export async function verifyWACZSignature({hash, signature, publicKey, domain, domainCert, created} = {}) {
+export async function verifyWACZSignature({hash, signature, publicKey, domain, domainCert, created, software} = {}) {
   let domainActual;
   const results = [];
 
@@ -56,6 +56,10 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
 
   if (created) {
     results.push({id: "created", expected: created, matched: null});
+  }
+
+  if (software) {
+    results.push({id: "software", expected: software, matched: null});
   }
 
   if (domain) {
