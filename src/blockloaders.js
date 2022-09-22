@@ -493,6 +493,12 @@ class IPFSRangeLoader
     this.canLoadOnDemand = true;
   }
 
+  async initIPFS(opts=this.opts) {
+    const {create} = await import("auto-js-ipfs");
+    return create(opts);
+  }
+
+
   async getLength() {
     if (this.length === null) {
       await this.doInitialFetch(true);
@@ -502,7 +508,7 @@ class IPFSRangeLoader
   }
 
   async doInitialFetch(tryHead) {
-    const ipfsClient = await initIPFS(this.opts);
+    const ipfsClient = await this.initIPFS(this.opts);
 
     try {
       this.length = await ipfsClient.getSize(this.url);
@@ -536,7 +542,7 @@ class IPFSRangeLoader
   }
 
   async getRange(offset, length, streaming = false, signal = null) {
-    const ipfsClient = await initIPFS(this.opts);
+    const ipfsClient = await this.initIPFS(this.opts);
 
     const iter = ipfsClient.get(this.url, {
       start: offset,
@@ -574,10 +580,4 @@ class IPFSRangeLoader
     });
   }
 }
-
-async function initIPFS(opts) {
-  const {create} = await import("auto-js-ipfs");
-  return create(opts);
-}
-
 export { createLoader };
