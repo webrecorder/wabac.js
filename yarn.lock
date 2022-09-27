@@ -755,10 +755,10 @@ async@^2.6.2:
   dependencies:
     lodash "^4.17.14"
 
-auto-js-ipfs@^1.3.4:
-  version "1.3.4"
-  resolved "https://registry.yarnpkg.com/auto-js-ipfs/-/auto-js-ipfs-1.3.4.tgz#27eff92bc839c5bd306d381d4d6b49900eb0891c"
-  integrity sha512-1sIlF8WrintZE3b3ANH9ssmW5pMLmQHb5IZ5R3jfyTD2OfScE50K7ORGO7/C+B38y5hirMVAVgtqbJy8V2RSlg==
+auto-js-ipfs@^1.3.5:
+  version "1.3.5"
+  resolved "https://registry.yarnpkg.com/auto-js-ipfs/-/auto-js-ipfs-1.3.5.tgz#701e779998ac8438fbfd735d8270747aef7fbb16"
+  integrity sha512-mV2E0gO9ZqFJ1D7jPgLGPR+fLn6mim1JxdO3RZyFd78tpxOhE05aZjy5lhBpmoWAIMcJA8PIWO19Il3kDdSxEg==
 
 ava@^3.14.0:
   version "3.14.0"
