@@ -2,6 +2,8 @@ import { AuthNeededError, AccessDeniedError, RangeError, sleep } from "./utils";
 
 import { concatChunks } from "warcio";
 
+import {create as createIPFS} from "auto-js-ipfs/index.cjs";
+
 // todo: make configurable
 const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
 
@@ -494,8 +496,7 @@ class IPFSRangeLoader
   }
 
   async initIPFS(opts=this.opts) {
-    const {create} = await import("auto-js-ipfs");
-    const {api} = await create(opts);
+    const {api} = await createIPFS(opts);
     return api;
   }
 
