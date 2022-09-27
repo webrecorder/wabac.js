@@ -495,7 +495,8 @@ class IPFSRangeLoader
 
   async initIPFS(opts=this.opts) {
     const {create} = await import("auto-js-ipfs");
-    return create(opts);
+    const {api} = await create(opts);
+    return api;
   }
 
 
