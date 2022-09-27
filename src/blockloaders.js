@@ -546,7 +546,7 @@ class IPFSRangeLoader
 
     const iter = ipfsClient.get(this.url, {
       start: offset,
-      end: offset + length,
+      end: offset + length - 1,
       signal
     });
 
