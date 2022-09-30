@@ -7,7 +7,7 @@ import { digestMessage, handleAuthNeeded, tsToDate } from "../utils";
 import { getSurt } from "warcio";
 import { createLoader } from "../blockloaders";
 import { LiveProxy } from "../liveproxy";
-import { JSONMultiWACZLoader, loadPages } from "./waczloader";
+import { JSONMultiWACZLoader, loadPages, MAIN_PAGES_JSON } from "./waczloader";
 
 
 const INDEX_NOT_LOADED = 0;
@@ -28,6 +28,8 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     this.waczfiles = {};
     this.waczhashes = {};
     this.ziploadercache = {};
+
+    this.resHashes = {};
   }
 
   _initDB(db, oldV, newV, tx) {
@@ -37,6 +39,8 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
       db.createObjectStore("ziplines", { keyPath: ["waczname", "prefix"] });
 
       db.createObjectStore("waczfiles", { keyPath: "waczname"} );
+
+      db.createObjectStore("verification", {keyPath: "id"});
     }
   }
 
@@ -75,6 +79,65 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     for (const store of stores) {
       await this.db.clear(store);
     }
+  }
+
+  async addVerifyData(id, expected, actual, log = false) {
+    let matched = null;
+
+    if (actual) {
+      matched = expected === actual;
+      if (log) {
+        console.log(`verify ${id}: ${matched}`);
+      }
+    }
+    await this.db.put("verification", {id, expected, matched});
+  }
+
+  async addVerifyDataList(datalist) {
+    const tx = this.db.transaction("verification", "readwrite");
+
+    for (const data of datalist) {
+      tx.store.put(data);
+    }
+
+    try {
+      await tx.done;
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  async getVerifyInfo() {
+    const results =  await this.db.getAll("verification");
+
+    let numValid = 0;
+    let numInvalid = 0;
+
+    let info = {};
+
+    const includeProps = ["domain", "created", "certFingerprint", "software", "datapackageHash"];
+
+    for (const res of results) {
+      if (includeProps.includes(res.id)) {
+        info[res.id] = res.expected;
+      } else if (res.id === "signature") {
+        numValid++;
+      } else if (res.matched === true) {
+        numValid++;
+      } else if (res.matched === false) {
+        numInvalid++;
+      }
+    }
+
+    info.numInvalid = numInvalid;
+    info.numValid = numValid;
+
+    return info;
+  }
+
+  async getVerifyExpected(id) {
+    const res = await this.db.get("verification", id);
+    return res && res.expected;
   }
 
   async clearAll() {
@@ -116,12 +179,14 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
     const zipreader = await this.getReaderForWACZ(wacz);
 
-    const fileStream = await zipreader.loadFile("archive/" + path, {offset, length, unzip});
-    const loader = new SingleRecordWARCLoader(fileStream);
+    const {reader, hasher} = await zipreader.loadFile("archive/" + path, {offset, length, unzip, computeHash: true});
+    const loader = new SingleRecordWARCLoader(reader, hasher);
 
     await this.updateEntriesIfNeeded(zipreader, wacz);
 
-    return await loader.load();
+    const remote = await loader.load();
+
+    return {remote, hasher};
   }
 
   async loadWACZ(waczname) {
@@ -167,15 +232,24 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
   }
 
   async loadCDX(zipreader, filename, waczname, progressUpdate, total) {
-    const reader = await zipreader.loadFile(filename);
+    const { reader, hasher } = await zipreader.loadFile(filename, {computeHash: true});
 
     const loader = new CDXLoader(reader, null, waczname, {wacz: waczname});
 
-    return await loader.load(this, progressUpdate, total);
+    const res = await loader.load(this, progressUpdate, total);
+
+    if (hasher) {
+      const expected = await this.getVerifyExpected(filename);
+      if (expected) {
+        this.addVerifyData(filename, expected, hasher.getHash());
+      }
+    }
+
+    return res;
   }
 
   async loadIDX(zipreader, filename, waczname, progressUpdate, total) {
-    const reader = await zipreader.loadFile(filename);
+    const { reader, hasher } = await zipreader.loadFile(filename, {computeHash: true});
 
     let batch = [];
     let defaultFilename = "";
@@ -225,13 +299,13 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
         }
 
         const prefix = line.slice(0, inx);
-        let {offset, length, filename} = JSON.parse(line.slice(inx));
+        let {offset, length, filename, digest} = JSON.parse(line.slice(inx));
 
         useSurt = prefix.indexOf(")/") > 0;
 
         filename = filename || defaultFilename;
 
-        entry = {waczname, prefix, filename, offset, length, loaded: false};
+        entry = {waczname, prefix, filename, offset, length, digest, loaded: false};
       }
 
       if (progressUpdate) {
@@ -239,6 +313,13 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
       }
 
       batch.push(entry);
+    }
+
+    if (hasher) {
+      const expected = await this.getVerifyExpected(filename);
+      if (expected) {
+        this.addVerifyData(filename, expected, hasher.getHash());
+      }
     }
 
     const tx = this.db.transaction("ziplines", "readwrite");
@@ -346,11 +427,17 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
   async doCDXLoad(cacheKey, zipblock, zipreader, waczSource) {
     try {
       const filename = "indexes/" + zipblock.filename;
-      const params = {offset: zipblock.offset, length: zipblock.length, unzip: true};
-      const reader = await zipreader.loadFile(filename, params);
+      const params = {offset: zipblock.offset, length: zipblock.length, unzip: true, computeHash: !!zipblock.digest};
+      const { reader, hasher } = await zipreader.loadFile(filename, params);
 
       const loader = new CDXLoader(reader, null, null, waczSource);
       await loader.load(this);
+
+      if (hasher) {
+        const hash = hasher.getHash();
+        const id = `${filename}:${zipblock.offset}-${zipblock.length}`;
+        await this.addVerifyData(id, zipblock.digest, hash);
+      }
 
       zipblock.loaded = true;
       await this.db.put("ziplines", zipblock);
@@ -530,7 +617,9 @@ export class MultiWACZCollection extends WACZArchiveDB
 
     await this.addWACZFile(waczname, entries);
 
-    await loadPages(this, zipreader, waczname);
+    const expectedHash = await this.getVerifyExpected(MAIN_PAGES_JSON);
+
+    await loadPages(this, zipreader, waczname, MAIN_PAGES_JSON, expectedHash);
 
     await this.updateEntriesIfNeeded(zipreader, waczname);
   }
@@ -645,6 +734,10 @@ export class SingleWACZ extends WACZArchiveDB
     if (oldV === 2) {
       this.convertV2WACZDB(db, tx);
     }
+
+    if (oldV === 3) {
+      db.createObjectStore("verification", {keyPath: "id"});
+    }
   }
 
   async convertV2WACZDB(db, tx) {
@@ -660,6 +753,8 @@ export class SingleWACZ extends WACZArchiveDB
       db.createObjectStore("ziplines", { keyPath: ["waczname", "prefix"] });
 
       db.createObjectStore("waczfiles", { keyPath: "waczname"} );
+
+      db.createObjectStore("verification", {keyPath: "id"});
 
       const waczname = this.getWACZName();
 
@@ -728,7 +823,7 @@ export class SingleWACZ extends WACZArchiveDB
       headers["Content-Length"] = "" + size;
     }
 
-    const reader = await this.zipreader.loadFile(this.textIndex, {unzip: true});
+    const {reader} = await this.zipreader.loadFile(this.textIndex, {unzip: true});
 
     return new Response(reader.getReadableStream(), {headers});
   }

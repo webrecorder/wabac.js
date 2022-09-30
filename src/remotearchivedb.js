@@ -22,7 +22,8 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
 
     const loader = new SingleRecordWARCLoader(responseStream);
 
-    return await loader.load();
+    const remote = await loader.load();
+    return {remote};
   }
 
   async loadPayload(cdx, opts) {
@@ -39,7 +40,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       return new PartialStreamReader(chunkstore);
     }
 
-    const remote = await this.loadRecordFromSource(cdx);
+    const {remote, hasher} = await this.loadRecordFromSource(cdx);
  
     if (!remote) {
       console.log(`No WARC Record Loaded for: ${cdx.url}`);
@@ -135,7 +136,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
     const digest = remote.digest;
 
     if (!this.noCache && remote.reader && digest) {
-      remote.reader = new PayloadBufferingReader(this, remote.reader, digest, cdx.url, this.streamMap);
+      remote.reader = new PayloadBufferingReader(this, remote.reader, digest, cdx.url, this.streamMap, hasher, cdx.recordDigest, cdx.source);
     }
 
     payload = remote.payload;
@@ -332,7 +333,7 @@ class ChunkStore
 // ===========================================================================
 class PayloadBufferingReader extends BaseAsyncIterReader
 {
-  constructor(db, reader, digest, url = "", streamMap) {
+  constructor(db, reader, digest, url = "", streamMap, hasher, expectedHash, source) {
     super();
     this.db = db;
     this.reader = reader;
@@ -342,6 +343,10 @@ class PayloadBufferingReader extends BaseAsyncIterReader
 
     this.commit = true;
     this.fullbuff = null;
+
+    this.hasher = hasher;
+    this.expectedHash = expectedHash;
+    this.source = source;
 
     this.isRange = false;
     this.totalLength = -1;
@@ -390,9 +395,19 @@ class PayloadBufferingReader extends BaseAsyncIterReader
 
     if (this.reader.limit !== 0) {
       console.warn(`Expected payload not consumed, ${this.reader.limit} bytes left`);
-    } else if (this.commit) {
-      this.fullbuff = chunkstore.concatChunks();
-      await this.db.commitPayload(this.fullbuff, this.digest);
+    } else {
+
+      if (!this.isRange && this.hasher && this.expectedHash && this.source) {
+        const hash = this.hasher.getHash();
+        const {path, start, length} = this.source;
+        const id = `${path}:${start}-${length}`;
+        this.db.addVerifyData(id, this.expectedHash, hash);
+      }
+
+      if (this.commit) {
+        this.fullbuff = chunkstore.concatChunks();
+        await this.db.commitPayload(this.fullbuff, this.digest);
+      }
     }
 
     if (this.commit && this.isRange) {
