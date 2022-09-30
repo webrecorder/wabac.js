@@ -4,8 +4,12 @@ import { MAX_FULL_DOWNLOAD_SIZE } from "../utils";
 import { WARCLoader } from "../warcloader";
 import { ZipRangeReader } from "./ziprangereader";
 
+import { verifyWACZSignature } from "./certutils";
+
 export const MAIN_PAGES_JSON = "pages/pages.jsonl";
 export const EXTRA_PAGES_JSON = "pages/extraPages.jsonl";
+
+export const DATAPACKAGE_JSON = "datapackage.json";
 
 const PAGE_BATCH_SIZE = 500;
 
@@ -44,8 +48,14 @@ export class SingleWACZLoader
 
     let metadata;
 
-    if (entries["datapackage.json"]) {
-      metadata = await this.loadMetadata(db, entries, "datapackage.json");
+    let datapackageDigest = null;
+
+    if (entries["datapackage-digest.json"]) {
+      datapackageDigest = await this.loadDigestData(db, "datapackage-digest.json");
+    }
+
+    if (entries[DATAPACKAGE_JSON]) {
+      metadata = await this.loadMetadata(db, entries, DATAPACKAGE_JSON, datapackageDigest);
     } else if (entries["webarchive.yaml"]) {
       metadata = await this.loadMetadataYAML(db, entries, "webarchive.yaml");
     }
@@ -82,38 +92,8 @@ export class SingleWACZLoader
     }
   }
 
-  async loadPages(db, filename = MAIN_PAGES_JSON) {
-    const reader = await this.zipreader.loadFile(filename, {unzip: true});
-
-    let pageListInfo = null;
-
-    let pages = [];
-
-    for await (const textLine of reader.iterLines()) {
-      const page = JSON.parse(textLine);
-
-      if (!pageListInfo) {
-        pageListInfo = page;
-        continue;
-      }
-
-      pages.push(page);
-
-      if (pages.length === PAGE_BATCH_SIZE) {
-        await db.addPages(pages);
-        pages = [];
-      }
-    }
-
-    if (pages.length) {
-      await db.addPages(pages);
-    }
-
-    return pageListInfo;
-  }
-
   async loadWARC(db, filename, progressUpdate, total) {
-    const reader = await this.zipreader.loadFile(filename, {unzip: true});
+    const {reader} = await this.zipreader.loadFile(filename, {unzip: true});
 
     const loader = new WARCLoader(reader, null, filename);
     loader.detectPages = false;
@@ -121,15 +101,45 @@ export class SingleWACZLoader
     return await loader.load(db, progressUpdate, total);
   }
 
-  async loadTextEntry(db, filename) {
-    const reader = await this.zipreader.loadFile(filename);
+  async loadTextEntry(db, filename, expectedHash) {
+    const { reader, hasher } = await this.zipreader.loadFile(filename, {computeHash: !!expectedHash});
     const text = new TextDecoder().decode(await reader.readFully());
+    if (expectedHash) {
+      await db.addVerifyData(filename, expectedHash, hasher.getHash());
+    }
     return text;
   }
 
+  async loadDigestData(db, filename) {
+    try {
+      const digestData = JSON.parse(await this.loadTextEntry(db, filename));
+      let datapackageHash;
+
+      if (digestData.path === DATAPACKAGE_JSON && digestData.hash) {
+        datapackageHash = digestData.hash;
+      }
+
+      if (!digestData.signedData || digestData.signedData.hash !== datapackageHash) {
+        await db.addVerifyData("signature");
+        return;
+      }
+
+      await db.addVerifyData("datapackageHash", datapackageHash);
+
+      const results = await verifyWACZSignature(digestData.signedData);
+
+      await db.addVerifyDataList(results);
+
+      return datapackageHash;
+
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
   // New WACZ 1.0.0 Format
-  async loadMetadata(db, entries, filename) {
-    const text = await this.loadTextEntry(db, filename);
+  async loadMetadata(db, entries, filename, expectedDigest) {
+    const text = await this.loadTextEntry(db, filename, expectedDigest);
 
     const root = JSON.parse(text);
 
@@ -139,9 +149,20 @@ export class SingleWACZLoader
 
     const metadata = root.metadata || {};
 
+    let pagesHash = null;
+
+    for (const res of root.resources) {
+      if (res.path === MAIN_PAGES_JSON) {
+        pagesHash = res.hash;
+        await db.addVerifyData(res.path, res.hash);
+      } else if (res.path.endsWith(".idx") || res.path.endsWith(".cdx")) {
+        await db.addVerifyData(res.path, res.hash);
+      }
+    }
+
     // All Pages
     if (entries[MAIN_PAGES_JSON]) {
-      const pageInfo = await loadPages(db, this.zipreader, this.waczname, MAIN_PAGES_JSON);
+      const pageInfo = await loadPages(db, this.zipreader, this.waczname, MAIN_PAGES_JSON, pagesHash);
 
       if (pageInfo.hasText) {
         db.textIndex = metadata.textIndex = MAIN_PAGES_JSON;
@@ -233,8 +254,8 @@ export class JSONMultiWACZLoader
 }
 
 // ==========================================================================
-export async function loadPages(db, zipreader, waczname, filename = MAIN_PAGES_JSON) {
-  const reader = await zipreader.loadFile(filename, {unzip: true});
+export async function loadPages(db, zipreader, waczname, filename = MAIN_PAGES_JSON, expectedHash = null) {
+  const {reader, hasher} = await zipreader.loadFile(filename, {unzip: true, computeHash: true});
 
   let pageListInfo = null;
 
@@ -260,6 +281,10 @@ export async function loadPages(db, zipreader, waczname, filename = MAIN_PAGES_J
 
   if (pages.length) {
     await db.addPages(pages);
+  }
+
+  if (hasher && expectedHash) {
+    await db.addVerifyData(filename, expectedHash, hasher.getHash());
   }
 
   return pageListInfo;

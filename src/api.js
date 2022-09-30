@@ -104,6 +104,8 @@ class API {
           data.curatedPages = [];
         }
 
+        data.verify = await coll.store.getVerifyInfo();
+
       } else {
         data.numLists = await coll.store.db.count("pageLists");
         data.numPages = await coll.store.db.count("pages");

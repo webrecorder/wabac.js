@@ -90,12 +90,12 @@ class CDXFromWARCLoader extends WARCLoader
 
     const source = this.getSource(cdx);
 
-    let { digest } = cdx;
+    let { digest, recordDigest } = cdx;
     if (digest && digest.indexOf(":") === -1) {
       digest = this.shaPrefix + digest;
     }
 
-    const entry = {url, ts, status, digest, mime, loaded: false, source};
+    const entry = {url, ts, status, digest, recordDigest, mime, loaded: false, source};
 
     if (cdx.method) {
       entry.method = cdx.method;
