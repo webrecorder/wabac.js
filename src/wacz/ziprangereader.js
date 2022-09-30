@@ -239,7 +239,7 @@ export class ZipRangeReader
     const entry = this.entries[name];
 
     if (!entry) {
-      return null;
+      return {reader: null};
     }
 
     if (entry.offset === undefined) {

@@ -74,9 +74,6 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
 
     // Revisit
     if (remote.origURL) {
-      if (hasher) {
-        console.log("revisit hash: " + hasher.getHash());
-      }
       // optimize: if revisit of redirect, just set the respHeaders and return empty payload
       if (!payload && cdx.status >= 300 && cdx.status < 400 && remote.respHeaders) {
         cdx.respHeaders = remote.respHeaders;
