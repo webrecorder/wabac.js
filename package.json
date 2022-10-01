@@ -7,7 +7,7 @@
     "@peculiar/asn1-ecc": "^2.3.0",
     "@peculiar/asn1-schema": "^2.3.0",
     "@peculiar/x509": "^1.8.3",
-    "@webrecorder/wombat": "^3.3.7",
+    "@webrecorder/wombat": "^3.3.8",
     "base64-js": "^1.5.1",
     "brotli": "github:foliojs/brotli.js",
     "buffer": "^6.0.3",
