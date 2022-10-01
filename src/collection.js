@@ -345,7 +345,7 @@ window.home = "${this.rootPrefix}";
 </head>
 <body style="margin: 0px; padding: 0px;">
 <div id="wb_iframe_div">
-<iframe id="replay_iframe" frameborder="0" seamless="seamless" scrolling="yes" class="wb_iframe" allow="autoplay; fullscreen"></iframe>
+<iframe id="replay_iframe" name="__wb_top_frame" frameborder="0" seamless="seamless" scrolling="yes" class="wb_iframe" allow="autoplay; fullscreen"></iframe>
 </div>
 <script>
   var cframe = new ContentFrame({"url": "${url}",
@@ -431,6 +431,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   wbinfo.isSW = true;
   wbinfo.pixel_ratio = ${pixelRatio};
   wbinfo.convert_post_to_get = ${this.convertPostToGet};
+  wbinfo.target_frame = "__wb_top_frame";
 </script>
 <script src='${this.staticPrefix}wombat.js'> </script>
 <script>
