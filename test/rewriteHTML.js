@@ -76,6 +76,11 @@ test(rewriteHtml,
   "<table background=\"/img.gif\">",
   "<table background=\"/prefix/20201226101010/https://example.com/img.gif\">");
 
+test("A tag with target", rewriteHtml,
+  "<HTML><A Href=\"page.html\" target=\"_blank\">Text</a></hTmL>",
+  "<html><a href=\"page.html\" target=\"___wb_replay_top_frame\">Text</a></html>");
+
+
 // Base
 test("BASE tag", rewriteHtml,
   "<html><head><base href=\"http://example.com/diff/path/file.html\"/>",
