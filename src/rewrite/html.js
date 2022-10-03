@@ -1,6 +1,6 @@
 import RewritingStream from "parse5-html-rewriting-stream";
 
-import { startsWithAny, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE } from "../utils";
+import { startsWithAny, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, REPLAY_TOP_FRAME_NAME } from "../utils";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -209,6 +209,14 @@ class HTMLRewriter
               break;
             }
           }
+        }
+      }
+
+      else if (name === "target") {
+        const target = attr.value;
+
+        if (target === "_blank" || target === "_parent" || target === "_top") {
+          attr.value = REPLAY_TOP_FRAME_NAME;
         }
       }
 

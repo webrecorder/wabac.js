@@ -104,7 +104,7 @@ export class SingleWACZLoader
   async loadTextEntry(db, filename, expectedHash) {
     const { reader, hasher } = await this.zipreader.loadFile(filename, {computeHash: !!expectedHash});
     const text = new TextDecoder().decode(await reader.readFully());
-    if (expectedHash) {
+    if (expectedHash && hasher) {
       await db.addVerifyData(filename, expectedHash, hasher.getHash());
     }
     return text;

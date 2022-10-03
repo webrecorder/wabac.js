@@ -10,6 +10,8 @@ export const PAGE_STATE_SYNCED = 0x11;
 
 export const MAX_STREAM_CHUNK_SIZE = 65536 * 4;
 
+export const REPLAY_TOP_FRAME_NAME = "___wb_replay_top_frame";
+
 
 export  function startsWithAny(value, iter) {
   for (const str of iter) {
