@@ -46,6 +46,9 @@ export class ZipRangeReader
     this.loader = loader;
     this.entries = entries;
     this.entriesUpdated = false;
+
+    // todo: make configurable
+    this.enableHashing = true;
   }
 
   async load(always = false) {
@@ -263,7 +266,7 @@ export class ZipRangeReader
     let hasher = null;
 
     const wrapHasher = (reader) => {
-      if (computeHash) {
+      if (computeHash && this.enableHashing) {
         hasher = new HashingAsyncIterReader(reader);
         return hasher;
       }
