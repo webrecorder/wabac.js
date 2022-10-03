@@ -39,6 +39,9 @@ async function createLoader(opts) {
 
   case "googledrive":
     return new GoogleDriveLoader(opts);
+
+  case "ipfs":
+    return new IPFSRangeLoader(opts);
   }
 
   // if URL has same scheme as current origin, use regular http fetch
@@ -60,13 +63,7 @@ async function createLoader(opts) {
   }
 
   // custom provided loaders
-  switch (scheme) {
-  case "ipfs":
-    return new IPFSRangeLoader(opts);
-
-  default:
-    throw new Error("Invalid URL: " + url);
-  }
+  throw new Error("Invalid URL: " + url);
 }
 
 // ===========================================================================
