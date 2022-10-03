@@ -11,7 +11,7 @@ import {create as createIPFS} from "auto-js-ipfs/index.cjs";
 let ipfsAPI = null;
 
 // TODO: Deal with config changes
-async function initIPFS(opts=this.opts) {
+async function initIPFS(opts={}) {
   if(ipfsAPI) return ipfsAPI;
   const {api} = await createIPFS(opts);
   ipfsAPI = api;
