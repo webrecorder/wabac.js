@@ -2,10 +2,21 @@ import { AuthNeededError, AccessDeniedError, RangeError, sleep } from "./utils";
 
 import { concatChunks } from "warcio";
 
-import {create as createIPFS} from "auto-js-ipfs/index.cjs";
-
 // todo: make configurable
 const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
+
+// ===========================================================================
+import {create as createIPFS} from "auto-js-ipfs/index.cjs";
+
+let ipfsAPI = null;
+
+// TODO: Deal with config changes
+async function initIPFS(opts=this.opts) {
+  if(ipfsAPI) return ipfsAPI;
+  const {api} = await createIPFS(opts);
+  ipfsAPI = api;
+  return api;
+}
 
 
 // ===========================================================================
@@ -495,12 +506,6 @@ class IPFSRangeLoader
     this.canLoadOnDemand = true;
   }
 
-  async initIPFS(opts=this.opts) {
-    const {api} = await createIPFS(opts);
-    return api;
-  }
-
-
   async getLength() {
     if (this.length === null) {
       await this.doInitialFetch(true);
@@ -510,7 +515,7 @@ class IPFSRangeLoader
   }
 
   async doInitialFetch(tryHead) {
-    const ipfsClient = await this.initIPFS(this.opts);
+    const ipfsClient = await initIPFS(this.opts);
 
     try {
       this.length = await ipfsClient.getSize(this.url);
@@ -544,7 +549,7 @@ class IPFSRangeLoader
   }
 
   async getRange(offset, length, streaming = false, signal = null) {
-    const ipfsClient = await this.initIPFS(this.opts);
+    const ipfsClient = await initIPFS(this.opts);
 
     const iter = ipfsClient.get(this.url, {
       start: offset,
