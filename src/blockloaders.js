@@ -1,10 +1,22 @@
 import { AuthNeededError, AccessDeniedError, RangeError, sleep } from "./utils";
 
 import { concatChunks } from "warcio";
-import { initIPFS } from "./ipfs";
 
 // todo: make configurable
 const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
+
+// ===========================================================================
+import {create as createIPFS} from "auto-js-ipfs/index.cjs";
+
+let ipfsAPI = null;
+
+// TODO: Deal with config changes
+async function initIPFS(opts={}) {
+  if(ipfsAPI) return ipfsAPI;
+  const {api} = await createIPFS(opts);
+  ipfsAPI = api;
+  return api;
+}
 
 
 // ===========================================================================
@@ -27,6 +39,9 @@ async function createLoader(opts) {
 
   case "googledrive":
     return new GoogleDriveLoader(opts);
+
+  case "ipfs":
+    return new IPFSRangeLoader(opts);
   }
 
   // if URL has same scheme as current origin, use regular http fetch
@@ -48,13 +63,7 @@ async function createLoader(opts) {
   }
 
   // custom provided loaders
-  switch (scheme) {
-  case "ipfs":
-    return new IPFSRangeLoader(opts);
-
-  default:
-    throw new Error("Invalid URL: " + url);
-  }
+  throw new Error("Invalid URL: " + url);
 }
 
 // ===========================================================================
@@ -66,6 +75,8 @@ class FetchRangeLoader
     this.length = length;
     this.canLoadOnDemand = canLoadOnDemand;
     this.isValid = false;
+    this.ipfsAPI = null;
+    this.loadingIPFS = null;
   }
 
   async doInitialFetch(tryHead) {
@@ -478,21 +489,18 @@ class FileHandleLoader
 // ===========================================================================
 class IPFSRangeLoader
 {
-  constructor({url, headers}) {
+  constructor({url, headers, ...opts}) {
     this.url = url;
+    this.opts = opts;
 
     let inx = url.lastIndexOf("#");
     if (inx < 0) {
       inx = undefined;
     }
 
-    this.cid = this.url.slice("ipfs://".length, inx);
-
     this.headers = headers;
     this.length = null;
     this.canLoadOnDemand = true;
-
-    this.httpFallback = new FetchRangeLoader({url: "https://ipfs.io/ipfs/" + this.cid});
   }
 
   async getLength() {
@@ -504,18 +512,15 @@ class IPFSRangeLoader
   }
 
   async doInitialFetch(tryHead) {
-    const ipfsClient = await initIPFS();
+    const ipfsClient = await initIPFS(this.opts);
 
     try {
-      this.length = await ipfsClient.getFileSize(this.cid);
+      this.length = await ipfsClient.getSize(this.url);
       this.isValid = (this.length !== null);
-
     } catch (e) {
       console.warn(e);
-      const res = await this.httpFallback.doInitialFetch(tryHead);
-      this.length = this.httpFallback.length;
-      this.isValid = this.httpFallback.isValid;
-      return res;
+      this.length = null;
+      this.isValid = false;
     }
 
     let status = 206;
@@ -525,12 +530,13 @@ class IPFSRangeLoader
     }
 
     const abort = new AbortController();
+    const signal = abort.signal;
     let body;
 
     if (tryHead || !this.isValid) {
       body = new Uint8Array([]);
     } else {
-      const iter = await ipfsClient.cat(this.cid, {signal: abort.signal});
+      const iter = ipfsClient.get(this.url, {signal});
       body = this.getReadableStream(iter);
     }
 
@@ -540,26 +546,26 @@ class IPFSRangeLoader
   }
 
   async getRange(offset, length, streaming = false, signal = null) {
-    try {
-      const ipfsClient = await initIPFS();
+    const ipfsClient = await initIPFS(this.opts);
 
-      const iter = await ipfsClient.cat(this.cid, {offset, length, signal});
+    const iter = ipfsClient.get(this.url, {
+      start: offset,
+      end: offset + length - 1,
+      signal
+    });
 
-      if (streaming) {
-        return this.getReadableStream(iter);
-      } else {
-        const chunks = [];
-        let size = 0;
+    if (streaming) {
+      return this.getReadableStream(iter);
+    } else {
+      const chunks = [];
+      let size = 0;
 
-        for await (const chunk of iter) {
-          chunks.push(chunk);
-          size += chunk.byteLength;
-        }
-
-        return concatChunks(chunks, size);
+      for await (const chunk of iter) {
+        chunks.push(chunk);
+        size += chunk.byteLength;
       }
-    } catch (e) {
-      return await this.httpFallback.getRange(offset, length, streaming, signal);
+
+      return concatChunks(chunks, size);
     }
   }
 
@@ -578,5 +584,4 @@ class IPFSRangeLoader
     });
   }
 }
-
 export { createLoader };
