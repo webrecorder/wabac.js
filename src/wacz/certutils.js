@@ -1,4 +1,4 @@
-import { toByteArray as decodeBase64 } from "base64-js";
+import { toByteArray as decodeBase64, fromByteArray as encodeBase64 } from "base64-js";
 import { base16 } from "../utils";
 
 import * as x509 from "@peculiar/x509";
@@ -28,6 +28,9 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
 
     publicKey = await cert.publicKey.export();
 
+    const publicKeyEncoded = encodeBase64(new Uint8Array(cert.publicKey.rawData));
+    results.push({id: "publicKey", expected: publicKeyEncoded, matched: null});
+
     if (cert.subject && cert.subject.startsWith("CN=")) {
       domainActual = cert.subject.split(3);
     }
@@ -39,6 +42,8 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
       name: "ECDSA",
       namedCurve: "P-384"
     };
+
+    results.push({id: "publicKey", expected: publicKey, matched: null});
 
     publicKey = await crypto.subtle.importKey("spki", decodeBase64(publicKey), ecdsaImportParams, true, ["verify"]);
   }
