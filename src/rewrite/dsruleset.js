@@ -120,6 +120,8 @@ function ruleRewriteTwitterVideo(prefix) {
     try {
       const MAX_BITRATE = 5000000;
 
+      const W_X_H = /([\d]+)x([\d]+)/;
+
       const extraOpts = opts.response && opts.response.extraOpts;
 
       let maxBitrate = MAX_BITRATE;
@@ -136,8 +138,6 @@ function ruleRewriteTwitterVideo(prefix) {
 
       let bestVariant = null;
       let bestBitrate = 0;
-      //sort by src
-      let bestSrc = "";
 
       for (const variant of data.variants) {
         if ((variant.content_type && variant.content_type !== "video/mp4") ||
@@ -148,9 +148,15 @@ function ruleRewriteTwitterVideo(prefix) {
         if (variant.bitrate && variant.bitrate > bestBitrate && variant.bitrate <= maxBitrate) {
           bestVariant = variant;
           bestBitrate = variant.bitrate;
-        } else if (variant.src && variant.src > bestSrc) {
-          bestVariant = variant;
-          bestSrc = variant.src;
+        } else if (variant.src) {
+          const matched = W_X_H.exec(variant.src);
+          if (matched) {
+            const bitrate = Number(matched[1]) * Number(matched[2]);
+            if (bitrate > bestBitrate) {
+              bestBitrate = bitrate;
+              bestVariant = variant;
+            }
+          }
         }
       }
 

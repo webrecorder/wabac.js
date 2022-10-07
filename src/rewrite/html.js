@@ -215,7 +215,7 @@ class HTMLRewriter
       else if (name === "target") {
         const target = attr.value;
 
-        if (target === "_blank" || target === "_parent" || target === "_top") {
+        if (target === "_blank" || target === "_parent" || target === "_top" || target === "new") {
           attr.value = REPLAY_TOP_FRAME_NAME;
         }
       }
