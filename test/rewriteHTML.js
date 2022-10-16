@@ -6,7 +6,7 @@ import { doRewrite } from "./helpers";
 
 
 // ===========================================================================
-async function rewriteHtml(t, content, expected, {useBaseRules = true, url = "", contentType="text/html; charset=UTF-8", headInsertText=null, encoding="utf8"} = {}) {
+async function rewriteHtml(t, content, expected, {useBaseRules = false, url = "", contentType="text/html; charset=UTF-8", headInsertText=null, encoding="utf8"} = {}) {
   const rwArgs = {content, contentType, useBaseRules, encoding};
 
   if (url) {
@@ -281,23 +281,33 @@ test("srcset", rewriteHtml,
 // pywb diff: no script url rewriting!
 test("script proxy wrapped", rewriteHtml,
   "<script>window.location = \"http://example.com/a/b/c.html\"</script>",
-  `<script>${wrapScript("window.location = \"http://example.com/a/b/c.html\"")}</script>`,
-  {useBaseRules: false});
+  `<script>${wrapScript("window.location = \"http://example.com/a/b/c.html\"")}</script>`
+);
 
 // pywb diff: no script url rewriting!
 test("script not wrapped", rewriteHtml,
   "<script>window.location = \"http://example.com/a/b/c.html\"</script>",
-  "<script>window.location = \"http://example.com/a/b/c.html\"</script>");
+  "<script>window.location = \"http://example.com/a/b/c.html\"</script>",
+  {useBaseRules: true}
+);
 
 // no rewriting if no props
 test("script", rewriteHtml,
   "<script>var foo = \"http://example.com/a/b/c.html\"</script>",
-  "<script>var foo = \"http://example.com/a/b/c.html\"</script>");
+  "<script>var foo = \"http://example.com/a/b/c.html\"</script>"
+);
 
 // SCRIPT tag with json
 test("script", rewriteHtml,
   "<script type=\"application/json\">{\"embed top test\": \"http://example.com/a/b/c.html\"}</script>",
-  "<script type=\"application/json\">{\"embed top test\": \"http://example.com/a/b/c.html\"}</script>");
+  "<script type=\"application/json\">{\"embed top test\": \"http://example.com/a/b/c.html\"}</script>"
+);
+
+// SCRIPT tag with python / other
+test("script", rewriteHtml,
+  "<script type=\"python\">print(\"top\")</script>",
+  "<script type=\"python\">print(\"top\")</script>"
+);
 
 // Script tag with super relative src
 test("script", rewriteHtml,
@@ -312,20 +322,17 @@ test("script", rewriteHtml,
 test("script", rewriteHtml,
   "<script>eval('a = foo;');</script>",
   "<script>WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),'a = foo;');</script>",
-  {useBaseRules: false}
 );
 
 test("script", rewriteHtml,
   "<script>a = b;\n eval  ( 'a = \"foo\";');</script>",
   "<script>a = b;\n WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(), 'a = \"foo\";');</script>",
-  {useBaseRules: false}
 );
 
 // module script
 test("script", rewriteHtml,
   "<script type=\"module\">console.log(window.parent.location.href);</script>",
   wrapScriptModule("console.log(window.parent.location.href);"),
-  {useBaseRules: false}
 );
 
 test("object pdf", rewriteHtml,

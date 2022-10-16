@@ -300,8 +300,10 @@ class HTMLRewriter
 
         if (scriptType === "module") {
           scriptRw = "module";
+        } else if (scriptType === "application/json") {
+          scriptRw = "json";
         } else if (!scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0)) {
-          scriptRw = "script";
+          scriptRw = "js";
         }
         break;
       }
@@ -337,10 +339,13 @@ class HTMLRewriter
     rwStream.on("text", (textToken, raw) => {
       const text = (() => {
         if (context === "script") {
-          if (scriptRw) {
-            const isModule = scriptRw === "module";
-            const prefix = rewriter.prefix;
+          const prefix = rewriter.prefix;
+          const isModule = scriptRw === "module";
+
+          if (scriptRw === "js" || isModule) {
             return rewriter.rewriteJS(textToken.text, {isModule, prefix});
+          } else if (scriptRw === "json") {
+            return rewriter.rewriteJSON(textToken.text, {prefix});
           } else {
             return textToken.text;
           }
