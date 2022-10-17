@@ -1,7 +1,7 @@
 "use strict";
 
 import test from "ava";
-import { Rewriter } from "../src/rewrite";
+import { Rewriter } from "../src/rewrite/index.js";
 
 function rewriteUrl(t, url, baseUrl, prefix, expected) {
   t.is(new Rewriter({baseUrl, prefix}).rewriteUrl(url), expected);

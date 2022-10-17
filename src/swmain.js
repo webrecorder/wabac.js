@@ -1,7 +1,5 @@
-"use strict";
-
-import { Collection } from "./collection";
-import { WorkerLoader } from "./loaders";
+import { Collection } from "./collection.js";
+import { WorkerLoader } from "./loaders.js";
 
 import { notFound, isAjaxRequest } from "./utils.js";
 import { StatsTracker } from "./statstracker.js";
@@ -10,7 +8,7 @@ import { API } from "./api.js";
 
 import WOMBAT from "../dist/wombat.js";
 import WOMBAT_WORKERS from "@webrecorder/wombat/src/wombatWorkers.js";
-import { ArchiveRequest } from "./request";
+import { ArchiveRequest } from "./request.js";
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";

@@ -1,21 +1,19 @@
-"use strict";
-
 import parseLinkHeader from "parse-link-header";
 import formatLinkHeader from "format-link-header";
 
 import { isAjaxRequest } from "../utils.js";
 
-import { decodeResponse } from "./decoder";
-import { ArchiveResponse } from "../response";
+import { decodeResponse } from "./decoder.js";
+import { ArchiveResponse } from "../response.js";
 
-import { rewriteDASH, rewriteHLS } from "./rewriteVideo";
+import { rewriteDASH, rewriteHLS } from "./rewriteVideo.js";
 
-import { DomainSpecificRuleSet } from "./dsruleset";
+import { DomainSpecificRuleSet } from "./dsruleset.js";
 
-import { RxRewriter } from "./rxrewriter";
-import { JSRewriter } from "./jsrewriter";
+import { RxRewriter } from "./rxrewriter.js";
+import { JSRewriter } from "./jsrewriter.js";
 
-import { HTMLRewriter } from "./html";
+import { HTMLRewriter } from "./html.js";
 
 
 // ===========================================================================
@@ -433,7 +431,6 @@ class Rewriter {
 
     for (let header of headers.entries()) {
       const rule = headerRules[header[0]];
-
       switch (rule) {
       case "keep":
         new_headers.append(header[0], header[1]);

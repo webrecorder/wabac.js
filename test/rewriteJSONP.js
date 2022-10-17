@@ -1,8 +1,6 @@
-"use strict";
-
 import test from "ava";
 
-import { doRewrite } from "./helpers";
+import { doRewrite } from "./helpers/index.js";
 
 
 // ===========================================================================
@@ -37,7 +35,7 @@ test(rewriteJSONP,
   "jQuery_ABC({\"foo\": \"bar\", \"some\": \"data\"})");
 
 
-test(rewriteJSONP,
+test("test with space", rewriteJSONP,
   "    jQuery_1234({\"foo\": \"bar\", \"some\": \"data\"})",
   "jQuery_ABC({\"foo\": \"bar\", \"some\": \"data\"})");
 

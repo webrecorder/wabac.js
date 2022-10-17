@@ -4,7 +4,7 @@ import { WARCParser, postToGetUrl } from "warcio";
 
 import { extractText } from "./extract.js";
 
-import { BaseParser } from "./baseparser";
+import { BaseParser } from "./baseparser.js";
 
 
 // ===========================================================================

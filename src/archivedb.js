@@ -1,10 +1,10 @@
 "use strict";
 
-import { openDB, deleteDB } from "idb/with-async-ittr.js";
+import { openDB, deleteDB } from "idb/with-async-ittr";
 import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage,
-  getTS, getStatusText, randomId, PAGE_STATE_SYNCED } from "./utils";
-import { fuzzyMatcher } from "./fuzzymatcher";
-import { ArchiveResponse } from "./response";
+  getTS, getStatusText, randomId, PAGE_STATE_SYNCED } from "./utils.js";
+import { fuzzyMatcher } from "./fuzzymatcher.js";
+import { ArchiveResponse } from "./response.js";
 
 
 const MAX_FUZZY_MATCH = 128000;

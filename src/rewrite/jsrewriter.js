@@ -1,4 +1,4 @@
-import { RxRewriter } from "./rxrewriter";
+import { RxRewriter } from "./rxrewriter.js";
 
 const IMPORT_RX = /^\s*?import\s*?[{"']/;
 const EXPORT_RX = /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/m;

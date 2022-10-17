@@ -1,6 +1,4 @@
-"use strict";
-
-import brotliDecode from "brotli/decompress";
+import brotliDecode from "brotli/decompress.js";
 
 import { Inflate } from "pako";
 

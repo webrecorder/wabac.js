@@ -1,17 +1,10 @@
-import { Rewriter } from "../../src/rewrite";
-
-import fetch from "@titelmedia/node-fetch";
-import { ReadableStream } from "web-streams-node";
-import { ArchiveResponse } from "../../src/response";
-
-const { Headers, Request } = fetch;
+/*global Headers, Request*/
+/*eslint no-undef: "error"*/
 
 
-global.Headers = Headers;
-global.fetch = fetch;
+import { Rewriter } from "../../src/rewrite/index.js";
 
-global.__IPFS_CORE_URL__ = "";
-
+import { ArchiveResponse } from "../../src/response.js";
 
 async function doRewrite({
   content,
@@ -41,9 +34,9 @@ async function doRewrite({
     respHeaders.set("X-Pywb-Requested-With", "XMLHttpRequest");
   }
 
-  const res = await RW.rewrite(resp, new Request(url, {headers: respHeaders}));
+  const res = await RW.rewrite(resp, new Request(url, {headers: respHeaders, mode: "same-origin"}));
 
   return returnHeaders ? res.headers : await res.getText(encoding === "utf8");
 }
 
-export { doRewrite, fetch, ReadableStream };
+export { doRewrite };

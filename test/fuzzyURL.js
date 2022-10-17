@@ -1,7 +1,7 @@
 "use strict";
 
 import test from "ava";
-import { FuzzyMatcher } from "../src/fuzzymatcher";
+import { FuzzyMatcher } from "../src/fuzzymatcher.js";
 
 const fuzzy = new FuzzyMatcher();
 

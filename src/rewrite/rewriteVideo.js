@@ -1,5 +1,3 @@
-"use strict";
-
 import XMLParser from "fast-xml-parser";
 
 // orig pywb defaults

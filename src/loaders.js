@@ -1,21 +1,21 @@
 import { ArchiveDB } from "./archivedb.js";
-import { RemoteSourceArchiveDB, RemotePrefixArchiveDB } from "./remotearchivedb";
+import { RemoteSourceArchiveDB, RemotePrefixArchiveDB } from "./remotearchivedb.js";
 //import { WACZRemoteArchiveDB } from "./waczarchive";
 
-import { HARLoader } from "./harloader";
+import { HARLoader } from "./harloader.js";
 //import { WBNLoader } from "./wbnloader";
-import { WARCLoader } from "./warcloader";
-import { CDXLoader, CDXFromWARCLoader } from "./cdxloader";
+import { WARCLoader } from "./warcloader.js";
+import { CDXLoader, CDXFromWARCLoader } from "./cdxloader.js";
 
 import { SingleWACZLoader, JSONMultiWACZLoader } from "./wacz/waczloader.js";
 import { MultiWACZCollection, SingleWACZ } from "./wacz/multiwacz.js";
 
-import { createLoader } from "./blockloaders";
+import { createLoader } from "./blockloaders.js";
 
-import { RemoteWARCProxy } from "./remotewarcproxy";
-import { LiveProxy } from "./liveproxy";
+import { RemoteWARCProxy } from "./remotewarcproxy.js";
+import { LiveProxy } from "./liveproxy.js";
 
-import { deleteDB, openDB } from "idb/with-async-ittr.js";
+import { deleteDB, openDB } from "idb/with-async-ittr";
 import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils.js";
 
 self.interruptLoads = {};

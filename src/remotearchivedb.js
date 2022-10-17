@@ -1,8 +1,8 @@
-import { ArchiveDB } from "./archivedb";
-import { SingleRecordWARCLoader } from "./warcloader";
+import { ArchiveDB } from "./archivedb.js";
+import { SingleRecordWARCLoader } from "./warcloader.js";
 import { BaseAsyncIterReader, AsyncIterReader, LimitReader, concatChunks } from "warcio";
 
-import { createLoader } from "./blockloaders";
+import { createLoader } from "./blockloaders.js";
 
 
 // ===========================================================================

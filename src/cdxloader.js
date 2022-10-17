@@ -1,5 +1,5 @@
-import { tsToDate } from "./utils";
-import { WARCLoader } from "./warcloader";
+import { tsToDate } from "./utils.js";
+import { WARCLoader } from "./warcloader.js";
 
 import { CDXIndexer, AsyncIterReader, appendRequestQuery } from "warcio";
 

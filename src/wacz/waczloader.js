@@ -1,10 +1,10 @@
 import yaml from "js-yaml";
 
-import { MAX_FULL_DOWNLOAD_SIZE } from "../utils";
-import { WARCLoader } from "../warcloader";
-import { ZipRangeReader } from "./ziprangereader";
+import { MAX_FULL_DOWNLOAD_SIZE } from "../utils.js";
+import { WARCLoader } from "../warcloader.js";
+import { ZipRangeReader } from "./ziprangereader.js";
 
-import { verifyWACZSignature } from "./certutils";
+import { verifyWACZSignature } from "./certutils.js";
 
 export const MAIN_PAGES_JSON = "pages/pages.jsonl";
 export const EXTRA_PAGES_JSON = "pages/extraPages.jsonl";

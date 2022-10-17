@@ -1,21 +1,17 @@
-"use strict";
-
 import test from "ava";
 
-import path from "path";
-
-import { doRewrite } from "./helpers";
+import { doRewrite } from "./helpers/index.js";
 
 import { promises as fs} from "fs";
 
-import { dashOutputOpts } from "../src/rewrite/rewriteVideo";
+import { dashOutputOpts } from "../src/rewrite/rewriteVideo.js";
 
 dashOutputOpts.format = true;
 
 
 // ===========================================================================
 test("DASH", async t => {
-  const content = await fs.readFile(path.join(__dirname, "data", "sample_dash.mpd"), "utf-8");
+  const content = await fs.readFile(new URL("./data/sample_dash.mpd", import.meta.url), "utf-8");
 
   const result = await doRewrite({content, contentType: "application/dash+xml", url: "http://example.com/path/manifest.mpd", isLive: true});
 
@@ -88,7 +84,7 @@ test('FB DASH 2', async t => {
 
 
 test("HLS DEFAULT MAX", async t => {
-  const content = await fs.readFile(path.join(__dirname, "data", "sample_hls.m3u8"), "utf-8");
+  const content = await fs.readFile(new URL("./data/sample_hls.m3u8", import.meta.url), "utf-8");
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
 
@@ -106,7 +102,7 @@ http://example.com/video_1.m3u8`;
 
 
 test("HLS DEFAULT MAX - NATIVE STREAMING", async t => {
-  const content = await fs.readFile(path.join(__dirname, "data", "sample_hls.m3u8"), "utf-8");
+  const content = await fs.readFile(new URL("./data/sample_hls.m3u8", import.meta.url), "utf-8");
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
 
@@ -126,7 +122,7 @@ http://localhost:8080/prefix/20201226101010/http://example.com/video_1.m3u8`;
 
 
 test("HLS DEFAULT OLD REPLAY MAX", async t => {
-  const content = await fs.readFile(path.join(__dirname, "data", "sample_hls.m3u8"), "utf-8");
+  const content = await fs.readFile(new URL("./data/sample_hls.m3u8", import.meta.url), "utf-8");
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
 
