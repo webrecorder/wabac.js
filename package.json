@@ -1,7 +1,7 @@
 {
   "name": "@webrecorder/wabac",
   "version": "2.14.0",
-  "main": "src/sw.js",
+  "main": "index.js",
   "type": "module",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
@@ -35,7 +35,6 @@
     "eslint": "^8.25.0",
     "fake-indexeddb": "^4.0.0",
     "globals": "^13.17.0",
-    "nyc": "^15.0.1",
     "raw-loader": "^4.0.2",
     "test-listen": "^1.1.0",
     "webpack": "^5.73.0",

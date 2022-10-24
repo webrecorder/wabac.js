@@ -18,6 +18,10 @@ import { LiveProxy } from "./liveproxy.js";
 import { deleteDB, openDB } from "idb/with-async-ittr";
 import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils.js";
 
+if (!globalThis.self) {
+  globalThis.self = globalThis;
+}
+
 self.interruptLoads = {};
 
 
