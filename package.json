@@ -27,7 +27,7 @@
     "path-parser": "^6.1.0",
     "process": "^0.11.10",
     "stream-browserify": "^3.0.0",
-    "warcio": "^1.6.0"
+    "warcio": "1.6.1"
   },
   "devDependencies": {
     "ava": "^4.3.3",
