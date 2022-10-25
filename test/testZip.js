@@ -1,15 +1,15 @@
+//import { fetch } from "node:fetch";
+
 import test from "ava";
 import http from "http";
-
-import { fetch } from "./helpers";
 
 import listen from "test-listen";
 
 import serveStatic from "serve-static";
 
-import { ZipRangeReader } from "../src/wacz/ziprangereader";
+import { ZipRangeReader } from "../src/wacz/ziprangereader.js";
 
-import { createLoader } from "../src/blockloaders";
+import { createLoader } from "../src/blockloaders.js";
 
 import { WARCParser } from "warcio";
 

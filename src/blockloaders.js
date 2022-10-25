@@ -1,4 +1,4 @@
-import { AuthNeededError, AccessDeniedError, RangeError, sleep } from "./utils";
+import { AuthNeededError, AccessDeniedError, RangeError, sleep } from "./utils.js";
 
 import { concatChunks } from "warcio";
 
@@ -6,7 +6,7 @@ import { concatChunks } from "warcio";
 const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
 
 // ===========================================================================
-import {create as createIPFS} from "auto-js-ipfs/index.cjs";
+import {create as createIPFS} from "auto-js-ipfs";
 
 let ipfsAPI = null;
 

@@ -1,7 +1,8 @@
 {
   "name": "@webrecorder/wabac",
-  "version": "2.13.4",
+  "version": "2.13.5",
   "main": "index.js",
+  "type": "module",
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@peculiar/asn1-ecc": "^2.3.0",
@@ -16,7 +17,7 @@
     "format-link-header": "^3.1.1",
     "hash-wasm": "^4.9.0",
     "http-status-codes": "^2.1.4",
-    "idb": "^6.1.2",
+    "idb": "^7.1.0",
     "js-levenshtein": "^1.1.6",
     "js-yaml": "^4.1.0",
     "pako": "^2.0.4",
@@ -26,21 +27,22 @@
     "path-parser": "^6.1.0",
     "process": "^0.11.10",
     "stream-browserify": "^3.0.0",
-    "warcio": "^1.5.1"
+    "warcio": "^1.6.0"
   },
   "devDependencies": {
-    "@titelmedia/node-fetch": "^3.0.1",
-    "ava": "^3.14.0",
-    "eslint": "^7.23.0",
-    "esm": "^3.2.25",
-    "fake-indexeddb": "^3.0.0",
-    "nyc": "^15.0.1",
+    "ava": "^4.3.3",
+    "c8": "^7.12.0",
+    "eslint": "^8.25.0",
+    "fake-indexeddb": "^4.0.0",
+    "globals": "^13.17.0",
     "raw-loader": "^4.0.2",
     "test-listen": "^1.1.0",
-    "web-streams-node": "^0.4.0",
     "webpack": "^5.73.0",
     "webpack-cli": "^4.8.0",
     "webpack-dev-server": "^4.2.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "files": [
     "src/*",
@@ -50,19 +52,13 @@
     "build": "webpack --mode production",
     "build-dev": "NODE_ENV=development webpack --mode development",
     "start-dev": "webpack-dev-server --mode development",
-    "test": "nyc --reporter=lcov --reporter=text ava",
-    "lint": "eslint ./src/ ./test/ webpack.config.js"
-  },
-  "esm": {
-    "mode": "all"
+    "test": "c8 ava",
+    "lint": "eslint ./src/ ./test/ webpack.config.cjs"
   },
   "ava": {
     "concurrency": 1,
     "verbose": true,
     "serial": true,
-    "require": [
-      "esm"
-    ],
     "files": [
       "test/*.js"
     ]

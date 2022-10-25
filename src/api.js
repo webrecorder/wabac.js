@@ -1,7 +1,5 @@
-"use strict";
-
 import { Path } from "path-parser";
-import { getCollData } from "./utils";
+import { getCollData } from "./utils.js";
 
 // ===========================================================================
 class APIRouter {

@@ -1,10 +1,8 @@
-"use strict";
-
-import { Rewriter } from "./rewrite";
+import { Rewriter } from "./rewrite/index.js";
 
 import { getTS, getSecondsStr, notFound, parseSetCookie, handleAuthNeeded, REPLAY_TOP_FRAME_NAME } from "./utils.js";
 
-import { ArchiveResponse } from "./response";
+import { ArchiveResponse } from "./response.js";
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 

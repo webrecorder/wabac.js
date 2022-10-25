@@ -8,6 +8,9 @@ module.exports = {
         "ecmaVersion": 2021,
         "sourceType": "module"
     },
+    "globals": {
+      "globalThis": false, //not writable
+    },
     "rules": {
         "no-restricted-globals": [
             2,

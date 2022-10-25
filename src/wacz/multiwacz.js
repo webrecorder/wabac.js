@@ -1,13 +1,13 @@
 
-import { ZipRangeReader } from "./ziprangereader";
-import { OnDemandPayloadArchiveDB } from "../remotearchivedb";
-import { SingleRecordWARCLoader } from "../warcloader";
-import { CDXLoader } from "../cdxloader";
-import { digestMessage, handleAuthNeeded, tsToDate } from "../utils";
+import { ZipRangeReader } from "./ziprangereader.js";
+import { OnDemandPayloadArchiveDB } from "../remotearchivedb.js";
+import { SingleRecordWARCLoader } from "../warcloader.js";
+import { CDXLoader } from "../cdxloader.js";
+import { digestMessage, handleAuthNeeded, tsToDate } from "../utils.js";
 import { getSurt } from "warcio";
-import { createLoader } from "../blockloaders";
-import { LiveProxy } from "../liveproxy";
-import { JSONMultiWACZLoader, loadPages, MAIN_PAGES_JSON } from "./waczloader";
+import { createLoader } from "../blockloaders.js";
+import { LiveProxy } from "../liveproxy.js";
+import { JSONMultiWACZLoader, loadPages, MAIN_PAGES_JSON } from "./waczloader.js";
 
 
 const INDEX_NOT_LOADED = 0;

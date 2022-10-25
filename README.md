@@ -5,7 +5,7 @@
 **wabac.js** provides a full web archive replay system, or 'wayback machine', using
 [Service Workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers)
 
-**wabac.js** is a core component of <img src="/assets/logo.svg" width="24" height="24"> [ReplayWeb.page](https://replayweb.page).
+**wabac.js** is a core component of <img src="https://replayweb.page/assets/logo.svg" width="24" height="24"> [ReplayWeb.page](https://replayweb.page).
 
 The rest of the ReplayWeb.page is located at [webrecorder/replayweb.page](https://github.com/webrecorder/replayweb.page)
 

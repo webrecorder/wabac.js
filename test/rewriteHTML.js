@@ -1,8 +1,6 @@
-"use strict";
-
 import test from "ava";
 
-import { doRewrite } from "./helpers";
+import { doRewrite } from "./helpers/index.js";
 
 
 // ===========================================================================
