@@ -41,9 +41,6 @@
     "webpack-cli": "^4.8.0",
     "webpack-dev-server": "^4.2.1"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "files": [
     "src/*",
     "dist/*"
