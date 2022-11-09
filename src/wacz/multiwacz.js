@@ -2,7 +2,7 @@
 import { ZipRangeReader } from "./ziprangereader.js";
 import { OnDemandPayloadArchiveDB } from "../remotearchivedb.js";
 import { SingleRecordWARCLoader } from "../warcloader.js";
-import { CDXLoader } from "../cdxloader.js";
+import { CDXLoader, CDX_COOKIE } from "../cdxloader.js";
 import { digestMessage, handleAuthNeeded, tsToDate } from "../utils.js";
 import { getSurt } from "warcio";
 import { createLoader } from "../blockloaders.js";
@@ -186,6 +186,10 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
     const remote = await loader.load();
 
+    if (cdx[CDX_COOKIE]) {
+      remote.respHeaders["x-wabac-preset-cookie"] = cdx[CDX_COOKIE];
+    }
+
     return {remote, hasher};
   }
 
@@ -344,7 +348,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
   async loadCDXFromIDX(waczname, url, datetime = 0, isPrefix = false) {
     //const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
 
-    const surt = this.waczfiles[waczname].useSurt ? getSurt(url) : url;
+    const surt = this.waczfiles[waczname].useSurt ? decodeURIComponent(getSurt(url)) : url;
 
     const upperBound = isPrefix ? this.prefixUpperBound(surt) : surt + " 9999";
 
