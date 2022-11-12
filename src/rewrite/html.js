@@ -151,7 +151,7 @@ class HTMLRewriter
         attr.value = this.rewriteUrl(rewriter, value);
       }
 
-      else if (name === "srcset") {
+      else if (name === "srcset" || (name === "imagesrcset" && tagName === "link")) {
         attr.value = this.rewriteSrcSet(value, rewriter);
       }
 

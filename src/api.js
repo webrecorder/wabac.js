@@ -93,11 +93,12 @@ class API {
       const data = getCollData(coll);
 
       if (params._query.get("all") === "1") {
-        data.pages = await coll.store.getAllPages();
         if (coll.store.db) {
+          data.pages = await coll.store.getAllPages();
           data.lists = await coll.store.db.getAll("pageLists");
           data.curatedPages = await coll.store.db.getAll("curatedPages");
         } else {
+          data.pages = [];
           data.lists = [];
           data.curatedPages = [];
         }

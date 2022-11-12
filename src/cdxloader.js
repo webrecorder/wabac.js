@@ -6,6 +6,8 @@ import { CDXIndexer, AsyncIterReader, appendRequestQuery } from "warcio";
 
 const BATCH_SIZE = 3000;
 
+export const CDX_COOKIE = "req.http:cookie";
+
 
 // ===========================================================================
 class CDXFromWARCLoader extends WARCLoader
@@ -61,9 +63,18 @@ class CDXFromWARCLoader extends WARCLoader
 
     const cdx = this.cdxindexer.indexRecordPair(record, reqRecord, parser, "");
 
-    if (cdx) {
-      this.addCdx(cdx);
+    if (!cdx) {
+      return;
     }
+
+    if (reqRecord && reqRecord.httpHeaders) {
+      let cookie = reqRecord.httpHeaders.headers.get("cookie");
+      if (cookie) {
+        cdx[CDX_COOKIE] = cookie;
+      }
+    }
+
+    this.addCdx(cdx);
   }
 
   getSource(cdx) {
@@ -99,6 +110,10 @@ class CDXFromWARCLoader extends WARCLoader
 
     if (cdx.method) {
       entry.method = cdx.method;
+    }
+
+    if (cdx[CDX_COOKIE]) {
+      entry[CDX_COOKIE] = cdx[CDX_COOKIE];
     }
 
     // url with post query appended

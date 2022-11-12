@@ -124,6 +124,11 @@ test(rewriteJS,
   "foo(a, WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),data));"
 );
 
+test(rewriteJS,
+  "somewindow.postMessage({'a': 'b'})",
+  "somewindow.__WB_pmw(self).postMessage({'a': 'b'})",
+);
+
 // import rewrite
 test(rewriteJSImport, `\
 
@@ -137,6 +142,13 @@ import "foo";
 
 a = _____WB$wombat$check$this$function_____(this).location\
 `);
+
+
+// dynamic import rewrite
+test(rewriteJS,
+  "await import (somefile);",
+  "await ____wb_rewrite_import__ (somefile);"
+);
 
 
 // import/export module rewrite
@@ -215,4 +227,12 @@ test(rewriteJS, "if (a.self.foo) { console.log('blah') }");
 test(rewriteJSWrapped, "window.x = 5");
 
 test(rewriteJS, "a.window.x = 5");
+
+test(rewriteJS,  "  postMessage({'a': 'b'})");
+
+test(rewriteJS, "simport(5);");
+
+test(rewriteJS, "a.import(5);");
+
+test(rewriteJS, "$import(5);");
 

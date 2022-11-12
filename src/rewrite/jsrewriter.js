@@ -89,6 +89,9 @@ class JSRewriter extends RxRewriter {
       // rewriting .postMessage -> __WB_pmw(self).postMessage
       [/\.postMessage\b\(/, addPrefix(".__WB_pmw(self)")],
 
+      // rewrite import -> ____wb_rewrite_import__
+      [/[^$.]\bimport\s*\(/, replace("import", "____wb_rewrite_import__")],
+
       // rewriting 'location = ' to custom expression '(...).href =' assignment
       [/[^$.]\s?\blocation\b\s*[=]\s*(?![\s=])/, addSuffix(checkLoc)],
 
@@ -107,6 +110,7 @@ class JSRewriter extends RxRewriter {
 
       // rewrite this in && or || expr?
       [/[^|&][|&]{2}\s*this\b\s*(?![|\s&.$](?:[^|&]|$))/, replaceThis()],
+
     ];
 
     if (extraRules) {
