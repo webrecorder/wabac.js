@@ -8,7 +8,9 @@ import { API } from "./api.js";
 
 import WOMBAT from "../dist/wombat.js";
 import WOMBAT_WORKERS from "@webrecorder/wombat/src/wombatWorkers.js";
+
 import { ArchiveRequest } from "./request.js";
+import { setAutoIPFSOpts } from "./ipfs.js";
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
@@ -122,7 +124,7 @@ class SWCollections extends WorkerLoader
 
 // ===========================================================================
 class SWReplay {
-  constructor({staticData = null, ApiClass = API, useIPFS = true, defaultConfig = {}, CollectionsClass = SWCollections} = {}) {
+  constructor({staticData = null, ApiClass = API, autoipfsOpts = {}, defaultConfig = {}, CollectionsClass = SWCollections} = {}) {
     this.prefix = self.registration ? self.registration.scope : "";
 
     this.replayPrefix = this.prefix;
@@ -156,7 +158,7 @@ class SWReplay {
       defaultConfig.injectScripts = defaultConfig.injectScripts.map(url => this.staticPrefix + "proxy/" + url);
     }
 
-    this.collections = new CollectionsClass(prefixes, sp.get("root"), useIPFS, defaultConfig);
+    this.collections = new CollectionsClass(prefixes, sp.get("root"), defaultConfig);
     this.collections.loadAll(sp.get("dbColl"));
 
     this.proxyOriginMode = !!sp.get("proxyOriginMode");
@@ -167,6 +169,8 @@ class SWReplay {
     this.allowRewrittenCache = sp.get("allowCache") ? true : false;
 
     this.stats = sp.get("stats") ? new StatsTracker() : null;
+
+    setAutoIPFSOpts(autoipfsOpts);
 
     self.addEventListener("install", () => {
       self.skipWaiting();
