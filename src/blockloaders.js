@@ -1,22 +1,11 @@
 import { AuthNeededError, AccessDeniedError, RangeError, sleep } from "./utils.js";
 
+import { initAutoIPFS } from "./ipfs.js";
+
 import { concatChunks } from "warcio";
 
 // todo: make configurable
 const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
-
-// ===========================================================================
-import {create as createIPFS} from "auto-js-ipfs";
-
-let ipfsAPI = null;
-
-// TODO: Deal with config changes
-async function initIPFS(opts={}) {
-  if(ipfsAPI) return ipfsAPI;
-  const {api} = await createIPFS(opts);
-  ipfsAPI = api;
-  return api;
-}
 
 
 // ===========================================================================
@@ -512,10 +501,10 @@ class IPFSRangeLoader
   }
 
   async doInitialFetch(tryHead) {
-    const ipfsClient = await initIPFS(this.opts);
+    const autoipfsClient = await initAutoIPFS(this.opts);
 
     try {
-      this.length = await ipfsClient.getSize(this.url);
+      this.length = await autoipfsClient.getSize(this.url);
       this.isValid = (this.length !== null);
     } catch (e) {
       console.warn(e);
@@ -536,7 +525,7 @@ class IPFSRangeLoader
     if (tryHead || !this.isValid) {
       body = new Uint8Array([]);
     } else {
-      const iter = ipfsClient.get(this.url, {signal});
+      const iter = autoipfsClient.get(this.url, {signal});
       body = this.getReadableStream(iter);
     }
 
@@ -546,9 +535,9 @@ class IPFSRangeLoader
   }
 
   async getRange(offset, length, streaming = false, signal = null) {
-    const ipfsClient = await initIPFS(this.opts);
+    const autoipfsClient = await initAutoIPFS(this.opts);
 
-    const iter = ipfsClient.get(this.url, {
+    const iter = autoipfsClient.get(this.url, {
       start: offset,
       end: offset + length - 1,
       signal
