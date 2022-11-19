@@ -27,10 +27,6 @@ module.exports = {
     }
   },
 
-  externals: {
-    "crypto": "crypto"
-  },
-
   optimization: {
     minimize: true,
     minimizer: [
@@ -62,9 +58,9 @@ module.exports = {
     new webpack.DefinePlugin({
       __IPFS_CORE_URL__: JSON.stringify("https://cdn.jsdelivr.net/npm/ipfs-core@0.11.1/dist/index.min.js")
     }),
-    //new webpack.ProvidePlugin({
-    //  process: "process/browser",
-    //}),
+    new webpack.ProvidePlugin({
+      process: "process/browser",
+    }),
   ],
 };
 
