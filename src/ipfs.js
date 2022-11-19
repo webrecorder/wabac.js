@@ -2,20 +2,13 @@
 import { create } from "auto-js-ipfs";
 
 let autoipfsAPI = null;
-let autoipfsOpts = {};
 
-export async function setAutoIPFSOpts(opts) {
-  autoipfsOpts = opts;
-  // force recreation of auto-ipfs obj?
-  autoipfsAPI = null;
-}
-
-export async function initAutoIPFS() {
+export async function initAutoIPFS(opts) {
   if (autoipfsAPI) {
     return autoipfsAPI;
   }
 
-  const {api} = await create(autoipfsOpts);
+  const {api} = await create(opts);
   autoipfsAPI = api;
   return api;
 }

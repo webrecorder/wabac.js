@@ -10,7 +10,9 @@ import { ArchiveDB } from "../src/archivedb.js";
 
 import crypto from "node:crypto";
 
-global.crypto = crypto;
+if (!global.crypto) {
+  global.crypto = crypto;
+}
 
 //import { createHash } from "crypto";
 
