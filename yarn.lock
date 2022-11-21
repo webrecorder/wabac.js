@@ -455,10 +455,10 @@
   resolved "https://registry.yarnpkg.com/@webpack-cli/serve/-/serve-1.5.2.tgz#ea584b637ff63c5a477f6f21604b5a205b72c9ec"
   integrity sha512-vgJ5OLWadI8aKjDlOH3rb+dYyPd2GTZuQC/Tihjct6F9GpXGZINo3Y/IVuZVTM1eDQB+/AOsjPUWH/WySDaXvw==
 
-"@webrecorder/wombat@^3.3.10":
-  version "3.3.10"
-  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.3.10.tgz#45c8de1fa68156840d81e34eced04e3fec9981c4"
-  integrity sha512-zDkjb6zMWzOLJwFuIwIsOtcbz8HvPTTRlpCWY2Uv+ET/1tOarUToIS9oRsHm10M5c9LsPCZWBBmlWByvA6vIYQ==
+"@webrecorder/wombat@^3.3.11":
+  version "3.3.11"
+  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.3.11.tgz#15ec8ac3de8fb2b4c34396d6cc440b3263b560b6"
+  integrity sha512-Vc/EdEwBFNK7Y8CVZyKOP2YGM4zLD9chOJZFgFQsU0LI46tgnsn1I5GCn8iyH5QWTcU8xrDtN93PZDnvRVOgOw==
   dependencies:
     warcio "^1.5.1"
 
@@ -642,10 +642,10 @@ async@^2.6.2:
   dependencies:
     lodash "^4.17.14"
 
-auto-js-ipfs@^1.3.10:
-  version "1.3.10"
-  resolved "https://registry.yarnpkg.com/auto-js-ipfs/-/auto-js-ipfs-1.3.10.tgz#e723607e31a73283c79ed9189fe3dc0b43bb1374"
-  integrity sha512-96vAnIR6hNtTRc9Q+7a/UJNF3ThPwwu75GgSr1E8oVPDp6ZK9K67FmTT/ecHAw9IsmKxCBcZdM2rhzTHByQdCQ==
+auto-js-ipfs@^1.5.1:
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/auto-js-ipfs/-/auto-js-ipfs-1.5.1.tgz#22693c76d678ea12bd296186b8920d1333e8afe6"
+  integrity sha512-KMLYrxJA9FJBdmPTSouddPmlF+aZV4hP1E9ZBxbQWQZFMmK8lDjQOxHbuT1z4I8hhQmin3Y1RQNN5/s+om3E9Q==
 
 ava@^4.3.3:
   version "4.3.3"
