@@ -49,7 +49,11 @@ class ArchiveDB {
         oldVersion = oldV;
         this._initDB(db, oldV, newV, tx);
       },
-      blocking: (e) => { if (!e || e.newVersion === null) { this.close(); }}
+      blocking: (_, oldV) => {
+        if (!oldV) {
+          this.close();
+        }
+      }
     });
 
     if (oldVersion === 1) {
@@ -98,8 +102,8 @@ class ArchiveDB {
   async delete() {
     this.close();
     await deleteDB(this.name, {
-      blocked(reason) {
-        console.log("Unable to delete: " + reason);
+      blocked(_, e) {
+        console.log("Unable to delete: " + e);
       }
     });
   }
