@@ -18,13 +18,12 @@ const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 // ===========================================================================
 class SWCollections extends WorkerLoader
 {
-  constructor(prefixes, root = null, checkIpfs = false, defaultConfig = {}) {
+  constructor(prefixes, root = null, defaultConfig = {}) {
     super(self);
     this.prefixes = prefixes;
     this.colls = null;
     this.inited = null;
     this.root = root;
-    this.checkIpfs = checkIpfs;
     this.defaultConfig = defaultConfig;
 
     this._fileHandles = {};
@@ -34,7 +33,32 @@ class SWCollections extends WorkerLoader
     return new Collection(opts, this.prefixes, this.defaultConfig);
   }
 
-  loadAll(dbColl) {
+  async checkInjectedScripts(scriptPaths) {
+    const validScripts = [];
+    for (const script of scriptPaths) {
+      let valid = false;
+      try {
+        const resp = await fetch(script);
+        valid = (resp.status === 200);
+      } catch (e) {
+        // ignore
+      }
+
+      if (valid) {
+        validScripts.push(this.prefixes.static + "proxy/" + script);
+      } else {
+        console.warn(`Skipping inject of ${script}, script not found`);
+      }
+    }
+
+    return validScripts;
+  }
+
+  async loadAll(dbColl) {
+    if (this.defaultConfig.injectScripts) {
+      this.defaultConfig.injectScripts = await this.checkInjectedScripts(this.defaultConfig.injectScripts);
+    }
+
     this.colls = {};
     this.inited = super.loadAll(dbColl);
     return this.inited;
@@ -152,10 +176,6 @@ class SWReplay {
     this.staticData = staticData || new Map();
     this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
     this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
-
-    if (defaultConfig.injectScripts) {
-      defaultConfig.injectScripts = defaultConfig.injectScripts.map(url => this.staticPrefix + "proxy/" + url);
-    }
 
     this.collections = new CollectionsClass(prefixes, sp.get("root"), defaultConfig);
     this.collections.loadAll(sp.get("dbColl"));
