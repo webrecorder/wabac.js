@@ -516,6 +516,22 @@ class WorkerLoader extends CollectionLoader
         blob: file.blob
       });
 
+      if (file.loadEager) {
+        const {response} = await sourceLoader.doInitialFetch(false, true);
+        const arrayBuffer = new Uint8Array(await response.arrayBuffer());
+        const extra = {arrayBuffer};
+
+        //config.extra = extra;
+        file.newFullImport = true;
+
+        sourceLoader = await createLoader({
+          url: loadUrl,
+          headers: file.headers,
+          size: file.size,
+          extra,
+        });
+      }
+
       let tryHeadOnly = false;
 
       if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
@@ -550,20 +566,6 @@ Make sure this is a valid URL and you have access to this file.`);
           abort.abort();
         }
         return false;
-      }
-
-      if (file.loadEager) {
-        const buff = await sourceLoader.getArrayBuffer();
-        const blob = new Blob([buff], { type: "application/octet-stream" });
-        const url = URL.createObjectURL(blob);
-        config.extra = {arrayBuffer: buff};
-        sourceLoader = await createLoader({
-          url,
-          headers: file.headers,
-          size: file.size,
-          extra: config.extra,
-          blob,
-        });
       }
 
       const contentLength = sourceLoader.length;

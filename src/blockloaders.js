@@ -12,6 +12,10 @@ const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
 async function createLoader(opts) {
   const { url } = opts;
 
+  if (opts.extra && opts.extra.arrayBuffer) {
+    return new ArrayBufferLoader(opts.extra.arrayBuffer);
+  }
+
   const scheme = url.split(":", 1)[0];
 
   // built-in loaders
@@ -68,9 +72,11 @@ class FetchRangeLoader
     this.loadingIPFS = null;
   }
 
-  async doInitialFetch(tryHead) {
+  async doInitialFetch(tryHead, skipRange = false) {
     const headers = new Headers(this.headers);
-    headers.set("Range", "bytes=0-");
+    if (!skipRange) {
+      headers.set("Range", "bytes=0-");
+    }
 
     this.isValid = false;
     let abort = null;
@@ -191,10 +197,6 @@ class FetchRangeLoader
       backoff += 2000;
     }
     return resp;
-  }
-
-  async getArrayBuffer() {
-    return await this.getRange(0, await this.getLength(), false);
   }
 }
 
@@ -328,17 +330,52 @@ class GoogleDriveLoader
   }
 }
 
+// ===========================================================================
+class ArrayBufferLoader
+{
+  constructor(arrayBuffer) {
+    this.arrayBuffer = arrayBuffer;
+    this.size = arrayBuffer.length;
+
+    this.canLoadOnDemand = true;
+  }
+
+  get length() {
+    return this.size;
+  }
+
+  get isValid() {
+    return !!this.arrayBuffer;
+  }
+
+  async getLength() {
+    return this.size;
+  }
+
+  async doInitialFetch(tryHead = false) {
+    const stream = tryHead ? null : getReadableStreamFromArray(this.arrayBuffer);
+
+    const response = new Response(stream);
+
+    return {response};
+  }
+
+  async getRange(offset, length, streaming = false/*, signal*/) {
+    const range = this.arrayBuffer.slice(offset, offset + length);
+
+    return streaming ? getReadableStreamFromArray(range) : range;
+  }
+}
+
 
 // ===========================================================================
 class BlobCacheLoader
 {
-  constructor({url, blob = null, size = null, extra = null}) {
+  constructor({url, blob = null, size = null}) {
     this.url = url;
     this.blob = blob;
     this.size = this.blob ? this.blob.size : size;
-
-    this.arrayBuffer = extra && extra.arrayBuffer || null;
-
+    
     this.canLoadOnDemand = true;
   }
 
@@ -370,10 +407,10 @@ class BlobCacheLoader
       }
     }
 
-    this.arrayBuffer = this.blob.arrayBuffer ? await this.blob.arrayBuffer() : await this.getArrayBuffer();
+    this.arrayBuffer = this.blob.arrayBuffer ? await this.blob.arrayBuffer() : await this._getArrayBuffer();
     this.arrayBuffer = new Uint8Array(this.arrayBuffer);
 
-    const stream = tryHead ? null : this.getReadableStream(this.arrayBuffer);
+    const stream = tryHead ? null : getReadableStreamFromArray(this.arrayBuffer);
 
     const response = new Response(stream);
 
@@ -387,25 +424,16 @@ class BlobCacheLoader
 
     const range = this.arrayBuffer.slice(offset, offset + length);
 
-    return streaming ? this.getReadableStream(range) : range;
+    return streaming ? getReadableStreamFromArray(range) : range;
   }
 
-  getArrayBuffer() {
+  _getArrayBuffer() {
     return new Promise((resolve) => {
       const fr = new FileReader();
       fr.onloadend = () => {
         resolve(fr.result);
       };
       fr.readAsArrayBuffer(this.blob);
-    });
-  }
-
-  getReadableStream(array) {
-    return new ReadableStream({
-      start(controller) {
-        controller.enqueue(array);
-        controller.close();
-      }
     });
   }
 }
@@ -530,7 +558,7 @@ class IPFSRangeLoader
       body = new Uint8Array([]);
     } else {
       const iter = autoipfsClient.get(this.url, {signal});
-      body = this.getReadableStream(iter);
+      body = this._getReadableStreamFromIter(iter);
     }
 
     const response = new Response(body, {status});
@@ -548,7 +576,7 @@ class IPFSRangeLoader
     });
 
     if (streaming) {
-      return this.getReadableStream(iter);
+      return this._getReadableStreamFromIter(iter);
     } else {
       const chunks = [];
       let size = 0;
@@ -562,7 +590,7 @@ class IPFSRangeLoader
     }
   }
 
-  getReadableStream(stream) {
+  _getReadableStreamFromIter(stream) {
     return new ReadableStream({
       start: async (controller) => {
         try {
@@ -577,4 +605,14 @@ class IPFSRangeLoader
     });
   }
 }
+
+function getReadableStreamFromArray(array) {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(array);
+      controller.close();
+    }
+  });
+}
+
 export { createLoader };
