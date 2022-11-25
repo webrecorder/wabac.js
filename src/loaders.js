@@ -508,7 +508,7 @@ class WorkerLoader extends CollectionLoader
       config.extraConfig = data.extraConfig;
       config.noCache = file.noCache;
 
-      const sourceLoader = await createLoader({
+      let sourceLoader = await createLoader({
         url: loadUrl,
         headers: file.headers,
         size: file.size,
@@ -550,6 +550,20 @@ Make sure this is a valid URL and you have access to this file.`);
           abort.abort();
         }
         return false;
+      }
+
+      if (file.loadEager) {
+        const buff = await sourceLoader.getArrayBuffer();
+        const blob = new Blob([buff], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+        config.extra = {arrayBuffer: buff};
+        sourceLoader = await createLoader({
+          url,
+          headers: file.headers,
+          size: file.size,
+          extra: config.extra,
+          blob,
+        });
       }
 
       const contentLength = sourceLoader.length;

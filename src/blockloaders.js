@@ -192,6 +192,10 @@ class FetchRangeLoader
     }
     return resp;
   }
+
+  async getArrayBuffer() {
+    return await this.getRange(0, await this.getLength(), false);
+  }
 }
 
 // ===========================================================================

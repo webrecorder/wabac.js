@@ -4,11 +4,9 @@ import { create } from "auto-js-ipfs";
 let autoipfsAPI = null;
 
 export async function initAutoIPFS(opts) {
-  if (autoipfsAPI) {
-    return autoipfsAPI;
+  if (!autoipfsAPI) {
+    autoipfsAPI = await create(opts);
   }
 
-  const {api} = await create(opts);
-  autoipfsAPI = api;
-  return api;
+  return autoipfsAPI;
 }
