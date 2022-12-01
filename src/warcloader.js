@@ -170,18 +170,9 @@ class WARCLoader extends BaseParser {
 
       mime = (headers.get("content-type") || "").split(";")[0];
 
-      const cl = parseInt(headers.get("content-length") || 0);
-
       // skip partial responses (not starting from 0)
-      if (status === 206) {
-        const range = headers.get("content-range");
-
-        const fullRange = `bytes 0-${cl-1}/${cl}`;
-
-        // only include 206 responses if they are the full range
-        if (range && range !== fullRange) {
-          return null;
-        }
+      if (status === 206 && !this.isFullRangeRequest(headers)) {
+        return null;
       }
 
       // skip self-redirects
@@ -346,6 +337,17 @@ class WARCLoader extends BaseParser {
     }
 
     return entry;
+  }
+
+  isFullRangeRequest(headers) {
+    const range = headers.get("content-range");
+
+    const cl = parseInt(headers.get("content-length") || 0);
+
+    const fullRange = `bytes 0-${cl-1}/${cl}`;
+
+    // full range is range exists and matches expected full range
+    return range && range === fullRange;
   }
 
   filterRecord() {

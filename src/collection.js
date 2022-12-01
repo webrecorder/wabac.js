@@ -172,7 +172,7 @@ class Collection {
 
     const range = request.headers.get("range");
 
-    if (range && response.status === 200) {
+    if (range && (response.status === 200 || response.status === 206)) {
       response.setRange(range);
     }
 

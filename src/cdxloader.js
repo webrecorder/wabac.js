@@ -67,6 +67,10 @@ class CDXFromWARCLoader extends WARCLoader
       return;
     }
 
+    if (cdx.status === 206 && !this.isFullRangeRequest(record.httpHeaders.headers)) {
+      return;
+    }
+
     if (reqRecord && reqRecord.httpHeaders) {
       let cookie = reqRecord.httpHeaders.headers.get("cookie");
       if (cookie) {
