@@ -239,22 +239,11 @@ class SWReplay {
     }
   }
 
-  async staticPathProxy(url, request) {
+  staticPathProxy(url, request) {
     url = url.slice((this.staticPrefix + "proxy/").length);
     url = new URL(url, self.location.href).href;
     request = new Request(url);
-
-    const cache = await caches.open("static-proxy");
-    let response = await cache.match(url);
-
-    if (!response) {
-      response = await this.defaultFetch(request);
-
-      const cacheResponse = response.clone();
-      await cache.put(request, cacheResponse);
-    }
-
-    return response;
+    return this.defaultFetch(request);
   }
 
   defaultFetch(request) {
