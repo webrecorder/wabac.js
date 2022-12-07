@@ -1,6 +1,6 @@
 import brotliDecode from "brotli/decompress.js";
 
-import { Inflate } from "pako";
+import { Inflate } from "pako/lib/inflate.js";
 
 import { AsyncIterReader } from "warcio";
 
