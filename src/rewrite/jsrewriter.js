@@ -93,7 +93,7 @@ class JSRewriter extends RxRewriter {
       [/[^$.]\bimport\s*\(/, replace("import", "____wb_rewrite_import__")],
 
       // rewriting 'location = ' to custom expression '(...).href =' assignment
-      [/[^$.]\s?\blocation\b\s*[=]\s*(?![\s=])/, addSuffix(checkLoc)],
+      [/[^$.]?\s?\blocation\b\s*[=]\s*(?![\s=])/, addSuffix(checkLoc)],
 
       // rewriting 'return this'
       [/\breturn\s+this\b\s*(?![\s\w.$])/, replaceThis()],

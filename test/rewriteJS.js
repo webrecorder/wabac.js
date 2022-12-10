@@ -97,8 +97,12 @@ test(rewriteJS,
   "(a,b,Q.contains(i[t], _____WB$wombat$check$this$function_____(this)))");
 
 test(rewriteJSWrapped,
-  "this. location = http://example.com/",
-  "this. location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/");
+  "location = http://example.com/",
+  "location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/");
+
+test(rewriteJSWrapped,
+  " location = http://example.com/2",
+  " location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/2");
 
 test(rewriteJS,
   " eval(a)",
@@ -209,6 +213,8 @@ test(rewriteJS, "x = $eval; x(a);");
 test(rewriteJSWrapped, "window.eval(a)");
 
 test(rewriteJSWrapped, "x = window.eval; x(a);");
+
+test(rewriteJSWrapped, "this. location = http://example.com/");
 
 test(rewriteJS, "obj = { eval : 1 }");
 
