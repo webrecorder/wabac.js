@@ -29,16 +29,16 @@
     "warcio": "^1.6.2"
   },
   "devDependencies": {
-    "ava": "^4.3.3",
+    "ava": "^5.1.0",
     "c8": "^7.12.0",
     "eslint": "^8.25.0",
     "fake-indexeddb": "^4.0.0",
     "globals": "^13.17.0",
     "raw-loader": "^4.0.2",
+    "serve-static": "^1.15.0",
     "test-listen": "^1.1.0",
     "webpack": "^5.73.0",
-    "webpack-cli": "^4.8.0",
-    "webpack-dev-server": "^4.2.1"
+    "webpack-cli": "^4.8.0"
   },
   "files": [
     "src/*",
