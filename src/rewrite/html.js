@@ -1,4 +1,4 @@
-import RewritingStream from "parse5-html-rewriting-stream";
+import { RewritingStream } from "parse5-html-rewriting-stream";
 
 import { startsWithAny, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, REPLAY_TOP_FRAME_NAME } from "../utils.js";
 
@@ -256,7 +256,7 @@ class HTMLRewriter
     const rewriter = this.rewriter;
 
     const rwStream = new RewritingStream();
-    rwStream.tokenizer.preprocessor.bufferWaterline = MAX_STREAM_CHUNK_SIZE;
+    rwStream.tokenizer.preprocessor.bufferWaterline = Infinity;
 
     let insertAdded = false;
 
@@ -354,10 +354,6 @@ class HTMLRewriter
         } else if (context === "style") {
           return rewriter.rewriteCSS(textToken.text);
         } else {
-          // if raw data is different and raw data potentially cut off, just use the parsedText
-          if (raw !== textToken.text && (textToken.sourceCodeLocation.startOffset - rwStream.posTracker.droppedBufferSize) < 0) {
-            raw = textToken.text;
-          }
           return this.rewriteHTMLText(raw);
         }
       })();
