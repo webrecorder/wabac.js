@@ -47,14 +47,14 @@ module.exports = {
 
   plugins: [
     new webpack.NormalModuleReplacementPlugin(
-        /^node:*/,
-        (resource) => {
-          switch (resource.request) {
-            case "node:stream":
-              resource.request = "stream-browserify";
-              break;
-          }
-        },
+      /^node:*/,
+      (resource) => {
+        switch (resource.request) {
+        case "node:stream":
+          resource.request = "stream-browserify";
+          break;
+        }
+      },
     ),
 
     new webpack.BannerPlugin("[name].js is part of Webrecorder project. Copyright (C) 2020-2021, Webrecorder Software. Licensed under the Affero General Public License v3."),
