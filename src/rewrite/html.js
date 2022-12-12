@@ -304,6 +304,8 @@ class HTMLRewriter
           scriptRw = "json";
         } else if (!scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0)) {
           scriptRw = "js";
+        } else {
+          scriptRw = "";
         }
         break;
       }
