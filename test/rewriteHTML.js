@@ -307,6 +307,14 @@ test("script", rewriteHtml,
   "<script type=\"python\">print(\"top\")</script>"
 );
 
+// SCRIPT tag ensure reset after known type
+test("script", rewriteHtml,
+  `<script type="application/javascript">document.location.href = "abc";</script>
+   <script type="python">print("top")</script>`,
+  `<script type="application/javascript">${wrapScript(`document.location.href = "abc";`)}</script>
+   <script type="python">print("top")</script>`
+);
+
 // Script tag with super relative src
 test("script", rewriteHtml,
   "<script src=\"js/func.js\"></script>",

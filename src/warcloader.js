@@ -155,7 +155,7 @@ class WARCLoader extends BaseParser {
     if (record.httpHeaders) {
       status = Number(record.httpHeaders.statusCode) || 200;
 
-      if (method === "OPTIONS") {
+      if (method === "OPTIONS" || method === "HEAD") {
         return null;
       }
  

@@ -113,6 +113,9 @@ class CDXFromWARCLoader extends WARCLoader
     const entry = {url, ts, status, digest, recordDigest, mime, loaded: false, source};
 
     if (cdx.method) {
+      if (cdx.method === "HEAD" || cdx.method === "OPTIONS") {
+        return;
+      }
       entry.method = cdx.method;
     }
 
