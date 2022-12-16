@@ -311,7 +311,7 @@ test("script", rewriteHtml,
 test("script", rewriteHtml,
   `<script type="application/javascript">document.location.href = "abc";</script>
    <script type="python">print("top")</script>`,
-  `<script type="application/javascript">${wrapScript(`document.location.href = "abc";`)}</script>
+  `<script type="application/javascript">${wrapScript("document.location.href = \"abc\";")}</script>
    <script type="python">print("top")</script>`
 );
 
