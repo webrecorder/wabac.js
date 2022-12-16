@@ -70,7 +70,7 @@ let arguments;
 
 function wrapImport(text) {
   return `\
-import { window, globalThis, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010/__wb_module_decl.js";
+import { window, globalThis, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010mp_/__wb_module_decl.js";
 ${text}`;
 
 }

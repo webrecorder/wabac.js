@@ -174,6 +174,10 @@ export function isAjaxRequest(request) {
   }
 
   if (request.mode === "cors") {
+    // if 'mod' is esm_, then likely a module import
+    if (request.destination === "script" && request.mod === "esm_") {
+      return false;
+    }
     return true;
   }
 

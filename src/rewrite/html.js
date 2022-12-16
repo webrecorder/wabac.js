@@ -183,10 +183,12 @@ class HTMLRewriter
       }
 
       else if (tagName === "script" && name === "src") {
-        const newValue = this.rewriteUrl(rewriter, attr.value);
+        const rwType = this.getScriptRWType(tag);
+        const mod = (rwType === "module") ? "esm_" : null;
+        const newValue = this.rewriteUrl(rewriter, attr.value, false, mod);
         if (newValue === attr.value) {// && this.isRewritableUrl(newValue)) {
           tag.attrs.push({"name": "__wb_orig_src", "value": attr.value});
-          attr.value = this.rewriteUrl(rewriter, attr.value, true);
+          attr.value = this.rewriteUrl(rewriter, attr.value, true, mod);
         } else {
           attr.value = newValue;
         }
@@ -242,6 +244,20 @@ class HTMLRewriter
     return null;
   }
 
+  getScriptRWType(tag) {
+    const scriptType = this.getAttr(tag.attrs, "type");
+
+    if (scriptType === "module") {
+      return "module";
+    } else if (scriptType === "application/json") {
+      return "json";
+    } else if (!scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0)) {
+      return "js";
+    } else {
+      return "";
+    }
+  }
+
   async rewrite(response) {
     if (!response.buffer && !response.reader) {
       //console.warn("Missing response body for: " + response.url);
@@ -295,18 +311,7 @@ class HTMLRewriter
         }
 
         context = startTag.tagName;
-
-        const scriptType = this.getAttr(startTag.attrs, "type");
-
-        if (scriptType === "module") {
-          scriptRw = "module";
-        } else if (scriptType === "application/json") {
-          scriptRw = "json";
-        } else if (!scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0)) {
-          scriptRw = "js";
-        } else {
-          scriptRw = "";
-        }
+        scriptRw = this.getScriptRWType(startTag);
         break;
       }
 
@@ -397,12 +402,13 @@ class HTMLRewriter
     return response;
   }
 
-  rewriteUrl(rewriter, text, forceAbs = false) {
+  rewriteUrl(rewriter, text, forceAbs = false, mod = null) {
     // if html charset not utf-8, just convert the url to utf-8 for rewriting
     if (!this.isCharsetUTF8) {
       text = decoder.decode(encodeLatin1(text));
     }
-    return rewriter.rewriteUrl(text, forceAbs);
+    const res = rewriter.rewriteUrl(text, forceAbs);
+    return mod ? res.replace("mp_/", mod + "/") : res;
   }
 
   rewriteHTMLText(text) {

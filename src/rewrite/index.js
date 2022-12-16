@@ -149,6 +149,8 @@ class Rewriter {
       response = await decodeResponse(response, encoding, te, rewriteMode === null);
     }
 
+    const opts = {response, prefix: this.prefix};
+
     let rwFunc = null;
 
     switch (rewriteMode) {
@@ -166,6 +168,9 @@ class Rewriter {
 
     case "js":
       rwFunc = this.rewriteJS;
+      if (request.mod === "esm_") {
+        opts.isModule = true;
+      }
       break;
 
     case "json":
@@ -188,8 +193,6 @@ class Rewriter {
       rwFunc = rewriteDASH;
       break;
     }
-
-    const opts = {response, prefix: this.prefix};
 
     if (urlRewrite) {
       opts.rewriteUrl = url => this.rewriteUrl(url);

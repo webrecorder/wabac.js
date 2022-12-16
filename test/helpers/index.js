@@ -19,7 +19,7 @@ async function doRewrite({
   encoding = "utf8",
   headers={}}) {
 
-  const RW = new Rewriter({baseUrl: url, prefix: "http://localhost:8080/prefix/20201226101010/", useBaseRules, headInsertFunc});
+  const RW = new Rewriter({baseUrl: url, prefix: "http://localhost:8080/prefix/20201226101010mp_/", useBaseRules, headInsertFunc});
   //const resp = new Response(content, {"headers": {"Content-Type": contentType}});
   const date = new Date("2019-01-02T03:00:00Z");
   const payload = new TextEncoder(encoding).encode(content);
