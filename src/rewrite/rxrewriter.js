@@ -36,7 +36,7 @@ class RxRewriter
         continue;
       }
 
-      const result = this.rules[i][1].call(this, curr, opts, offset, string);
+      const result = this.rules[i][1].call(this, curr, offset, string, opts);
       if (result) {
         return result;
       }

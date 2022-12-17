@@ -7,7 +7,7 @@ export { CollectionLoader, WorkerLoader } from "./src/loaders.js";
 export { ArchiveResponse } from "./src/response.js";
 export { ArchiveDB } from "./src/archivedb.js";
 export { LiveProxy } from "./src/liveproxy.js";
-export { RecProxy } from "./src/recproxy.js";
+//export { RecProxy } from "./src/recproxy.js";
 
 export { API } from "./src/api.js";
 

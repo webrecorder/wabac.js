@@ -1,5 +1,4 @@
-import parseLinkHeader from "parse-link-header";
-import formatLinkHeader from "format-link-header";
+import LinkHeader from "http-link-header";
 
 import { isAjaxRequest } from "../utils.js";
 
@@ -150,6 +149,8 @@ class Rewriter {
       response = await decodeResponse(response, encoding, te, rewriteMode === null);
     }
 
+    const opts = {response, prefix: this.prefix};
+
     let rwFunc = null;
 
     switch (rewriteMode) {
@@ -167,6 +168,9 @@ class Rewriter {
 
     case "js":
       rwFunc = this.rewriteJS;
+      if (request.mod === "esm_") {
+        opts.isModule = true;
+      }
       break;
 
     case "json":
@@ -189,8 +193,6 @@ class Rewriter {
       rwFunc = rewriteDASH;
       break;
     }
-
-    const opts = {response, prefix: this.prefix};
 
     if (urlRewrite) {
       opts.rewriteUrl = url => this.rewriteUrl(url);
@@ -522,15 +524,15 @@ class Rewriter {
 
   rewriteLinkHeader(value) {
     try {
-      const parsed = parseLinkHeader(value);
+      const parsed = LinkHeader.parse(value);
 
-      for (const entry of Object.values(parsed)) {
-        if (entry.url) {
-          entry.url = this.rewriteUrl(entry.url);
+      for (const entry of parsed.refs) {
+        if (entry.uri) {
+          entry.uri = this.rewriteUrl(entry.uri);
         }
       }
 
-      return formatLinkHeader(parsed);
+      return parsed.toString();
     } catch (e) {
       console.warn("Error parsing link header: " + value);
       return value;

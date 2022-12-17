@@ -113,7 +113,7 @@ test("HLS DEFAULT MAX - NATIVE STREAMING", async t => {
 #EXTM3U
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="WebVTT",NAME="English",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="https://example.com/subtitles/"
 #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=610000,RESOLUTION=640x360,CODECS="avc1.66.30, mp4a.40.2",SUBTITLES="WebVTT"
-http://localhost:8080/prefix/20201226101010/http://example.com/video_1.m3u8`;
+http://localhost:8080/prefix/20201226101010mp_/http://example.com/video_1.m3u8`;
 
   t.is(result, expected, result);
 });

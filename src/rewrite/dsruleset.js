@@ -36,21 +36,21 @@ const DEFAULT_RULES = [
   {
     contains: ["instagram.com/"],
     rxRules: [
-      [/"is_dash_eligible":true/, ruleReplace("\"is_dash_eligible\":false")]
+      [/"is_dash_eligible":(?:true|1)/, ruleReplace("\"is_dash_eligible\":false")]
     ]
   },
 
   {
     contains: ["api.twitter.com/2/", "twitter.com/i/api/2/", "twitter.com/i/api/graphql/"],
     rxRules: [
-      [/"video_info".*?}]}/, ruleRewriteTwitterVideo("\"video_info\":")]
+      [/"video_info":.*?}]}/, ruleRewriteTwitterVideo("\"video_info\":")]
     ]
   },
 
   {
     contains: ["cdn.syndication.twimg.com/tweet-result"],
     rxRules: [
-      [/"video".*?viewCount":\d+}/, ruleRewriteTwitterVideo("\"video\":")]
+      [/"video":.*?viewCount":\d+}/, ruleRewriteTwitterVideo("\"video\":")]
     ]
   },
 

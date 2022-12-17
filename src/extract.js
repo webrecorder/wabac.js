@@ -1,4 +1,4 @@
-import SAXParser from "parse5-sax-parser";
+import { SAXParser } from "parse5-sax-parser";
 
 import { decodeContent } from "./rewrite/decoder.js";
 
