@@ -153,6 +153,13 @@ class ArchiveResponse
   }
 
   setRange(range) {
+    if (this.status === 206) {
+      const currRange = this.headers.get("Content-Range");
+      if (currRange && !currRange.startsWith("bytes 0-")) {
+        return false;
+      }
+    }
+
     const bytes = range.match(/^bytes=(\d+)-(\d+)?$/);
 
     let length = 0;
@@ -165,7 +172,7 @@ class ArchiveResponse
 
       // if length is not known, keep as 200
       if (!length) {
-        return;
+        return false;
       }
     }
 
