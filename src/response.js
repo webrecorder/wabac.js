@@ -190,6 +190,9 @@ class ArchiveResponse
       this.buffer = this.buffer.slice(start, end + 1);
 
     } else if (this.reader) {
+      if (!this.reader.setLimitSkip) {
+        return false;
+      }
       if (start !== 0 || end !== (length - 1)) {
         this.reader.setLimitSkip(end - start + 1, start);
       } else if (this.reader.setRangeAll) {
