@@ -14,13 +14,13 @@ const DEFAULT_RULES = [
       [/"0"\s*?==\s*?\w+\.dash&&/m, ruleReplace("1&&")],
     ]
   },
-  {
-    contains: ["vimeo.com/video"],
-    rxRules: [
-      [/"dash"[:]/, ruleReplace("\"__dash\":")],
-      [/"hls"[:]/, ruleReplace("\"__hls\":")],
-    ]
-  },
+  // {
+  //   contains: ["vimeo.com/video"],
+  //   rxRules: [
+  //     [/"dash"[:]/, ruleReplace("\"__dash\":")],
+  //     [/"hls"[:]/, ruleReplace("\"__hls\":")],
+  //   ]
+  // },
   {
     contains: ["facebook.com/"],
     rxRules: [
