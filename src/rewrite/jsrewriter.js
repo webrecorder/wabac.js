@@ -1,6 +1,10 @@
 import { RxRewriter } from "./rxrewriter.js";
 
-const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
+//const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
+const IMPORT_RX =      /import(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s])(?:.*?)['"\s]/;
+
+const IMPORT_HTTP_RX = /(import(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s]))((?:https?|[./]).*?)(['"\s])/;
+
 const EXPORT_RX = /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/m;
 
 const GLOBAL_OVERRIDES = [
@@ -19,9 +23,9 @@ const GLOBALS_CONCAT_STR = GLOBAL_OVERRIDES.map((x) => `(?:^|[^$.])\\b${x}\\b(?:
 
 const GLOBALS_RX = new RegExp(`(${GLOBALS_CONCAT_STR})`);
 
-const ESM_IMPORT_RX = /(import(?:['"\s]*(?:[\w*${}\s,]+)from\s*)?['"\s]?['"\s])(https?.*)(['"\s])/;
+// ===========================================================================
+const JS_REWRITE_RULES = (() => {
 
-const createJSRules = (addImportRules = false, urlPrefix = "") => {
   const thisRw = "_____WB$wombat$check$this$function_____(this)";
 
   const checkLoc = "((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = ";
@@ -76,14 +80,33 @@ const createJSRules = (addImportRules = false, urlPrefix = "") => {
     };
   }
 
+  // mark as module side-effect + rewrite if http[s] url
   function rewriteImport() {
-    return (x, offset, string, opts) => {
+    return (x, _, _2, opts) => {
       opts.isModule = true;
-      return x.replace(ESM_IMPORT_RX, `$1${urlPrefix}$2$3`);
-    }
+      //const prefix = opts.prefix.replace("mp_/", "esm_/");
+
+      return x.replace(IMPORT_HTTP_RX, (_, g1, g2, g3) => {
+        try {
+          g2 = new URL(g2, opts.baseUrl).href;
+          g2 = opts.prefix.replace("mp_/", "esm_/") + g2;
+        } catch (e) {
+          // ignore, keep same url
+        }
+        return g1 + g2 + g3;
+      });
+    };
   }
 
-  const rules = [
+  // no rewrite: mark as module side-effect
+  function rewriteExport() {
+    return (x, _, _2, opts) => {
+      opts.isModule = true;
+      return x;
+    };
+  }
+
+  return [
     // rewriting 'eval(...)' - invocation
     [/(?:^|\s)\beval\s*\(/, replacePrefixFrom(evalStr, "eval")],
 
@@ -111,25 +134,17 @@ const createJSRules = (addImportRules = false, urlPrefix = "") => {
 
     // rewrite this in && or || expr?
     [/[^|&][|&]{2}\s*this\b\s*(?![|\s&.$](?:[^|&]|$))/, replaceThis()],
+
+    // esm dynamic import
+    [/[^$.]\bimport\s*\(/, replace("import", "____wb_rewrite_import__")],
+
+    // esm import detect + rewrite
+    [IMPORT_RX, rewriteImport()],
+
+    // esm export detect
+    [EXPORT_RX, rewriteExport()],
   ];
-
-  if (addImportRules) {
-    rules.push(
-      // rewrite import -> ____wb_rewrite_import__
-      [/[^$.]\bimport\s*\(/, replace("import", "____wb_rewrite_import__")]
-    );
-
-    rules.push(
-      [ESM_IMPORT_RX, rewriteImport()]
-    );
-  }
-
-  return rules;
-};
-
-// ===========================================================================
-const DEFAULT_JS_RULES = createJSRules();
-
+})();
 
 // ===========================================================================
 class JSRewriter extends RxRewriter {
@@ -137,9 +152,9 @@ class JSRewriter extends RxRewriter {
     super();
 
     if (!extraRules || !extraRules.length) {
-      this.rules = DEFAULT_JS_RULES;
+      this.rules = JS_REWRITE_RULES;
     } else {
-      this.rules = [...DEFAULT_JS_RULES, ...extraRules];
+      this.rules = [...JS_REWRITE_RULES, ...extraRules];
     }
 
     this.compileRules();
@@ -169,29 +184,13 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return `import { ${localDecls.join(", ")} } from "${prefix}__wb_module_decl.js";\n`;
   }
 
-  isModule(text, opts) {
-    if (opts && opts.isModule) {
-      return true;
-    }
-
-    if (text.indexOf("import") >= 0 && text.match(IMPORT_RX)) {
-      return true;
-    }
-
-    if (text.indexOf("export") >= 0 && text.match(EXPORT_RX)) {
-      return true;
-    }
-
-    return false;
-  }
-
   rewrite(text, opts) {
     let newText;
 
-    if (this.isModule(text, opts)) {
-      this.rules = createJSRules(true, opts.prefix.replace("mp_/", "esm_/"));
-      this.compileRules();
-      return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) + super.rewrite(text, opts);
+    newText = super.rewrite(text, opts);
+
+    if (opts.isModule) {
+      return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) + newText;
     }
 
     const wrapGlobals = GLOBALS_RX.exec(text);
