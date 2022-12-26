@@ -1,11 +1,12 @@
 import { RxRewriter } from "./rxrewriter.js";
 
-//const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
-const IMPORT_RX =      /import(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s])(?:.*?)['"\s]/;
+const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
+const EXPORT_RX = /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/m;
+
+const IMPORT_MATCH_RX =  /^\s*?import(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s])(?:.*?)['"\s]/;
 
 const IMPORT_HTTP_RX = /(import(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s]))((?:https?|[./]).*?)(['"\s])/;
 
-const EXPORT_RX = /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/m;
 
 const GLOBAL_OVERRIDES = [
   "window",
@@ -24,7 +25,7 @@ const GLOBALS_CONCAT_STR = GLOBAL_OVERRIDES.map((x) => `(?:^|[^$.])\\b${x}\\b(?:
 const GLOBALS_RX = new RegExp(`(${GLOBALS_CONCAT_STR})`);
 
 // ===========================================================================
-const JS_REWRITE_RULES = (() => {
+const createJSRules = () => {
 
   const thisRw = "_____WB$wombat$check$this$function_____(this)";
 
@@ -37,7 +38,7 @@ const JS_REWRITE_RULES = (() => {
   }
 
   function replacePrefixFrom(prefix, match) {
-    return x => {
+    return (x) => {
       const start = x.indexOf(match);
       if (start === 0) {
         return prefix;
@@ -48,7 +49,7 @@ const JS_REWRITE_RULES = (() => {
   }
 
   function addSuffix(suffix) {
-    return (x, offset, string) => {
+    return (x, _opts, offset, string) => {
       if (offset > 0) {
         const prev = string[offset - 1];
         if (prev === "." || prev === "$") {
@@ -68,7 +69,7 @@ const JS_REWRITE_RULES = (() => {
   }
 
   function replaceThisProp() {
-    return (x, offset, string) => {
+    return (x, _opts, offset, string) => {
       const prev = (offset > 0 ? string[offset - 1] : "");
       if (prev === "\n") {
         return x.replace("this", ";" + thisRw);
@@ -80,29 +81,11 @@ const JS_REWRITE_RULES = (() => {
     };
   }
 
-  // mark as module side-effect + rewrite if http[s] url
-  function rewriteImport() {
-    return (x, _, _2, opts) => {
+  // mark as module as side-effect
+  function replaceMarkModule(src, target) {
+    return (x, opts) => {
       opts.isModule = true;
-      //const prefix = opts.prefix.replace("mp_/", "esm_/");
-
-      return x.replace(IMPORT_HTTP_RX, (_, g1, g2, g3) => {
-        try {
-          g2 = new URL(g2, opts.baseUrl).href;
-          g2 = opts.prefix.replace("mp_/", "esm_/") + g2;
-        } catch (e) {
-          // ignore, keep same url
-        }
-        return g1 + g2 + g3;
-      });
-    };
-  }
-
-  // no rewrite: mark as module side-effect
-  function rewriteExport() {
-    return (x, _, _2, opts) => {
-      opts.isModule = true;
-      return x;
+      return x.replace(src, target);
     };
   }
 
@@ -135,29 +118,20 @@ const JS_REWRITE_RULES = (() => {
     // rewrite this in && or || expr?
     [/[^|&][|&]{2}\s*this\b\s*(?![|\s&.$](?:[^|&]|$))/, replaceThis()],
 
-    // esm dynamic import
-    [/[^$.]\bimport\s*\(/, replace("import", "____wb_rewrite_import__")],
-
-    // esm import detect + rewrite
-    [IMPORT_RX, rewriteImport()],
-
-    // esm export detect
-    [EXPORT_RX, rewriteExport()],
+    // esm dynamic import, if found, mark as module
+    [/[^$.]\bimport\s*\(/, replaceMarkModule("import", "____wb_rewrite_import__")]
   ];
-})();
+};
+
+// ===========================================================================
+const DEFAULT_RULES = createJSRules();
+
 
 // ===========================================================================
 class JSRewriter extends RxRewriter {
   constructor(extraRules) {
     super();
-
-    if (!extraRules || !extraRules.length) {
-      this.rules = JS_REWRITE_RULES;
-    } else {
-      this.rules = [...JS_REWRITE_RULES, ...extraRules];
-    }
-
-    this.compileRules();
+    this.extraRules = extraRules;
 
     this.firstBuff = this.initLocalDecl(GLOBAL_OVERRIDES);
     this.lastBuff = "\n\n}";
@@ -184,12 +158,42 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return `import { ${localDecls.join(", ")} } from "${prefix}__wb_module_decl.js";\n`;
   }
 
+  isModule(text, opts) {
+    if (opts && opts.isModule) {
+      return true;
+    }
+
+    if (text.indexOf("import") >= 0 && text.match(IMPORT_RX)) {
+      return true;
+    }
+
+    if (text.indexOf("export") >= 0 && text.match(EXPORT_RX)) {
+      return true;
+    }
+
+    return false;
+  }
+
   rewrite(text, opts) {
-    let newText;
+    const isModule = this.isModule(text, opts);
 
-    newText = super.rewrite(text, opts);
+    let rules = DEFAULT_RULES;
 
-    if (opts.isModule) {
+    if (isModule) {
+      rules = [...rules, this.getESMImportRule()];
+    }
+
+    if (this.extraRules && this.extraRules.length) {
+      this.rules = [...rules, ...this.extraRules];
+    } else {
+      this.rules = rules;
+    }
+
+    this.compileRules();
+
+    let newText = super.rewrite(text, opts);
+
+    if (isModule || opts.isModule) {
       return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) + newText;
     }
 
@@ -206,6 +210,28 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     }
 
     return newText;
+  }
+
+  getESMImportRule() {
+    // mark as module side-effect + rewrite if http[s] url
+    function rewriteImport() {
+      return (x, opts) => {
+        const prefix = opts.prefix.replace("mp_/", "esm_/");
+
+        return x.replace(IMPORT_HTTP_RX, (_, g1, g2, g3) => {
+          try {
+            g2 = new URL(g2, opts.baseUrl).href;
+            g2 = prefix + g2;
+          } catch (e) {
+            // ignore, keep same url
+          }
+          return g1 + g2 + g3;
+        });
+      };
+    }
+
+    // match and rewrite import statements
+    return [IMPORT_MATCH_RX, rewriteImport()];
   }
 }
 

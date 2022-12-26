@@ -1,5 +1,5 @@
 //import unescapeJs from "unescape-js";
-
+const MAX_BITRATE = 5000000;
 
 // ===========================================================================
 const DEFAULT_RULES = [
@@ -14,13 +14,18 @@ const DEFAULT_RULES = [
       [/"0"\s*?==\s*?\w+\.dash&&/m, ruleReplace("1&&")],
     ]
   },
-  // {
-  //   contains: ["vimeo.com/video"],
-  //   rxRules: [
-  //     [/"dash"[:]/, ruleReplace("\"__dash\":")],
-  //     [/"hls"[:]/, ruleReplace("\"__hls\":")],
-  //   ]
-  // },
+  {
+    contains: ["player.vimeo.com/video/"],
+    rxRules: [
+      [/.+/, ruleRewriteVimeoConfig]
+    ]
+  },
+  {
+    contains: ["master.json?query_string_ranges=0", "master.json?base64"],
+    rxRules: [
+      [/.+/, ruleRewriteVimeoDashManifest]
+    ]
+  },
   {
     contains: ["facebook.com/"],
     rxRules: [
@@ -62,46 +67,25 @@ const DEFAULT_RULES = [
   }
 ];
 
-
 // ===========================================================================
 function ruleReplace(string) {
   return x => string.replace("{0}", x); 
 }
 
-
 // ===========================================================================
-// For older captures, no longer applicable
-// function ruleRewriteFBDash(string) {
-//   let dashManifest = null;
+function setMaxBitrate(opts)
+{
+  let maxBitrate = MAX_BITRATE;
+  const extraOpts = opts.response && opts.response.extraOpts;
 
-//   try {
-//     dashManifest = unescapeJs(string.match(/dash_manifest":"(.*?)","/)[1]);
-//     dashManifest = dashManifest.replace(/\\\//g, "/");
-//   } catch (e) {
-//     console.warn(e);
-//     return string;
-//   }
+  if (opts.save) {
+    opts.save.maxBitrate = maxBitrate;
+  } else if (extraOpts && extraOpts.maxBitrate) {
+    maxBitrate = extraOpts.maxBitrate;
+  }
 
-//   let bestIds;
-
-//   if (string.endsWith("null")) {
-//     bestIds = null;
-//   } else {
-//     bestIds = [];
-//   }
-
-//   const newDashManifest = rewriteDASH(dashManifest, null, bestIds) + "\n";
-
-//   if (bestIds != null && !bestIds.length) {
-//     return string;
-//   }
-
-//   const resultJSON = {"dash_manifest": newDashManifest, "dash_prefetched_representation_ids": bestIds};   
-
-//   const result = JSON.stringify(resultJSON).replace(/</g, "\\u003C").slice(1, -1);
-
-//   return result + ", \"";
-// }
+  return maxBitrate;
+}
 
 // ===========================================================================
 function ruleRewriteTwitterVideo(prefix) {
@@ -111,26 +95,12 @@ function ruleRewriteTwitterVideo(prefix) {
       return string;
     }
 
-    // if (!opts.live && !(opts.response && opts.response.extraOpts && opts.response.extraOpts.rewritten)) {
-    //   return string;
-    // }
-
     const origString = string;
 
     try {
-      const MAX_BITRATE = 5000000;
-
       const W_X_H = /([\d]+)x([\d]+)/;
 
-      const extraOpts = opts.response && opts.response.extraOpts;
-
-      let maxBitrate = MAX_BITRATE;
-
-      if (opts.save) {
-        opts.save.maxBitrate = maxBitrate;
-      } else if (extraOpts && extraOpts.maxBitrate) {
-        maxBitrate = extraOpts.maxBitrate;
-      }
+      const maxBitrate = setMaxBitrate(opts);
 
       string = string.slice(prefix.length);
 
@@ -171,6 +141,70 @@ function ruleRewriteTwitterVideo(prefix) {
       return origString;
     }
   };
+}
+
+// ===========================================================================
+function ruleRewriteVimeoConfig(string) {
+  let config;
+  try {
+    config = JSON.parse(string);
+  } catch (e) {
+    return string;
+  }
+
+  if (config && config.request && config.request.files) {
+    const files = config.request.files;
+    if (typeof(files.progressive) === "object" && files.progressive.length) {
+      if (files.dash) {
+        files.__dash = files.dash;
+        delete files.dash;
+      }
+      if (files.hls) {
+        files.__hls = files.hls;
+        delete files.hls;
+      }
+      return JSON.stringify(config);
+    }
+  }
+
+  return string.replace(/query_string_ranges=1/g, "query_string_ranges=0");
+}
+
+// ===========================================================================
+function ruleRewriteVimeoDashManifest(string, opts) {
+  if (!opts) {
+    return string;
+  }
+
+  let vimeoManifest = null;
+
+  const maxBitrate = setMaxBitrate(opts);
+
+  try {
+    vimeoManifest = JSON.parse(string);
+    console.log("manifest", vimeoManifest);
+  } catch (e) {
+    return string;
+  }
+
+  function filterByBitrate(array, max, mime) {
+    let bestVariant = 0;
+    let bestBitrate = null;
+
+    for (const variant of array) {
+      if (variant.mime_type == mime && variant.bitrate > bestBitrate && variant.bitrate <= max) {
+        bestBitrate = variant.bitrate;
+        bestVariant = variant;
+      }
+    }
+
+    return bestVariant ? [bestVariant] : array;
+  }
+
+  vimeoManifest.video = filterByBitrate(vimeoManifest.video, maxBitrate, "video/mp4");
+  vimeoManifest.audio = filterByBitrate(vimeoManifest.audio, maxBitrate, "audio/mp4");
+
+  return JSON.stringify(vimeoManifest);
 }
 
 // ===========================================================================

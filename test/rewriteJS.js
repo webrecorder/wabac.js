@@ -149,7 +149,7 @@ a = _____WB$wombat$check$this$function_____(this).location\
 
 
 // dynamic import rewrite
-test(rewriteJS,
+test(rewriteJSImport,
   "await import (somefile);",
   "await ____wb_rewrite_import__ (somefile);"
 );
@@ -275,6 +275,20 @@ test(rewriteJS, "$import(5);");
 test(rewriteJSImport, "\
 import\"import.js\";import{A, B, C} from\"test.js\";(function() => { frames[0].href = \"/abc\"; })");
 
+test(rewriteJS, `
+function blah() {
+  const text = "text: import a from B.js";
+}
+`);
+
+test(rewriteJS, `
+function blah() {
+  const text = \`
+import a from "https://example.com/B.js"
+\`;
+}
+
+`);
 
 test(rewriteJSImport, `\
 a = location
