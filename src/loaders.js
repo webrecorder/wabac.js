@@ -534,7 +534,7 @@ class WorkerLoader extends CollectionLoader
 
       let tryHeadOnly = false;
 
-      if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
+      if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip") || config.sourceUrl.startsWith("blob")) {
         // do HEAD request only
         tryHeadOnly = true;
       }
@@ -570,7 +570,7 @@ Make sure this is a valid URL and you have access to this file.`);
 
       const contentLength = sourceLoader.length;
 
-      if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
+      if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip") || config.sourceUrl.startsWith("blob")) {
         loader = new SingleWACZLoader(sourceLoader, config, name);
 
         if (config.onDemand) {
