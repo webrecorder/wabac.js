@@ -17,6 +17,7 @@ import { LiveProxy } from "./liveproxy.js";
 
 import { deleteDB, openDB } from "idb/with-async-ittr";
 import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils.js";
+import { detectFileType, getKnownFileExtension } from "./detecttype.js";
 
 if (!globalThis.self) {
   globalThis.self = globalThis;
@@ -532,22 +533,12 @@ class WorkerLoader extends CollectionLoader
         });
       }
 
-      let tryHeadOnly = false;
-
-      if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
-        // do HEAD request only
-        tryHeadOnly = true;
-      }
+      let sourceExt = getKnownFileExtension(config.sourceName);
       
-      let { abort, response, fileType } = await sourceLoader.doInitialFetch(tryHeadOnly);
+      let { abort, response } = await sourceLoader.doInitialFetch(sourceExt === ".wacz");
 
-      /**
-       * check if archive already has a file extension
-       * otherwise use fileType discerned from 
-       * reading first few bytes of doInitialFetch response
-       */
-      if (!checkKnownFileExtension(config.sourceName)) {
-        config.sourceName = fileType ? `${config.sourceName}.${fileType}` : config.sourceName;
+      if (!sourceExt) {
+        sourceExt = await detectFileType(await response.clone());
       }
 
       const stream = response.body;
@@ -580,7 +571,7 @@ Make sure this is a valid URL and you have access to this file.`);
 
       const contentLength = sourceLoader.length;
 
-      if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
+      if (sourceExt === ".wacz") {
         loader = new SingleWACZLoader(sourceLoader, config, name);
 
         if (config.onDemand) {
@@ -601,7 +592,7 @@ Make sure this is a valid URL and you have access to this file.`);
           return false;
         }
 
-      } else if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
+      } else if (sourceExt === ".warc" || sourceExt === ".warc.gz") {
         if (!config.noCache && (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand)) {
           loader = new WARCLoader(stream, abort, name);
         } else {
@@ -610,21 +601,21 @@ Make sure this is a valid URL and you have access to this file.`);
           db = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
         }
 
-      } else if (config.sourceName.endsWith(".cdxj") || config.sourceName.endsWith(".cdx")) {
+      } else if (sourceExt === ".cdx" || sourceExt === ".cdxj") {
         config.remotePrefix = data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
         loader = new CDXLoader(stream, abort, name);
         type = "remoteprefix";
         db = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
       
-        // } else if (config.sourceName.endsWith(".wbn")) {
+        // } else if (sourceExt === ".wbn") {
         //   //todo: fix
         //   loader = new WBNLoader(await response.arrayBuffer());
         //   config.decode = false;
 
-      } else if (config.sourceName.endsWith(".har")) {
+      } else if (sourceExt === ".har") {
         loader = new HARLoader(await response.json());
         config.decode = false;
-      } else if (config.sourceName.endsWith(".json")) {
+      } else if (sourceExt === ".json") {
         db = new MultiWACZCollection(config);
         loader = new JSONMultiWACZLoader(await response.json(), config.loadUrl);
         type = "multiwacz";
@@ -680,19 +671,5 @@ Make sure this is a valid URL and you have access to this file.`);
   }
 }
 
-export { CollectionLoader, WorkerLoader };
 
-function checkKnownFileExtension(name) {
-  const fileExtensions = [
-    ".warc",
-    ".warc.gz",
-    ".cdx",
-    ".cdxj",
-    ".har",
-    ".json",
-    ".wacz",
-    ".zip"
-  ];
-  const extension = fileExtensions.filter(ext => name.endsWith(ext));
-  return extension.length > 0 ? true : false;
-}
+export { CollectionLoader, WorkerLoader };
