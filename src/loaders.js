@@ -539,7 +539,17 @@ class WorkerLoader extends CollectionLoader
         tryHeadOnly = true;
       }
       
-      let {abort, response} = await sourceLoader.doInitialFetch(tryHeadOnly);
+      let { abort, response, fileType } = await sourceLoader.doInitialFetch(tryHeadOnly);
+
+      /**
+       * check if archive already has a file extension
+       * otherwise use fileType discerned from 
+       * reading first few bytes of doInitialFetch response
+       */
+      if (!checkKnownFileExtension(config.sourceName)) {
+        config.sourceName = fileType ? `${config.sourceName}.${fileType}` : config.sourceName;
+      }
+
       const stream = response.body;
 
       config.onDemand = sourceLoader.canLoadOnDemand && !file.newFullImport;
@@ -670,5 +680,19 @@ Make sure this is a valid URL and you have access to this file.`);
   }
 }
 
-
 export { CollectionLoader, WorkerLoader };
+
+function checkKnownFileExtension(name) {
+  const fileExtensions = [
+    ".warc",
+    ".warc.gz",
+    ".cdx",
+    ".cdxj",
+    ".har",
+    ".json",
+    ".wacz",
+    ".zip"
+  ];
+  const extension = fileExtensions.filter(ext => name.endsWith(ext));
+  return extension.length > 0 ? true : false;
+}
