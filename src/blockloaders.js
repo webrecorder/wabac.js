@@ -401,6 +401,7 @@ class BlobCacheLoader
       try {
         const response = await fetch(this.url);
         this.blob = await response.blob();
+        this.size = this.blob.size;
       } catch (e) {
         console.warn(e);
         throw e;

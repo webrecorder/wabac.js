@@ -17,6 +17,7 @@ import { LiveProxy } from "./liveproxy.js";
 
 import { deleteDB, openDB } from "idb/with-async-ittr";
 import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils.js";
+import { detectFileType, getKnownFileExtension } from "./detectfiletype.js";
 
 if (!globalThis.self) {
   globalThis.self = globalThis;
@@ -532,14 +533,14 @@ class WorkerLoader extends CollectionLoader
         });
       }
 
-      let tryHeadOnly = false;
+      let sourceExt = getKnownFileExtension(config.sourceName);
 
-      if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
-        // do HEAD request only
-        tryHeadOnly = true;
+      let { abort, response } = await sourceLoader.doInitialFetch(sourceExt === ".wacz");
+
+      if (!sourceExt) {
+        sourceExt = await detectFileType(await response.clone());
       }
-      
-      let {abort, response} = await sourceLoader.doInitialFetch(tryHeadOnly);
+
       const stream = response.body;
 
       config.onDemand = sourceLoader.canLoadOnDemand && !file.newFullImport;
@@ -570,7 +571,7 @@ Make sure this is a valid URL and you have access to this file.`);
 
       const contentLength = sourceLoader.length;
 
-      if (config.sourceName.endsWith(".wacz") || config.sourceName.endsWith(".zip")) {
+      if (sourceExt === ".wacz") {
         loader = new SingleWACZLoader(sourceLoader, config, name);
 
         if (config.onDemand) {
@@ -591,7 +592,7 @@ Make sure this is a valid URL and you have access to this file.`);
           return false;
         }
 
-      } else if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
+      } else if (sourceExt === ".warc" || sourceExt === ".warc.gz") {
         if (!config.noCache && (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand)) {
           loader = new WARCLoader(stream, abort, name);
         } else {
@@ -600,21 +601,21 @@ Make sure this is a valid URL and you have access to this file.`);
           db = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
         }
 
-      } else if (config.sourceName.endsWith(".cdxj") || config.sourceName.endsWith(".cdx")) {
+      } else if (sourceExt === ".cdx" || sourceExt === ".cdxj") {
         config.remotePrefix = data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
         loader = new CDXLoader(stream, abort, name);
         type = "remoteprefix";
         db = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
       
-        // } else if (config.sourceName.endsWith(".wbn")) {
+        // } else if (sourceExt === ".wbn") {
         //   //todo: fix
         //   loader = new WBNLoader(await response.arrayBuffer());
         //   config.decode = false;
 
-      } else if (config.sourceName.endsWith(".har")) {
+      } else if (sourceExt === ".har") {
         loader = new HARLoader(await response.json());
         config.decode = false;
-      } else if (config.sourceName.endsWith(".json")) {
+      } else if (sourceExt === ".json") {
         db = new MultiWACZCollection(config);
         loader = new JSONMultiWACZLoader(await response.json(), config.loadUrl);
         type = "multiwacz";
