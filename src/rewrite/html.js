@@ -1,6 +1,6 @@
-import RewritingStream from "parse5-html-rewriting-stream";
+import { RewritingStream } from "parse5-html-rewriting-stream";
 
-import { startsWithAny, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE } from "../utils";
+import { startsWithAny, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, REPLAY_TOP_FRAME_NAME } from "../utils.js";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -151,7 +151,7 @@ class HTMLRewriter
         attr.value = this.rewriteUrl(rewriter, value);
       }
 
-      else if (name === "srcset") {
+      else if (name === "srcset" || (name === "imagesrcset" && tagName === "link")) {
         attr.value = this.rewriteSrcSet(value, rewriter);
       }
 
@@ -183,10 +183,12 @@ class HTMLRewriter
       }
 
       else if (tagName === "script" && name === "src") {
-        const newValue = this.rewriteUrl(rewriter, attr.value);
+        const rwType = this.getScriptRWType(tag);
+        const mod = (rwType === "module") ? "esm_" : null;
+        const newValue = this.rewriteUrl(rewriter, attr.value, false, mod);
         if (newValue === attr.value) {// && this.isRewritableUrl(newValue)) {
           tag.attrs.push({"name": "__wb_orig_src", "value": attr.value});
-          attr.value = this.rewriteUrl(rewriter, attr.value, true);
+          attr.value = this.rewriteUrl(rewriter, attr.value, true, mod);
         } else {
           attr.value = newValue;
         }
@@ -212,6 +214,14 @@ class HTMLRewriter
         }
       }
 
+      else if (name === "target") {
+        const target = attr.value;
+
+        if (target === "_blank" || target === "_parent" || target === "_top" || target === "new") {
+          attr.value = REPLAY_TOP_FRAME_NAME;
+        }
+      }
+
       else if (name === "href" || name === "src") {
         attr.value = this.rewriteUrl(rewriter, attr.value);
       }
@@ -234,6 +244,20 @@ class HTMLRewriter
     return null;
   }
 
+  getScriptRWType(tag) {
+    const scriptType = this.getAttr(tag.attrs, "type");
+
+    if (scriptType === "module") {
+      return "module";
+    } else if (scriptType === "application/json") {
+      return "json";
+    } else if (!scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0)) {
+      return "js";
+    } else {
+      return "";
+    }
+  }
+
   async rewrite(response) {
     if (!response.buffer && !response.reader) {
       //console.warn("Missing response body for: " + response.url);
@@ -248,12 +272,12 @@ class HTMLRewriter
     const rewriter = this.rewriter;
 
     const rwStream = new RewritingStream();
-    rwStream.tokenizer.preprocessor.bufferWaterline = MAX_STREAM_CHUNK_SIZE;
+    rwStream.tokenizer.preprocessor.bufferWaterline = Infinity;
 
     let insertAdded = false;
 
     let context = "";
-    let scriptRw = false;
+    let scriptRw = "";
     let replaceTag = null;
 
     const addInsert = () => {
@@ -287,10 +311,7 @@ class HTMLRewriter
         }
 
         context = startTag.tagName;
-
-        const scriptType = this.getAttr(startTag.attrs, "type");
-
-        scriptRw = !scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0);
+        scriptRw = this.getScriptRWType(startTag);
         break;
       }
 
@@ -323,25 +344,29 @@ class HTMLRewriter
     });
 
     rwStream.on("text", (textToken, raw) => {
-      if (context === "script") {
-        doEmit(scriptRw ? rewriter.rewriteJS(textToken.text) : textToken.text);
-      } else if (context === "style") {
-        doEmit(rewriter.rewriteCSS(textToken.text));
-      } else {
-        // if raw data is different and raw data potentially cut off, just use the parsedText
-        if (raw !== textToken.text && (textToken.sourceCodeLocation.startOffset - rwStream.posTracker.droppedBufferSize) < 0) {
-          raw = textToken.text;
-        }
-        raw = this.rewriteHTMLText(raw);
-        doEmit(raw);
-      }
-    });
+      const text = (() => {
+        if (context === "script") {
+          const prefix = rewriter.prefix;
+          const isModule = scriptRw === "module";
 
-    function doEmit(text) {
+          if (scriptRw === "js" || isModule) {
+            return rewriter.rewriteJS(textToken.text, {isModule, prefix});
+          } else if (scriptRw === "json") {
+            return rewriter.rewriteJSON(textToken.text, {prefix});
+          } else {
+            return textToken.text;
+          }
+        } else if (context === "style") {
+          return rewriter.rewriteCSS(textToken.text);
+        } else {
+          return this.rewriteHTMLText(raw);
+        }
+      })();
+
       for (let i = 0; i < text.length; i += MAX_STREAM_CHUNK_SIZE) {
         rwStream.emitRaw(text.slice(i, i + MAX_STREAM_CHUNK_SIZE));
       }
-    }
+    });
 
     const sourceGen = response.createIter();
     let hasData = false;
@@ -377,12 +402,13 @@ class HTMLRewriter
     return response;
   }
 
-  rewriteUrl(rewriter, text, forceAbs = false) {
+  rewriteUrl(rewriter, text, forceAbs = false, mod = null) {
     // if html charset not utf-8, just convert the url to utf-8 for rewriting
     if (!this.isCharsetUTF8) {
       text = decoder.decode(encodeLatin1(text));
     }
-    return rewriter.rewriteUrl(text, forceAbs);
+    const res = rewriter.rewriteUrl(text, forceAbs);
+    return mod ? res.replace("mp_/", mod + "/") : res;
   }
 
   rewriteHTMLText(text) {

@@ -1,21 +1,17 @@
-"use strict";
-
 import test from "ava";
 
-import path from "path";
-
-import { doRewrite } from "./helpers";
+import { doRewrite } from "./helpers/index.js";
 
 import { promises as fs} from "fs";
 
-import { dashOutputOpts } from "../src/rewrite/rewriteVideo";
+import { dashOutputOpts } from "../src/rewrite/rewriteVideo.js";
 
 dashOutputOpts.format = true;
 
 
 // ===========================================================================
 test("DASH", async t => {
-  const content = await fs.readFile(path.join(__dirname, "data", "sample_dash.mpd"), "utf-8");
+  const content = await fs.readFile(new URL("./data/sample_dash.mpd", import.meta.url), "utf-8");
 
   const result = await doRewrite({content, contentType: "application/dash+xml", url: "http://example.com/path/manifest.mpd", isLive: true});
 
@@ -88,7 +84,7 @@ test('FB DASH 2', async t => {
 
 
 test("HLS DEFAULT MAX", async t => {
-  const content = await fs.readFile(path.join(__dirname, "data", "sample_hls.m3u8"), "utf-8");
+  const content = await fs.readFile(new URL("./data/sample_hls.m3u8", import.meta.url), "utf-8");
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
 
@@ -106,7 +102,7 @@ http://example.com/video_1.m3u8`;
 
 
 test("HLS DEFAULT MAX - NATIVE STREAMING", async t => {
-  const content = await fs.readFile(path.join(__dirname, "data", "sample_hls.m3u8"), "utf-8");
+  const content = await fs.readFile(new URL("./data/sample_hls.m3u8", import.meta.url), "utf-8");
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
 
@@ -117,7 +113,7 @@ test("HLS DEFAULT MAX - NATIVE STREAMING", async t => {
 #EXTM3U
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="WebVTT",NAME="English",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="https://example.com/subtitles/"
 #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=610000,RESOLUTION=640x360,CODECS="avc1.66.30, mp4a.40.2",SUBTITLES="WebVTT"
-http://localhost:8080/prefix/20201226101010/http://example.com/video_1.m3u8`;
+http://localhost:8080/prefix/20201226101010mp_/http://example.com/video_1.m3u8`;
 
   t.is(result, expected, result);
 });
@@ -126,7 +122,7 @@ http://localhost:8080/prefix/20201226101010/http://example.com/video_1.m3u8`;
 
 
 test("HLS DEFAULT OLD REPLAY MAX", async t => {
-  const content = await fs.readFile(path.join(__dirname, "data", "sample_hls.m3u8"), "utf-8");
+  const content = await fs.readFile(new URL("./data/sample_hls.m3u8", import.meta.url), "utf-8");
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
 
@@ -234,8 +230,46 @@ test("Twitter rewrite json", async t => {
     const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: api + "some/endpoint", extraOpts});
     t.deepEqual(JSON.parse(result), expected);
   }
+});
 
 
+test("Twitter rewrite embedded json", async t => {
 
+  const content = {
+    "video": {
+      "some_data": "other",
+      "variants": [{
+        "type": "application/x-mpegURL",
+        "src": "https://example.com/100x100/A"
+      }, {
+        "type": "video/mp4",
+        "src": "https://example.com/100x100/B"
+      }, {
+        "type": "video/mp4",
+        "src": "https://example.com/200x200/B"
+      }, {
+        "type": "video/mp4",
+        "src": "https://example.com/300x300/B"
+      }],
+      "viewCount": 1234
+    }
+  };
 
+  const expected = {
+    "video": {
+      "some_data": "other",
+      "variants": [{
+        "type": "video/mp4",
+        "src": "https://example.com/300x300/B"
+      }],
+      "viewCount": 1234
+    }
+  };
+
+  const extraOpts = {rewritten: true};
+
+  for (const api of ["https://cdn.syndication.twimg.com/tweet-result?some=value"]) {
+    const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: api + "some/endpoint", extraOpts});
+    t.deepEqual(JSON.parse(result), expected);
+  }
 });

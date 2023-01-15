@@ -1,6 +1,6 @@
 import test from "ava";
 
-import { doRewrite } from "./helpers";
+import { doRewrite } from "./helpers/index.js";
 
 
 // ===========================================================================
@@ -70,7 +70,7 @@ let arguments;
 
 function wrapImport(text) {
   return `\
-import { window, globalThis, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010/__wb_module_decl.js";
+import { window, globalThis, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010mp_/__wb_module_decl.js";
 ${text}`;
 
 }
@@ -97,8 +97,12 @@ test(rewriteJS,
   "(a,b,Q.contains(i[t], _____WB$wombat$check$this$function_____(this)))");
 
 test(rewriteJSWrapped,
-  "this. location = http://example.com/",
-  "this. location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/");
+  "location = http://example.com/",
+  "location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/");
+
+test(rewriteJSWrapped,
+  " location = http://example.com/2",
+  " location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/2");
 
 test(rewriteJS,
   " eval(a)",
@@ -124,6 +128,11 @@ test(rewriteJS,
   "foo(a, WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),data));"
 );
 
+test(rewriteJS,
+  "somewindow.postMessage({'a': 'b'})",
+  "somewindow.__WB_pmw(self).postMessage({'a': 'b'})",
+);
+
 // import rewrite
 test(rewriteJSImport, `\
 
@@ -137,6 +146,13 @@ import "foo";
 
 a = _____WB$wombat$check$this$function_____(this).location\
 `);
+
+
+// dynamic import rewrite
+test(rewriteJSImport,
+  "await import (somefile);",
+  "await ____wb_rewrite_import__ (somefile);"
+);
 
 
 // import/export module rewrite
@@ -153,18 +169,53 @@ export { a };
 `);
 
 
-test(rewriteJSImport, "\
-import\"./import.js\";import{A, B, C} from\"test.js\";(function() => { frames[0].href = \"/abc\"; })");
+// rewrite ESM module import
+test(rewriteJSImport,
+  "import \"https://example.com/file.js\"",
+  "import \"http://localhost:8080/prefix/20201226101010esm_/https://example.com/file.js\""
+);
+
+test(rewriteJSImport, `
+import {A, B}
+ from
+ "https://example.com/file.js"`, `
+import {A, B}
+ from
+ "http://localhost:8080/prefix/20201226101010esm_/https://example.com/file.js"`
+);
+
+test(rewriteJSImport, `
+import * from "https://example.com/file.js"
+import A from "http://example.com/path/file2.js";
+
+import {C, D} from "./abc.js";
+import {X, Y} from "../parent.js";
+import {E, F, G} from "/path.js";
+import { Z } from "../../../path.js";
+
+B = await import(somefile);
+`,`
+import * from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/file.js"
+import A from "http://localhost:8080/prefix/20201226101010esm_/http://example.com/path/file2.js";
+
+import {C, D} from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/some/path/abc.js";
+import {X, Y} from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/some/parent.js";
+import {E, F, G} from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/path.js";
+import { Z } from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/path.js";
+
+B = await ____wb_rewrite_import__(somefile);
+`
+);
 
 
-test(rewriteJSImport, `\
-a = location
-
-export{ a, $ as b };
-`);
 
 
 // Not Rewritten
+test(rewriteJS, `\
+(function() { return "export class foo"; })
+`);
+
+
 test(rewriteJS, "return this.abc");
 
 test(rewriteJS, "return this object");
@@ -193,6 +244,8 @@ test(rewriteJSWrapped, "window.eval(a)");
 
 test(rewriteJSWrapped, "x = window.eval; x(a);");
 
+test(rewriteJSWrapped, "this. location = http://example.com/");
+
 test(rewriteJS, "obj = { eval : 1 }");
 
 test(rewriteJS, "x = obj.eval");
@@ -210,4 +263,36 @@ test(rewriteJS, "if (a.self.foo) { console.log('blah') }");
 test(rewriteJSWrapped, "window.x = 5");
 
 test(rewriteJS, "a.window.x = 5");
+
+test(rewriteJS,  "  postMessage({'a': 'b'})");
+
+test(rewriteJS, "simport(5);");
+
+test(rewriteJS, "a.import(5);");
+
+test(rewriteJS, "$import(5);");
+
+test(rewriteJSImport, "\
+import\"import.js\";import{A, B, C} from\"test.js\";(function() => { frames[0].href = \"/abc\"; })");
+
+test(rewriteJS, `
+function blah() {
+  const text = "text: import a from B.js";
+}
+`);
+
+test(rewriteJS, `
+function blah() {
+  const text = \`
+import a from "https://example.com/B.js"
+\`;
+}
+
+`);
+
+test(rewriteJSImport, `\
+a = location
+
+export{ a, $ as b };
+`);
 

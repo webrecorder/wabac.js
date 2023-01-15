@@ -1,10 +1,10 @@
 "use strict";
 
-import { openDB, deleteDB } from "idb/with-async-ittr.js";
+import { openDB, deleteDB } from "idb/with-async-ittr";
 import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage,
-  getTS, getStatusText, randomId, PAGE_STATE_SYNCED } from "./utils";
-import { fuzzyMatcher } from "./fuzzymatcher";
-import { ArchiveResponse } from "./response";
+  getTS, getStatusText, randomId, PAGE_STATE_SYNCED } from "./utils.js";
+import { fuzzyMatcher } from "./fuzzymatcher.js";
+import { ArchiveResponse } from "./response.js";
 
 
 const MAX_FUZZY_MATCH = 128000;
@@ -12,6 +12,13 @@ const MAX_RESULTS = 16;
 const MAX_DATE_TS = new Date("9999-01-01").getTime();
 
 const REVISIT = "warc/revisit";
+
+const EMPTY_PAYLOAD_SHA256 = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+// sha-1 digests often base32 encoded
+const EMPTY_PAYLOAD_SHA1 = "sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ";
+
+const DB_VERSION = 4;
 
 // ===========================================================================
 class ArchiveDB {
@@ -22,7 +29,7 @@ class ArchiveDB {
     const { minDedupSize, noRefCounts } = opts;
     this.minDedupSize = Number.isInteger(minDedupSize) ? minDedupSize : 1024;
 
-    this.version = 3;
+    this.version = DB_VERSION;
 
     this.autoHttpsCheck = true;
     this.useRefCounts = !noRefCounts;
@@ -42,7 +49,11 @@ class ArchiveDB {
         oldVersion = oldV;
         this._initDB(db, oldV, newV, tx);
       },
-      blocking: (e) => { if (!e || e.newVersion === null) { this.close(); }}
+      blocking: (_, oldV) => {
+        if (!oldV) {
+          this.close();
+        }
+      }
     });
 
     if (oldVersion === 1) {
@@ -91,8 +102,8 @@ class ArchiveDB {
   async delete() {
     this.close();
     await deleteDB(this.name, {
-      blocked(reason) {
-        console.log("Unable to delete: " + reason);
+      blocked(_, e) {
+        console.log("Unable to delete: " + e);
       }
     });
   }
@@ -263,6 +274,18 @@ class ArchiveDB {
 
   async getPagesWithState(state) {
     return await this.db.getAllFromIndex("pages", "state", state);
+  }
+
+  async getVerifyInfo() {
+    return {};
+  }
+
+  async addVerifyData() {
+    return;
+  }
+
+  async addVerifyDataList() {
+    return;
   }
 
   async dedupResource(digest, payload, tx, count = 1) {
@@ -507,6 +530,9 @@ class ArchiveDB {
 
   async loadPayload(result/*, opts*/) {
     if (result.digest && !result.payload) {
+      if (result.digest === EMPTY_PAYLOAD_SHA256 || result.digest === EMPTY_PAYLOAD_SHA1) {
+        return new Uint8Array([]);
+      }
       const payloadRes = await this.db.get("payload", result.digest);
       if (!payloadRes) {
         return null;

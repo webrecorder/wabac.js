@@ -1,6 +1,6 @@
-import SAXParser from "parse5-sax-parser";
+import { SAXParser } from "parse5-sax-parser";
 
-import { decodeContent } from "./rewrite/decoder";
+import { decodeContent } from "./rewrite/decoder.js";
 
 
 const SKIPPED_TAGS = ["script", "style", "header", "footer", "banner-div", "noscript"];

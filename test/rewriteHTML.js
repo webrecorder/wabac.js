@@ -1,12 +1,10 @@
-"use strict";
-
 import test from "ava";
 
-import { doRewrite } from "./helpers";
+import { doRewrite } from "./helpers/index.js";
 
 
 // ===========================================================================
-async function rewriteHtml(t, content, expected, {useBaseRules = true, url = "", contentType="text/html; charset=UTF-8", headInsertText=null, encoding="utf8"} = {}) {
+async function rewriteHtml(t, content, expected, {useBaseRules = false, url = "", contentType="text/html; charset=UTF-8", headInsertText=null, encoding="utf8"} = {}) {
   const rwArgs = {content, contentType, useBaseRules, encoding};
 
   if (url) {
@@ -44,15 +42,25 @@ let parent = _____WB$wombat$assign$function_____("parent");
 let frames = _____WB$wombat$assign$function_____("frames");
 let opener = _____WB$wombat$assign$function_____("opener");
 let arguments;
-\n` + text + "\n\n}";
 
+${text}
+
+}`;
+
+}
+
+
+function wrapScriptModule(text) {
+  return `\
+<script type="module">import { window, globalThis, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010mp_/__wb_module_decl.js";
+${text}</script>`;
 }
 
 
 // ===========================================================================
 test(rewriteHtml,
   "<a href=\"https://example.com/some/path\"></a>",
-  "<a href=\"http://localhost:8080/prefix/20201226101010/https://example.com/some/path\"></a>");
+  "<a href=\"http://localhost:8080/prefix/20201226101010mp_/https://example.com/some/path\"></a>");
 
 test(rewriteHtml,
   "<HTML><A Href=\"page.html\">Text</a></hTmL>",
@@ -60,30 +68,35 @@ test(rewriteHtml,
 
 test(rewriteHtml, 
   "<body x=\"y\"><img src=\"../img.gif\"/><br/></body>",
-  "<body x=\"y\"><img src=\"http://localhost:8080/prefix/20201226101010/https://example.com/some/img.gif\"/><br/></body>");
+  "<body x=\"y\"><img src=\"http://localhost:8080/prefix/20201226101010mp_/https://example.com/some/img.gif\"/><br/></body>");
 
 test(rewriteHtml, 
   "<table background=\"/img.gif\">",
-  "<table background=\"/prefix/20201226101010/https://example.com/img.gif\">");
+  "<table background=\"/prefix/20201226101010mp_/https://example.com/img.gif\">");
+
+test("A tag with target", rewriteHtml,
+  "<HTML><A Href=\"page.html\" target=\"_blank\">Text</a></hTmL>",
+  "<html><a href=\"page.html\" target=\"___wb_replay_top_frame\">Text</a></html>");
+
 
 // Base
 test("BASE tag", rewriteHtml,
   "<html><head><base href=\"http://example.com/diff/path/file.html\"/>",
-  "<html><head><base href=\"http://localhost:8080/prefix/20201226101010/http://example.com/diff/path/file.html\"/>");
+  "<html><head><base href=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/diff/path/file.html\"/>");
 
 // Full Path Scheme Rel Base
 test("BASE tag", rewriteHtml,
   "<base href=\"//example.com\"/><img src=\"/foo.gif\"/>",
-  "<base href=\"//localhost:8080/prefix/20201226101010///example.com/\"/><img src=\"/prefix/20201226101010/https://example.com/foo.gif\"/>");
+  "<base href=\"//localhost:8080/prefix/20201226101010mp_///example.com/\"/><img src=\"/prefix/20201226101010mp_/https://example.com/foo.gif\"/>");
 
 test("BASE tag", rewriteHtml,
   "<html><head><base href=\"/other/file.html\"/>",
-  "<html><head><base href=\"/prefix/20201226101010/https://example.com/other/file.html\"/>");
+  "<html><head><base href=\"/prefix/20201226101010mp_/https://example.com/other/file.html\"/>");
 
 // Rel Base + example
 test("BASE tag", rewriteHtml,
   "<html><head><base href=\"/other/file.html\"/><a href=\"/path.html\">",
-  "<html><head><base href=\"/prefix/20201226101010/https://example.com/other/file.html\"/><a href=\"/prefix/20201226101010/https://example.com/path.html\">");
+  "<html><head><base href=\"/prefix/20201226101010mp_/https://example.com/other/file.html\"/><a href=\"/prefix/20201226101010mp_/https://example.com/path.html\">");
 
 test("BASE tag", rewriteHtml,
   "<base href=\"./static/\"/><img src=\"image.gif\"/>",
@@ -92,16 +105,16 @@ test("BASE tag", rewriteHtml,
 // Rel Base
 test("BASE tag", rewriteHtml,
   "<base href=\"./static/\"/><a href=\"/static/\"/>",
-  "<base href=\"./static/\"/><a href=\"/prefix/20201226101010/https://example.com/static/\"/>");
+  "<base href=\"./static/\"/><a href=\"/prefix/20201226101010mp_/https://example.com/static/\"/>");
 
 // Ensure trailing slash
 test("BASE tag", rewriteHtml,
   "<base href=\"http://example.com\"/>",
-  "<base href=\"http://localhost:8080/prefix/20201226101010/http://example.com/\"/>");
+  "<base href=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/\"/>");
 
 test("BASE tag", rewriteHtml,
   "<base href=\"//example.com?foo\"/>",
-  "<base href=\"//localhost:8080/prefix/20201226101010///example.com/?foo\"/>");
+  "<base href=\"//localhost:8080/prefix/20201226101010mp_///example.com/?foo\"/>");
 
 // Base relative
 test("BASE tag", rewriteHtml,
@@ -144,7 +157,7 @@ test("skip hashtag", rewriteHtml,
 // diff from pywb: decoded
 test("HTML Entities", rewriteHtml,
   "<a href=\"http&#x3a;&#x2f;&#x2f;example.com&#x2f;path&#x2f;\">",
-  "<a href=\"http://localhost:8080/prefix/20201226101010/http://example.com/path/\">");
+  "<a href=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/path/\">");
 
 // diff from pywb: no empty attr
 test("empty attr", rewriteHtml,
@@ -153,23 +166,23 @@ test("empty attr", rewriteHtml,
 
 test("unicode", rewriteHtml,
   "<a href=\"http://испытание.испытание/\">испытание</a>",
-  "<a href=\"http://localhost:8080/prefix/20201226101010/http://испытание.испытание/\">испытание</a>");
+  "<a href=\"http://localhost:8080/prefix/20201226101010mp_/http://испытание.испытание/\">испытание</a>");
 
 // diff from pywb: decoded
 test("HTML Unescape URL", rewriteHtml,
   "<a href=\"http&#x3a;&#x2f;&#x2f;www&#x2e;example&#x2e;com&#x2f;path&#x2f;file.html\">",
-  "<a href=\"http://localhost:8080/prefix/20201226101010/http://www.example.com/path/file.html\">");
+  "<a href=\"http://localhost:8080/prefix/20201226101010mp_/http://www.example.com/path/file.html\">");
 
 // diff from pywb: decoded
 test("HTML Unescape URL", rewriteHtml,
   "<a href=\"&#x2f;&#x2f;www&#x2e;example&#x2e;com&#x2f;path&#x2f;file.html\">",
-  "<a href=\"//localhost:8080/prefix/20201226101010///www.example.com/path/file.html\">");
+  "<a href=\"//localhost:8080/prefix/20201226101010mp_///www.example.com/path/file.html\">");
 
 // META tag
 
 test("<meta> tag", rewriteHtml,
   "<META http-equiv=\"refresh\" content=\"10; URL=/abc/def.html\">",
-  "<meta http-equiv=\"refresh\" content=\"10; URL=/prefix/20201226101010/https://example.com/abc/def.html\">");
+  "<meta http-equiv=\"refresh\" content=\"10; URL=/prefix/20201226101010mp_/https://example.com/abc/def.html\">");
 
 test("<meta> tag", rewriteHtml,
   "<meta http-equiv=\"Content-type\" content=\"text/html; charset=utf-8\" />",
@@ -185,7 +198,7 @@ test("<meta> tag", rewriteHtml,
 
 test("<meta> tag", rewriteHtml,
   "<meta property=\"og:image\" content=\"http://example.com/example.jpg\">",
-  "<meta property=\"og:image\" content=\"http://localhost:8080/prefix/20201226101010/http://example.com/example.jpg\">");
+  "<meta property=\"og:image\" content=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/example.jpg\">");
 
 test("<meta> tag", rewriteHtml,
   "<meta property=\"og:image\" content=\"example.jpg\">",
@@ -201,11 +214,11 @@ test("<meta> tag", rewriteHtml,
 
 test("data attr", rewriteHtml,
   "<div data-url=\"http://example.com/a/b/c.html\" data-some-other-value=\"http://example.com/img.gif\">",
-  "<div data-url=\"http://localhost:8080/prefix/20201226101010/http://example.com/a/b/c.html\" data-some-other-value=\"http://localhost:8080/prefix/20201226101010/http://example.com/img.gif\">");
+  "<div data-url=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/a/b/c.html\" data-some-other-value=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/img.gif\">");
 
 test("param tag", rewriteHtml,
   "<param value=\"http://example.com/\"/>",
-  "<param value=\"http://localhost:8080/prefix/20201226101010/http://example.com/\"/>");
+  "<param value=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/\"/>");
 
 test("param tag", rewriteHtml,
   "<param value=\"foo bar\"/>",
@@ -214,48 +227,48 @@ test("param tag", rewriteHtml,
 // srcset attrib: simple
 test("srcset", rewriteHtml,
   "<img srcset=\"http://example.com\">",
-  "<img srcset=\"http://localhost:8080/prefix/20201226101010/http://example.com\">");
+  "<img srcset=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com\">");
 
 // srcset attrib: single comma-containing
 test("srcset", rewriteHtml,
   "<img srcset=\"http://example.com/123,foo\">",
-  "<img srcset=\"http://localhost:8080/prefix/20201226101010/http://example.com/123,foo\">");
+  "<img srcset=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/123,foo\">");
 
 // srcset attrib: single comma-containing plus descriptor
 test("srcset", rewriteHtml,
   "<img srcset=\"http://example.com/123,foo 2w\">",
-  "<img srcset=\"http://localhost:8080/prefix/20201226101010/http://example.com/123,foo 2w\">");
+  "<img srcset=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/123,foo 2w\">");
 
 // srcset attrib: comma-containing absolute url and relative url, separated by comma and space
 test("srcset", rewriteHtml,
   "<img srcset=\"http://example.com/123,foo, /bar,bar 2w\">",
-  "<img srcset=\"http://localhost:8080/prefix/20201226101010/http://example.com/123,foo, /prefix/20201226101010/https://example.com/bar,bar 2w\">");
+  "<img srcset=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/123,foo, /prefix/20201226101010mp_/https://example.com/bar,bar 2w\">");
 
 // srcset attrib: comma-containing relative url and absolute url, separated by comma and space
 test("srcset", rewriteHtml,
   "<img srcset=\"/bar,bar 2w, http://example.com/123,foo\">",
-  "<img srcset=\"/prefix/20201226101010/https://example.com/bar,bar 2w, http://localhost:8080/prefix/20201226101010/http://example.com/123,foo\">");
+  "<img srcset=\"/prefix/20201226101010mp_/https://example.com/bar,bar 2w, http://localhost:8080/prefix/20201226101010mp_/http://example.com/123,foo\">");
 
 // srcset attrib: absolute urls with descriptors, separated by comma (no space)
 test("srcset", rewriteHtml,
   "<img srcset=\"http://example.com/123 2w,http://example.com/ 4w\">",
-  "<img srcset=\"http://localhost:8080/prefix/20201226101010/http://example.com/123 2w, http://localhost:8080/prefix/20201226101010/http://example.com/ 4w\">");
+  "<img srcset=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/123 2w, http://localhost:8080/prefix/20201226101010mp_/http://example.com/ 4w\">");
 
 // srcset attrib: absolute url with descriptor, separated by comma (no space) from absolute url without descriptor
 test("srcset", rewriteHtml,
   "<img srcset=\"http://example.com/123 2x,http://example.com/\">",
-  "<img srcset=\"http://localhost:8080/prefix/20201226101010/http://example.com/123 2x, http://localhost:8080/prefix/20201226101010/http://example.com/\">");
+  "<img srcset=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/123 2x, http://localhost:8080/prefix/20201226101010mp_/http://example.com/\">");
 
 // srcset attrib: absolute url without descriptor, separated by comma (no space) from absolute url with descriptor
 test("srcset", rewriteHtml,
   "<img srcset=\"http://example.com/123,http://example.com/ 2x\">",
-  "<img srcset=\"http://localhost:8080/prefix/20201226101010/http://example.com/123, http://localhost:8080/prefix/20201226101010/http://example.com/ 2x\">");
+  "<img srcset=\"http://localhost:8080/prefix/20201226101010mp_/http://example.com/123, http://localhost:8080/prefix/20201226101010mp_/http://example.com/ 2x\">");
 
 // complex srcset attrib
 // diff: enforce scheme-rel
 test("srcset", rewriteHtml,
   "<img srcset=\"//example.com/1x,1x 2w, //example1.com/foo 2x, http://example.com/bar,bar 4x\">",
-  "<img srcset=\"//localhost:8080/prefix/20201226101010///example.com/1x,1x 2w, //localhost:8080/prefix/20201226101010///example1.com/foo 2x, http://localhost:8080/prefix/20201226101010/http://example.com/bar,bar 4x\">");
+  "<img srcset=\"//localhost:8080/prefix/20201226101010mp_///example.com/1x,1x 2w, //localhost:8080/prefix/20201226101010mp_///example1.com/foo 2x, http://localhost:8080/prefix/20201226101010mp_/http://example.com/bar,bar 4x\">");
 
 // empty srcset attrib
 test("srcset", rewriteHtml,
@@ -266,44 +279,75 @@ test("srcset", rewriteHtml,
 // pywb diff: no script url rewriting!
 test("script proxy wrapped", rewriteHtml,
   "<script>window.location = \"http://example.com/a/b/c.html\"</script>",
-  `<script>${wrapScript("window.location = \"http://example.com/a/b/c.html\"")}</script>`,
-  {useBaseRules: false});
+  `<script>${wrapScript("window.location = \"http://example.com/a/b/c.html\"")}</script>`
+);
 
 // pywb diff: no script url rewriting!
 test("script not wrapped", rewriteHtml,
   "<script>window.location = \"http://example.com/a/b/c.html\"</script>",
-  "<script>window.location = \"http://example.com/a/b/c.html\"</script>");
+  "<script>window.location = \"http://example.com/a/b/c.html\"</script>",
+  {useBaseRules: true}
+);
 
 // no rewriting if no props
 test("script", rewriteHtml,
   "<script>var foo = \"http://example.com/a/b/c.html\"</script>",
-  "<script>var foo = \"http://example.com/a/b/c.html\"</script>");
+  "<script>var foo = \"http://example.com/a/b/c.html\"</script>"
+);
 
 // SCRIPT tag with json
 test("script", rewriteHtml,
   "<script type=\"application/json\">{\"embed top test\": \"http://example.com/a/b/c.html\"}</script>",
-  "<script type=\"application/json\">{\"embed top test\": \"http://example.com/a/b/c.html\"}</script>");
+  "<script type=\"application/json\">{\"embed top test\": \"http://example.com/a/b/c.html\"}</script>"
+);
+
+// SCRIPT tag with python / other
+test("script", rewriteHtml,
+  "<script type=\"python\">print(\"top\")</script>",
+  "<script type=\"python\">print(\"top\")</script>"
+);
+
+// SCRIPT tag ensure reset after known type
+test("script", rewriteHtml,
+  `<script type="application/javascript">document.location.href = "abc";</script>
+   <script type="python">print("top")</script>`,
+  `<script type="application/javascript">${wrapScript("document.location.href = \"abc\";")}</script>
+   <script type="python">print("top")</script>`
+);
 
 // Script tag with super relative src
 test("script", rewriteHtml,
   "<script src=\"js/func.js\"></script>",
-  "<script src=\"http://localhost:8080/prefix/20201226101010/https://example.com/some/path/js/func.js\" __wb_orig_src=\"js/func.js\"></script>");
+  "<script src=\"http://localhost:8080/prefix/20201226101010mp_/https://example.com/some/path/js/func.js\" __wb_orig_src=\"js/func.js\"></script>"
+);
 
 test("script", rewriteHtml,
   "<script src=\"https://example.com/some/path/js/func.js\"></script>",
-  "<script src=\"http://localhost:8080/prefix/20201226101010/https://example.com/some/path/js/func.js\"></script>");
+  "<script src=\"http://localhost:8080/prefix/20201226101010mp_/https://example.com/some/path/js/func.js\"></script>"
+);
+
+
+// Script tag with module -- need to use esm_ modifier
+test("script", rewriteHtml,
+  "<script src=\"js/func.js\" type=\"module\"></script>",
+  "<script src=\"http://localhost:8080/prefix/20201226101010esm_/https://example.com/some/path/js/func.js\" type=\"module\" __wb_orig_src=\"js/func.js\"></script>"
+);
 
 // eval in script
 test("script", rewriteHtml,
   "<script>eval('a = foo;');</script>",
   "<script>WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),'a = foo;');</script>",
-  {useBaseRules: false}
 );
 
 test("script", rewriteHtml,
   "<script>a = b;\n eval  ( 'a = \"foo\";');</script>",
   "<script>a = b;\n WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(), 'a = \"foo\";');</script>",
-  {useBaseRules: false}
+);
+
+// module script
+test("script", rewriteHtml,
+  "<script type=\"module\">console.log(window.parent.location.href);</script>",
+  wrapScriptModule("console.log(window.parent.location.href);"),
 );
 
 test("object pdf", rewriteHtml,

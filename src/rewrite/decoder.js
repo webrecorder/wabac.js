@@ -1,8 +1,6 @@
-"use strict";
+import brotliDecode from "brotli/decompress.js";
 
-import brotliDecode from "brotli/decompress";
-
-import { Inflate } from "pako";
+import { Inflate } from "pako/lib/inflate.js";
 
 import { AsyncIterReader } from "warcio";
 

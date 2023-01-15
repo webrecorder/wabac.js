@@ -1,5 +1,5 @@
 import { BaseAsyncIterReader, AsyncIterReader } from "warcio";
-import { isNullBodyStatus, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, tsToDate } from "./utils";
+import { isNullBodyStatus, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, tsToDate } from "./utils.js";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -153,6 +153,13 @@ class ArchiveResponse
   }
 
   setRange(range) {
+    if (this.status === 206) {
+      const currRange = this.headers.get("Content-Range");
+      if (currRange && !currRange.startsWith("bytes 0-")) {
+        return false;
+      }
+    }
+
     const bytes = range.match(/^bytes=(\d+)-(\d+)?$/);
 
     let length = 0;
@@ -165,7 +172,7 @@ class ArchiveResponse
 
       // if length is not known, keep as 200
       if (!length) {
-        return;
+        return false;
       }
     }
 
@@ -183,6 +190,9 @@ class ArchiveResponse
       this.buffer = this.buffer.slice(start, end + 1);
 
     } else if (this.reader) {
+      if (!this.reader.setLimitSkip) {
+        return false;
+      }
       if (start !== 0 || end !== (length - 1)) {
         this.reader.setLimitSkip(end - start + 1, start);
       } else if (this.reader.setRangeAll) {

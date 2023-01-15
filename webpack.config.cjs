@@ -19,14 +19,6 @@ module.exports = {
     publicPath: "/dist/"
   },
 
-  resolve: {
-    fallback: {
-      "stream": require.resolve("stream-browserify"),
-      //"buffer": false,
-      //"buffer": require.resolve("buffer/"),
-    }
-  },
-
   optimization: {
     minimize: true,
     minimizer: [
@@ -54,13 +46,18 @@ module.exports = {
   },
 
   plugins: [
-    new webpack.BannerPlugin("[name].js is part of Webrecorder project. Copyright (C) 2020-2021, Webrecorder Software. Licensed under the Affero General Public License v3."),
-    new webpack.DefinePlugin({
-      __IPFS_CORE_URL__: JSON.stringify("https://cdn.jsdelivr.net/npm/ipfs-core@0.11.1/dist/index.min.js")
-    }),
-    new webpack.ProvidePlugin({
-      process: "process/browser",
-    }),
+    new webpack.NormalModuleReplacementPlugin(
+      /^node:*/,
+      (resource) => {
+        switch (resource.request) {
+        case "node:stream":
+          resource.request = "stream-browserify";
+          break;
+        }
+      },
+    ),
+
+    new webpack.BannerPlugin(`[name].js is part of Webrecorder project. Copyright (C) 2020-${new Date().getFullYear()}, Webrecorder Software. Licensed under the Affero General Public License v3.`),
   ],
 };
 

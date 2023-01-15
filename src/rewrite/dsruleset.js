@@ -1,5 +1,5 @@
 //import unescapeJs from "unescape-js";
-
+const MAX_BITRATE = 5000000;
 
 // ===========================================================================
 const DEFAULT_RULES = [
@@ -15,10 +15,15 @@ const DEFAULT_RULES = [
     ]
   },
   {
-    contains: ["vimeo.com/video"],
+    contains: ["player.vimeo.com/video/"],
     rxRules: [
-      [/"dash"[:]/, ruleReplace("\"__dash\":")],
-      [/"hls"[:]/, ruleReplace("\"__hls\":")],
+      [/.+/, ruleRewriteVimeoConfig]
+    ]
+  },
+  {
+    contains: ["master.json?query_string_ranges=0", "master.json?base64"],
+    rxRules: [
+      [/.+/, ruleRewriteVimeoDashManifest]
     ]
   },
   {
@@ -36,14 +41,21 @@ const DEFAULT_RULES = [
   {
     contains: ["instagram.com/"],
     rxRules: [
-      [/"is_dash_eligible":true/, ruleReplace("\"is_dash_eligible\":false")]
+      [/"is_dash_eligible":(?:true|1)/, ruleReplace("\"is_dash_eligible\":false")]
     ]
   },
 
   {
     contains: ["api.twitter.com/2/", "twitter.com/i/api/2/", "twitter.com/i/api/graphql/"],
     rxRules: [
-      [/"video_info".*?}]}/, ruleRewriteTwitterVideo]
+      [/"video_info":.*?}]}/, ruleRewriteTwitterVideo("\"video_info\":")]
+    ]
+  },
+
+  {
+    contains: ["cdn.syndication.twimg.com/tweet-result"],
+    rxRules: [
+      [/"video":.*?viewCount":\d+}/, ruleRewriteTwitterVideo("\"video\":")]
     ]
   },
 
@@ -55,101 +67,144 @@ const DEFAULT_RULES = [
   }
 ];
 
-
 // ===========================================================================
 function ruleReplace(string) {
   return x => string.replace("{0}", x); 
 }
 
+// ===========================================================================
+function setMaxBitrate(opts)
+{
+  let maxBitrate = MAX_BITRATE;
+  const extraOpts = opts.response && opts.response.extraOpts;
+
+  if (opts.save) {
+    opts.save.maxBitrate = maxBitrate;
+  } else if (extraOpts && extraOpts.maxBitrate) {
+    maxBitrate = extraOpts.maxBitrate;
+  }
+
+  return maxBitrate;
+}
 
 // ===========================================================================
-// For older captures, no longer applicable
-// function ruleRewriteFBDash(string) {
-//   let dashManifest = null;
+function ruleRewriteTwitterVideo(prefix) {
 
-//   try {
-//     dashManifest = unescapeJs(string.match(/dash_manifest":"(.*?)","/)[1]);
-//     dashManifest = dashManifest.replace(/\\\//g, "/");
-//   } catch (e) {
-//     console.warn(e);
-//     return string;
-//   }
+  return (string, opts) => {
+    if (!opts) {
+      return string;
+    }
 
-//   let bestIds;
+    const origString = string;
 
-//   if (string.endsWith("null")) {
-//     bestIds = null;
-//   } else {
-//     bestIds = [];
-//   }
+    try {
+      const W_X_H = /([\d]+)x([\d]+)/;
 
-//   const newDashManifest = rewriteDASH(dashManifest, null, bestIds) + "\n";
+      const maxBitrate = setMaxBitrate(opts);
 
-//   if (bestIds != null && !bestIds.length) {
-//     return string;
-//   }
+      string = string.slice(prefix.length);
 
-//   const resultJSON = {"dash_manifest": newDashManifest, "dash_prefetched_representation_ids": bestIds};   
+      const data = JSON.parse(string);
 
-//   const result = JSON.stringify(resultJSON).replace(/</g, "\\u003C").slice(1, -1);
+      let bestVariant = null;
+      let bestBitrate = 0;
 
-//   return result + ", \"";
-// }
+      for (const variant of data.variants) {
+        if ((variant.content_type && variant.content_type !== "video/mp4") ||
+            (variant.type && variant.type !== "video/mp4")) {
+          continue;
+        }
+
+        if (variant.bitrate && variant.bitrate > bestBitrate && variant.bitrate <= maxBitrate) {
+          bestVariant = variant;
+          bestBitrate = variant.bitrate;
+        } else if (variant.src) {
+          const matched = W_X_H.exec(variant.src);
+          if (matched) {
+            const bitrate = Number(matched[1]) * Number(matched[2]);
+            if (bitrate > bestBitrate) {
+              bestBitrate = bitrate;
+              bestVariant = variant;
+            }
+          }
+        }
+      }
+
+      if (bestVariant) {
+        data.variants = [bestVariant];
+      }
+
+      return prefix + JSON.stringify(data);
+
+    } catch (e) {
+      console.warn("rewriter error: ", e);
+      return origString;
+    }
+  };
+}
 
 // ===========================================================================
-function ruleRewriteTwitterVideo(string, opts) {
+function ruleRewriteVimeoConfig(string) {
+  let config;
+  try {
+    config = JSON.parse(string);
+  } catch (e) {
+    return string;
+  }
+
+  if (config && config.request && config.request.files) {
+    const files = config.request.files;
+    if (typeof(files.progressive) === "object" && files.progressive.length) {
+      if (files.dash) {
+        files.__dash = files.dash;
+        delete files.dash;
+      }
+      if (files.hls) {
+        files.__hls = files.hls;
+        delete files.hls;
+      }
+      return JSON.stringify(config);
+    }
+  }
+
+  return string.replace(/query_string_ranges=1/g, "query_string_ranges=0");
+}
+
+// ===========================================================================
+function ruleRewriteVimeoDashManifest(string, opts) {
   if (!opts) {
     return string;
   }
 
-  // if (!opts.live && !(opts.response && opts.response.extraOpts && opts.response.extraOpts.rewritten)) {
-  //   return string;
-  // }
+  let vimeoManifest = null;
 
-  const origString = string;
+  const maxBitrate = setMaxBitrate(opts);
 
   try {
-    const prefix = "\"video_info\":";
-
-    const MAX_BITRATE = 5000000;
-
-    const extraOpts = opts.response && opts.response.extraOpts;
-
-    let maxBitrate = MAX_BITRATE;
-
-    if (opts.save) {
-      opts.save.maxBitrate = maxBitrate;
-    } else if (extraOpts.maxBitrate) {
-      maxBitrate = extraOpts.maxBitrate;
-    }
-
-    string = string.slice(prefix.length);
-
-    const data = JSON.parse(string);
-
-    let bestVariant = null;
-    let bestBitrate = 0;
-
-    for (const variant of data.variants) {
-      if (variant.content_type !== "video/mp4") {
-        continue;
-      }
-
-      if (variant.bitrate && variant.bitrate > bestBitrate && variant.bitrate <= maxBitrate) {
-        bestVariant = variant;
-        bestBitrate = variant.bitrate;
-      }
-    }
-
-    if (bestVariant) {
-      data.variants = [bestVariant];
-    }
-
-    return prefix + JSON.stringify(data);
-
+    vimeoManifest = JSON.parse(string);
+    console.log("manifest", vimeoManifest);
   } catch (e) {
-    return origString;
+    return string;
   }
+
+  function filterByBitrate(array, max, mime) {
+    let bestVariant = 0;
+    let bestBitrate = null;
+
+    for (const variant of array) {
+      if (variant.mime_type == mime && variant.bitrate > bestBitrate && variant.bitrate <= max) {
+        bestBitrate = variant.bitrate;
+        bestVariant = variant;
+      }
+    }
+
+    return bestVariant ? [bestVariant] : array;
+  }
+
+  vimeoManifest.video = filterByBitrate(vimeoManifest.video, maxBitrate, "video/mp4");
+  vimeoManifest.audio = filterByBitrate(vimeoManifest.audio, maxBitrate, "audio/mp4");
+
+  return JSON.stringify(vimeoManifest);
 }
 
 // ===========================================================================

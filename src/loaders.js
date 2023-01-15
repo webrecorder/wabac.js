@@ -1,22 +1,26 @@
 import { ArchiveDB } from "./archivedb.js";
-import { RemoteSourceArchiveDB, RemotePrefixArchiveDB } from "./remotearchivedb";
+import { RemoteSourceArchiveDB, RemotePrefixArchiveDB } from "./remotearchivedb.js";
 //import { WACZRemoteArchiveDB } from "./waczarchive";
 
-import { HARLoader } from "./harloader";
+import { HARLoader } from "./harloader.js";
 //import { WBNLoader } from "./wbnloader";
-import { WARCLoader } from "./warcloader";
-import { CDXLoader, CDXFromWARCLoader } from "./cdxloader";
+import { WARCLoader } from "./warcloader.js";
+import { CDXLoader, CDXFromWARCLoader } from "./cdxloader.js";
 
 import { SingleWACZLoader, JSONMultiWACZLoader } from "./wacz/waczloader.js";
 import { MultiWACZCollection, SingleWACZ } from "./wacz/multiwacz.js";
 
-import { createLoader } from "./blockloaders";
+import { createLoader } from "./blockloaders.js";
 
-import { RemoteWARCProxy } from "./remotewarcproxy";
-import { LiveProxy } from "./liveproxy";
+import { RemoteWARCProxy } from "./remotewarcproxy.js";
+import { LiveProxy } from "./liveproxy.js";
 
-import { deleteDB, openDB } from "idb/with-async-ittr.js";
+import { deleteDB, openDB } from "idb/with-async-ittr";
 import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils.js";
+
+if (!globalThis.self) {
+  globalThis.self = globalThis;
+}
 
 self.interruptLoads = {};
 
@@ -98,8 +102,8 @@ class CollectionLoader
     if (data.config.dbname) {
       try {
         await deleteDB(data.config.dbname, {
-          blocked() {
-            console.log(`Unable to delete ${data.config.dbname}, blocked`);
+          blocked(_, e) {
+            console.log(`Unable to delete ${data.config.dbname}, blocked: ${e}`);
           }
         });
       } catch(e) {
@@ -321,8 +325,8 @@ class WorkerLoader extends CollectionLoader
           if (event.data.name) {
             try {
               await deleteDB("db:" + event.data.name, {
-                blocked(reason) {
-                  console.log(`Load failed and unable to delete ${event.data.name}: ${reason}`);
+                blocked(_, e) {
+                  console.log(`Load failed and unable to delete ${event.data.name}: ${e}`);
                 }
               });
             } catch (e) {
@@ -333,13 +337,18 @@ class WorkerLoader extends CollectionLoader
         }
 
       } catch (e) {
-        console.warn(e);
         if (e instanceof AuthNeededError) {
+          console.warn(e);
           progressUpdate(0, "permission_needed", null, null, e.info && e.info.fileHandle);
+          return;
+        } else if (e.name === "ConstraintError") {
+          console.log("already being added, just continue...");
+          res = await this.colldb.get("colls", name);
         } else {
+          console.warn(e);
           progressUpdate(0, "An unexpected error occured: " + e.toString());
+          return;
         }
-        return;
       }
 
       client.postMessage({
@@ -472,10 +481,11 @@ class WorkerLoader extends CollectionLoader
 
       config.sourceName = file.name || file.sourceUrl;
 
-      // parse to strip out query and fragment
+      // parse to strip out query, keep hash/fragment (if any)
       try {
         if (config.sourceName.match(/https?:\/\//)) {
-          config.sourceName = new URL(config.sourceName).pathname;
+          const sourceUrl = new URL(config.sourceName);
+          config.sourceName = sourceUrl.pathname + sourceUrl.hash;
         }
       } catch (e) {
         // ignore, keep sourceName as is
@@ -498,13 +508,29 @@ class WorkerLoader extends CollectionLoader
       config.extraConfig = data.extraConfig;
       config.noCache = file.noCache;
 
-      const sourceLoader = await createLoader({
+      let sourceLoader = await createLoader({
         url: loadUrl,
         headers: file.headers,
         size: file.size,
         extra: config.extra,
         blob: file.blob
       });
+
+      if (file.loadEager) {
+        const {response} = await sourceLoader.doInitialFetch(false, true);
+        const arrayBuffer = new Uint8Array(await response.arrayBuffer());
+        const extra = {arrayBuffer};
+
+        //config.extra = extra;
+        file.newFullImport = true;
+
+        sourceLoader = await createLoader({
+          url: loadUrl,
+          headers: file.headers,
+          size: file.size,
+          extra,
+        });
+      }
 
       let tryHeadOnly = false;
 
@@ -576,7 +602,7 @@ Make sure this is a valid URL and you have access to this file.`);
         }
 
       } else if (config.sourceName.endsWith(".warc") || config.sourceName.endsWith(".warc.gz")) {
-        if (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand) {
+        if (!config.noCache && (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand)) {
           loader = new WARCLoader(stream, abort, name);
         } else {
           loader = new CDXFromWARCLoader(stream, abort, name);

@@ -1,4 +1,4 @@
-import { ArchiveResponse } from "./response";
+import { ArchiveResponse } from "./response.js";
 
 
 // ===========================================================================

@@ -1,10 +1,12 @@
-import { tsToDate } from "./utils";
-import { WARCLoader } from "./warcloader";
+import { tsToDate } from "./utils.js";
+import { WARCLoader } from "./warcloader.js";
 
 import { CDXIndexer, AsyncIterReader, appendRequestQuery } from "warcio";
 
 
 const BATCH_SIZE = 3000;
+
+export const CDX_COOKIE = "req.http:cookie";
 
 
 // ===========================================================================
@@ -61,9 +63,22 @@ class CDXFromWARCLoader extends WARCLoader
 
     const cdx = this.cdxindexer.indexRecordPair(record, reqRecord, parser, "");
 
-    if (cdx) {
-      this.addCdx(cdx);
+    if (!cdx) {
+      return;
     }
+
+    if (cdx.status === 206 && !this.isFullRangeRequest(record.httpHeaders.headers)) {
+      return;
+    }
+
+    if (reqRecord && reqRecord.httpHeaders) {
+      let cookie = reqRecord.httpHeaders.headers.get("cookie");
+      if (cookie) {
+        cdx[CDX_COOKIE] = cookie;
+      }
+    }
+
+    this.addCdx(cdx);
   }
 
   getSource(cdx) {
@@ -90,15 +105,22 @@ class CDXFromWARCLoader extends WARCLoader
 
     const source = this.getSource(cdx);
 
-    let { digest } = cdx;
+    let { digest, recordDigest } = cdx;
     if (digest && digest.indexOf(":") === -1) {
       digest = this.shaPrefix + digest;
     }
 
-    const entry = {url, ts, status, digest, mime, loaded: false, source};
+    const entry = {url, ts, status, digest, recordDigest, mime, loaded: false, source};
 
     if (cdx.method) {
+      if (cdx.method === "HEAD" || cdx.method === "OPTIONS") {
+        return;
+      }
       entry.method = cdx.method;
+    }
+
+    if (cdx[CDX_COOKIE]) {
+      entry[CDX_COOKIE] = cdx[CDX_COOKIE];
     }
 
     // url with post query appended

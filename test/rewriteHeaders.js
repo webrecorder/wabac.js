@@ -1,6 +1,6 @@
 import test from "ava";
 
-import { doRewrite } from "./helpers";
+import { doRewrite } from "./helpers/index.js";
 
 
 // ===========================================================================
@@ -18,14 +18,14 @@ rewriteHeaders.title = (providedTitle = "Headers", name, value, expected) => `${
 test(rewriteHeaders,
   "Link",
   "<https://example.com/path/page.html>;rel=\"preload\";as=\"script\"",
-  "<http://localhost:8080/prefix/20201226101010/https://example.com/path/page.html>; rel=\"preload\"; as=\"script\""
+  "<http://localhost:8080/prefix/20201226101010mp_/https://example.com/path/page.html>; rel=preload; as=script"
 );
 
 
 test(rewriteHeaders,
   "Link",
   "<https://example.com/path/page.html>;rel=\"preload\";as=\"script\", <https://example.com/someotherpath/page%3f.html>;rel=\"other\";as=\"stylesheet\"",
-  "<http://localhost:8080/prefix/20201226101010/https://example.com/path/page.html>; rel=\"preload\"; as=\"script\", <http://localhost:8080/prefix/20201226101010/https://example.com/someotherpath/page%3f.html>; rel=\"other\"; as=\"stylesheet\""
+  "<http://localhost:8080/prefix/20201226101010mp_/https://example.com/path/page.html>; rel=preload; as=script, <http://localhost:8080/prefix/20201226101010mp_/https://example.com/someotherpath/page%3f.html>; rel=other; as=stylesheet"
 );
 
 
@@ -36,5 +36,14 @@ test(rewriteHeaders,
   "<https://example.com/path/page.html>;rel=\"preload\";as=\"script\"",
   true
 );
+
+// Not rewritten, not a url
+test(rewriteHeaders,
+  "Link",
+  "<sometext>; rel=\"test\"; as=\"script\"",
+  "<sometext>; rel=test; as=script",
+);
+
+
 
 

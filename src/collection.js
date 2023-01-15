@@ -1,10 +1,8 @@
-"use strict";
+import { Rewriter } from "./rewrite/index.js";
 
-import { Rewriter } from "./rewrite";
+import { getTS, getSecondsStr, notFound, parseSetCookie, handleAuthNeeded, REPLAY_TOP_FRAME_NAME } from "./utils.js";
 
-import { getTS, getSecondsStr, notFound, parseSetCookie, handleAuthNeeded } from "./utils.js";
-
-import { ArchiveResponse } from "./response";
+import { ArchiveResponse } from "./response.js";
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
@@ -105,7 +103,11 @@ class Collection {
       }
 
       const msg = `
-      <p>This page <i>${requestURL}</i> is not part of this archive.</p>
+      <html>
+      <body style="font-family: sans-serif">
+      <h2>Archived Page Not Found</h2>
+      <p>Sorry, this page was not found in this archive:</p>
+      <p><code style="word-break: break-all; font-size: larger">${requestURL}</code></p>
       ${this.liveRedirectOnNotFound && request.mode === "navigate" ? `
       <p>Redirecting to live page now... (If this URL is a file download, the download should have started).</p>
       <script>
@@ -113,7 +115,10 @@ class Collection {
       </script>
       ` : `
       `}
-      <p><a target="_blank" href="${requestURL}">Click Here</a> to load the live page in a new tab (or to download the URL as a file).</p>
+      <p>
+      <a target="_blank" href="${requestURL}">Click Here</a> to try to load the live page in a new tab (or to download the URL as a file).</p>
+      </body>
+      </html>
       `; 
       return notFound(request, msg);
     } else if (response instanceof Response) {
@@ -167,7 +172,7 @@ class Collection {
 
     const range = request.headers.get("range");
 
-    if (range && response.status === 200) {
+    if (range && (response.status === 200 || response.status === 206)) {
       response.setRange(range);
     }
 
@@ -211,7 +216,6 @@ class Collection {
     if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
 
     const window = wrapObj("window");
-    const globalThis = wrapObj("globalThis");
     const document = wrapObj("document");
     const location = wrapObj("location");
     const top = wrapObj("top");
@@ -219,8 +223,9 @@ class Collection {
     const frames = wrapObj("frames");
     const opener = wrapObj("opener");
     const __self = wrapObj("self");
+    const __globalThis = wrapObj("globalThis");
 
-    export { window, document, location, top, parent, frames, opener, __self as self };
+    export { window, document, location, top, parent, frames, opener, __self as self, __globalThis as globalThis };
     `;
 
     const payload = new TextEncoder().encode(string);
@@ -286,7 +291,7 @@ class Collection {
   async makeTopFrame(url, requestTS) {
     let baseUrl = null;
 
-    if (this.baseFrameUrl) {
+    if (this.baseFrameUrl && !this.baseFramePrefix) {
       baseUrl = this.baseFrameUrl;
     } else if (!this.isRoot && this.config.sourceUrl) {
       baseUrl = this.baseFramePrefix || "./";
@@ -338,7 +343,7 @@ window.home = "${this.rootPrefix}";
 </head>
 <body style="margin: 0px; padding: 0px;">
 <div id="wb_iframe_div">
-<iframe id="replay_iframe" frameborder="0" seamless="seamless" scrolling="yes" class="wb_iframe" allow="autoplay; fullscreen"></iframe>
+<iframe id="replay_iframe" name="${REPLAY_TOP_FRAME_NAME}" frameborder="0" seamless="seamless" scrolling="yes" class="wb_iframe" allow="autoplay; fullscreen"></iframe>
 </div>
 <script>
   var cframe = new ContentFrame({"url": "${url}",
@@ -381,7 +386,7 @@ window.home = "${this.rootPrefix}";
     }
 
     if (setCookie) {
-      presetCookie = parseSetCookie(setCookie, scheme, presetCookie);
+      presetCookie = parseSetCookie(setCookie, scheme) + ";" + presetCookie;
     }
 
     const pixelRatio = extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 1;
@@ -424,6 +429,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   wbinfo.isSW = true;
   wbinfo.pixel_ratio = ${pixelRatio};
   wbinfo.convert_post_to_get = ${this.convertPostToGet};
+  wbinfo.target_frame = "${REPLAY_TOP_FRAME_NAME}";
 </script>
 <script src='${this.staticPrefix}wombat.js'> </script>
 <script>

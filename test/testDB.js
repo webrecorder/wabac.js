@@ -1,20 +1,26 @@
-"use strict";
-
-require("fake-indexeddb/auto");
+/*eslint-env node */
 
 import test from "ava";
 
-import { tsToDate } from "../src/utils";
+import "fake-indexeddb/auto";
 
-import { ArchiveDB } from "../src/archivedb";
+import { tsToDate } from "../src/utils.js";
 
-import { createHash } from "crypto";
+import { ArchiveDB } from "../src/archivedb.js";
 
-global.crypto = {subtle: {digest: (type, buff) => {
-  const hash = createHash("sha256");
-  hash.update(buff);
-  return Promise.resolve(hash.digest());
-}}};
+import crypto from "node:crypto";
+
+if (!global.crypto) {
+  global.crypto = crypto;
+}
+
+//import { createHash } from "crypto";
+
+//global.crypto = {subtle: {digest: (type, buff) => {
+//  const hash = createHash("sha256");
+//  hash.update(buff);
+//  return Promise.resolve(hash.digest());
+//}}};
 
 const db = new ArchiveDB("db", {minDedupSize: 0});
 

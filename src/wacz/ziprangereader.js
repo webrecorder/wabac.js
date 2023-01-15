@@ -1,4 +1,5 @@
 import { AsyncIterReader, concatChunks } from "warcio";
+import { createSHA256 } from "hash-wasm";
 
 // ===========================================================================
 const MAX_INT32 = 0xFFFFFFFF;
@@ -14,6 +15,29 @@ class LoadMoreException
   }
 }
 
+// ===========================================================================
+export class HashingAsyncIterReader extends AsyncIterReader
+{
+  constructor(source, compressed = "gzip", dechunk = false) {
+    super(source, compressed, dechunk);
+  }
+
+  async initHasher() {
+    this.hasher = await createSHA256();
+  }
+
+  async _loadNext()  {
+    const value = await super._loadNext();
+    if (value) {
+      this.hasher.update(value);
+    }
+    return value;
+  }
+
+  getHash() {
+    return "sha256:" + this.hasher.digest("hex");
+  }
+}
 
 // ===========================================================================
 export class ZipRangeReader
@@ -22,6 +46,9 @@ export class ZipRangeReader
     this.loader = loader;
     this.entries = entries;
     this.entriesUpdated = false;
+
+    // todo: make configurable
+    this.enableHashing = true;
   }
 
   async load(always = false) {
@@ -193,27 +220,6 @@ export class ZipRangeReader
     return entries;
   }
 
-  async loadFileCheckDirs(name, offset, length) {
-    if (this.entries === null) {
-      await this.load();
-    }
-
-    if (this.entries["archive/" + name]) {
-      name = "archive/" + name;
-    } else if (this.entries["warcs/" + name]) {
-      name = "warcs/" + name;
-    } else {
-      for (const filename of Object.keys(this.entries)) {
-        if (filename.endsWith("/" + name)) {
-          name = filename;
-          break;
-        }
-      }
-    }
-
-    return await this.loadFile(name, {offset, length, unzip: true});
-  }
-
   getCompressedSize(name) {
     if (this.entries === null) {
       return 0;
@@ -228,7 +234,7 @@ export class ZipRangeReader
     return isNaN(entry.compressedSize) ? 0 : entry.compressedSize;
   }
 
-  async loadFile(name, {offset = 0, length = -1, signal = null, unzip = false} = {}) {
+  async loadFile(name, {offset = 0, length = -1, signal = null, unzip = false, computeHash = null} = {}) {
     if (this.entries === null) {
       await this.load();
     }
@@ -236,7 +242,7 @@ export class ZipRangeReader
     const entry = this.entries[name];
 
     if (!entry) {
-      return null;
+      return {reader: null};
     }
 
     if (entry.offset === undefined) {
@@ -256,16 +262,36 @@ export class ZipRangeReader
 
     const body = await this.loader.getRange(offset, length, true, signal);
 
+    let reader = body.getReader();
+    let hasher = null;
+
+    const wrapHasher = (reader) => {
+      if (computeHash && this.enableHashing) {
+        hasher = new HashingAsyncIterReader(reader);
+        return hasher;
+      }
+      return reader;
+    };
+
     // if not unzip, deflate if needed only
     if (!unzip) {
-      return new AsyncIterReader(body.getReader(), entry.deflate ? "deflate" : null);
+      reader = new AsyncIterReader(reader, entry.deflate ? "deflate" : null);
+      reader = wrapHasher(reader);
     // if unzip and not deflated, reuse AsyncIterReader for auto unzipping
     } else if (!entry.deflate) {
-      return new AsyncIterReader(body.getReader());
+      reader = wrapHasher(reader);
+      reader = new AsyncIterReader(reader);
     } else {
-    // need to deflate, than unzip again
-      return new AsyncIterReader(new AsyncIterReader(body.getReader(), "deflate"));
+      // need to deflate, than unzip again
+      reader = new AsyncIterReader(new AsyncIterReader(reader, "deflate"));
+      reader = wrapHasher(reader);
     }
+
+    if (hasher) {
+      await hasher.initHasher();
+    }
+
+    return {reader, hasher};
   }
 
   // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView

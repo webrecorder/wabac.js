@@ -1,7 +1,5 @@
-"use strict";
-
-import { Collection } from "./collection";
-import { WorkerLoader } from "./loaders";
+import { Collection } from "./collection.js";
+import { WorkerLoader } from "./loaders.js";
 
 import { notFound, isAjaxRequest } from "./utils.js";
 import { StatsTracker } from "./statstracker.js";
@@ -10,7 +8,8 @@ import { API } from "./api.js";
 
 import WOMBAT from "../dist/wombat.js";
 import WOMBAT_WORKERS from "@webrecorder/wombat/src/wombatWorkers.js";
-import { ArchiveRequest } from "./request";
+
+import { ArchiveRequest } from "./request.js";
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
@@ -19,13 +18,12 @@ const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 // ===========================================================================
 class SWCollections extends WorkerLoader
 {
-  constructor(prefixes, root = null, checkIpfs = false, defaultConfig = {}) {
+  constructor(prefixes, root = null, defaultConfig = {}) {
     super(self);
     this.prefixes = prefixes;
-    this.colls = null;
+    this.colls = {};
     this.inited = null;
     this.root = root;
-    this.checkIpfs = checkIpfs;
     this.defaultConfig = defaultConfig;
 
     this._fileHandles = {};
@@ -124,7 +122,7 @@ class SWCollections extends WorkerLoader
 
 // ===========================================================================
 class SWReplay {
-  constructor({staticData = null, ApiClass = API, useIPFS = true, defaultConfig = {}, CollectionsClass = SWCollections} = {}) {
+  constructor({staticData = null, ApiClass = API, defaultConfig = {}, CollectionsClass = SWCollections} = {}) {
     this.prefix = self.registration ? self.registration.scope : "";
 
     this.replayPrefix = this.prefix;
@@ -158,7 +156,7 @@ class SWReplay {
       defaultConfig.injectScripts = defaultConfig.injectScripts.map(url => this.staticPrefix + "proxy/" + url);
     }
 
-    this.collections = new CollectionsClass(prefixes, sp.get("root"), useIPFS, defaultConfig);
+    this.collections = new CollectionsClass(prefixes, sp.get("root"), defaultConfig);
     this.collections.loadAll(sp.get("dbColl"));
 
     this.proxyOriginMode = !!sp.get("proxyOriginMode");

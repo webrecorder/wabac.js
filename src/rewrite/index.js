@@ -1,21 +1,18 @@
-"use strict";
-
-import parseLinkHeader from "parse-link-header";
-import formatLinkHeader from "format-link-header";
+import LinkHeader from "http-link-header";
 
 import { isAjaxRequest } from "../utils.js";
 
-import { decodeResponse } from "./decoder";
-import { ArchiveResponse } from "../response";
+import { decodeResponse } from "./decoder.js";
+import { ArchiveResponse } from "../response.js";
 
-import { rewriteDASH, rewriteHLS } from "./rewriteVideo";
+import { rewriteDASH, rewriteHLS } from "./rewriteVideo.js";
 
-import { DomainSpecificRuleSet } from "./dsruleset";
+import { DomainSpecificRuleSet } from "./dsruleset.js";
 
-import { RxRewriter } from "./rxrewriter";
-import { JSRewriter } from "./jsrewriter";
+import { RxRewriter } from "./rxrewriter.js";
+import { JSRewriter } from "./jsrewriter.js";
 
-import { HTMLRewriter } from "./html";
+import { HTMLRewriter } from "./html.js";
 
 
 // ===========================================================================
@@ -152,6 +149,12 @@ class Rewriter {
       response = await decodeResponse(response, encoding, te, rewriteMode === null);
     }
 
+    const opts = {
+      response,
+      prefix: this.prefix,
+      baseUrl: this.baseUrl,
+    };
+
     let rwFunc = null;
 
     switch (rewriteMode) {
@@ -169,6 +172,9 @@ class Rewriter {
 
     case "js":
       rwFunc = this.rewriteJS;
+      if (request.mod === "esm_") {
+        opts.isModule = true;
+      }
       break;
 
     case "json":
@@ -191,8 +197,6 @@ class Rewriter {
       rwFunc = rewriteDASH;
       break;
     }
-
-    const opts = {response, prefix: this.prefix};
 
     if (urlRewrite) {
       opts.rewriteUrl = url => this.rewriteUrl(url);
@@ -294,7 +298,7 @@ class Rewriter {
 
   // JS
   rewriteJS(text, opts) {
-    const noUrlProxyRewrite = opts && !opts.rewriteUrl;
+    const noUrlProxyRewrite = opts && !opts.rewriteUrl && opts.isModule === undefined;
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
 
@@ -433,7 +437,6 @@ class Rewriter {
 
     for (let header of headers.entries()) {
       const rule = headerRules[header[0]];
-
       switch (rule) {
       case "keep":
         new_headers.append(header[0], header[1]);
@@ -509,15 +512,7 @@ class Rewriter {
 
       case "link":
         if (urlRewrite && !isAjax) {
-          const parsed = parseLinkHeader(header[1]);
-
-          for (const entry of Object.values(parsed)) {
-            if (entry.url) {
-              entry.url = this.rewriteUrl(entry.url);
-            }
-          }
-
-          new_headers.append(header[0], formatLinkHeader(parsed));
+          new_headers.append(header[0], this.rewriteLinkHeader(header[1]));
         } else {
           new_headers.append(header[0], header[1]);
         }
@@ -529,6 +524,23 @@ class Rewriter {
     }
 
     return new_headers;
+  }
+
+  rewriteLinkHeader(value) {
+    try {
+      const parsed = LinkHeader.parse(value);
+
+      for (const entry of parsed.refs) {
+        if (entry.uri) {
+          entry.uri = this.rewriteUrl(entry.uri);
+        }
+      }
+
+      return parsed.toString();
+    } catch (e) {
+      console.warn("Error parsing link header: " + value);
+      return value;
+    }
   }
 }
 

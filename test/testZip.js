@@ -1,15 +1,15 @@
+//import { fetch } from "node:fetch";
+
 import test from "ava";
 import http from "http";
-
-import { fetch } from "./helpers";
 
 import listen from "test-listen";
 
 import serveStatic from "serve-static";
 
-import { ZipRangeReader } from "../src/wacz/ziprangereader";
+import { ZipRangeReader } from "../src/wacz/ziprangereader.js";
 
-import { createLoader } from "../src/blockloaders";
+import { createLoader } from "../src/blockloaders.js";
 
 import { WARCParser } from "warcio";
 
@@ -51,7 +51,7 @@ test("test range", async t => {
 
 
 test("load test.zip entries", async t => {
-  const zipreader = new ZipRangeReader(createLoader({url: t.context.baseUrl + "/example.zip"}));
+  const zipreader = new ZipRangeReader(await createLoader({url: t.context.baseUrl + "/example.zip"}));
 
   const entries = await zipreader.load();
 
@@ -67,9 +67,9 @@ test("load test.zip entries", async t => {
 
 
 test("load test.zip file fully", async t => {
-  const zipreader = new ZipRangeReader(createLoader({url: t.context.baseUrl + "/example.zip"}));
+  const zipreader = new ZipRangeReader(await createLoader({url: t.context.baseUrl + "/example.zip"}));
 
-  const reader = await zipreader.loadFile("indexes/index.cdxj");
+  const { reader } = await zipreader.loadFile("indexes/index.cdxj");
 
   const contents = decoder.decode(await reader.readFully());
 
@@ -85,9 +85,9 @@ org,iana,www)/ 20140126200624 {"url":"http://www.iana.org/","mime":"text/html","
 
 
 test("load test.zip WARC.GZ record", async t => {
-  const zipreader = new ZipRangeReader(createLoader({url: t.context.baseUrl + "/example.zip"}));
+  const zipreader = new ZipRangeReader(await createLoader({url: t.context.baseUrl + "/example.zip"}));
 
-  const reader = await zipreader.loadFileCheckDirs("example.warc.gz", 784, 1228);
+  const { reader } = await zipreader.loadFile("warcs/example.warc.gz", {offset: 784, length: 1228, unzip: true});
 
   const parser = new WARCParser(reader);
   const record = await parser.parse();
@@ -103,9 +103,9 @@ test("load test.zip WARC.GZ record", async t => {
 });
 
 test("load test.zip WARC record", async t => {
-  const zipreader = new ZipRangeReader(createLoader({url: t.context.baseUrl + "/example.zip"}));
+  const zipreader = new ZipRangeReader(await createLoader({url: t.context.baseUrl + "/example.zip"}));
 
-  const reader = await zipreader.loadFileCheckDirs("example-iana.org-chunked.warc", 405, 7970);
+  const { reader } = await zipreader.loadFile("warcs/example-iana.org-chunked.warc", {offset: 405, length: 7970, unzip: true});
 
   const parser = new WARCParser(reader);
   const record = await parser.parse();

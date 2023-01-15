@@ -10,6 +10,9 @@ export const PAGE_STATE_SYNCED = 0x11;
 
 export const MAX_STREAM_CHUNK_SIZE = 65536 * 4;
 
+export const REPLAY_TOP_FRAME_NAME = "___wb_replay_top_frame";
+
+export const REMOVE_EXPIRES = /Expires=\w{3},\s\d[^;,]+(?:;\s*)?/gi;
 
 export  function startsWithAny(value, iter) {
   for (const str of iter) {
@@ -75,7 +78,7 @@ export function getSecondsStr(date) {
   }
 }
 
-function base16(hashBuffer) {
+export function base16(hashBuffer) {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
@@ -128,7 +131,10 @@ export function makeHeaders(headers) {
   }
 }
 
-export function parseSetCookie(setCookie, scheme, cookieStr = "") {
+export function parseSetCookie(setCookie, scheme) {
+  setCookie = setCookie.replace(REMOVE_EXPIRES, "");
+  const cookies = [];
+
   for (const cookie of setCookie.split(",")) {
     const cookieCore = cookie.split(";", 1)[0];
     // if has cookie flags
@@ -142,14 +148,10 @@ export function parseSetCookie(setCookie, scheme, cookieStr = "") {
       }
     }
 
-    if (cookieStr) {
-      cookieStr += "; ";
-    }
-
-    cookieStr += cookieCore;
+    cookies.push(cookieCore);
   }
 
-  return cookieStr;
+  return cookies.join(";");
 }
 
 const NULL_STATUS = [101, 204, 205, 304];
@@ -172,6 +174,10 @@ export function isAjaxRequest(request) {
   }
 
   if (request.mode === "cors") {
+    // if 'mod' is esm_, then likely a module import
+    if (request.destination === "script" && request.mod === "esm_") {
+      return false;
+    }
     return true;
   }
 

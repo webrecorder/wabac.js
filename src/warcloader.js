@@ -4,7 +4,7 @@ import { WARCParser, postToGetUrl } from "warcio";
 
 import { extractText } from "./extract.js";
 
-import { BaseParser } from "./baseparser";
+import { BaseParser } from "./baseparser.js";
 
 
 // ===========================================================================
@@ -120,10 +120,17 @@ class WARCLoader extends BaseParser {
     return false;
   }
 
-  parseRevisitRecord(record) {
+  parseRevisitRecord(record, reqRecord) {
     const url = record.warcTargetURI.split("#")[0];
     const date = record.warcDate;
     const ts = new Date(date).getTime();
+
+    let respHeaders = undefined;
+
+    if (record.httpHeaders) {
+      const parsed = this.parseResponseHttpHeaders(record, url, reqRecord);
+      respHeaders = parsed && Object.fromEntries(parsed.headers.entries());
+    }
 
     const origURL = record.warcRefersToTargetURI;
     const origTS = new Date(record.warcRefersToDate).getTime();
@@ -135,7 +142,58 @@ class WARCLoader extends BaseParser {
 
     const digest = record.warcPayloadDigest;
 
-    return {url, ts, origURL, origTS, digest, pageId: null};
+    return {url, ts, origURL, origTS, digest, pageId: null, respHeaders};
+  }
+
+  parseResponseHttpHeaders(record, url, reqRecord) {
+    let status = 200;
+    let headers = null;
+    let mime = "";
+
+    const method = (reqRecord && reqRecord.httpHeaders.method);
+
+    if (record.httpHeaders) {
+      status = Number(record.httpHeaders.statusCode) || 200;
+
+      if (method === "OPTIONS" || method === "HEAD") {
+        return null;
+      }
+ 
+      //statusText = record.httpHeaders.statusText;
+
+      headers = makeHeaders(record.httpHeaders.headers);
+
+      //if (!reqRecord && !record.content.length &&
+      //    (headers.get("access-control-allow-methods") || headers.get("access-control-allow-credentials"))) {
+      //  return null;
+      //}
+
+      mime = (headers.get("content-type") || "").split(";")[0];
+
+      // skip partial responses (not starting from 0)
+      if (status === 206 && !this.isFullRangeRequest(headers)) {
+        return null;
+      }
+
+      // skip self-redirects
+      if (status > 300 && status < 400) {
+        const location = headers.get("location");
+        if (location) {
+          if (new URL(location, url).href === url) {
+            return null;
+          }
+        }
+      }
+    } else {
+      headers = new Headers();
+      headers.set("content-type", record.warcContentType);
+      headers.set("content-length", record.warcContentLength);
+      mime = record.warcContentType;
+
+      //cl = record.warcContentLength;
+    }
+
+    return {status, method, headers, mime};
   }
 
   indexReqResponse(record, reqRecord) {
@@ -149,7 +207,7 @@ class WARCLoader extends BaseParser {
   parseRecords(record, reqRecord) {
     switch (record.warcType) {
     case "revisit":
-      return this.parseRevisitRecord(record);
+      return this.parseRevisitRecord(record, reqRecord);
 
     case "resource":
       reqRecord = null;
@@ -171,63 +229,13 @@ class WARCLoader extends BaseParser {
     let url = record.warcTargetURI.split("#")[0];
     const date = record.warcDate;
 
-    let headers;
-    let status = 200;
-    //let statusText = "OK";
-    //let content = record.content;
-    let cl = 0;
-    let mime = "";
-    let method = (reqRecord && reqRecord.httpHeaders.method);
+    const parsed = this.parseResponseHttpHeaders(record, url, reqRecord);
 
-    if (record.httpHeaders) {
-      status = Number(record.httpHeaders.statusCode) || 200;
-
-      if (method === "OPTIONS") {
-        return null;
-      }
- 
-      //statusText = record.httpHeaders.statusText;
-
-      headers = makeHeaders(record.httpHeaders.headers);
-
-      //if (!reqRecord && !record.content.length &&
-      //    (headers.get("access-control-allow-methods") || headers.get("access-control-allow-credentials"))) {
-      //  return null;
-      //}
-
-      mime = (headers.get("content-type") || "").split(";")[0];
-
-      cl = parseInt(headers.get("content-length") || 0);
-
-      // skip partial responses (not starting from 0)
-      if (status === 206) {
-        const range = headers.get("content-range");
-
-        const fullRange = `bytes 0-${cl-1}/${cl}`;
-
-        // only include 206 responses if they are the full range
-        if (range && range !== fullRange) {
-          return null;
-        }
-      }
-
-      // skip self-redirects
-      if (status > 300 && status < 400) {
-        const location = headers.get("location");
-        if (location) {
-          if (new URL(location, url).href === url) {
-            return null;
-          }
-        }
-      }
-    } else {
-      headers = new Headers();
-      headers.set("content-type", record.warcContentType);
-      headers.set("content-length", record.warcContentLength);
-      mime = record.warcContentType;
-
-      cl = record.warcContentLength;
+    if (!parsed) {
+      return null;
     }
+
+    const {status, method, headers, mime} = parsed;
 
     let referrer = null;
     let requestBody = null;
@@ -329,6 +337,17 @@ class WARCLoader extends BaseParser {
     }
 
     return entry;
+  }
+
+  isFullRangeRequest(headers) {
+    const range = headers.get("content-range");
+
+    const cl = parseInt(headers.get("content-length") || 0);
+
+    const fullRange = `bytes 0-${cl-1}/${cl}`;
+
+    // full range is range exists and matches expected full range
+    return range && range === fullRange;
   }
 
   filterRecord() {

@@ -63,6 +63,10 @@ const DEFAULT_RULES =
     "args": [[{"arg": "data",
       "keys": ["query_type", "fbid", "v", "cursor", "data"]}]]
   },
+  {
+    "match": /(twitter.com\/[^/]+\/status\/[^?]+)(\?.*)/,
+    "fuzzyCanonReplace": "$1"
+  },
   // Facebook
   {
     "match": /facebook\.com\/ajax\//i,
