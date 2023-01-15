@@ -193,7 +193,7 @@ class CollectionLoader
     const name = data.name;
     const config = data.config;
 
-    if (data.config.root) {
+    if (data.config.root && !this.root) {
       this.root = name;
     }
 
@@ -435,10 +435,10 @@ class WorkerLoader extends CollectionLoader
     config.dbname = "db:" + name;
 
     if (file.sourceUrl.startsWith("proxy:")) {
-      config.sourceUrl = file.sourceUrl;
+      config.sourceUrl = file.sourceUrl.slice("proxy:".length);
       config.extraConfig = data.extraConfig;
       if (!config.extraConfig.prefix) {
-        config.extraConfig.prefix = file.sourceUrl.slice("proxy:".length);
+        config.extraConfig.prefix = config.sourceUrl;
       }
       config.topTemplateUrl = data.topTemplateUrl;
       config.metadata = {};
