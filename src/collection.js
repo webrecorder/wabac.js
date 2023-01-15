@@ -386,7 +386,7 @@ window.home = "${this.rootPrefix}";
     }
 
     if (setCookie) {
-      presetCookie = parseSetCookie(setCookie, scheme, presetCookie);
+      presetCookie = parseSetCookie(setCookie, scheme) + ";" + presetCookie;
     }
 
     const pixelRatio = extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 1;

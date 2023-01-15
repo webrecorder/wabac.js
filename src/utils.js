@@ -12,6 +12,7 @@ export const MAX_STREAM_CHUNK_SIZE = 65536 * 4;
 
 export const REPLAY_TOP_FRAME_NAME = "___wb_replay_top_frame";
 
+export const REMOVE_EXPIRES = /Expires=\w{3},\s\d[^;,]+(?:;\s*)?/gi;
 
 export  function startsWithAny(value, iter) {
   for (const str of iter) {
@@ -130,7 +131,10 @@ export function makeHeaders(headers) {
   }
 }
 
-export function parseSetCookie(setCookie, scheme, cookieStr = "") {
+export function parseSetCookie(setCookie, scheme) {
+  setCookie = setCookie.replace(REMOVE_EXPIRES, "");
+  const cookies = [];
+
   for (const cookie of setCookie.split(",")) {
     const cookieCore = cookie.split(";", 1)[0];
     // if has cookie flags
@@ -144,14 +148,10 @@ export function parseSetCookie(setCookie, scheme, cookieStr = "") {
       }
     }
 
-    if (cookieStr) {
-      cookieStr += "; ";
-    }
-
-    cookieStr += cookieCore;
+    cookies.push(cookieCore);
   }
 
-  return cookieStr;
+  return cookies.join(";");
 }
 
 const NULL_STATUS = [101, 204, 205, 304];
