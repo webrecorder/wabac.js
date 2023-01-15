@@ -17,7 +17,7 @@ import { LiveProxy } from "./liveproxy.js";
 
 import { deleteDB, openDB } from "idb/with-async-ittr";
 import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils.js";
-import { detectFileType, getKnownFileExtension } from "./detecttype.js";
+import { detectFileType, getKnownFileExtension } from "./detectfiletype.js";
 
 if (!globalThis.self) {
   globalThis.self = globalThis;
@@ -534,7 +534,7 @@ class WorkerLoader extends CollectionLoader
       }
 
       let sourceExt = getKnownFileExtension(config.sourceName);
-      
+
       let { abort, response } = await sourceLoader.doInitialFetch(sourceExt === ".wacz");
 
       if (!sourceExt) {

@@ -85,30 +85,3 @@ export async function detectFileType(response) {
   }
   return fileType;
 }
-
-// export function detectFileType(response) {
-//   const reader = response.body.getReader();
-//   return new Promise((resolve) => {
-//     new ReadableStream({
-//       start(controller) {
-//         return pump();
-//         function pump() {
-//           return reader.read().then(({ done, value }) => {
-//             if (done) {
-//               controller.close();
-//               return;
-//             }
-//             if (value.length >= 4) {
-//               const fileBytes = value.slice(0, 4);
-//               const fileType = checkMagicBytes(fileBytes);
-//               controller.close();
-//               return resolve(fileType);
-//             }
-//             controller.enqueue(value);
-//             return pump();
-//           });
-//         }
-//       }
-//     });
-//   });
-//}
