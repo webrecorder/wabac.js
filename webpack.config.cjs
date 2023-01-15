@@ -57,6 +57,10 @@ module.exports = {
       },
     ),
 
+    new webpack.ProvidePlugin({
+      process: "process/browser",
+    }),
+
     new webpack.BannerPlugin(`[name].js is part of Webrecorder project. Copyright (C) 2020-${new Date().getFullYear()}, Webrecorder Software. Licensed under the Affero General Public License v3.`),
   ],
 };
