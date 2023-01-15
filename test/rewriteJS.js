@@ -149,7 +149,7 @@ a = _____WB$wombat$check$this$function_____(this).location\
 
 
 // dynamic import rewrite
-test(rewriteJS,
+test(rewriteJSImport,
   "await import (somefile);",
   "await ____wb_rewrite_import__ (somefile);"
 );
@@ -169,15 +169,45 @@ export { a };
 `);
 
 
-test(rewriteJSImport, "\
-import\"./import.js\";import{A, B, C} from\"test.js\";(function() => { frames[0].href = \"/abc\"; })");
+// rewrite ESM module import
+test(rewriteJSImport,
+  "import \"https://example.com/file.js\"",
+  "import \"http://localhost:8080/prefix/20201226101010esm_/https://example.com/file.js\""
+);
+
+test(rewriteJSImport, `
+import {A, B}
+ from
+ "https://example.com/file.js"`, `
+import {A, B}
+ from
+ "http://localhost:8080/prefix/20201226101010esm_/https://example.com/file.js"`
+);
+
+test(rewriteJSImport, `
+import * from "https://example.com/file.js"
+import A from "http://example.com/path/file2.js";
+
+import {C, D} from "./abc.js";
+import {X, Y} from "../parent.js";
+import {E, F, G} from "/path.js";
+import { Z } from "../../../path.js";
+
+B = await import(somefile);
+`,`
+import * from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/file.js"
+import A from "http://localhost:8080/prefix/20201226101010esm_/http://example.com/path/file2.js";
+
+import {C, D} from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/some/path/abc.js";
+import {X, Y} from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/some/parent.js";
+import {E, F, G} from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/path.js";
+import { Z } from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/path.js";
+
+B = await ____wb_rewrite_import__(somefile);
+`
+);
 
 
-test(rewriteJSImport, `\
-a = location
-
-export{ a, $ as b };
-`);
 
 
 // Not Rewritten
@@ -241,4 +271,28 @@ test(rewriteJS, "simport(5);");
 test(rewriteJS, "a.import(5);");
 
 test(rewriteJS, "$import(5);");
+
+test(rewriteJSImport, "\
+import\"import.js\";import{A, B, C} from\"test.js\";(function() => { frames[0].href = \"/abc\"; })");
+
+test(rewriteJS, `
+function blah() {
+  const text = "text: import a from B.js";
+}
+`);
+
+test(rewriteJS, `
+function blah() {
+  const text = \`
+import a from "https://example.com/B.js"
+\`;
+}
+
+`);
+
+test(rewriteJSImport, `\
+a = location
+
+export{ a, $ as b };
+`);
 

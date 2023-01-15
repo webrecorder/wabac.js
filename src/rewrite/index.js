@@ -149,7 +149,11 @@ class Rewriter {
       response = await decodeResponse(response, encoding, te, rewriteMode === null);
     }
 
-    const opts = {response, prefix: this.prefix};
+    const opts = {
+      response,
+      prefix: this.prefix,
+      baseUrl: this.baseUrl,
+    };
 
     let rwFunc = null;
 
