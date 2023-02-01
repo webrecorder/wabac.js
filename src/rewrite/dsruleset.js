@@ -35,13 +35,15 @@ const DEFAULT_RULES = [
       [/"dash_/, ruleReplace("\"__nodash__")],
       [/_dash"/, ruleReplace("__nodash__\"")],
       [/_dash_/, ruleReplace("__nodash__")],
+      [/"debugNoBatching\s?":(?:false|0)/, ruleReplace("\"debugNoBatching\":true")]
     ]
   },
 
   {
     contains: ["instagram.com/"],
     rxRules: [
-      [/"is_dash_eligible":(?:true|1)/, ruleReplace("\"is_dash_eligible\":false")]
+      [/"is_dash_eligible":(?:true|1)/, ruleReplace("\"is_dash_eligible\":false")],
+      [/"debugNoBatching\s?":(?:false|0)/, ruleReplace("\"debugNoBatching\":true")]
     ]
   },
 

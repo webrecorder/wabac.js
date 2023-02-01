@@ -525,6 +525,10 @@ class ArchiveDB {
 
     url = result.url;
 
+    if (url !== request.url) {
+      headers.set("Content-Location", url);
+    }
+
     return new ArchiveResponse({url, payload, status, statusText, headers, date, extraOpts});
   }
 
