@@ -17,6 +17,8 @@ const INDEX_IDX = 2;
 
 const MAX_BLOCKS = 3;
 
+const IS_SURT = /^([\w-]+,)*[\w-]+(:\d+)?,?\)\//;
+
 
 // ==========================================================================
 export class WACZArchiveDB extends OnDemandPayloadArchiveDB
@@ -305,7 +307,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
         const prefix = line.slice(0, inx);
         let {offset, length, filename, digest} = JSON.parse(line.slice(inx));
 
-        useSurt = prefix.indexOf(")/") > 0;
+        useSurt = useSurt || prefix.match(IS_SURT);
 
         filename = filename || defaultFilename;
 
