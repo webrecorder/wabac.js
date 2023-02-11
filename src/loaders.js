@@ -493,7 +493,6 @@ class WorkerLoader extends CollectionLoader
       }
       config.sourceName = config.sourceName.slice(config.sourceName.lastIndexOf("/") + 1);
 
-      config.headers = file.headers;
       config.size = typeof(file.size) === "number" ? file.size : null;
       config.extra = file.extra;
 
@@ -507,11 +506,12 @@ class WorkerLoader extends CollectionLoader
       }
 
       config.extraConfig = data.extraConfig;
+      config.headers = file.headers || (config.extraConfig && config.extraConfig.headers);
       config.noCache = file.noCache;
 
       let sourceLoader = await createLoader({
         url: loadUrl,
-        headers: file.headers,
+        headers: config.headers,
         size: file.size,
         extra: config.extra,
         blob: file.blob
@@ -527,7 +527,7 @@ class WorkerLoader extends CollectionLoader
 
         sourceLoader = await createLoader({
           url: loadUrl,
-          headers: file.headers,
+          headers: config.headers,
           size: file.size,
           extra,
         });

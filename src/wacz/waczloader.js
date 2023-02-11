@@ -62,7 +62,8 @@ export class SingleWACZLoader
 
     if (this.canLoadOnDemand) {
       // just add wacz file here
-      await db.addWACZFile(this.waczname, entries);
+      //await db.addWACZFile(this.waczname, entries);
+      await db.addNewWACZ(this.waczname, entries);
     } else {
 
       await this.loadWACZFull(db, entries, progressUpdate, fullTotalSize);
@@ -162,6 +163,7 @@ export class SingleWACZLoader
 
     // All Pages
     if (entries[MAIN_PAGES_JSON]) {
+      //const result = await this.zipreader.loadFile(filename, {unzip: true, computeHash: true});
       const pageInfo = await loadPages(db, this.zipreader, this.waczname, MAIN_PAGES_JSON, pagesHash);
 
       if (pageInfo.hasText) {
@@ -248,7 +250,10 @@ export class JSONMultiWACZLoader
 
   loadFiles() {
     return this.json.resources.map((res) => {
-      return new URL(res.path, this.baseUrl).href;
+      const url = new URL(res.path, this.baseUrl).href;
+      const hash = res.hash;
+      const name = res.name;
+      return {name, hash, url};
     });
   }
 }
@@ -256,6 +261,7 @@ export class JSONMultiWACZLoader
 // ==========================================================================
 export async function loadPages(db, zipreader, waczname, filename = MAIN_PAGES_JSON, expectedHash = null) {
   const {reader, hasher} = await zipreader.loadFile(filename, {unzip: true, computeHash: true});
+  //const {reader, hasher} = result;
 
   let pageListInfo = null;
 
