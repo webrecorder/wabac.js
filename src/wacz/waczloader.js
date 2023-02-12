@@ -25,7 +25,7 @@ export class SingleWACZLoader
       db.fullConfig.extra.arrayBuffer = this.loader.arrayBuffer;
     }
 
-    return await db.addNewWACZ({url: this.loadUrl});
+    return await db.addNewWACZ({url: this.loadUrl, loader: this.loader});
   }
 }
 

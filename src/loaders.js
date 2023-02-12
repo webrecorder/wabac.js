@@ -8,7 +8,7 @@ import { WARCLoader } from "./warcloader.js";
 import { CDXLoader, CDXFromWARCLoader } from "./cdxloader.js";
 
 import { SingleWACZLoader, SingleWACZFullImportLoader, JSONMultiWACZLoader } from "./wacz/waczloader.js";
-import { MultiWACZ, SingleWACZ } from "./wacz/multiwacz.js";
+import { MultiWACZ } from "./wacz/multiwacz.js";
 
 import { createLoader } from "./blockloaders.js";
 
@@ -225,12 +225,13 @@ class CollectionLoader
 
     case "wacz":
     case "remotezip":
+    case "multiwacz":
       sourceLoader = await createLoader({
         url: config.loadUrl || config.sourceUrl,
         headers: config.headers,
         extra: config.extra
       });
-      store = new SingleWACZ(config, sourceLoader);
+      store = new MultiWACZ(config, sourceLoader, type === "multiwacz" ? "json" : "wacz");
       break;
 
     case "remotewarcproxy":
@@ -240,9 +241,6 @@ class CollectionLoader
     case "live":
       store = new LiveProxy(config.extraConfig);
       break;
-
-    case "multiwacz":
-      store = new MultiWACZ(config);
     }
 
     if (!store) {
@@ -574,7 +572,7 @@ Make sure this is a valid URL and you have access to this file.`);
       if (sourceExt === ".wacz") {
         if (config.onDemand) {
           loader = new SingleWACZLoader(sourceLoader, config, name);
-          db = new SingleWACZ(config, sourceLoader);
+          db = new MultiWACZ(config, sourceLoader, "wacz");
           type = "wacz";
 
         // can load on demand, but want a full import
@@ -616,7 +614,7 @@ Make sure this is a valid URL and you have access to this file.`);
         loader = new HARLoader(await response.json());
         config.decode = false;
       } else if (sourceExt === ".json") {
-        db = new MultiWACZ(config);
+        db = new MultiWACZ(config, sourceLoader, "json");
         loader = new JSONMultiWACZLoader(await response.json(), config.loadUrl);
         type = "multiwacz";
       }

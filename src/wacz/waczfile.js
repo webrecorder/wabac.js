@@ -1,4 +1,3 @@
-import { createLoader } from "../blockloaders.js";
 import { ZipRangeReader } from "./ziprangereader.js";
 
 export const NO_LOAD_WACZ = "local";
@@ -8,26 +7,33 @@ export const INDEX_NOT_LOADED = 0;
 export const INDEX_CDX = 1;
 export const INDEX_IDX = 2;
 
-//const INDEX_FULL = 3;
+export const WACZ_LEAF = "wacz";
+export const MULTI_WACZ = "multi-wacz";
 
 // ==========================================================================
 export class WACZFile
 {
-  constructor({waczname, hash, url, entries = null, indexType = INDEX_NOT_LOADED, loader = null} = {}) {
+  constructor({waczname, hash, url, parentLoader, entries = null, fileType = WACZ_LEAF, indexType = INDEX_NOT_LOADED, loader = null} = {}) {
     this.waczname = waczname;
     this.hash = hash;
     this.url = url;
     this.loader = loader;
+    this.parentLoader = parentLoader;
     this.zipreader = null;
     this.entries = entries;
     this.indexType = indexType;
+    this.fileType = fileType;
+  }
+
+  markAsMultiWACZ() {
+    this.fileType = MULTI_WACZ;
   }
 
   async init(url) {
     if (url) {
       this.url = url;
     }
-    const loader = this.loader ? this.loader : await createLoader({url: this.url});
+    const loader = this.loader ? this.loader : await this.parentLoader.createLoader({url: this.url});
 
     return await this.initFromLoader(loader);
   }
