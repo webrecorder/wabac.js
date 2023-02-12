@@ -7,8 +7,8 @@ import { HARLoader } from "./harloader.js";
 import { WARCLoader } from "./warcloader.js";
 import { CDXLoader, CDXFromWARCLoader } from "./cdxloader.js";
 
-import { SingleWACZLoader, JSONMultiWACZLoader } from "./wacz/waczloader.js";
-import { MultiWACZCollection, SingleWACZ } from "./wacz/multiwacz.js";
+import { SingleWACZLoader, SingleWACZFullImportLoader, JSONMultiWACZLoader } from "./wacz/waczloader.js";
+import { MultiWACZ, SingleWACZ } from "./wacz/multiwacz.js";
 
 import { createLoader } from "./blockloaders.js";
 
@@ -242,7 +242,7 @@ class CollectionLoader
       break;
 
     case "multiwacz":
-      store = new MultiWACZCollection(config);
+      store = new MultiWACZ(config);
     }
 
     if (!store) {
@@ -572,14 +572,14 @@ Make sure this is a valid URL and you have access to this file.`);
       const contentLength = sourceLoader.length;
 
       if (sourceExt === ".wacz") {
-        loader = new SingleWACZLoader(sourceLoader, config, name);
-
         if (config.onDemand) {
+          loader = new SingleWACZLoader(sourceLoader, config, name);
           db = new SingleWACZ(config, sourceLoader);
           type = "wacz";
 
         // can load on demand, but want a full import
         } else if (sourceLoader.canLoadOnDemand && file.newFullImport) {
+          loader = new SingleWACZFullImportLoader(sourceLoader, config, name);
           //use default db
           db = null;
           delete config.extra;
@@ -616,7 +616,7 @@ Make sure this is a valid URL and you have access to this file.`);
         loader = new HARLoader(await response.json());
         config.decode = false;
       } else if (sourceExt === ".json") {
-        db = new MultiWACZCollection(config);
+        db = new MultiWACZ(config);
         loader = new JSONMultiWACZLoader(await response.json(), config.loadUrl);
         type = "multiwacz";
       }
