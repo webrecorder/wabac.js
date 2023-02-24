@@ -30,13 +30,18 @@ export class LiveProxy {
     return [];
   }
 
-  getFetchUrl(url, request) {
+  getFetchUrl(url, request, headers) {
     let parsedUrl;
 
     if (this.hostProxy) {
       parsedUrl = new URL(url);
       const hostdata = this.hostProxy[parsedUrl.host];
       if (hostdata) {
+        // set X-Proxy-Host to matched host
+        headers.set("X-Proxy-Host", parsedUrl.host);
+        // Given https://example.com/path/somefile.html, and prefix "https://upstream-server/prefix/"
+        // with pathOnly, send to https://upstream-server/prefix/path/somefile.html
+        // without pathOnly, send to https://upstream-server/prefix/https://example.com/path/somefile.html
         return hostdata.prefix + (hostdata.pathOnly ? parsedUrl.pathname + parsedUrl.search : url);
       }
     }
@@ -61,7 +66,8 @@ export class LiveProxy {
   async getResource(request, prefix) {
     const { headers, credentials, url} = request.prepareProxyRequest(prefix, true);
 
-    const fetchUrl = this.getFetchUrl(url, request);
+    const fetchUrl = this.getFetchUrl(url, request, headers);
+
     if (!fetchUrl) {
       return null;
     }
