@@ -41,7 +41,7 @@ const DEFAULT_RULES =
     "replace": "$1"
   },
   {
-    "match": /^(https?:\/\/(?:www\.)?)(youtube\.com\/\@[^?]+)[?].*/i,
+    "match": /^(https?:\/\/(?:www\.)?)(youtube\.com\/@[^?]+)[?].*/i,
     "fuzzyCanonReplace": "$1$2"
   },
   {
