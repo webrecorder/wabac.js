@@ -403,10 +403,10 @@
   resolved "https://registry.yarnpkg.com/@webpack-cli/serve/-/serve-1.5.2.tgz#ea584b637ff63c5a477f6f21604b5a205b72c9ec"
   integrity sha512-vgJ5OLWadI8aKjDlOH3rb+dYyPd2GTZuQC/Tihjct6F9GpXGZINo3Y/IVuZVTM1eDQB+/AOsjPUWH/WySDaXvw==
 
-"@webrecorder/wombat@^3.4.4":
-  version "3.4.4"
-  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.4.4.tgz#f01105f06eaa52f72b1ad7ecfe8290c5f5fa4ee9"
-  integrity sha512-2n7fG4YVs4kg1iTX84iNsV8sOrQe/Gce/1mguLdnTrNp9mW843bkKOaSPvuFjM8sa7pr3a9faVbvA3nBZZ9R3Q==
+"@webrecorder/wombat@^3.4.6":
+  version "3.4.6"
+  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.4.6.tgz#48c8a03b1d47789fd799f6d9d49ec1ca6c610a1f"
+  integrity sha512-YMGKT78B6nDOIV8irIvIPtcWGOa44/FxFXN6LqeUM8WwJrvLL3YI+pXfKYd7GYJFULNqir3Ao+nSNNrjy9PtJg==
   dependencies:
     warcio "^2.0.1"
 
