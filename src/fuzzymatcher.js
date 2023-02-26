@@ -35,9 +35,14 @@ const DEFAULT_RULES =
     "split": "_",
     "splitLast": true
   },
+  // YouTube
   {
     "match": /^https?:\/\/(?:www\.)?(youtube\.com\/embed\/[^?]+)[?].*/i,
-    "replace": "$1",
+    "replace": "$1"
+  },
+  {
+    "match": /^(https?:\/\/(?:www\.)?)(youtube\.com\/@[^?]+)[?].*/i,
+    "fuzzyCanonReplace": "$1$2"
   },
   {
     "match": /\/\/(?:www\.)?youtube(?:-nocookie)?\.com\/(get_video_info)/i,
@@ -122,7 +127,8 @@ const DEFAULT_RULES =
   },
   {
     "match": /(\.(?:js|webm|mp4|gif|jpg|png|css|json|m3u8))\?.*/i,
-    "replace": "$1"
+    "replace": "$1",
+    "maxResults": 2
   }
 ];
 
@@ -190,7 +196,9 @@ class FuzzyMatcher {
       return null;
     }
 
-    if (matchedRule && matchedRule.replace !== undefined && matchedRule.match !== undefined) {
+    if (matchedRule && matchedRule.replace !== undefined && matchedRule.match !== undefined &&
+      // if limit exists, only apply if < limit results
+      (!matchedRule.maxResults || results.length <= matchedRule.maxResults)) {
       const match = matchedRule.match;
       const replace = matchedRule.replace;
       const fuzzyReqUrl = reqUrl.replace(match, replace);
