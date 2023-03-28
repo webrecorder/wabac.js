@@ -148,10 +148,10 @@ a = _____WB$wombat$check$this$function_____(this).location\
 `);
 
 
-// dynamic import rewrite
-test(rewriteJSImport,
+// dynamic import rewrite (non-module)
+test(rewriteJS,
   "await import (somefile);",
-  "await ____wb_rewrite_import__ (somefile);"
+  "await ____wb_rewrite_import__ (\"\", somefile);"
 );
 
 
@@ -203,7 +203,7 @@ import {X, Y} from "http://localhost:8080/prefix/20201226101010esm_/https://exam
 import {E, F, G} from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/path.js";
 import { Z } from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/path.js";
 
-B = await ____wb_rewrite_import__(somefile);
+B = await ____wb_rewrite_import__(import.meta.url, somefile);
 `
 );
 

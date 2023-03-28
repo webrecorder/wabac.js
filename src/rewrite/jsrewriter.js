@@ -81,11 +81,12 @@ const createJSRules = () => {
     };
   }
 
-  // mark as module as side-effect
-  function replaceMarkModule(src, target) {
+  function replaceImport(src, target) {
     return (x, opts) => {
-      opts.isModule = true;
-      return x.replace(src, target);
+      let res = x.replace(src, target);
+      // if not module, add empty string, otherwise, import.meta.url
+      res += (opts.isModule ? "import.meta.url, " : "\"\", ");
+      return res;
     };
   }
 
@@ -119,7 +120,7 @@ const createJSRules = () => {
     [/[^|&][|&]{2}\s*this\b\s*(?![|\s&.$](?:[^|&]|$))/, replaceThis()],
 
     // esm dynamic import, if found, mark as module
-    [/[^$.]\bimport\s*\(/, replaceMarkModule("import", "____wb_rewrite_import__")]
+    [/[^$.]\bimport\s*\(/, replaceImport("import", "____wb_rewrite_import__")]
   ];
 };
 
@@ -158,11 +159,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return `import { ${localDecls.join(", ")} } from "${prefix}__wb_module_decl.js";\n`;
   }
 
-  isModule(text, opts) {
-    if (opts && opts.isModule) {
-      return true;
-    }
-
+  detectIsModule(text) {
     if (text.indexOf("import") >= 0 && text.match(IMPORT_RX)) {
       return true;
     }
@@ -175,11 +172,14 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
   }
 
   rewrite(text, opts) {
-    const isModule = this.isModule(text, opts);
+    opts = opts || {};
+    if (opts.isModule === undefined || opts.isModule === null) {
+      opts.isModule = this.detectIsModule(text, opts);
+    }
 
     let rules = DEFAULT_RULES;
 
-    if (isModule) {
+    if (opts.isModule) {
       rules = [...rules, this.getESMImportRule()];
     }
 
@@ -193,13 +193,11 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     let newText = super.rewrite(text, opts);
 
-    if (isModule || opts.isModule) {
+    if (opts.isModule) {
       return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) + newText;
     }
 
     const wrapGlobals = GLOBALS_RX.exec(text);
-
-    newText = super.rewrite(text, opts);
 
     if (wrapGlobals) {
       newText = this.firstBuff + newText + this.lastBuff;
