@@ -71,12 +71,22 @@ class Collection {
 
     // exact or fuzzy match
     let response = null;
+
+    let baseUrl = requestURL;
     
     try {
       if (requestURL.startsWith("srcdoc:")) {
         response = this.getSrcDocResponse(requestURL, requestURL.slice("srcdoc:".length));
       } else if (requestURL.startsWith("blob:")) {
-        response = await this.getBlobResponse(requestURL);
+        // the form of this url is now blob:<blob id>/<base url>
+        // split on / to separate <blob id> and <base url>
+        const inx = requestURL.indexOf("/");
+        // blob url = blob:<origin>/<blob id>
+        // skip blob prefix also
+        const blobId = requestURL.slice(5, inx);
+        const blobUrl = `blob:${self.location.origin}/${blobId}`;
+        baseUrl = requestURL.slice(inx + 1);
+        response = await this.getBlobResponse(blobUrl);
       } else if (requestURL === "about:blank") {
         response = await this.getSrcDocResponse(requestURL);
       } else if (requestURL === "__wb_module_decl.js") {
@@ -151,7 +161,7 @@ class Collection {
       const prefix = basePrefixTS + mod + "/";
 
       const rewriteOpts = {
-        baseUrl: requestURL,
+        baseUrl,
         responseUrl: response.url,
         prefix,
         headInsertFunc,
