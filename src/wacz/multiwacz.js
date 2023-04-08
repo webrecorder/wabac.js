@@ -5,8 +5,9 @@ import { AccessDeniedError, digestMessage, handleAuthNeeded, tsToDate } from "..
 import { getSurt } from "warcio";
 import { LiveProxy } from "../liveproxy.js";
 
-import { DEFAULT_WACZ, INDEX_CDX, INDEX_IDX, INDEX_NOT_LOADED, NO_LOAD_WACZ, WACZFile, WACZ_LEAF } from "./waczfile.js";
-import { TopLevelLoader, WACZImporter, ZipDirLoader } from "./waczimporter.js";
+import { INDEX_CDX, INDEX_IDX, INDEX_NOT_LOADED, NO_LOAD_WACZ, WACZFile, WACZ_LEAF } from "./waczfile.js";
+import { WACZImporter } from "./waczimporter.js";
+import { createLoader } from "../blockloaders.js";
 
 const MAX_BLOCKS = 3;
 
@@ -14,9 +15,9 @@ const IS_SURT = /^([\w-]+,)*[\w-]+(:\d+)?,?\)\//;
 
 
 // ==========================================================================
-export class MultiWACZ extends OnDemandPayloadArchiveDB
+export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSource
 {
-  constructor(config, sourceLoader, topLevelType = "wacz") {
+  constructor(config, sourceLoader, rootSourceType = "wacz") {
     super(config.dbname, config.noCache);
 
     this.config = config;
@@ -27,8 +28,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB
 
     this.updating = null;
 
-    this.topLevelType = topLevelType;
-    this.topLevelLoader = new TopLevelLoader(this.config.loadUrl);
+    this.rootSourceType = rootSourceType;
 
     this.sourceLoader = sourceLoader;
 
@@ -106,7 +106,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB
 
       db.createObjectStore("verification", {keyPath: "id"});
 
-      const waczname = DEFAULT_WACZ;
+      const waczname = this.config.loadUrl;
 
       for (const line of ziplines) {
         line.waczname = waczname;
@@ -137,26 +137,24 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB
     const fileDatas = await this.db.getAll("waczfiles") || [];
 
     for (const file of fileDatas) {
-      this.addWACZFile({...file, parentLoader: this.topLevelLoader});
+      this.addWACZFile({...file, parent: this});
     }
 
     for (const [key, value] of Object.entries(this.waczfiles)) {
-      if (key === DEFAULT_WACZ && this.topLevelType === "wacz") {
-        value.loader = this.sourceLoader;
-      }
-      const inx = value.url.lastIndexOf("#!/");
+      value.path = value.path || key;
+
+      // nested wacz will contain '#!/'
+      const inx = value.path.lastIndexOf("#!/");
       if (inx > 0) {
-        const parentName = value.url.slice(0, inx);
+        const parentName = value.path.slice(0, inx);
         const parent = this.waczfiles[parentName];
-        if (parent) {
-          value.parentLoader = new ZipDirLoader(parent.waczname, parent);
-        }
+        value.parent = parent;
+      } else if (this.rootSourceType !== "json") {
+        value.loader = this.sourceLoader;
       }
     }
 
-    if (this.topLevelType === "json") {
-      await this.checkUpdates();
-    }
+    await this.checkUpdates();
   }
 
   async close() {
@@ -621,15 +619,11 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB
   }
 
   async loadFileFromWACZ(waczfile, filename, opts) {
-    if (!waczfile.zipreader) {
-      await waczfile.init();
-    }
-
     try {
-      return await waczfile.zipreader.loadFile(filename, opts);
+      return await waczfile.loadFile(filename, opts);
     } catch (e) {
       if (await this.retryLoad(e)) {
-        return await waczfile.zipreader.loadFile(filename, opts);
+        return await waczfile.loadFile(filename, opts);
       } else {
         throw e;
       }
@@ -646,13 +640,8 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB
     return await this.loadFileFromWACZ(waczfile, filename, opts);
   }
 
-  async addNewWACZ({name, hash, url, parentLoader, loader = null} = {}) {
-    const waczname = name || DEFAULT_WACZ;
-    parentLoader = parentLoader || this.topLevelLoader;
-
-    if (!loader && waczname === DEFAULT_WACZ && this.topLevelType === "wacz") {
-      loader = this.sourceLoader;
-    }
+  async addNewWACZ({name, hash, path, parent = null, loader = null} = {}) {
+    const waczname = name || path;
 
     if (!hash) {
       hash = await digestMessage(waczname, "sha-256", "");
@@ -660,39 +649,37 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB
       hash = hash.split(":")[1];
     }
 
-    const file = this.addWACZFile({waczname, hash, url, parentLoader, loader}, true);
+    const file = this.addWACZFile({waczname, hash, path, parent, loader}, true);
 
     await file.init();
 
     await file.save(this.db, true);
 
-    const importer = new WACZImporter(this, file);
+    const importer = new WACZImporter(this, file, !parent);
 
     return await importer.load();
   }
 
-  async loadWACZFiles(json, parentLoader = null) {
+  async loadWACZFiles(json, parent = this) {
     const promises = [];
 
-    parentLoader = parentLoader || this.topLevelLoader;
-
-    const update = async (name, url) => {
-      await this.waczfiles[name].init(url);
+    const update = async (name, path) => {
+      await this.waczfiles[name].init(path);
       await this.waczfiles[name].save(this.db, true);
     };
 
     const files = json.resources.map((res) => {
-      const url = parentLoader.getURL(res.path);
-      const name = parentLoader.getName(res.name);
+      const path = parent.getURL(res.path);
+      const name = parent.getName(res.name);
       const hash = res.hash;
-      return {name, hash, url};
+      return {name, hash, path};
     });
 
-    for (const {name, hash, url} of files) {
+    for (const {name, hash, path} of files) {
       if (!this.waczfiles[name]) {
-        promises.push(this.addNewWACZ({name, hash, url, parentLoader}));
-      } else if (this.waczfiles[name].url !== url) {
-        promises.push(update(name, url));
+        promises.push(this.addNewWACZ({name, hash, path, parent}));
+      } else if (this.waczfiles[name].path !== path) {
+        promises.push(update(name, path));
       }
     }
 
@@ -704,21 +691,26 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB
   async getTextIndex() {
     const headers = {"Content-Type": "application/ndjson"};
 
-    if (!this.textIndex) {
+    const keys = Object.keys(this.waczfiles);
+
+    if (!this.textIndex || !keys.length) {
       return new Response("", {headers});
     }
+
+    // just look at first wacz for now
+    const waczname = keys[0];
 
     let result;
 
     try {
-      result = await this.loadFileFromNamedWACZ(DEFAULT_WACZ, this.textIndex, {unzip: true});
+      result = await this.loadFileFromNamedWACZ(waczname, this.textIndex, {unzip: true});
     } catch (e) {
       return new Response("", {headers});
     }
 
     const {reader} = result;
 
-    const size = this.waczfiles[DEFAULT_WACZ].getSizeOf(this.textIndex);
+    const size = this.waczfiles[waczname].getSizeOf(this.textIndex);
 
     if (size > 0) {
       headers["Content-Length"] = "" + size;
@@ -789,7 +781,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB
     return null;
   }
   async retryLoad(e) {
-    if (this.topLevelType === "wacz") {
+    if (this.rootSourceType !== "json") {
       return false;
     }
 
@@ -806,17 +798,44 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB
   }
 
   async checkUpdates() {
-    if (this.topLevelType === "wacz") {
-      return;
+    if (this.rootSourceType === "json") {
+      await this.loadFromJSON();
     }
+  }
 
-    const {response} = await this.sourceLoader.doInitialFetch(false);
+  async loadFromJSON(response = null) {
+    if (!response) {
+      const result = await this.sourceLoader.doInitialFetch(false);
+      response = result.response;
+    }
 
     if (response.status !== 206 && response.status !== 200) {
       console.warn("WACZ update failed from: " + this.config.loadUrl);
-      return;
+      return {};
     }
 
-    await this.loadWACZFiles(await response.json(), this.topLevelLoader);
+    const data = await response.json();
+
+    switch (data.profile) {
+    case "data-package":
+    case "wacz-package":
+    //eslint: disable=no-fallthrough
+    default:
+      await this.loadWACZFiles(data);
+    }
+
+    return data;
+  }
+
+  getURL(path) {
+    return new URL(path, this.config.loadUrl).href;
+  }
+
+  getName(name) {
+    return name;
+  }
+
+  async createLoader(opts) {
+    return await createLoader(opts);
   }
 }

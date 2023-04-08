@@ -2,7 +2,7 @@ import { MAX_FULL_DOWNLOAD_SIZE } from "../utils.js";
 
 import { WARCLoader } from "../warcloader.js";
 
-import { WACZFile } from "./waczfile.js";
+import { DEFAULT_WACZ, WACZFile } from "./waczfile.js";
 import { WACZImporter } from "./waczimporter.js";
 
 
@@ -25,7 +25,10 @@ export class SingleWACZLoader
       db.fullConfig.extra.arrayBuffer = this.loader.arrayBuffer;
     }
 
-    return await db.addNewWACZ({url: this.loadUrl, loader: this.loader});
+    const name = DEFAULT_WACZ;
+    const path = this.loadUrl;
+    const loader = this.loader;
+    return await db.addNewWACZ({name, path, loader});
   }
 }
 
@@ -82,18 +85,13 @@ export class SingleWACZFullImportLoader
 }
 
 // ==========================================================================
-export class JSONMultiWACZLoader
+export class JSONResponseMultiWACZLoader
 {
-  constructor(json) {
-    this.json = json;
+  constructor(response) {
+    this.response = response;
   }
 
   async load(db)  {
-    await db.loadWACZFiles(this.json);
-
-    return {
-      title: this.json.title,
-      desc: this.json.description
-    };
+    return await db.loadFromJSON(this.response);
   }
 }

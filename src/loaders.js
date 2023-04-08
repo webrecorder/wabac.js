@@ -7,7 +7,7 @@ import { HARLoader } from "./harloader.js";
 import { WARCLoader } from "./warcloader.js";
 import { CDXLoader, CDXFromWARCLoader } from "./cdxloader.js";
 
-import { SingleWACZLoader, SingleWACZFullImportLoader, JSONMultiWACZLoader } from "./wacz/waczloader.js";
+import { SingleWACZLoader, SingleWACZFullImportLoader, JSONResponseMultiWACZLoader } from "./wacz/waczloader.js";
 import { MultiWACZ } from "./wacz/multiwacz.js";
 
 import { createLoader } from "./blockloaders.js";
@@ -615,7 +615,7 @@ Make sure this is a valid URL and you have access to this file.`);
         config.decode = false;
       } else if (sourceExt === ".json") {
         db = new MultiWACZ(config, sourceLoader, "json");
-        loader = new JSONMultiWACZLoader(await response.json(), config.loadUrl);
+        loader = new JSONResponseMultiWACZLoader(response);
         type = "multiwacz";
       }
 

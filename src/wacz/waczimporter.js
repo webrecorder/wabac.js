@@ -1,10 +1,6 @@
 import yaml from "js-yaml";
 
 import { verifyWACZSignature } from "./certutils.js";
-import { DEFAULT_WACZ } from "./waczfile.js";
-
-import { createLoader } from "../blockloaders.js";
-import { ZipBlockLoader } from "./ziprangereader.js";
 
 export const MAIN_PAGES_JSON = "pages/pages.jsonl";
 export const EXTRA_PAGES_JSON = "pages/extraPages.jsonl";
@@ -18,20 +14,18 @@ const PAGE_BATCH_SIZE = 500;
 // ==========================================================================
 export class WACZImporter
 {
-  constructor(store, file) {
+  constructor(store, file, isRoot = true) {
     this.file = file;
     this.waczname = file.waczname;
     this.store = store;
+    this.isRoot = isRoot;
   }
 
   async loadFileFromWACZ(filename, opts) {
     if (this.store.loadFileFromWACZ) {
       return await this.store.loadFileFromWACZ(this.file, filename, opts);
     } else {
-      if (!this.file.zipreader) {
-        await this.file.init();
-      }
-      return await this.file.zipreader.loadFile(filename, opts);
+      return await this.file.loadFile(filename, opts);
     }
   }
 
@@ -73,7 +67,7 @@ export class WACZImporter
       }
 
       const store = this.store;
-      const sigPrefix = this.waczname === DEFAULT_WACZ ? "" : this.waczname + ":";
+      const sigPrefix = this.isRoot ? "" : this.waczname + ":";
 
       if (!digestData.signedData || digestData.signedData.hash !== datapackageHash) {
         await store.addVerifyData(sigPrefix, "signature");
@@ -99,7 +93,7 @@ export class WACZImporter
     const root = JSON.parse(text);
 
     //todo: check
-    if (this.waczname === DEFAULT_WACZ && root.config !== undefined) {
+    if (this.isRoot && root.config !== undefined) {
       this.store.initConfig(root.config);
     }
 
@@ -118,7 +112,7 @@ export class WACZImporter
 
   async loadMultiWACZPackage(root) {
     this.file.markAsMultiWACZ();
-    await this.store.loadWACZFiles(root, new ZipDirLoader(this.waczname, this.file));
+    await this.store.loadWACZFiles(root, this.file);
     return root;
   }
 
@@ -171,7 +165,7 @@ export class WACZImporter
       root.config.textIndex = root.textIndex;
     }
 
-    if (this.waczname === DEFAULT_WACZ && root.config !== undefined) {
+    if (this.isRoot && root.config !== undefined) {
       this.store.initConfig(root.config);
     }
 
@@ -232,54 +226,5 @@ export class WACZImporter
     }
 
     return pageListInfo;
-  }
-}
-
-// ==========================================================================
-export class TopLevelLoader
-{
-  constructor(root) {
-    this.root = root;
-  }
-
-  getURL(path) {
-    return new URL(path, this.root).href;
-  }
-
-  getName(name) {
-    return name;
-  }
-
-  async createLoader(opts) {
-    return await createLoader(opts);
-  }
-}
-
-// ==========================================================================
-export class ZipDirLoader
-{
-  constructor(waczname, file) {
-    this.waczname = waczname;
-    this.file = file;
-  }
-
-  getURL(path) {
-    return this.waczname + "#!/" + path;
-  }
-
-  getName(name) {
-    return this.waczname + "#!/" + name;
-  }
-
-  async createLoader(opts) {
-    const { url } = opts;
-    const inx = url.lastIndexOf("#!/");
-
-    if (!this.file.zipreader) {
-      await this.file.init();
-    }
-    if (inx >= 0) {
-      return new ZipBlockLoader(this.file.zipreader, url.slice(inx + 3));
-    }
   }
 }
