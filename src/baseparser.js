@@ -1,9 +1,12 @@
+const DEFAULT_BATCH_SIZE = 1000;
 
-const BATCH_SIZE = 1000;
 
+// ===========================================================================
 class BaseParser
 {
-  constructor() {
+  constructor(batchSize = DEFAULT_BATCH_SIZE) {
+    this.batchSize = batchSize;
+
     this.promises = [];
 
     this.batch = [];
@@ -17,7 +20,7 @@ class BaseParser
   }
 
   isBatchFull() {
-    return this.batch.length >= BATCH_SIZE;
+    return this.batch.length >= this.batchSize;
   }
 
   addResource(res) {
@@ -29,7 +32,7 @@ class BaseParser
 
     if (res.mime === "warc/revisit") {
       if (this.dupeSet.has(key)) {
-        console.warn("Skipping duplicate revisit, prevent overriding non-revisit")
+        console.warn("Skipping duplicate revisit, prevent overriding non-revisit");
         return;
       }
     } else {

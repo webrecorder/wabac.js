@@ -4,8 +4,6 @@ import { WARCLoader } from "./warcloader.js";
 import { CDXIndexer, AsyncIterReader, appendRequestQuery } from "warcio";
 
 
-const BATCH_SIZE = 3000;
-
 export const CDX_COOKIE = "req.http:cookie";
 
 
