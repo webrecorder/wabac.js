@@ -8,15 +8,32 @@ class BaseParser
 
     this.batch = [];
     this.count = 0;
+
+    this.dupeSet = new Set();
   }
 
   addPage(page) {
     this.promises.push(this.db.addPage(page));
   }
 
+  isBatchFull() {
+    return this.batch.length >= BATCH_SIZE;
+  }
+
   addResource(res) {
-    if (this.batch.length >= BATCH_SIZE) {
+    if (this.isBatchFull()) {
       this.flush();
+    }
+
+    const key = res.url + " " + res.ts;
+
+    if (res.mime === "warc/revisit") {
+      if (this.dupeSet.has(key)) {
+        console.warn("Skipping duplicate revisit, prevent overriding non-revisit")
+        return;
+      }
+    } else {
+      this.dupeSet.add(key);
     }
 
     this.batch.push(res);

@@ -360,39 +360,27 @@ class ArchiveDB {
       console.error("Payload and Ref Count Bulk Add Failed: ", e);
     }
 
+    // Add resources
     const tx = this.db.transaction("resources", "readwrite");
 
+    // First, add revisits
+    for (const data of revisits) {
+      if (!Number.isNaN(data.ts)) {
+        tx.store.put(data);
+      }
+    }
+
+    // Then, add non-revisits, overriding any revisits
     for (const data of regulars) {
       if (!Number.isNaN(data.ts)) {
         tx.store.put(data);
       }
     }
 
-    // Add non-revisit resources
     try {
       await tx.done;
     } catch (e) {
       console.error("Resources Bulk Add Failed", e);
-    }
-
-    const tx2 = this.db.transaction("resources", "readwrite");
-
-    for (const data of revisits) {
-      tx2.store.add(data);
-    }
-
-    // Add Revisits, first attempt bulk (will fail in case of duplicates)
-    try {
-      await tx2.done;
-    } catch (e) {
-
-      // Attempt to add revisits, but with each one separately, ignoring dupes
-      // This ensures that a revisit can not override any previously added non-revisit
-      try {
-        await Promise.allSettled(revisits.map(data => this.db.add("resources", data)));
-      } catch (e) {
-        console.warn("Single URL revisit add failed, likely duplicate", e);
-      }
     }
   }
 
