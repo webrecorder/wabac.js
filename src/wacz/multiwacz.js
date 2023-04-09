@@ -669,7 +669,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     };
 
     const files = json.resources.map((res) => {
-      const path = parent.getURL(res.path);
+      const path = parent.getLoadPath(res.path);
       const name = parent.getName(res.name);
       const hash = res.hash;
       return {name, hash, path};
@@ -827,7 +827,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     return data;
   }
 
-  getURL(path) {
+  getLoadPath(path) {
     return new URL(path, this.config.loadUrl).href;
   }
 

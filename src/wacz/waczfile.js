@@ -13,7 +13,7 @@ export const MULTI_WACZ = "multi-wacz";
 // ==========================================================================
 class WACZLoadSource
 {
-  getURL(/*path*/) {
+  getLoadPath(/*path*/) {
     // not implemented;
   }
 
@@ -105,7 +105,7 @@ export class WACZFile extends WACZLoadSource
     return this.entries ? Object.keys(this.entries) : [];
   }
 
-  getURL(path) {
+  getLoadPath(path) {
     return this.waczname + "#!/" + path;
   }
 
