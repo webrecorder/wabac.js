@@ -1,22 +1,47 @@
+const DEFAULT_BATCH_SIZE = 1000;
 
-const BATCH_SIZE = 1000;
 
+// ===========================================================================
 class BaseParser
 {
-  constructor() {
+  constructor(batchSize = DEFAULT_BATCH_SIZE) {
+    this.batchSize = batchSize;
+
     this.promises = [];
 
     this.batch = [];
     this.count = 0;
+
+    this.dupeSet = new Set();
   }
 
   addPage(page) {
     this.promises.push(this.db.addPage(page));
   }
 
+  isBatchFull() {
+    return this.batch.length >= this.batchSize;
+  }
+
   addResource(res) {
-    if (this.batch.length >= BATCH_SIZE) {
+    if (this.isBatchFull()) {
       this.flush();
+    }
+
+    if (Number.isNaN(res.ts)) {
+      console.warn("Skipping resource with missing/invalid ts: " + res.url);
+      return;
+    }
+
+    const key = res.url + " " + res.ts;
+
+    if (res.mime === "warc/revisit") {
+      if (this.dupeSet.has(key)) {
+        console.warn("Skipping duplicate revisit, prevent overriding non-revisit");
+        return;
+      }
+    } else {
+      this.dupeSet.add(key);
     }
 
     this.batch.push(res);

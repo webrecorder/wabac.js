@@ -4,8 +4,6 @@ import { WARCLoader } from "./warcloader.js";
 import { CDXIndexer, AsyncIterReader, appendRequestQuery } from "warcio";
 
 
-const BATCH_SIZE = 3000;
-
 export const CDX_COOKIE = "req.http:cookie";
 
 
@@ -128,11 +126,7 @@ class CDXFromWARCLoader extends WARCLoader
       entry.url = appendRequestQuery(cdx.url, cdx.requestBody, cdx.method);
     }
 
-    if (this.batch.length >= BATCH_SIZE) {
-      this.flush();
-    }
-
-    this.batch.push(entry);
+    this.addResource(entry);
   }
 }
 
@@ -178,7 +172,7 @@ class CDXLoader extends CDXFromWARCLoader
         cdx.url = urlkey;
         console.warn(`URL missing, using urlkey ${urlkey}`);
       }
-      if (progressUpdate && this.batch.length >= BATCH_SIZE) {
+      if (progressUpdate && this.isBatchFull()) {
         progressUpdate(Math.round((numRead / totalSize) * 100), null, numRead, totalSize);
       }
       this.addCdx(cdx);
