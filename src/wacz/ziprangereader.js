@@ -1,5 +1,6 @@
 import { AsyncIterReader, concatChunks } from "warcio";
 import { createSHA256 } from "hash-wasm";
+import { getReadableStreamFromIter } from "../blockloaders.js";
 
 // ===========================================================================
 const MAX_INT32 = 0xFFFFFFFF;
@@ -307,6 +308,51 @@ export class ZipRangeReader
       console.warn(combined, "exceeds MAX_SAFE_INTEGER. Precision may be lost");
 
     return combined;
+  }
+}
+
+// ===========================================================================
+export class ZipBlockLoader
+{
+  constructor(zipreader, filename) {
+    this.zipreader = zipreader;
+    this.filename = filename;
+    this.size = null;
+  }
+
+  async doInitialFetch(tryHead = false) {
+    await this.zipreader.load();
+
+    this.size = this.zipreader.getCompressedSize(this.filename);
+
+    let stream = null;
+
+    if (!tryHead) {
+      const { reader } = await this.zipreader.loadFile(this.filename, {unzip: true});
+      stream = getReadableStreamFromIter(reader);
+    }
+
+    const response = new Response(stream);
+
+    return {response};
+  }
+
+  async getLength() {
+    if (this.size === null) {
+      await this.doInitialFetch(true);
+    }
+
+    return this.size;
+  }
+
+  async getRange(offset, length, streaming = false, signal = null) {
+    const { reader } = await this.zipreader.loadFile(this.filename, {offset, length, signal, unzip: true});
+
+    if (streaming) {
+      return getReadableStreamFromIter(reader);
+    } else {
+      return await reader.readFully();
+    }
   }
 }
 

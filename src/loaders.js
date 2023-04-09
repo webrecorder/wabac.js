@@ -7,8 +7,8 @@ import { HARLoader } from "./harloader.js";
 import { WARCLoader } from "./warcloader.js";
 import { CDXLoader, CDXFromWARCLoader } from "./cdxloader.js";
 
-import { SingleWACZLoader, JSONMultiWACZLoader } from "./wacz/waczloader.js";
-import { MultiWACZCollection, SingleWACZ } from "./wacz/multiwacz.js";
+import { SingleWACZLoader, SingleWACZFullImportLoader, JSONResponseMultiWACZLoader } from "./wacz/waczloader.js";
+import { MultiWACZ } from "./wacz/multiwacz.js";
 
 import { createLoader } from "./blockloaders.js";
 
@@ -225,12 +225,13 @@ class CollectionLoader
 
     case "wacz":
     case "remotezip":
+    case "multiwacz":
       sourceLoader = await createLoader({
         url: config.loadUrl || config.sourceUrl,
         headers: config.headers,
         extra: config.extra
       });
-      store = new SingleWACZ(config, sourceLoader);
+      store = new MultiWACZ(config, sourceLoader, type === "multiwacz" ? "json" : "wacz");
       break;
 
     case "remotewarcproxy":
@@ -240,9 +241,6 @@ class CollectionLoader
     case "live":
       store = new LiveProxy(config.extraConfig);
       break;
-
-    case "multiwacz":
-      store = new MultiWACZCollection(config);
     }
 
     if (!store) {
@@ -493,7 +491,6 @@ class WorkerLoader extends CollectionLoader
       }
       config.sourceName = config.sourceName.slice(config.sourceName.lastIndexOf("/") + 1);
 
-      config.headers = file.headers;
       config.size = typeof(file.size) === "number" ? file.size : null;
       config.extra = file.extra;
 
@@ -507,11 +504,12 @@ class WorkerLoader extends CollectionLoader
       }
 
       config.extraConfig = data.extraConfig;
+      config.headers = file.headers || (config.extraConfig && config.extraConfig.headers);
       config.noCache = file.noCache;
 
       let sourceLoader = await createLoader({
         url: loadUrl,
-        headers: file.headers,
+        headers: config.headers,
         size: file.size,
         extra: config.extra,
         blob: file.blob
@@ -527,7 +525,7 @@ class WorkerLoader extends CollectionLoader
 
         sourceLoader = await createLoader({
           url: loadUrl,
-          headers: file.headers,
+          headers: config.headers,
           size: file.size,
           extra,
         });
@@ -572,14 +570,14 @@ Make sure this is a valid URL and you have access to this file.`);
       const contentLength = sourceLoader.length;
 
       if (sourceExt === ".wacz") {
-        loader = new SingleWACZLoader(sourceLoader, config, name);
-
         if (config.onDemand) {
-          db = new SingleWACZ(config, sourceLoader);
+          loader = new SingleWACZLoader(sourceLoader, config, name);
+          db = new MultiWACZ(config, sourceLoader, "wacz");
           type = "wacz";
 
         // can load on demand, but want a full import
         } else if (sourceLoader.canLoadOnDemand && file.newFullImport) {
+          loader = new SingleWACZFullImportLoader(sourceLoader, config, name);
           //use default db
           db = null;
           delete config.extra;
@@ -616,8 +614,8 @@ Make sure this is a valid URL and you have access to this file.`);
         loader = new HARLoader(await response.json());
         config.decode = false;
       } else if (sourceExt === ".json") {
-        db = new MultiWACZCollection(config);
-        loader = new JSONMultiWACZLoader(await response.json(), config.loadUrl);
+        db = new MultiWACZ(config, sourceLoader, "json");
+        loader = new JSONResponseMultiWACZLoader(response);
         type = "multiwacz";
       }
 

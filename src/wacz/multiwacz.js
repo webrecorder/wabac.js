@@ -1,19 +1,13 @@
-
-import { ZipRangeReader } from "./ziprangereader.js";
 import { OnDemandPayloadArchiveDB } from "../remotearchivedb.js";
 import { SingleRecordWARCLoader } from "../warcloader.js";
 import { CDXLoader, CDX_COOKIE } from "../cdxloader.js";
-import { digestMessage, handleAuthNeeded, tsToDate } from "../utils.js";
+import { AccessDeniedError, digestMessage, handleAuthNeeded, tsToDate } from "../utils.js";
 import { getSurt } from "warcio";
-import { createLoader } from "../blockloaders.js";
 import { LiveProxy } from "../liveproxy.js";
-import { JSONMultiWACZLoader, loadPages, MAIN_PAGES_JSON } from "./waczloader.js";
 
-
-const INDEX_NOT_LOADED = 0;
-const INDEX_CDX = 1;
-const INDEX_IDX = 2;
-//const INDEX_FULL = 3;
+import { INDEX_CDX, INDEX_IDX, INDEX_NOT_LOADED, NO_LOAD_WACZ, WACZFile, WACZ_LEAF } from "./waczfile.js";
+import { WACZImporter } from "./waczimporter.js";
+import { createLoader } from "../blockloaders.js";
 
 const MAX_BLOCKS = 3;
 
@@ -21,17 +15,59 @@ const IS_SURT = /^([\w-]+,)*[\w-]+(:\d+)?,?\)\//;
 
 
 // ==========================================================================
-export class WACZArchiveDB extends OnDemandPayloadArchiveDB
+export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSource
 {
-  constructor(config, noCache = false) {
-    super(config.dbname, noCache);
+  constructor(config, sourceLoader, rootSourceType = "wacz") {
+    super(config.dbname, config.noCache);
+
     this.config = config;
 
     this.waczfiles = {};
-    this.waczhashes = {};
+    this.waczNameForHash = {};
     this.ziploadercache = {};
 
-    this.resHashes = {};
+    this.updating = null;
+
+    this.rootSourceType = rootSourceType;
+
+    this.sourceLoader = sourceLoader;
+
+    this.externalSource = null;
+    this.fuzzyUrlRules = [];
+    this.useSurt = false;
+
+    this.textIndex = config && config.metadata && config.metadata.textIndex;
+
+    if (config.extraConfig) {
+      this.initConfig(config.extraConfig);
+    }
+  }
+
+  initConfig(extraConfig) {
+    if (extraConfig.decodeResponses !== undefined) {
+      this.config.decode = extraConfig.decodeResponses;
+    }
+    if (extraConfig.useSurt !== undefined) {
+      this.useSurt = extraConfig.useSurt;
+    }
+    if (extraConfig.hostProxy) {
+      this.externalSource = new LiveProxy(extraConfig, {hostProxyOnly: true});
+    }
+    if (extraConfig.fuzzy) {
+      for (const [matchStr, replace] of extraConfig.fuzzy) {
+        const match = new RegExp(matchStr);
+        this.fuzzyUrlRules.push({match, replace});
+      }
+    }
+    if (extraConfig.textIndex) {
+      this.textIndex = extraConfig.textIndex;
+    }
+  }
+
+  updateHeaders(headers) {
+    if (this.sourceLoader) {
+      this.sourceLoader.headers = headers;
+    }
   }
 
   _initDB(db, oldV, newV, tx) {
@@ -40,10 +76,59 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     if (!oldV) {
       db.createObjectStore("ziplines", { keyPath: ["waczname", "prefix"] });
 
+      db.createObjectStore("waczfiles", { keyPath: "waczname" } );
+
+      db.createObjectStore("verification",  { keyPath: "id" });
+    }
+
+    if (oldV === 2) {
+      this.convertV2WACZDB(db, tx);
+    }
+
+    if (oldV === 3) {
+      db.createObjectStore("verification", { keyPath: "id" });
+    }
+  }
+
+  async convertV2WACZDB(db, tx) {
+    try {
+
+      const ziplines = await (tx.objectStore("ziplines")).getAll();
+      const entries = await (tx.objectStore("zipEntries")).getAll();
+
+      db.deleteObjectStore("ziplines");
+
+      db.deleteObjectStore("zipEntries");
+
+      db.createObjectStore("ziplines", { keyPath: ["waczname", "prefix"] });
+
       db.createObjectStore("waczfiles", { keyPath: "waczname"} );
 
       db.createObjectStore("verification", {keyPath: "id"});
+
+      const waczname = this.config.loadUrl;
+
+      for (const line of ziplines) {
+        line.waczname = waczname;
+        tx.objectStore("ziplines").put(line);
+      }
+
+      const indexType = ziplines.length > 0 ? INDEX_IDX : INDEX_CDX;
+      const hash = await this.computeHash(waczname);
+      const filedata = new WACZFile({waczname, hash, url: waczname, entries, indexType});
+
+      tx.objectStore("waczfiles").put(filedata.serialize());
+
+      await tx.done;
+    } catch (e)  {
+      console.warn(e);
     }
+  }
+
+  addWACZFile(file) {
+    this.waczfiles[file.waczname] = new WACZFile(file);
+    this.waczNameForHash[file.hash] = file.waczname;
+    return this.waczfiles[file.waczname];
   }
 
   async init() {
@@ -52,22 +137,24 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     const fileDatas = await this.db.getAll("waczfiles") || [];
 
     for (const file of fileDatas) {
-      this.waczfiles[file.waczname] = file;
+      this.addWACZFile({...file, parent: this});
     }
 
-    await this.initLoader();
-  }
+    for (const [key, value] of Object.entries(this.waczfiles)) {
+      value.path = value.path || key;
 
-  initLoader() {
-    
-  }
+      // nested wacz will contain '#!/'
+      const inx = value.path.lastIndexOf("#!/");
+      if (inx > 0) {
+        const parentName = value.path.slice(0, inx);
+        const parent = this.waczfiles[parentName];
+        value.parent = parent;
+      } else if (this.rootSourceType !== "json") {
+        value.loader = this.sourceLoader;
+      }
+    }
 
-  getReaderForWACZ() {
-    throw new Error("Unimplemented here");
-  }
-
-  getWACZName(/*cdx*/) {
-    throw new Error("Unimplemented here");
+    await this.checkUpdates();
   }
 
   async close() {
@@ -83,8 +170,12 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     }
   }
 
-  async addVerifyData(id, expected, actual, log = false) {
+  async addVerifyData(prefix = "", id, expected, actual, log = false) {
     let matched = null;
+
+    if (prefix) {
+      id = prefix + id;
+    }
 
     if (actual) {
       matched = expected === actual;
@@ -95,10 +186,13 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     await this.db.put("verification", {id, expected, matched});
   }
 
-  async addVerifyDataList(datalist) {
+  async addVerifyDataList(prefix, datalist) {
     const tx = this.db.transaction("verification", "readwrite");
 
     for (const data of datalist) {
+      if (prefix) {
+        data.id = prefix + data.id;
+      }
       tx.store.put(data);
     }
 
@@ -148,43 +242,16 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     await this.clearZipData();
   }
 
-
-  async addWACZFile(waczname, entries) {
-    const filedata = {waczname, entries, indexType: INDEX_NOT_LOADED};
-
-    await this.db.put("waczfiles", filedata);
-
-    this.waczfiles[waczname] = filedata;
-
-    const digest = await this.getWACZHash(waczname);
-
-    this.waczhashes[digest] = waczname;
-  }
-
-  async getWACZHash(waczname) {
-    return await digestMessage(waczname, "sha-256", "");
-  }
-
-  async computeWACZHashes() {
-    for (const waczname of Object.keys(this.waczfiles)) {
-      const digest = await this.getWACZHash(waczname);
-
-      this.waczhashes[digest] = waczname;
-    }
-  }
-
   async loadRecordFromSource(cdx) {
-    const {start, length, path} = cdx.source;
-    const wacz = this.getWACZName(cdx);
-    const offset = start;
-    const unzip = true;
+    const {start, length, path, wacz} = cdx.source;
+    const params = {offset: start, length, unzip: true, computeHash: true};
+    const waczname = wacz;
 
-    const zipreader = await this.getReaderForWACZ(wacz);
-
-    const {reader, hasher} = await zipreader.loadFile("archive/" + path, {offset, length, unzip, computeHash: true});
+    const {reader, hasher} = await this.loadFileFromNamedWACZ(waczname, "archive/" + path, params);
+    
     const loader = new SingleRecordWARCLoader(reader, hasher);
 
-    await this.updateEntriesIfNeeded(zipreader, wacz);
+    await this.waczfiles[waczname].save(this.db);
 
     const remote = await loader.load();
 
@@ -195,7 +262,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     return {remote, hasher};
   }
 
-  async loadWACZ(waczname) {
+  async loadIndex(waczname) {
     if (!this.waczfiles[waczname]) {
       throw new Error("unknown waczfile: " + waczname);
     }
@@ -204,19 +271,16 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
       return {indexType: this.waczfiles[waczname].indexType, isNew: false};
     }
 
-    const zipreader = await this.getReaderForWACZ(waczname);
-    await zipreader.load();
-
     //const indexloaders = [];
     let indexType = INDEX_NOT_LOADED;
 
     // load CDX and IDX
-    for (const filename of Object.keys(this.waczfiles[waczname].entries)) {
+    for (const filename of this.waczfiles[waczname].iterContainedFiles()) {
       if (filename.endsWith(".cdx") || filename.endsWith(".cdxj")) {
 
         console.log(`Loading CDX for ${waczname}`);
 
-        await this.loadCDX(zipreader, filename, waczname);
+        await this.loadCDX(filename, waczname);
 
         indexType = INDEX_CDX;
 
@@ -224,7 +288,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
         // For compressed indices
         console.log(`Loading IDX for ${waczname}`);
 
-        await this.loadIDX(zipreader, filename, waczname);
+        await this.loadIDX(filename, waczname);
 
         indexType = INDEX_IDX;
       }
@@ -232,13 +296,13 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
     this.waczfiles[waczname].indexType = indexType;
 
-    await this.db.put("waczfiles", this.waczfiles[waczname]);
+    await this.waczfiles[waczname].save(this.db, true);
 
     return {indexType, isNew: true};
   }
 
-  async loadCDX(zipreader, filename, waczname, progressUpdate, total) {
-    const { reader, hasher } = await zipreader.loadFile(filename, {computeHash: true});
+  async loadCDX(filename, waczname, progressUpdate, total) {
+    const { reader, hasher } = await this.loadFileFromNamedWACZ(waczname, filename, {computeHash: true});
 
     const loader = new CDXLoader(reader, null, waczname, {wacz: waczname});
 
@@ -247,15 +311,15 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     if (hasher) {
       const expected = await this.getVerifyExpected(filename);
       if (expected) {
-        this.addVerifyData(filename, expected, hasher.getHash());
+        this.addVerifyData(waczname, filename, expected, hasher.getHash());
       }
     }
 
     return res;
   }
 
-  async loadIDX(zipreader, filename, waczname, progressUpdate, total) {
-    const { reader, hasher } = await zipreader.loadFile(filename, {computeHash: true});
+  async loadIDX(filename, waczname, progressUpdate, total) {
+    const { reader, hasher } = await this.loadFileFromNamedWACZ(waczname, filename, {computeHash: true});
 
     let batch = [];
     let defaultFilename = "";
@@ -324,7 +388,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     if (hasher) {
       const expected = await this.getVerifyExpected(filename);
       if (expected) {
-        this.addVerifyData(filename, expected, hasher.getHash());
+        this.addVerifyData(waczname, filename, expected, hasher.getHash());
       }
     }
 
@@ -343,7 +407,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
     if (useSurt && useSurt !== this.waczfiles[waczname].useSurt) {
       // only store if defaults to true, false is default
       this.waczfiles[waczname].useSurt = useSurt;
-      await this.db.put("waczfiles", this.waczfiles[waczname]);
+      await this.waczfiles[waczname].save(this.db, true);
     }
   }
 
@@ -377,12 +441,6 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
     const cdxloaders = [];
 
-    const zipreader = await this.getReaderForWACZ(waczname);
-
-    const waczSource = {
-      wacz: waczname
-    };
-
     if (values.length > MAX_BLOCKS && datetime) {
       values.sort((a, b) => {
         const ts1 = a.prefix.split(" ")[1];
@@ -411,7 +469,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
       let cachedLoad = this.ziploadercache[cacheKey];
 
       if (!cachedLoad) {
-        cachedLoad = this.doCDXLoad(cacheKey, zipblock, zipreader, waczSource);
+        cachedLoad = this.doCDXLoad(cacheKey, zipblock, waczname);
         this.ziploadercache[cacheKey] = cachedLoad;
       }
       cdxloaders.push(cachedLoad);
@@ -425,24 +483,24 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
       await Promise.allSettled(cdxloaders);
     }
 
-    await this.updateEntriesIfNeeded(zipreader, waczname);
+    await this.waczfiles[waczname].save(this.db);
 
     return cdxloaders.length > 0;
   }
 
-  async doCDXLoad(cacheKey, zipblock, zipreader, waczSource) {
+  async doCDXLoad(cacheKey, zipblock, waczname) {
     try {
       const filename = "indexes/" + zipblock.filename;
       const params = {offset: zipblock.offset, length: zipblock.length, unzip: true, computeHash: !!zipblock.digest};
-      const { reader, hasher } = await zipreader.loadFile(filename, params);
+      const { reader, hasher } = await this.loadFileFromNamedWACZ(waczname, filename, params);
 
-      const loader = new CDXLoader(reader, null, null, waczSource);
+      const loader = new CDXLoader(reader, null, null, {wacz: waczname});
       await loader.load(this);
 
       if (hasher) {
         const hash = hasher.getHash();
         const id = `${filename}:${zipblock.offset}-${zipblock.length}`;
-        await this.addVerifyData(id, zipblock.digest, hash);
+        await this.addVerifyData(waczname, id, zipblock.digest, hash);
       }
 
       zipblock.loaded = true;
@@ -454,13 +512,6 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
       }
     } finally {
       delete this.ziploadercache[cacheKey];
-    }
-  }
-
-  async updateEntriesIfNeeded(zipreader, waczname) {
-    if (zipreader.entriesUpdated) {
-      await this.db.put("waczfiles", this.waczfiles[waczname]);
-      zipreader.entriesUpdated = false;
     }
   }
 
@@ -493,7 +544,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
       const { waczname } = opts;
 
-      if (waczname && waczname !== "local") {
+      if (waczname && waczname !== NO_LOAD_WACZ) {
         result = await this.lookupUrlForWACZ(waczname, url, datetime, opts);
       }
 
@@ -505,7 +556,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
   }
 
   async lookupUrlForWACZ(waczname, url, datetime, opts) {
-    const {indexType, isNew} = await this.loadWACZ(waczname);
+    const {indexType, isNew} = await this.loadIndex(waczname);
 
     switch (indexType) {
     case INDEX_IDX:
@@ -537,7 +588,7 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
     for (const waczname of Object.keys(this.waczfiles)) {
       if (waczname && waczname !== "local") {
-        const {indexType, isNew} = await this.loadWACZ(waczname);
+        const {indexType, isNew} = await this.loadIndex(waczname);
         
         switch (indexType) {
         case INDEX_IDX:
@@ -566,46 +617,69 @@ export class WACZArchiveDB extends OnDemandPayloadArchiveDB
 
     return results;
   }
-}
 
-
-// ==========================================================================
-export class MultiWACZCollection extends WACZArchiveDB
-{
-  async initLoader() {
-    const config = this.config;
-
-    this.indexLoader = await createLoader({
-      url: config.loadUrl,
-      headers: config.headers,
-      size: config.size,
-      extra: config.extra
-    });
-
-    await this.checkUpdates();
-  }
-
-  getWACZName(cdx) {
-    return cdx.source.wacz;
-  }
-
-  async checkUpdates() {
-    const {response} = await this.indexLoader.doInitialFetch(false);
-    if (response.status !== 206 && response.status !== 200) {
-      console.warn("WACZ update failed from: " + this.config.loadUrl);
-      return;
+  async loadFileFromWACZ(waczfile, filename, opts) {
+    try {
+      return await waczfile.loadFile(filename, opts);
+    } catch (e) {
+      if (await this.retryLoad(e)) {
+        return await waczfile.loadFile(filename, opts);
+      } else {
+        throw e;
+      }
     }
-    const loader = new JSONMultiWACZLoader(await response.json(), this.config.loadUrl);
-    const files = loader.loadFiles();
-    await this.syncWACZ(files);
   }
 
-  async syncWACZ(files) {
+  async loadFileFromNamedWACZ(waczname, filename, opts) {
+    const waczfile = this.waczfiles[waczname];
+
+    if (!waczfile) {
+      throw new Error("No WACZ Found for: " + waczname);
+    }
+
+    return await this.loadFileFromWACZ(waczfile, filename, opts);
+  }
+
+  async addNewWACZ({name, hash, path, parent = null, loader = null} = {}) {
+    const waczname = name || path;
+
+    if (!hash) {
+      hash = await digestMessage(waczname, "sha-256", "");
+    } else if (hash.indexOf(":") > 0) {
+      hash = hash.split(":")[1];
+    }
+
+    const file = this.addWACZFile({waczname, hash, path, parent, loader}, true);
+
+    await file.init();
+
+    await file.save(this.db, true);
+
+    const importer = new WACZImporter(this, file, !parent);
+
+    return await importer.load();
+  }
+
+  async loadWACZFiles(json, parent = this) {
     const promises = [];
 
-    for (const waczname of files) {
-      if (!this.waczfiles[waczname]) {
-        promises.push(this.loadNewWACZ(waczname));
+    const update = async (name, path) => {
+      await this.waczfiles[name].init(path);
+      await this.waczfiles[name].save(this.db, true);
+    };
+
+    const files = json.resources.map((res) => {
+      const path = parent.getLoadPath(res.path);
+      const name = parent.getName(res.name);
+      const hash = res.hash;
+      return {name, hash, path};
+    });
+
+    for (const {name, hash, path} of files) {
+      if (!this.waczfiles[name]) {
+        promises.push(this.addNewWACZ({name, hash, path, parent}));
+      } else if (this.waczfiles[name].path !== path) {
+        promises.push(update(name, path));
       }
     }
 
@@ -614,37 +688,56 @@ export class MultiWACZCollection extends WACZArchiveDB
     }
   }
 
-  async loadNewWACZ(waczname) {
-    const loader = await this.getBlockLoader(waczname);
+  async getTextIndex() {
+    const headers = {"Content-Type": "application/ndjson"};
 
-    const zipreader = new ZipRangeReader(loader);
+    const keys = Object.keys(this.waczfiles);
 
-    const entries = await zipreader.load(true);
+    if (!this.textIndex || !keys.length) {
+      return new Response("", {headers});
+    }
 
-    await this.addWACZFile(waczname, entries);
+    // just look at first wacz for now
+    const waczname = keys[0];
 
-    const expectedHash = await this.getVerifyExpected(MAIN_PAGES_JSON);
+    let result;
 
-    await loadPages(this, zipreader, waczname, MAIN_PAGES_JSON, expectedHash);
+    try {
+      result = await this.loadFileFromNamedWACZ(waczname, this.textIndex, {unzip: true});
+    } catch (e) {
+      return new Response("", {headers});
+    }
 
-    await this.updateEntriesIfNeeded(zipreader, waczname);
+    const {reader} = result;
+
+    const size = this.waczfiles[waczname].getSizeOf(this.textIndex);
+
+    if (size > 0) {
+      headers["Content-Length"] = "" + size;
+    }
+
+    return new Response(reader.getReadableStream(), {headers});
   }
 
   async getResource(request, prefix, event, {pageId} = {}) {
     await this.initing;
 
+    if (this.externalSource) {
+      const res = await this.externalSource.getResource(request, prefix, event);
+      if (res) {
+        return res;
+      }
+    }
+
     const isNavigate = event.request.mode === "navigate";
 
-    let waczhash = pageId;
+    let hash = pageId;
     let waczname = null;
 
     let resp = null;
 
-    if (waczhash) {
-      if (!Object.keys(this.waczhashes).length) {
-        await this.computeWACZHashes();
-      }
-      waczname = this.waczhashes[waczhash];
+    if (hash) {
+      waczname = this.waczNameForHash[hash];
       if (!waczname) {
         return null;
       }
@@ -655,201 +748,21 @@ export class MultiWACZCollection extends WACZArchiveDB
       return resp;
     }
 
-    for (const checkWaczname of Object.keys(this.waczfiles)) {
-      resp = await super.getResource(request, prefix, event, {waczname: checkWaczname, noFuzzyCheck: true});
+    for (const [name, file] of Object.entries(this.waczfiles)) {
+      if (file.fileType !== WACZ_LEAF) {
+        continue;
+      }
+
+      resp = await super.getResource(request, prefix, event, {waczname: name, noFuzzyCheck: true});
       if (resp) {
-        waczname = checkWaczname;
-        waczhash = await this.getWACZHash(waczname);
+        waczname = name;
+        hash = file.hash;
         break;
       }
     }
 
-    if (!waczname) {
-      return;
-    }
-    
-    return Response.redirect(`${prefix}:${waczhash}/${request.timestamp}mp_/${request.url}`);
-
-    // let waczname;
-
-    // if (pageId) {
-    //   const page = await this.db.get("pages", pageId);
-    //   if (page) {
-    //     waczname = page.wacz;
-    //   }
-    // }
-
-    // // if waczname, attempt to load from specific wacz
-    // const resp = await super.getResource(request, prefix, event, {pageId, waczname});
-    // if (resp) {
-    //   return resp;
-    // }
-
-    // // if navigate, attempt to try to match by page
-    // if (isNavigate) {
-    //   const ts = tsToDate(request.timestamp).getTime();
-    //   const url = request.url;
-    //   const page = await this.findPageAtUrl(url, ts);
-
-    //   // redirect to page (if different from current)
-    //   if (page && page.id !== pageId) {
-    //     return Response.redirect(`${prefix}:${page.id}/${request.timestamp}mp_/${request.url}`);
-    //   }
-    // }
-
-    // return resp;
-  }
-
-  async getReaderForWACZ(waczname) {
-    return new ZipRangeReader(
-      await this.getBlockLoader(waczname),
-      this.waczfiles[waczname].entries
-    );
-  }
-
-  getBlockLoader(filename) {
-    return createLoader({
-      url: filename
-    });
-  }
-}
-
-
-// ==========================================================================
-export class SingleWACZ extends WACZArchiveDB
-{
-  constructor(fullConfig, sourceLoader) {
-    super(fullConfig, fullConfig.noCache);
-
-    this.zipreader = new ZipRangeReader(sourceLoader);
-
-    this.externalSource = null;
-    this.fuzzyUrlRules = [];
-    this.useSurt = false;
-    this.fullConfig = fullConfig;
-    this.textIndex = fullConfig && fullConfig.metadata && fullConfig.metadata.textIndex;
-
-    if (fullConfig.extraConfig) {
-      this.initConfig(fullConfig.extraConfig);
-    }
-  }
-
-  _initDB(db, oldV, newV, tx) {
-    super._initDB(db, oldV, newV, tx);
-
-    if (oldV === 2) {
-      this.convertV2WACZDB(db, tx);
-    }
-
-    if (oldV === 3) {
-      db.createObjectStore("verification", {keyPath: "id"});
-    }
-  }
-
-  async convertV2WACZDB(db, tx) {
-    try {
-
-      const ziplines = await (tx.objectStore("ziplines")).getAll();
-      const entries = await (tx.objectStore("zipEntries")).getAll();
-
-      db.deleteObjectStore("ziplines");
-
-      db.deleteObjectStore("zipEntries");
-
-      db.createObjectStore("ziplines", { keyPath: ["waczname", "prefix"] });
-
-      db.createObjectStore("waczfiles", { keyPath: "waczname"} );
-
-      db.createObjectStore("verification", {keyPath: "id"});
-
-      const waczname = this.getWACZName();
-
-      for (const line of ziplines) {
-        line.waczname = waczname;
-        tx.objectStore("ziplines").put(line);
-      }
-
-      const indexType = ziplines.length > 0 ? INDEX_IDX : INDEX_CDX;
-      const filedata = {waczname, entries, indexType};
-
-      tx.objectStore("waczfiles").put(filedata);
-
-      await tx.done;
-    } catch (e)  {
-      console.warn(e);
-    }
-  }
-
-  getReaderForWACZ() {
-    return this.zipreader;
-  }
-
-  updateHeaders(headers) {
-    this.zipreader.loader.headers = headers;
-  }
-
-  initConfig(config) {
-    if (config.decodeResponses !== undefined) {
-      this.fullConfig.decode = config.decodeResponses;
-    }
-    if (config.useSurt !== undefined) {
-      this.useSurt = config.useSurt;
-    }
-    if (config.hostProxy) {
-      this.externalSource = new LiveProxy(config, {hostProxyOnly: true});
-    }
-    if (config.fuzzy) {
-      for (const [matchStr, replace] of config.fuzzy) {
-        const match = new RegExp(matchStr);
-        this.fuzzyUrlRules.push({match, replace});
-      }
-    }
-    if (config.textIndex) {
-      this.textIndex = config.textIndex;
-    }
-  }
-
-  async getTextIndex() {
-    const headers = {"Content-Type": "application/ndjson"};
-
-    if (!this.textIndex) {
-      return new Response("", {headers});
-    }
-
-    try {
-      await this.zipreader.load();
-    } catch (e) {
-      await handleAuthNeeded(e, this.config);
-      return new Response("", {headers});
-    }
-
-    const size = this.zipreader.getCompressedSize(this.textIndex);
-
-    if (size > 0) {
-      headers["Content-Length"] = "" + size;
-    }
-
-    const {reader} = await this.zipreader.loadFile(this.textIndex, {unzip: true});
-
-    return new Response(reader.getReadableStream(), {headers});
-  }
-
-  async getResource(request, rwPrefix, event, {pageId} = {}) {
-    let res = null;
-
-    if (this.externalSource) {
-      res = await this.externalSource.getResource(request, rwPrefix, event);
-      if (res) {
-        return res;
-      }
-    }
-
-    const waczname = this.getWACZName();
-
-    res = await super.getResource(request, rwPrefix, event, {pageId, waczname});
-
-    if (res) {
-      return res;
+    if (waczname) {   
+      return Response.redirect(`${prefix}:${hash}/${request.timestamp}mp_/${request.url}`);
     }
 
     if (this.fuzzyUrlRules.length) {
@@ -857,7 +770,7 @@ export class SingleWACZ extends WACZArchiveDB
         const newUrl = decodeURIComponent(request.url.replace(match, replace));
         if (newUrl && newUrl !== request.url) {
           request.url = newUrl;
-          res = await super.getResource(request, rwPrefix, event);
+          const res = await super.getResource(request, prefix, event);
           if (res) {
             return res;
           }
@@ -867,8 +780,62 @@ export class SingleWACZ extends WACZArchiveDB
 
     return null;
   }
+  async retryLoad(e) {
+    if (this.rootSourceType !== "json") {
+      return false;
+    }
 
-  getWACZName() {
-    return this.config.loadUrl;
+    if (e instanceof AccessDeniedError) {
+      if (!this.updating) {
+        this.updating = this.checkUpdates();
+      }
+      await this.updating;
+      this.updating = null;
+      return true;
+    } else {
+      return await handleAuthNeeded(e, this.config);
+    }
+  }
+
+  async checkUpdates() {
+    if (this.rootSourceType === "json") {
+      await this.loadFromJSON();
+    }
+  }
+
+  async loadFromJSON(response = null) {
+    if (!response) {
+      const result = await this.sourceLoader.doInitialFetch(false);
+      response = result.response;
+    }
+
+    if (response.status !== 206 && response.status !== 200) {
+      console.warn("WACZ update failed from: " + this.config.loadUrl);
+      return {};
+    }
+
+    const data = await response.json();
+
+    switch (data.profile) {
+    case "data-package":
+    case "wacz-package":
+    //eslint: disable=no-fallthrough
+    default:
+      await this.loadWACZFiles(data);
+    }
+
+    return data;
+  }
+
+  getLoadPath(path) {
+    return new URL(path, this.config.loadUrl).href;
+  }
+
+  getName(name) {
+    return name;
+  }
+
+  async createLoader(opts) {
+    return await createLoader(opts);
   }
 }

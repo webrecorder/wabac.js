@@ -559,7 +559,7 @@ class IPFSRangeLoader
       body = new Uint8Array([]);
     } else {
       const iter = autoipfsClient.get(this.url, {signal});
-      body = this._getReadableStreamFromIter(iter);
+      body = getReadableStreamFromIter(iter);
     }
 
     const response = new Response(body, {status});
@@ -577,7 +577,7 @@ class IPFSRangeLoader
     });
 
     if (streaming) {
-      return this._getReadableStreamFromIter(iter);
+      return getReadableStreamFromIter(iter);
     } else {
       const chunks = [];
       let size = 0;
@@ -590,24 +590,24 @@ class IPFSRangeLoader
       return concatChunks(chunks, size);
     }
   }
-
-  _getReadableStreamFromIter(stream) {
-    return new ReadableStream({
-      start: async (controller) => {
-        try {
-          for await (const chunk of stream) {
-            controller.enqueue(chunk);
-          }
-        } catch (e) {
-          console.log(e);
-        }
-        controller.close();
-      }
-    });
-  }
 }
 
-function getReadableStreamFromArray(array) {
+export function getReadableStreamFromIter(stream) {
+  return new ReadableStream({
+    start: async (controller) => {
+      try {
+        for await (const chunk of stream) {
+          controller.enqueue(chunk);
+        }
+      } catch (e) {
+        console.log(e);
+      }
+      controller.close();
+    }
+  });
+}
+
+export function getReadableStreamFromArray(array) {
   return new ReadableStream({
     start(controller) {
       controller.enqueue(array);
