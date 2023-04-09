@@ -365,16 +365,12 @@ class ArchiveDB {
 
     // First, add revisits
     for (const data of revisits) {
-      if (!Number.isNaN(data.ts)) {
-        tx.store.put(data);
-      }
+      tx.store.put(data);
     }
 
     // Then, add non-revisits, overriding any revisits
     for (const data of regulars) {
-      if (!Number.isNaN(data.ts)) {
-        tx.store.put(data);
-      }
+      tx.store.put(data);
     }
 
     try {

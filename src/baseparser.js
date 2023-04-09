@@ -28,6 +28,11 @@ class BaseParser
       this.flush();
     }
 
+    if (Number.isNaN(res.ts)) {
+      console.warn("Skipping resource with missing/invalid ts: " + res.url);
+      return;
+    }
+
     const key = res.url + " " + res.ts;
 
     if (res.mime === "warc/revisit") {
