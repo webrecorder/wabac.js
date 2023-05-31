@@ -85,7 +85,7 @@ const createJSRules = () => {
     return (x, opts) => {
       let res = x.replace(src, target);
       // if not module, add empty string, otherwise, import.meta.url
-      res += (opts.isModule ? "import.meta.url, " : "\"\", ");
+      res += (opts.isModule ? "import.meta.url, " : "null, ");
       return res;
     };
   }
@@ -118,6 +118,9 @@ const createJSRules = () => {
 
     // rewrite this in && or || expr?
     [/[^|&][|&]{2}\s*this\b\s*(?![|\s&.$](?:[^|&]|$))/, replaceThis()],
+
+    // ignore 'async import', custom function
+    [/async\s+import\s*\(/, x => x],
 
     // esm dynamic import, if found, mark as module
     [/[^$.]\bimport\s*\(/, replaceImport("import", "____wb_rewrite_import__")]
