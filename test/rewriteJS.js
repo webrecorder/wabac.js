@@ -4,8 +4,8 @@ import { doRewrite } from "./helpers/index.js";
 
 
 // ===========================================================================
-async function rewriteJS(t, content, expected, useBaseRules = false) {
-  const actual = await doRewrite({content, contentType: "application/javascript", useBaseRules});
+async function rewriteJS(t, content, expected, useBaseRules = false, url = "https://example.com/some/path/index.html") {
+  const actual = await doRewrite({content, contentType: "application/javascript", useBaseRules, url});
 
   if (!expected) {
     expected = content;
@@ -80,6 +80,16 @@ test(rewriteJS,
   "a = this;",
   "a = _____WB$wombat$check$this$function_____(this);");
 
+// rewrite on ds-specific path that's not json
+test(rewriteJS,
+  "b = this;",
+  "b = _____WB$wombat$check$this$function_____(this);",
+  false,
+  "https://player.vimeo.com/video/some/path.html"
+);
+
+
+
 test(rewriteJS,
   "return this.location",
   "return _____WB$wombat$check$this$function_____(this).location");
@@ -151,7 +161,7 @@ a = _____WB$wombat$check$this$function_____(this).location\
 // dynamic import rewrite (non-module)
 test(rewriteJS,
   "await import (somefile);",
-  "await ____wb_rewrite_import__ (\"\", somefile);"
+  "await ____wb_rewrite_import__ (null, somefile);"
 );
 
 
@@ -271,6 +281,8 @@ test(rewriteJS, "simport(5);");
 test(rewriteJS, "a.import(5);");
 
 test(rewriteJS, "$import(5);");
+
+test(rewriteJS, "async import(val) { ... }");
 
 test(rewriteJSImport, "\
 import\"import.js\";import{A, B, C} from\"test.js\";(function() => { frames[0].href = \"/abc\"; })");

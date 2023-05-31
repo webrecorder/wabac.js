@@ -17,13 +17,13 @@ const DEFAULT_RULES = [
   {
     contains: ["player.vimeo.com/video/"],
     rxRules: [
-      [/.+/, ruleRewriteVimeoConfig]
+      [/^\{.+\}$/, ruleRewriteVimeoConfig]
     ]
   },
   {
     contains: ["master.json?query_string_ranges=0", "master.json?base64"],
     rxRules: [
-      [/.+/, ruleRewriteVimeoDashManifest]
+      [/^\{.+\}$/, ruleRewriteVimeoDashManifest]
     ]
   },
   {
