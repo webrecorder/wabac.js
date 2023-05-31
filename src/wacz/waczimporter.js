@@ -100,6 +100,8 @@ export class WACZImporter
     switch (root.profile) {
     case "data-package":
     case "wacz-package":
+    case undefined:
+    case null:
       return await this.loadLeafWACZPackage(root);
 
     case "multi-wacz-package":
