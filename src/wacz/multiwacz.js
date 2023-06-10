@@ -414,7 +414,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
   async loadCDXFromIDX(waczname, url, datetime = 0, isPrefix = false) {
     //const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
 
-    const surt = this.waczfiles[waczname].useSurt ? decodeURIComponent(getSurt(url)) : url;
+    const surt = this.waczfiles[waczname].useSurt ? getSurt(url) : url;
 
     const upperBound = isPrefix ? this.prefixUpperBound(surt) : surt + " 9999";
 
