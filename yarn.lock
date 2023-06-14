@@ -535,10 +535,10 @@ asn1js@^3.0.5:
     pvutils "^1.1.3"
     tslib "^2.4.0"
 
-auto-js-ipfs@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/auto-js-ipfs/-/auto-js-ipfs-2.1.0.tgz#b7dacdcae6522f5eb40a80bd89ba6db4ac99d174"
-  integrity sha512-fYFtpOb8aSWnFklOW9UKwQmhsF7malEKT9ic0z8ANoXo46tOY5mfIFQJM+UVVHZCQCFbovt0opbegMebXf5GmA==
+auto-js-ipfs@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/auto-js-ipfs/-/auto-js-ipfs-2.1.1.tgz#a4276e4ea1bde9426fc24555ee4523d3feed5c95"
+  integrity sha512-apr18WgwDAtxR46PmOGNtkj40IWQOYL3m1c8o0tq2xn0Hulj7B9nDPQQ9yQ+NwJdIUiFJGaCMDlUQd+BOiS/pQ==
 
 ava@^5.1.0:
   version "5.1.0"
