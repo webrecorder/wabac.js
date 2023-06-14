@@ -1,4 +1,4 @@
-import XMLParser from "fast-xml-parser";
+import { XMLParser, XMLBuilder } from "fast-xml-parser";
 
 // orig pywb defaults
 const OLD_DEFAULT_MAX_BAND = 2000000;
@@ -46,7 +46,7 @@ function getMaxResAndBand(opts = {}) {
 
 // ===========================================================================
 //HLS
-function rewriteHLS(text, opts) {
+export function rewriteHLS(text, opts) {
   const EXT_INF = /#EXT-X-STREAM-INF:(?:.*[,])?BANDWIDTH=([\d]+)/;
   const EXT_RESOLUTION = /RESOLUTION=([\d]+)x([\d]+)/;
 
@@ -107,10 +107,15 @@ function rewriteHLS(text, opts) {
 
 // ===========================================================================
 // DASH
-const dashOutputOpts = {ignoreAttributes: false, ignoreNameSpace: false, format: false, supressEmptyNode: true};
+export const xmlOpts = {
+  ignoreAttributes: false,
+  removeNSPrefix: false,
+  format: false,
+  suppressEmptyNode: true,
+};
 
 
-function rewriteDASH(text, opts, bestIds) {
+export function rewriteDASH(text, opts, bestIds) {
   try {
     return _rewriteDASH(text, opts, bestIds);
   } catch (e) {
@@ -121,8 +126,8 @@ function rewriteDASH(text, opts, bestIds) {
 
 
 function _rewriteDASH(text, opts, bestIds) {
-  const options = dashOutputOpts;
-  const root = XMLParser.parse(text, options);
+  const parser = new XMLParser(xmlOpts);
+  const root = parser.parse(text);
 
   const { maxRes, maxBand} = getMaxResAndBand(opts);
 
@@ -177,13 +182,8 @@ function _rewriteDASH(text, opts, bestIds) {
     }
   }
 
-  const toXML = new XMLParser.j2xParser(options);
-  const xml = toXML.parse(root);
+  const toXML = new XMLBuilder(xmlOpts);
+  const xml = toXML.build(root);
 
   return "<?xml version='1.0' encoding='UTF-8'?>\n" + xml.trim();
 }
-
-
-// ===========================================================================
-export { rewriteHLS, rewriteDASH, dashOutputOpts, DEFAULT_MAX_BAND };
-
