@@ -34,7 +34,6 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
 
     this.externalSource = null;
     this.fuzzyUrlRules = [];
-    this.useSurt = false;
 
     this.textIndex = config && config.metadata && config.metadata.textIndex;
 
@@ -46,9 +45,6 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
   initConfig(extraConfig) {
     if (extraConfig.decodeResponses !== undefined) {
       this.config.decode = extraConfig.decodeResponses;
-    }
-    if (extraConfig.useSurt !== undefined) {
-      this.useSurt = extraConfig.useSurt;
     }
     if (extraConfig.hostProxy) {
       this.externalSource = new LiveProxy(extraConfig, {hostProxyOnly: true});
@@ -323,7 +319,9 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
 
     let batch = [];
     let defaultFilename = "";
-    let useSurt = false;
+
+    // start out as non surt, if surt detected, set to false
+    let nonSurt = true;
 
     let currOffset = 0;
     
@@ -360,7 +358,8 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
 
         entry = {waczname, prefix, filename, offset, length, loaded: false};
 
-        useSurt = true;
+        nonSurt = false;
+
       } else {
         const inx = line.indexOf(" {");
         if (inx < 0) {
@@ -371,7 +370,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
         const prefix = line.slice(0, inx);
         let {offset, length, filename, digest} = JSON.parse(line.slice(inx));
 
-        useSurt = useSurt || prefix.match(IS_SURT);
+        nonSurt = nonSurt && !IS_SURT.test(prefix);
 
         filename = filename || defaultFilename;
 
@@ -404,9 +403,9 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       console.log("Error loading ziplines index: ", e);
     }
 
-    if (useSurt && useSurt !== this.waczfiles[waczname].useSurt) {
-      // only store if defaults to true, false is default
-      this.waczfiles[waczname].useSurt = useSurt;
+    // set only if nonSurt is true (defaults to false)
+    if (nonSurt && nonSurt !== this.waczfiles[waczname].nonSurt) {
+      this.waczfiles[waczname].nonSurt = nonSurt;
       await this.waczfiles[waczname].save(this.db, true);
     }
   }
@@ -414,7 +413,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
   async loadCDXFromIDX(waczname, url, datetime = 0, isPrefix = false) {
     //const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
 
-    const surt = this.waczfiles[waczname].useSurt ? getSurt(url) : url;
+    const surt = this.waczfiles[waczname].nonSurt ? url : getSurt(url);
 
     const upperBound = isPrefix ? this.prefixUpperBound(surt) : surt + " 9999";
 

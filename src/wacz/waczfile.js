@@ -29,7 +29,7 @@ class WACZLoadSource
 // ==========================================================================
 export class WACZFile extends WACZLoadSource
 {
-  constructor({waczname, hash, path, parent = null, entries = null, fileType = WACZ_LEAF, indexType = INDEX_NOT_LOADED, loader = null} = {}) {
+  constructor({waczname, hash, path, parent = null, entries = null, fileType = WACZ_LEAF, indexType = INDEX_NOT_LOADED, nonSurt = false, loader = null} = {}) {
     super();
     this.waczname = waczname;
     this.hash = hash;
@@ -40,6 +40,7 @@ export class WACZFile extends WACZLoadSource
     this.entries = entries;
     this.indexType = indexType;
     this.fileType = fileType;
+    this.nonSurt = nonSurt;
   }
 
   markAsMultiWACZ() {
@@ -87,7 +88,8 @@ export class WACZFile extends WACZLoadSource
       hash: this.hash,
       path: this.path,
       entries: this.entries,
-      indexType: this.indexType
+      indexType: this.indexType,
+      nonSurt: this.nonSurt
     };
   }
 
