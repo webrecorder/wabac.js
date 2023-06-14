@@ -4,9 +4,9 @@ import { doRewrite } from "./helpers/index.js";
 
 import { promises as fs} from "fs";
 
-import { dashOutputOpts } from "../src/rewrite/rewriteVideo.js";
+import { xmlOpts } from "../src/rewrite/rewriteVideo.js";
 
-dashOutputOpts.format = true;
+xmlOpts.format = true;
 
 
 // ===========================================================================
