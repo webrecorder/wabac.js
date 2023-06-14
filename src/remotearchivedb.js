@@ -108,6 +108,9 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       // if revisit record has header, use those, otherwise use headers from original
       cdx.respHeaders = remote.respHeaders ? remote.respHeaders : origResult.respHeaders;
       cdx.mime = origResult.mime;
+      // ensure digest is set to original (usually same but may have different prefix)
+      // to ensure proper lookup from cache
+      cdx.digest = origResult.digest;
 
       if (origResult.extraOpts) {
         cdx.extraOpts = origResult.extraOpts;
