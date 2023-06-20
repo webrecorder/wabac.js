@@ -747,6 +747,8 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       return resp;
     }
 
+    let foundHash = null;
+
     for (const [name, file] of Object.entries(this.waczfiles)) {
       if (file.fileType !== WACZ_LEAF) {
         continue;
@@ -755,13 +757,13 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       resp = await super.getResource(request, prefix, event, {waczname: name, noFuzzyCheck: true});
       if (resp) {
         waczname = name;
-        hash = file.hash;
+        foundHash = file.hash;
         break;
       }
     }
 
     if (waczname) {   
-      return Response.redirect(`${prefix}:${hash}/${request.timestamp}mp_/${request.url}`);
+      return Response.redirect(`${prefix}:${foundHash}/${request.timestamp}mp_/${request.url}`);
     }
 
     if (this.fuzzyUrlRules.length) {
