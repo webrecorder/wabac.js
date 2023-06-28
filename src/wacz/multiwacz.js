@@ -700,27 +700,27 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       const waczname = keys[0];
 
       let result;
-  
+
       try {
         result = await this.loadFileFromNamedWACZ(waczname, this.textIndex, {unzip: true});
       } catch (e) {
         return new Response("", {headers});
       }
-  
+
       const {reader} = result;
-  
+
       const size = this.waczfiles[waczname].getSizeOf(this.textIndex);
-  
+
       if (size > 0) {
         headers["Content-Length"] = "" + size;
       }
-  
+
       return new Response(reader.getReadableStream(), {headers});
     } else {
 
       const readers = [];
 
-      for (const waczname of keys) {  
+      for (const waczname of keys) {
         try {
           const { reader } = await this.loadFileFromNamedWACZ(waczname, this.textIndex, {unzip: true});
           if (reader) {
