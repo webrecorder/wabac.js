@@ -6,7 +6,7 @@ import { getSurt } from "warcio";
 import { LiveProxy } from "../liveproxy.js";
 
 import { INDEX_CDX, INDEX_IDX, INDEX_NOT_LOADED, NO_LOAD_WACZ, WACZFile, WACZ_LEAF } from "./waczfile.js";
-import { WACZImporter } from "./waczimporter.js";
+import { EXTRA_PAGES_JSON, WACZImporter } from "./waczimporter.js";
 import { createLoader } from "../blockloaders.js";
 
 const MAX_BLOCKS = 3;
@@ -35,7 +35,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     this.externalSource = null;
     this.fuzzyUrlRules = [];
 
-    this.textIndex = config && config.metadata && config.metadata.textIndex;
+    this.textIndex = (config && config.metadata && config.metadata.textIndex) || EXTRA_PAGES_JSON;
 
     if (config.extraConfig) {
       this.initConfig(config.extraConfig);
@@ -696,26 +696,54 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       return new Response("", {headers});
     }
 
-    // just look at first wacz for now
-    const waczname = keys[0];
+    if (keys.length === 1) {
+      const waczname = keys[0];
 
-    let result;
+      let result;
+  
+      try {
+        result = await this.loadFileFromNamedWACZ(waczname, this.textIndex, {unzip: true});
+      } catch (e) {
+        return new Response("", {headers});
+      }
+  
+      const {reader} = result;
+  
+      const size = this.waczfiles[waczname].getSizeOf(this.textIndex);
+  
+      if (size > 0) {
+        headers["Content-Length"] = "" + size;
+      }
+  
+      return new Response(reader.getReadableStream(), {headers});
+    } else {
 
-    try {
-      result = await this.loadFileFromNamedWACZ(waczname, this.textIndex, {unzip: true});
-    } catch (e) {
-      return new Response("", {headers});
+      const readers = [];
+
+      for (const waczname of keys) {  
+        try {
+          const { reader } = await this.loadFileFromNamedWACZ(waczname, this.textIndex, {unzip: true});
+          if (reader) {
+            readers.push(reader);
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+
+      const rs = new ReadableStream({
+        async pull(controller) {
+          for (const reader of readers) {
+            for await (const chunk of reader) {
+              controller.enqueue(chunk);
+            }
+          }
+          controller.close();
+        }
+      });
+
+      return new Response(rs, {headers});
     }
-
-    const {reader} = result;
-
-    const size = this.waczfiles[waczname].getSizeOf(this.textIndex);
-
-    if (size > 0) {
-      headers["Content-Length"] = "" + size;
-    }
-
-    return new Response(reader.getReadableStream(), {headers});
   }
 
   async getResource(request, prefix, event, {pageId} = {}) {
