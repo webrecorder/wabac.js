@@ -143,6 +143,12 @@ test(rewriteJS,
   "somewindow.__WB_pmw(self).postMessage({'a': 'b'})",
 );
 
+// add global injection
+test(rewriteJSWrapped,
+  "let a = document.location.href; var b = 5; const foo = 4;",
+  "let a = document.location.href; var b = 5; const foo = 4;\nself.a = a;\nself.foo = foo;");
+
+
 // import rewrite
 test(rewriteJSImport, `\
 
@@ -307,4 +313,8 @@ a = location
 
 export{ a, $ as b };
 `);
+
+// no wrap, no global injection
+test(rewriteJS, "let a = 7; var b = 5; const foo = 4;\n\n");
+
 
