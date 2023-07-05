@@ -1,4 +1,5 @@
 import { RxRewriter } from "./rxrewriter.js";
+import * as acorn from "acorn";
 
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
 const EXPORT_RX = /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/m;
@@ -23,6 +24,7 @@ const GLOBAL_OVERRIDES = [
 const GLOBALS_CONCAT_STR = GLOBAL_OVERRIDES.map((x) => `(?:^|[^$.])\\b${x}\\b(?:$|[^$])`).join("|");
 
 const GLOBALS_RX = new RegExp(`(${GLOBALS_CONCAT_STR})`);
+
 
 // ===========================================================================
 const createJSRules = () => {
@@ -174,6 +176,29 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return false;
   }
 
+  parseLetConstGlobals(text) {
+    const res = acorn.parse(text, {ecmaVersion: "latest"});
+
+    const names = [];
+
+    for (const expr of res.body) {
+      const { type, kind, declarations } = expr;
+      if (type === "VariableDeclaration" && (kind === "const" || kind === "let")) {
+        const decl = declarations.length && declarations[0];
+        if (decl && decl.type === "VariableDeclarator") {
+          const name = decl.id && decl.id.name;
+          names.push(`self.${name} = ${name};`);
+        }
+      }
+    }
+
+    if (names.length) {
+      return "\n" + names.join("\n");
+    } else {
+      return "";
+    }
+  }
+
   rewrite(text, opts) {
     opts = opts || {};
     if (opts.isModule === undefined || opts.isModule === null) {
@@ -203,7 +228,15 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     const wrapGlobals = GLOBALS_RX.exec(text);
 
     if (wrapGlobals) {
-      newText = this.firstBuff + newText + this.lastBuff;
+      let hoistGlobals = "";
+      if (newText) {
+        try {
+          hoistGlobals = this.parseLetConstGlobals(newText);
+        } catch (e) {
+          console.warn("acorn parsing failed: ", e);
+        }
+      }
+      newText = this.firstBuff + newText + hoistGlobals + this.lastBuff;
     }
 
     if (opts && opts.inline) {
