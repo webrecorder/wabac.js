@@ -238,6 +238,7 @@ export function getCollData(coll) {
   const metadata = coll.config.metadata ? coll.config.metadata : {};
 
   const res = {
+    ...metadata,
     "title": metadata.title || "",
     "desc": metadata.desc || "",
     "size": metadata.size || 0,
