@@ -708,6 +708,9 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       }
 
       const {reader} = result;
+      if (!reader) {
+        return new Response("", {headers});
+      }
 
       const size = this.waczfiles[waczname].getSizeOf(this.textIndex);
 
@@ -756,8 +759,6 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       }
     }
 
-    const isNavigate = event.request.mode === "navigate";
-
     let hash = pageId;
     let waczname = null;
 
@@ -771,14 +772,15 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       resp = await super.getResource(request, prefix, event, {waczname});
     }
 
-    if (resp || !isNavigate) {
-      return resp;
-    }
-
     let foundHash = null;
 
     for (const [name, file] of Object.entries(this.waczfiles)) {
       if (file.fileType !== WACZ_LEAF) {
+        continue;
+      }
+
+      // already checked this file above, don't check again
+      if (file.hash === hash) {
         continue;
       }
 
