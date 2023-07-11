@@ -770,6 +770,9 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
         return null;
       }
       resp = await super.getResource(request, prefix, event, {waczname});
+      if (resp) {
+        return resp;
+      }
     }
 
     let foundHash = null;
