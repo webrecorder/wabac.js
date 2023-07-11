@@ -708,6 +708,9 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       }
 
       const {reader} = result;
+      if (!reader) {
+        return new Response("", {headers});
+      }
 
       const size = this.waczfiles[waczname].getSizeOf(this.textIndex);
 
