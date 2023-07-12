@@ -209,7 +209,7 @@ class ArchiveResponse
     return true;
   }
 
-  makeResponse(coHeaders = false) {
+  makeResponse(coHeaders = false, overwriteDisposition = false) {
     let body = null;
     if (!isNullBodyStatus(this.status)) {
       body = this.buffer || !this.reader ? this.buffer : this.reader.getReadableStream();
@@ -222,6 +222,9 @@ class ArchiveResponse
     if (coHeaders) {
       response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
       response.headers.set("Cross-Origin-Embedder-Policy", "require-corp");
+    }
+    if (overwriteDisposition) {
+      response.headers.set("content-disposition", "inline");
     }
     return response;
   }
