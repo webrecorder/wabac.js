@@ -186,7 +186,8 @@ class Collection {
       response.setRange(range);
     }
 
-    return response.makeResponse(this.coHeaders);
+    const deleteDisposition = (request.destination === "iframe" || request.destination === "document");
+    return response.makeResponse(this.coHeaders, deleteDisposition);
   }
 
   getCanonRedirect(query) {
