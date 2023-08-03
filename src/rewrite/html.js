@@ -275,6 +275,8 @@ class HTMLRewriter
     rwStream.tokenizer.preprocessor.bufferWaterline = Infinity;
 
     let insertAdded = false;
+    let headDone = false;
+    let isTextEmpty = true;
 
     let context = "";
     let scriptRw = "";
@@ -311,6 +313,7 @@ class HTMLRewriter
         }
 
         context = startTag.tagName;
+        isTextEmpty = true;
         scriptRw = this.getScriptRWType(startTag);
         break;
       }
@@ -323,6 +326,10 @@ class HTMLRewriter
 
       case "head":
         addInsert();
+        break;
+
+      case "body":
+        headDone = true;
         break;
       }
 
@@ -338,6 +345,17 @@ class HTMLRewriter
           endTag.tagName = replaceTag;
           replaceTag = null;
         }
+        switch (context) {
+        case "head":
+          headDone = true;
+          break;
+
+        case "script":
+          if (headDone && !isTextEmpty) {
+            rwStream.emitRaw(";document.close();");
+          }
+          break;
+        }
         context = "";
       }
       rwStream.emitEndTag(endTag);
@@ -348,6 +366,8 @@ class HTMLRewriter
         if (context === "script") {
           const prefix = rewriter.prefix;
           const isModule = scriptRw === "module";
+
+          isTextEmpty = isTextEmpty && textToken.text.trim().length === 0;
 
           if (scriptRw === "js" || isModule) {
             return rewriter.rewriteJS(textToken.text, {isModule, prefix});
