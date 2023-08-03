@@ -36,7 +36,6 @@ class WabacLiveProxy
       extraConfig: {
         "prefix": proxyPrefix, 
         "isLive": true,
-        "allowBody": true,
         "baseUrl": baseUrl.href,
         "baseUrlHashReplay": true,
         "noPostToGet": true

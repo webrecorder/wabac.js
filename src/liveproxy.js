@@ -11,7 +11,7 @@ export class LiveProxy {
     this.isLive = extraConfig.isLive !== undefined ? extraConfig.isLive : true;
     this.archivePrefix = extraConfig.archivePrefix || "";
     this.cloneResponse = cloneResponse;
-    this.allowBody = allowBody || extraConfig.allowBody;
+    this.allowBody = allowBody || this.isLive;
 
     this.hostProxy = extraConfig.hostProxy;
 
