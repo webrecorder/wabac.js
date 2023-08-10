@@ -3,7 +3,7 @@ import { ArchiveResponse } from "./response.js";
 
 // ===========================================================================
 export class LiveProxy {
-  constructor(extraConfig, {cloneResponse = false, allowBody = true, hostProxyOnly = false} = {}) {
+  constructor(extraConfig, {cloneResponse = false, allowBody = false, hostProxyOnly = false} = {}) {
     extraConfig = extraConfig || {};
 
     this.prefix = extraConfig.prefix || "";
