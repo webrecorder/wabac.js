@@ -438,6 +438,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   wbinfo.presetCookie = ${presetCookieStr};
   wbinfo.storage = "${storage}";
   wbinfo.isSW = true;
+  wbinfo.injectDocClose = true;
   wbinfo.pixel_ratio = ${pixelRatio};
   wbinfo.convert_post_to_get = ${this.convertPostToGet};
   wbinfo.target_frame = "${REPLAY_TOP_FRAME_NAME}";

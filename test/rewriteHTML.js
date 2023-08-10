@@ -307,6 +307,15 @@ test("script", rewriteHtml,
   "<script type=\"python\">print(\"top\")</script>"
 );
 
+// SCRIPT tag in body, add document.close
+test("script", rewriteHtml,
+  `<body>
+   <script>var foo = x;</script>
+   </body>`,
+  `<body>
+   <script>var foo = x;;document.close();</script>
+   </body>`);
+
 // SCRIPT tag ensure reset after known type
 test("script", rewriteHtml,
   `<script type="application/javascript">document.location.href = "abc";</script>
