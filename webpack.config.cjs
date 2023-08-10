@@ -3,6 +3,7 @@
 const path = require("path");
 const webpack = require("webpack");
 const TerserPlugin = require("terser-webpack-plugin");
+const package_json = require("./package.json");
 
 module.exports = {
   mode: "production",
@@ -61,7 +62,7 @@ module.exports = {
       process: "process/browser",
     }),
 
-    new webpack.BannerPlugin(`[name].js is part of Webrecorder project. Copyright (C) 2020-${new Date().getFullYear()}, Webrecorder Software. Licensed under the Affero General Public License v3.`),
+    new webpack.BannerPlugin(`[name].js (wabac.js ${package_json.version}) is part of Webrecorder project. Copyright (C) 2020-${new Date().getFullYear()}, Webrecorder Software. Licensed under the Affero General Public License v3.`),
   ],
 };
 
