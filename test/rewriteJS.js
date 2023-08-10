@@ -110,6 +110,7 @@ test(rewriteJSWrapped,
   "location = http://example.com/",
   "location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/");
 
+// acorn fails here, but is ignorable
 test(rewriteJSWrapped,
   " location = http://example.com/2",
   " location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/2");
@@ -260,7 +261,7 @@ test(rewriteJSWrapped, "window.eval(a)");
 
 test(rewriteJSWrapped, "x = window.eval; x(a);");
 
-test(rewriteJSWrapped, "this. location = http://example.com/");
+test(rewriteJSWrapped, "this. location = 'http://example.com/'");
 
 test(rewriteJS, "obj = { eval : 1 }");
 

@@ -233,7 +233,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
         try {
           hoistGlobals = this.parseLetConstGlobals(newText);
         } catch (e) {
-          console.warn("acorn parsing failed: ", e);
+          console.warn("acorn parsing failed on: " + newText);
         }
       }
       newText = this.firstBuff + newText + hoistGlobals + this.lastBuff;
