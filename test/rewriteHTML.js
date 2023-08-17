@@ -316,6 +316,12 @@ test("script", rewriteHtml,
    <script>var foo = x;;document.close();</script>
    </body>`);
 
+// SCRIPT tag in body but json
+test("script", rewriteHtml,
+  "<body><script type=\"application/json\">{\"embed top test\": \"http://example.com/a/b/c.html\"}</script></body>",
+  "<body><script type=\"application/json\">{\"embed top test\": \"http://example.com/a/b/c.html\"}</script></body>"
+);
+
 // SCRIPT tag ensure reset after known type
 test("script", rewriteHtml,
   `<script type="application/javascript">document.location.href = "abc";</script>
