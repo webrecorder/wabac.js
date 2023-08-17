@@ -351,7 +351,7 @@ class HTMLRewriter
           break;
 
         case "script":
-          if (headDone && !isTextEmpty) {
+          if (headDone && !isTextEmpty && (!scriptRw || scriptRw === "js")) {
             rwStream.emitRaw(";document.close();");
           }
           break;
