@@ -272,6 +272,17 @@ class ArchiveDB {
     return results;
   }
 
+  async getTimestampsByURL(url) {
+    const tx = this.db.transaction("resources");
+    const results=[]; 
+    for await (const cursor of tx.store.iterate()) {
+      if (cursor.key[0] === url) {
+        results.push(cursor.key[1]);
+      }
+    }
+    return results;
+  }
+
   async getPagesWithState(state) {
     return await this.db.getAllFromIndex("pages", "state", state);
   }
