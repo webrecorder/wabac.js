@@ -175,15 +175,15 @@ class WARCLoader extends BaseParser {
         return null;
       }
 
-      // skip self-redirects
-      if (status > 300 && status < 400) {
-        const location = headers.get("location");
-        if (location) {
-          if (new URL(location, url).href === url) {
-            return null;
-          }
-        }
-      }
+      // self-redirects not handled at lookup time
+      // if (status > 300 && status < 400) {
+      //   const location = headers.get("location");
+      //   if (location) {
+      //     if (new URL(location, url).href === url) {
+      //       return null;
+      //     }
+      //   }
+      // }
     } else {
       headers = new Headers();
       headers.set("content-type", record.warcContentType);
