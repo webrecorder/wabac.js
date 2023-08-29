@@ -53,6 +53,7 @@ class API {
       "index": "coll-index",
       "coll": "c/:coll",
       "urls": "c/:coll/urls",
+      "urlsTs": "c/:coll/ts/",
       "createColl": ["c/create", "POST"],
       "deleteColl": ["c/:coll", "DELETE"],
       "updateAuth": ["c/:coll/updateAuth", "POST"],
@@ -167,6 +168,17 @@ class API {
       urls = urls || [];
 
       return {urls};
+    }
+
+    case "urlsTs": {
+      const coll = await this.collections.getColl(params.coll);
+      if (!coll) {
+        return {error: "collection_not_found"};
+      }
+      const url = params._query.get("url");
+      const timestamps = await coll.store.getTimestampsByURL(url);
+
+      return {"timestamps": timestamps};
     }
 
     case "pages": {
