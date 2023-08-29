@@ -153,7 +153,7 @@ class SWReplay {
     this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
 
     if (sp.has("indexHtml")) {
-      const indexData = { type: "text/html", content: sp.get("indexHtml")}
+      const indexData = { type: "text/html", content: sp.get("indexHtml")};
       this.staticData.set(this.prefix, indexData);
       this.staticData.set(this.prefix + "index.html", indexData);
     }
