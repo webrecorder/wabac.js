@@ -549,6 +549,21 @@ class ArchiveDB {
     return result.payload;
   }
 
+  isSelfRedirect(url, result) {
+    try {
+      if (result && result.respHeaders && result.status >= 300 && result.status < 400) {
+        const location = new Headers(result.respHeaders).get("location");
+        if (new URL(location, url).href === url) {
+          return true;
+        }
+      }
+    } catch (e) {
+      // just in case, ignore errors here, assume not self-redirect
+    }
+
+    return false;
+  }
+
   async lookupUrl(url, ts, opts = {}) {
     const tx = this.db.transaction("resources", "readonly");
 
@@ -557,7 +572,12 @@ class ArchiveDB {
 
       if (!opts.noRevisits && !opts.pageId) {
         const result = await tx.store.get(range);
-        if (result) {
+
+        if (result && this.isSelfRedirect(url, result)) {
+          // assume the self-redirect URL is later then current URL
+          // allowing looking up ts + 10 seconds to match redirected to URL
+          ts += 1000 * 10;
+        } else if (result) {
           return result;
         }
       } else {
@@ -573,10 +593,14 @@ class ArchiveDB {
             continue;
           }
 
+          if (this.isSelfRedirect(url, result)) {
+            continue;
+          }
+
           return result;
         }
       }
-    } 
+    }
 
     // search reverse from ts (or from latest capture)
     const range = IDBKeyRange.bound([url], [url, ts || MAX_DATE_TS]);
@@ -589,6 +613,10 @@ class ArchiveDB {
       }
 
       if (opts.noRevisits && result.mime === REVISIT) {
+        continue;
+      }
+
+      if (this.isSelfRedirect(url, result)) {
         continue;
       }
 
