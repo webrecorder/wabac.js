@@ -152,6 +152,12 @@ class SWReplay {
     this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
     this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
 
+    if (sp.has("indexHtml")) {
+      const indexData = { type: "text/html", content: sp.get("indexHtml")}
+      this.staticData.set(this.prefix, indexData);
+      this.staticData.set(this.prefix + "index.html", indexData);
+    }
+
     if (sp.has("injectScripts")) {
       const injectScripts = sp.get("injectScripts").split(",");
       defaultConfig.injectScripts = defaultConfig.injectScripts ?
