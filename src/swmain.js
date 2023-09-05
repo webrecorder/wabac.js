@@ -152,8 +152,8 @@ class SWReplay {
     this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
     this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
 
-    if (sp.has("indexHtml")) {
-      const indexData = { type: "text/html", content: sp.get("indexHtml")};
+    if (sp.has("serveIndex")) {
+      const indexData = { type: "text/html", content: this.getIndexHtml(sp)};
       this.staticData.set(this.prefix, indexData);
       this.staticData.set(this.prefix + "index.html", indexData);
     }
@@ -198,6 +198,18 @@ class SWReplay {
         event.waitUntil(this.collections.loadAll());
       }
     });
+  }
+
+  getIndexHtml(sp) {
+    const uiScript = sp.get("indexScript") || "./ui.js";
+    const appTag = sp.get("indexAppTag") || "replay-app-main";
+    return `
+    <!doctype html>
+    <html>
+    <head><script src="${uiScript}"></script></head>
+    <body>
+    <${appTag}></${appTag}>
+    </body></html>`;
   }
 
   handleFetch(event) {
