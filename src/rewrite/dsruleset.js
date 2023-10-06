@@ -190,6 +190,10 @@ function ruleRewriteVimeoDashManifest(string, opts) {
   }
 
   function filterByBitrate(array, max, mime) {
+    if (!array) {
+      return null;
+    }
+
     let bestVariant = 0;
     let bestBitrate = null;
 

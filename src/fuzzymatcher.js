@@ -68,9 +68,15 @@ const DEFAULT_RULES =
     "args": [[{"arg": "data",
       "keys": ["query_type", "fbid", "v", "cursor", "data"]}]]
   },
+  // Twitter
   {
     "match": /(twitter.com\/[^/]+\/status\/[^?]+)(\?.*)/,
     "fuzzyCanonReplace": "$1"
+  },
+  {
+    "match": /(twitter.com\/i\/api\/graphql\/.*)/,
+    "args": [["cursor"]],
+    "fuzzyArgs": true
   },
   // Facebook
   {
@@ -262,7 +268,7 @@ class FuzzyMatcher {
 
       // lower total score for status >200
       if (result.status > 200) {
-        total *= 10 ** ((200 - result.status) * 0.0003);
+        total *= 10 ** ((200 - result.status) * 0.0001);
       }
 
       //console.log('total: ' + total + ' ' + url.href + ' <=> ' + reqUrl);
