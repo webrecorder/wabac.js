@@ -4,6 +4,8 @@ import { BaseAsyncIterReader, AsyncIterReader, LimitReader, concatChunks } from 
 
 import { createLoader } from "./blockloaders.js";
 
+const MAX_CACHE_SIZE = 25_000_000;
+
 
 // ===========================================================================
 class OnDemandPayloadArchiveDB extends ArchiveDB
@@ -106,7 +108,16 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       }
 
       // if revisit record has header, use those, otherwise use headers from original
-      cdx.respHeaders = remote.respHeaders ? remote.respHeaders : origResult.respHeaders;
+      if (remote.respHeaders) {
+        cdx.respHeaders = remote.respHeaders;
+        if (origResult.respHeaders["content-length"]) {
+          // ensure content-length is the original result content length always
+          cdx.respHeaders["content-length"] = origResult.respHeaders["content-length"];
+        }
+      } else {
+        cdx.respHeaders = origResult.respHeaders;
+      }
+
       cdx.mime = origResult.mime;
       // ensure digest is set to original (usually same but may have different prefix)
       // to ensure proper lookup from cache
@@ -138,8 +149,14 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
 
     const digest = remote.digest;
 
-    if (!this.noCache && remote.reader && digest) {
+    const tooBigForCache = cdx.source.length >= MAX_CACHE_SIZE;
+
+    if (!this.noCache && !tooBigForCache && remote.reader && digest) {
       remote.reader = new PayloadBufferingReader(this, remote.reader, digest, cdx.url, this.streamMap, hasher, cdx.recordDigest, cdx.source);
+    }
+
+    if (tooBigForCache) {
+      console.log("Not cacheing, too big: " + cdx.url);
     }
 
     payload = remote.payload;
@@ -150,7 +167,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
 
     // Update payload if cacheing
     try {
-      if (payload && !this.noCache) {
+      if (payload && !this.noCache && !tooBigForCache) {
         await this.commitPayload(payload, digest);
       }
     } catch(e) {
@@ -166,7 +183,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
         cdx.extraOpts = remote.extraOpts;
       }
 
-      if (!this.noCache) {
+      if (!this.noCache && !tooBigForCache) {
         try {
           await this.db.put("resources", cdx);
         } catch (e) {
