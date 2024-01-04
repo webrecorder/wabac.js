@@ -5,6 +5,7 @@ class WabacLiveProxy
 {
   constructor() {
     this.url = "";
+    this.ts = "";
   }
 
   async init() {
@@ -34,11 +35,12 @@ class WabacLiveProxy
       file: {"sourceUrl": `proxy:${proxyPrefix}`},
       skipExisting: false,
       extraConfig: {
-        "prefix": proxyPrefix, 
-        "isLive": true,
+        "prefix": proxyPrefix,
+        "isLive": false,
         "baseUrl": baseUrl.href,
         "baseUrlHashReplay": true,
-        "noPostToGet": true
+        "noPostToGet": true,
+        "archivePrefix": "https://web.archive.org/web/"
       },
     };
 
@@ -69,20 +71,22 @@ class WabacLiveProxy
     const m = window.location.hash.slice(1).match(/\/?(?:([\d]+)\/)?(.*)/);
 
     const url = m && m[2] || "https://example.com/";
+    const ts = m && m[1] || "";
     
     // don't change if same url
-    if (url === this.url) {
+    if (url === this.url && ts === this.ts) {
       return;
     }
 
-    let iframeUrl = `/w/liveproxy/mp_/${url}`;
+    let iframeUrl = ts ? `/w/liveproxy/${ts}mp_/${url}` : `/w/liveproxy/mp_/${url}`;
 
     const iframe = document.querySelector("#content");
     iframe.src = iframeUrl;
 
     this.url = url;
+    this.ts = ts;
 
-    window.location.hash = `#${url}`;
+    window.location.hash = ts ? `#${ts}/${url}` : `#${url}`;
   }
 }
 

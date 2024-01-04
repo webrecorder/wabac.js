@@ -176,20 +176,33 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return false;
   }
 
-  parseLetConstGlobals(text) {
+  parseGlobals(text) {
     const res = acorn.parse(text, {ecmaVersion: "latest"});
 
     const names = [];
 
+    const excludeOverrides = new Set();
+
     for (const expr of res.body) {
       const { type, kind, declarations } = expr;
-      if (type === "VariableDeclaration" && (kind === "const" || kind === "let")) {
-        const decl = declarations.length && declarations[0];
-        if (decl && decl.type === "VariableDeclarator") {
-          const name = decl.id && decl.id.name;
-          names.push(`self.${name} = ${name};`);
+      if (type === "VariableDeclaration") {
+        for (const decl of declarations) {
+          if (decl && decl.type === "VariableDeclarator" && decl.id && decl.id.type === "Identifier") {
+            const name = decl.id.name;
+
+            if (GLOBAL_OVERRIDES.includes(name)) {
+              excludeOverrides.add(name);
+            } else if (kind === "const" || kind === "let") {
+              names.push(`self.${name} = ${name};`);
+            }
+          }
         }
       }
+    }
+
+    if (excludeOverrides) {
+      const filteredGlobals = GLOBAL_OVERRIDES.filter(x => !excludeOverrides.has(x));
+      this.firstBuff = this.initLocalDecl(filteredGlobals);
     }
 
     if (names.length) {
@@ -231,7 +244,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       let hoistGlobals = "";
       if (newText) {
         try {
-          hoistGlobals = this.parseLetConstGlobals(newText);
+          hoistGlobals = this.parseGlobals(newText);
         } catch (e) {
           console.warn("acorn parsing failed on: " + newText);
         }
