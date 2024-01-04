@@ -200,7 +200,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       }
     }
 
-    if (excludeOverrides) {
+    if (excludeOverrides.size) {
       const filteredGlobals = GLOBAL_OVERRIDES.filter(x => !excludeOverrides.has(x));
       this.firstBuff = this.initLocalDecl(filteredGlobals);
     }

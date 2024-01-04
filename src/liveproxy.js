@@ -98,6 +98,7 @@ export class LiveProxy {
       date: new Date(),
       noRW: false,
       isLive: this.isLive,
+      archivePrefix: this.archivePrefix,
     });
 
     if (clonedResponse) {

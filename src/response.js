@@ -9,7 +9,7 @@ const decoder = new TextDecoder();
 class ArchiveResponse
 {
 
-  static fromResponse({url, response, date, noRW, isLive}) {
+  static fromResponse({url, response, date, noRW, isLive, archivePrefix}) {
     const payload = response.body ? new AsyncIterReader(response.body.getReader(), false) : null;
     const status = Number(response.headers.get("x-redirect-status") || response.status);
     const statusText = response.headers.get("x-redirect-statusText") || response.statusText;
@@ -20,6 +20,12 @@ class ArchiveResponse
     if (origLoc) {
       if (origLoc.startsWith(self.location.origin)) {
         origLoc = origLoc.slice(self.location.origin.length);
+      }
+      if (archivePrefix && origLoc.startsWith(archivePrefix)) {
+        const inx = origLoc.indexOf("/http");
+        if (inx > 0) {
+          origLoc = origLoc.slice(inx + 1);
+        }
       }
       headers.set("location", origLoc);
       headers.delete("x-orig-location");
