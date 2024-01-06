@@ -240,20 +240,23 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     const wrapGlobals = GLOBALS_RX.exec(text);
 
+    if (opts.inline) {
+      newText = newText.replace(/\n/g, " ") ;
+    }
+
     if (wrapGlobals) {
       let hoistGlobals = "";
       if (newText) {
         try {
           hoistGlobals = this.parseGlobals(newText);
         } catch (e) {
-          console.warn("acorn parsing failed on: " + newText);
+          console.warn(`acorn parsing failed, script len ${newText.length}`);
         }
       }
       newText = this.firstBuff + newText + hoistGlobals + this.lastBuff;
-    }
-
-    if (opts && opts.inline) {
-      newText = newText.replace(/\n/g, " ") ;
+      if (opts.inline) {
+        newText = newText.replace(/\n/g, " ") ;
+      }
     }
 
     return newText;

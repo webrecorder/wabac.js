@@ -134,15 +134,17 @@ class HTMLRewriter
     const tagName = tag.tagName;
 
     for (let attr of tag.attrs) {
-      const name = attr.name;
-      const value = attr.value;
+      const name = attr.name || "";
+      const value = attr.value || "";
 
-      // js attrs
-      if (name.startsWith("on") && value.startsWith("javascript:") && name.slice(2, 3) != "-") {
+      // js attrs with javascript:
+      if (value.startsWith("javascript:")) {
         attr.value = "javascript:" + rewriter.rewriteJS(value.slice("javascript:".length), {inline: true});
-      }
+      } else if (name.startsWith("on") && name.slice(2, 3) != "-") {
+      // js attrs
+        attr.value = rewriter.rewriteJS(value, {inline: true});
       // css attrs
-      else if (name === "style") {
+      } else if (name === "style") {
         attr.value = rewriter.rewriteCSS(attr.value);
       }
 

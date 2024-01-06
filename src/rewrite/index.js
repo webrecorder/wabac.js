@@ -298,7 +298,7 @@ class Rewriter {
 
   // JS
   rewriteJS(text, opts) {
-    const noUrlProxyRewrite = opts && !opts.rewriteUrl && opts.isModule === undefined;
+    const noUrlProxyRewrite = opts && !opts.rewriteUrl && opts.isModule === undefined && !opts.inline;
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
 
