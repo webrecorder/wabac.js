@@ -9,6 +9,13 @@ class WabacLiveProxy
   }
 
   async init() {
+    window.addEventListener("load", () => {
+      const iframe = document.querySelector("#content");
+      if (iframe) {
+        iframe.addEventListener("load", () => this.onIframeLoad(iframe.contentWindow.location.href));
+      }
+    });
+
     const scope = "./";
 
     // also add inject of custom.js as a script into each replayed page
@@ -87,6 +94,15 @@ class WabacLiveProxy
     this.ts = ts;
 
     window.location.hash = ts ? `#${ts}/${url}` : `#${url}`;
+  }
+
+  onIframeLoad(url) {
+    const m = url.match(/liveproxy\/([\d]+)?\w\w_\/(.*)/);
+
+    this.ts = m[1] || "";
+    this.url = m[2] || "";
+
+    window.location.hash = this.ts ? `#${this.ts}/${this.url}` : `#${this.url}`;
   }
 }
 
