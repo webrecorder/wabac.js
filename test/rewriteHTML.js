@@ -49,6 +49,10 @@ ${text}
 
 }
 
+function wrapScriptInline(text) {
+  return wrapScript(text).replace(/\n/g, " ").replace(/["]/g, "&quot;").replace(/[&][&]/g, "&amp;&amp;");
+}
+
 
 function wrapScriptModule(text) {
   return `\
@@ -275,6 +279,12 @@ test("srcset", rewriteHtml,
   "<img srcset=\"\">",
   "<img srcset=\"\">");
 
+// background attr
+test("background", rewriteHtml,
+  "<td background=\"https://example.com/\"></td>",
+  "<td background=\"http://localhost:8080/prefix/20201226101010mp_/https://example.com/\"></td>"
+);
+
 // SCRIPT Tag
 // pywb diff: no script url rewriting!
 test("script proxy wrapped", rewriteHtml,
@@ -287,6 +297,17 @@ test("script not wrapped", rewriteHtml,
   "<script>window.location = \"http://example.com/a/b/c.html\"</script>",
   "<script>window.location = \"http://example.com/a/b/c.html\"</script>",
   {useBaseRules: true}
+);
+
+// inline attr rewrite
+test("inline attr rewrite", rewriteHtml,
+  "<body onload=\"window.location.href = '/path.html'\"></body>",
+  `<body onload="${wrapScriptInline("window.location.href = '/path.html'")}"></body>`
+);
+
+test("inline attr rewrite with javascript: prefix", rewriteHtml,
+  "<body onload=\"javascript:window.location.href = '/path.html'\"></body>",
+  `<body onload="javascript:${wrapScriptInline("window.location.href = '/path.html'")}"></body>`
 );
 
 // no rewriting if no props
