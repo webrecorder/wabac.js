@@ -1,5 +1,6 @@
 import { BaseAsyncIterReader, AsyncIterReader } from "warcio";
 import { isNullBodyStatus, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, tsToDate } from "./utils.js";
+import { Buffer } from "buffer";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -92,9 +93,20 @@ class ArchiveResponse
   }
 
   async getText(isUTF8 = false) {
-    const buff = await this.getBuffer();
+    let buff = await this.getBuffer();
     if (typeof(buff) === "string") {
       return buff;
+    }
+
+    // Check for BOMs
+    if (buff[0] === 0xEF && buff[1] === 0xBB && buff[2] === 0xBF) {
+      return decoder.decode(buff.slice(3));
+    // UTF-16BE -- convert to buffer, swap, and decode LE
+    } else if (buff[0] === 0xFE && buff[1] === 0xFF) {
+      return Buffer.from(buff.slice(2)).swap16().toString("utf16le");
+    // UTF-16LE -- convert to buffer, decode LE
+    } else if (buff[0] === 0xFF && buff[1] === 0xFE) {
+      return Buffer.from(buff.slice(2)).toString("utf16le");
     }
 
     return isUTF8 ? decoder.decode(buff) : decodeLatin1(buff);
