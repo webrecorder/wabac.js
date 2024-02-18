@@ -122,8 +122,8 @@ class CDXFromWARCLoader extends WARCLoader
     }
 
     // url with post query appended
-    if (cdx.requestBody) {
-      entry.url = appendRequestQuery(cdx.url, cdx.requestBody, cdx.method);
+    if (cdx.method && cdx.method !== "GET") {
+      entry.url = appendRequestQuery(cdx.url, cdx.requestBody || "", cdx.method);
     }
 
     this.addResource(entry);

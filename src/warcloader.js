@@ -330,10 +330,10 @@ class WARCLoader extends BaseParser {
       entry.source = this.sourceExtra;
     }
 
-    if (method !== "GET" && requestUrl && requestBody !== null) {
+    if (method !== "GET" && requestUrl) {
       entry.requestUrl = requestUrl;
       entry.method = method;
-      entry.requestBody = requestBody;
+      entry.requestBody = requestBody || "";
     }
 
     return entry;
