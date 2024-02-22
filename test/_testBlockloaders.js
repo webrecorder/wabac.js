@@ -1,6 +1,6 @@
 "use strict";
 
-/*
+
 import test from "ava";
 
 import {createLoader} from "../src/blockloaders.js";
@@ -26,4 +26,4 @@ test("Load data from IPFS Blockloader", async t => {
 
   t.deepEqual(chunks, expected, "Got chunks from loader");
 });
-*/
+
