@@ -1,10 +1,11 @@
 "use strict";
 
+/*
 import test from "ava";
 
 import {createLoader} from "../src/blockloaders.js";
 
-/*
+
 test("Load data from IPFS Blockloader", async t => {
   const url = "ipfs://bafybeibpyor6sjdarqmbqpc7cxr2rwc2gv6vnvuwmgteiicaa6adbcjex4/webarchive.wacz";
 
