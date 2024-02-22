@@ -179,13 +179,17 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
   parseGlobals(text) {
     const res = acorn.parse(text, {ecmaVersion: "latest"});
 
+    let hasDocWrite = false;
+
     const names = [];
 
     const excludeOverrides = new Set();
 
     for (const expr of res.body) {
-      const { type, kind, declarations } = expr;
+      const { type } = expr;
+      // Check global variable declarations
       if (type === "VariableDeclaration") {
+        const { kind, declarations } = expr;
         for (const decl of declarations) {
           if (decl && decl.type === "VariableDeclarator" && decl.id && decl.id.type === "Identifier") {
             const name = decl.id.name;
@@ -197,12 +201,30 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
             }
           }
         }
+      // Check for document.write() calls
+      } else if (!hasDocWrite && type === "ExpressionStatement") {
+        const { expression } = expr;
+        if (expression && expression.type === "CallExpression") {
+          const { callee } = expression;
+          if (callee && callee.type === "MemberExpression") {
+            const { object, property } = callee;
+            if (object.type === "Identifier" && object.name === "document" &&
+                property.type === "Identifier" && property.name === "write") {
+              hasDocWrite = true;
+            }
+          }
+        }
       }
     }
 
     if (excludeOverrides.size) {
       const filteredGlobals = GLOBAL_OVERRIDES.filter(x => !excludeOverrides.has(x));
       this.firstBuff = this.initLocalDecl(filteredGlobals);
+    }
+
+    // top-level document.write(), add document.close()
+    if (hasDocWrite) {
+      this.lastBuff = ";document.close();" + this.lastBuff;
     }
 
     if (names.length) {

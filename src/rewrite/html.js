@@ -255,6 +255,8 @@ class HTMLRewriter
       return "json";
     } else if (!scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0)) {
       return "js";
+    } else if (scriptType.startsWith("text/")) {
+      return "text";
     } else {
       return "";
     }
@@ -353,7 +355,7 @@ class HTMLRewriter
           break;
 
         case "script":
-          if (headDone && !isTextEmpty && (!scriptRw || scriptRw === "js")) {
+          if (headDone && !isTextEmpty && scriptRw === "js") {
             rwStream.emitRaw(";document.close();");
           }
           break;
