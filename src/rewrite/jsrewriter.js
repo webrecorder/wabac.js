@@ -99,6 +99,8 @@ const createJSRules = () => {
     // rewriting 'x = eval' - no invocation
     [/[=]\s*\beval\b(?![(:.$])/, replace("eval", "self.eval")],
 
+    [/var\s+self/, replace("var", "let")],
+
     // rewriting .postMessage -> __WB_pmw(self).postMessage
     [/\.postMessage\b\(/, addPrefix(".__WB_pmw(self)")],
 

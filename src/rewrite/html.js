@@ -188,9 +188,13 @@ class HTMLRewriter
         const rwType = this.getScriptRWType(tag);
         const mod = (rwType === "module") ? "esm_" : null;
         const newValue = this.rewriteUrl(rewriter, attr.value, false, mod);
-        if (newValue === attr.value) {// && this.isRewritableUrl(newValue)) {
+        if (newValue === attr.value) {
           tag.attrs.push({"name": "__wb_orig_src", "value": attr.value});
-          attr.value = this.rewriteUrl(rewriter, attr.value, true, mod);
+          if (attr.value && attr.value.startsWith("data:text/javascript;base64")) {
+            attr.value = this.rewriteJSBase64(attr.value, rewriter);
+          } else {
+            attr.value = this.rewriteUrl(rewriter, attr.value, true, mod);
+          }
         } else {
           attr.value = newValue;
         }
@@ -200,7 +204,7 @@ class HTMLRewriter
         const type = this.getAttr(tag.attrs, "type");
 
         // convert object tag to iframe
-        if (type === "application/pdf") {
+        if (type === "application/pdf" || type === "image/svg+xml") {
           attr.name = "src";
           tag.tagName = "iframe";
         } else if (type === "application/x-shockwave-flash") {
@@ -446,6 +450,13 @@ class HTMLRewriter
       }
     }
     return text;
+  }
+
+  rewriteJSBase64(text, rewriter) {
+    const parts = text.split(",");
+    const content = rewriter.rewriteJS(atob(parts[1]), {isModule: false});
+    parts[1] = btoa(content);
+    return parts.join(",");
   }
 }
 
