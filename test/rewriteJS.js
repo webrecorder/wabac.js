@@ -176,6 +176,22 @@ test(rewriteJS,
   "await ____wb_rewrite_import__ (null, somefile);"
 );
 
+// dynamic import rewrite (non-module)
+test(rewriteJS, `\
+class X {
+  import(a, b, c) {
+    await import (somefile);
+  }
+}`, `\
+class X {
+  import(a, b, c) {
+    await ____wb_rewrite_import__ (null, somefile);
+  }
+}`
+);
+
+
+
 
 // import/export module rewrite
 test(rewriteJSImport, `\
@@ -293,6 +309,10 @@ test(rewriteJS, "simport(5);");
 test(rewriteJS, "a.import(5);");
 
 test(rewriteJS, "$import(5);");
+
+test(rewriteJS, " import() {");
+
+test(rewriteJS, " import(a, b, c) {");
 
 test(rewriteJS, "async import(val) { ... }");
 

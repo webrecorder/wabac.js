@@ -126,6 +126,8 @@ const createJSRules = () => {
     // ignore 'async import', custom function
     [/async\s+import\s*\(/, x => x],
 
+    [/[^$.]\bimport\s*\([^)]*\)\s*\{/, x => x],
+
     // esm dynamic import, if found, mark as module
     [/[^$.]\bimport\s*\(/, replaceImport("import", "____wb_rewrite_import__")]
   ];
