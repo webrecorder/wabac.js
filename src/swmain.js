@@ -168,6 +168,10 @@ class SWReplay {
       defaultConfig.injectScripts = defaultConfig.injectScripts.map(url => this.staticPrefix + "proxy/" + url);
     }
 
+    if (sp.has("adblockUrl")) {
+      defaultConfig.adblockUrl = sp.get("adblockUrl");
+    }
+
     this.collections = new CollectionsClass(prefixes, sp.get("root"), defaultConfig);
     this.collections.loadAll(sp.get("dbColl"));
 
