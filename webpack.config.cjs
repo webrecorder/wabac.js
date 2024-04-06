@@ -40,6 +40,13 @@ module.exports = {
   module: {
     rules: [
       {
+        test: /\.tsx?$/,
+        loader: "ts-loader",
+        include: path.resolve(__dirname, "src"),
+        options: {
+          onlyCompileBundledFiles: true,
+        },
+      }, {
         test: /(dist\/wombat.js|src\/wombatWorkers.js)$/i,
         use: "raw-loader",
       }

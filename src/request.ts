@@ -5,22 +5,36 @@ const REPLAY_REGEX = /^(?::([\w-]+)\/)?(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%
 
 export class ArchiveRequest
 {
-  constructor(wbUrlStr, request, {isRoot = false, mod = "", ts = "", proxyOrigin = null, localOrigin = null} = {})
+  url = "";
+  timestamp = "";
+  mod = "";
+  pageId = "";
+  hash = "";
+  cookie = "";
+
+  request: Request;
+  method: string;
+  mode: string;
+
+  _postToGetConverted = false;
+
+  constructor(wbUrlStr: string, request: Request, {isRoot = false, mod = "", ts = "", proxyOrigin = null, localOrigin = null} = {})
   {
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
 
-    this.url = "";
     this.timestamp = ts;
     this.mod = mod;
-    this.pageId = "";
-    this.hash = "";
+
+    this.request = request;
+    this.method = request.method;
+    this.mode = request.mode;
 
     if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:") || wbUrlStr.startsWith("blob:"))) {
       this.url = wbUrlStr;
     } else if (!wbUrl && isRoot) {
       this.url = "https://" + wbUrlStr;
     } else if (!wbUrl) {
-      this.url = null;
+      this.url = "";
       return;
     } else {
       this.pageId = wbUrl[1] || "";
@@ -41,11 +55,6 @@ export class ArchiveRequest
       this.hash = this.url.slice(hashIndex);
       this.url = this.url.substring(0, hashIndex);
     }
-
-    this.request = request;
-    this.method = request.method;
-    this.mode = request.mode;
-    this._postToGetConverted = false;
   }
 
   get headers() {
@@ -88,7 +97,7 @@ export class ArchiveRequest
     return this.url;
   }
 
-  prepareProxyRequest(prefix, isLive = true) {
+  prepareProxyRequest(prefix: string, isLive = true) {
     let headers;
     let referrer;
     let credentials;
@@ -112,7 +121,7 @@ export class ArchiveRequest
 
     let url = this.url;
 
-    if (url.startsWith("//")) {
+    if (url.startsWith("//") && referrer) {
       try {
         url = new URL(referrer).protocol + url;
       } catch(e) {

@@ -1,4 +1,4 @@
-import { Rewriter } from "./rewrite/index.js";
+import { Rewriter } from "./rewrite/index.ts";
 
 import { getTS, getSecondsStr, notFound, parseSetCookie, handleAuthNeeded, REPLAY_TOP_FRAME_NAME } from "./utils.js";
 

@@ -1,4 +1,7 @@
+declare let self: ServiceWorkerGlobalScope;
+
 import { getReasonPhrase } from "http-status-codes";
+import { ArchiveRequest } from "./request";
 
 // Threshold size for switching to range requests
 export const MAX_FULL_DOWNLOAD_SIZE = 25000000;
@@ -14,7 +17,7 @@ export const REPLAY_TOP_FRAME_NAME = "___wb_replay_top_frame";
 
 export const REMOVE_EXPIRES = /Expires=\w{3},\s\d[^;,]+(?:;\s*)?/gi;
 
-export  function startsWithAny(value, iter) {
+export  function startsWithAny(value: string, iter: Iterable<string>) {
   for (const str of iter) {
     if (value.startsWith(str)) {
       return true;
@@ -24,7 +27,7 @@ export  function startsWithAny(value, iter) {
   return false;
 }
 
-export function containsAny(value, iter) {
+export function containsAny(value: string, iter: Iterable<string>) {
   for (const str of iter) {
     if (value.indexOf(str) >= 0) {
       return true;
@@ -34,21 +37,21 @@ export function containsAny(value, iter) {
   return false;
 }
 
-export function getTS(iso) {
+export function getTS(iso: string) {
   return iso.replace(/[-:T]/g, "").slice(0, 14);
 }
 
-export function getTSMillis(iso) {
+export function getTSMillis(iso: string) {
   return iso.replace(/[-:.TZ]/g, "");
 }
 
-export function tsToDate(ts) {
+export function tsToDate(ts: string) {
   if (!ts) {
     return new Date();
   }
 
   if (ts.length < 17) {
-    ts += "00000101000000000".substr(ts.length);
+    ts += "00000101000000000".substring(ts.length);
   }
 
   const datestr = (ts.substring(0, 4) + "-" +
@@ -62,28 +65,28 @@ export function tsToDate(ts) {
   return new Date(datestr);
 }
 
-export function tsToSec(ts) {
+export function tsToSec(ts: string) {
   return tsToDate(ts).getTime() / 1000;
 }
 
-export function getSecondsStr(date) {
+export function getSecondsStr(date: Date) {
   if (!date) {
     return "";
   }
 
   try {
-    return "" + parseInt(date.getTime() / 1000);
+    return "" + date.getTime() / 1000;
   } catch (e) {
     return "";
   }
 }
 
-export function base16(hashBuffer) {
+export function base16(hashBuffer: ArrayBuffer) {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-export async function digestMessage(message, hashtype, prefix = null) {
+export async function digestMessage(message: string | Uint8Array, hashtype: string, prefix : string | null = null) {
   const msgUint8 = typeof(message) === "string" ? new TextEncoder().encode(message) : message;
   const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);
   if (prefix === "") {
@@ -93,7 +96,7 @@ export async function digestMessage(message, hashtype, prefix = null) {
 
 }
 
-export function decodeLatin1(buf) {
+export function decodeLatin1(buf: Uint8Array) {
   let str = "";
   for (let i = 0; i < buf.length; i++) {
     str += String.fromCharCode(buf[i]);
@@ -101,7 +104,7 @@ export function decodeLatin1(buf) {
   return str;
 }
 
-export function encodeLatin1(str) {
+export function encodeLatin1(str: string) {
   const buf = new Uint8Array(str.length);
   for (let i = 0; i < str.length; i++) {
     buf[i] = str.charCodeAt(i) & 0xFF;
@@ -115,7 +118,7 @@ export function randomId() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-export function makeHeaders(headers) {
+export function makeHeaders(headers: Record<string, string>) {
   try {
     return new Headers(headers);
   } catch (e) {
@@ -131,7 +134,7 @@ export function makeHeaders(headers) {
   }
 }
 
-export function parseSetCookie(setCookie, scheme) {
+export function parseSetCookie(setCookie: string, scheme: string) {
   setCookie = setCookie.replace(REMOVE_EXPIRES, "");
   const cookies = [];
 
@@ -156,11 +159,11 @@ export function parseSetCookie(setCookie, scheme) {
 
 const NULL_STATUS = [101, 204, 205, 304];
 
-export function isNullBodyStatus(status) {
+export function isNullBodyStatus(status: number) {
   return NULL_STATUS.includes(status);
 }
 
-export function getStatusText(status) {
+export function getStatusText(status: number) {
   try {
     return getReasonPhrase(status);
   } catch (e) {
@@ -168,7 +171,7 @@ export function getStatusText(status) {
   }
 }
 
-export function isAjaxRequest(request) {
+export function isAjaxRequest(request: ArchiveRequest) {
   if (request.headers.get("X-Pywb-Requested-With") === "XMLHttpRequest") {
     return true;
   }
@@ -184,7 +187,7 @@ export function isAjaxRequest(request) {
   return false;
 }
 
-export async function handleAuthNeeded(e, config) {
+export async function handleAuthNeeded(e: Error, config: any) {
   if (e instanceof AuthNeededError) {
     //const client = await self.clients.get(event.clientId || event.resultingClientId);
     const clients = await self.clients.matchAll({ "type": "window" });
@@ -206,7 +209,7 @@ export async function handleAuthNeeded(e, config) {
 }
 
 
-export function notFound(request, msg, status = 404) {
+export function notFound(request: Request, msg: string, status = 404) {
   let content;
   let contentType;
 
@@ -234,7 +237,7 @@ export function notFound(request, msg, status = 404) {
 }
 
 
-export function getCollData(coll) {
+export function getCollData(coll: any) {
   const metadata = coll.config.metadata ? coll.config.metadata : {};
 
   const res = {
@@ -262,6 +265,8 @@ export function getCollData(coll) {
 // ===========================================================================
 export class RangeError
 {
+  info: Record<string, any>;
+  
   constructor(info = {}) {
     this.info = info;
   }
@@ -283,7 +288,7 @@ export class Canceled
 {
 }
 
-export function sleep(millis) {
+export function sleep(millis: number) {
   return new Promise((resolve) => setTimeout(resolve, millis));
 }
 

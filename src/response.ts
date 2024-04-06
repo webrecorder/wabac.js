@@ -1,17 +1,30 @@
-import { BaseAsyncIterReader, AsyncIterReader } from "warcio";
+import { BaseAsyncIterReader, AsyncIterReader, LimitReader } from "warcio";
 import { isNullBodyStatus, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, tsToDate } from "./utils.js";
 import { Buffer } from "buffer";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
+type ArchiveResponseOpts = {
+  payload: AsyncIterReader | Uint8Array | null;
+  status: number;
+  statusText: string;
+  headers: Headers;
+  url: string;
+  date: Date | null;
+  extraOpts?: Record<string, any> | null;
+  noRW: boolean;
+  isLive: boolean;
+  updateTS : string | null;
+}
 
 // ===========================================================================
 class ArchiveResponse
 {
 
-  static fromResponse({url, response, date, noRW, isLive, archivePrefix}) {
-    const payload = response.body ? new AsyncIterReader(response.body.getReader(), false) : null;
+  static fromResponse({url, response, date, noRW, isLive, archivePrefix} : 
+    {url: string, response: Response, date: Date, noRW: boolean, isLive: boolean, archivePrefix: string}) {
+    const payload = response.body ? new AsyncIterReader(response.body.getReader(), null, false) : null;
     const status = Number(response.headers.get("x-redirect-status") || response.status);
     const statusText = response.headers.get("x-redirect-statusText") || response.statusText;
 
@@ -53,7 +66,7 @@ class ArchiveResponse
 
     const cookie = (headers.get("x-proxy-set-cookie"));
     if (cookie) {
-      const cookies = [];
+      const cookies : string[] = [];
       cookie.split(",").forEach((c) => {
         const cval = c.split(";", 1)[0].trim();
         if (cval.indexOf("=") > 0) {
@@ -71,11 +84,24 @@ class ArchiveResponse
     return new ArchiveResponse({payload, status, statusText, headers, url, date, noRW, isLive, updateTS});
   }
 
-  constructor({payload, status, statusText, headers, url, date, extraOpts = null, noRW = false, isLive = false, updateTS = null}) {
+  reader: AsyncIterReader | null;
+  buffer: Uint8Array | null;
+
+  status: number;
+  statusText: string;
+  url: string;
+  date: Date | null;
+  extraOpts: Record<string, any> | null;
+  headers: Headers;
+  noRW: boolean;
+  isLive: boolean;
+  updateTS: string | null;
+
+  constructor({payload, status, statusText, headers, url, date, extraOpts = null, noRW = false, isLive = false, updateTS = null} : ArchiveResponseOpts) {
     this.reader = null;
     this.buffer = null;
 
-    if (payload && (payload[Symbol.asyncIterator] || payload instanceof BaseAsyncIterReader)) {
+    if (payload && (payload instanceof BaseAsyncIterReader)) {
       this.reader = payload;
     } else {
       this.buffer = payload;
@@ -94,7 +120,7 @@ class ArchiveResponse
 
   async getText(isUTF8 = false) {
     let buff = await this.getBuffer();
-    if (typeof(buff) === "string") {
+    if (!buff || typeof(buff) === "string") {
       return buff;
     }
 
@@ -112,12 +138,12 @@ class ArchiveResponse
     return isUTF8 ? decoder.decode(buff) : decodeLatin1(buff);
   }
 
-  setText(text, isUTF8 = false) {
+  setText(text: string, isUTF8 = false) {
     this.setBuffer(isUTF8 ? encoder.encode(text) : encodeLatin1(text));
   }
 
   async getBuffer() {
-    if (this.buffer) {
+    if (this.buffer || !this.reader) {
       return this.buffer;
     }
 
@@ -125,12 +151,12 @@ class ArchiveResponse
     return this.buffer;
   }
 
-  setBuffer(buffer) {
+  setBuffer(buffer: Uint8Array) {
     this.buffer = buffer;
     this.reader = null;
   }
 
-  setReader(reader) {
+  setReader(reader: AsyncIterReader | ReadableStream) {
     if (reader instanceof BaseAsyncIterReader) {
       this.reader = reader;
       this.buffer = null;
@@ -143,9 +169,12 @@ class ArchiveResponse
   expectedLength() {
     if (this.buffer) {
       return this.buffer.length;
-    } else if (this.reader && this.reader.reader) {
-      return this.reader.reader.length;
     }
+    //TODO
+    //  else if (this.reader && this.reader.reader) {
+    //   return this.reader.reader.length;
+    // }
+    return 0;
   }
 
   createIter() {
@@ -170,7 +199,7 @@ class ArchiveResponse
     yield* this.createIter();
   }
 
-  setRange(range) {
+  setRange(range: string) {
     if (this.status === 206) {
       const currRange = this.headers.get("Content-Range");
       if (currRange && !currRange.startsWith("bytes 0-")) {
@@ -208,18 +237,20 @@ class ArchiveResponse
       this.buffer = this.buffer.slice(start, end + 1);
 
     } else if (this.reader) {
-      if (!this.reader.setLimitSkip) {
+      if (!(this.reader instanceof LimitReader) || !this.reader.setLimitSkip) {
         return false;
       }
       if (start !== 0 || end !== (length - 1)) {
         this.reader.setLimitSkip(end - start + 1, start);
-      } else if (this.reader.setRangeAll) {
-        this.reader.setRangeAll(length);
       }
+      //TODO
+      // } else if (this.reader.setRangeAll) {
+      //   this.reader.setRangeAll(length);
+      // }
     }
 
     this.headers.set("Content-Range", `bytes ${start}-${end}/${length}`);
-    this.headers.set("Content-Length", end - start + 1);
+    this.headers.set("Content-Length", String(end - start + 1));
 
     this.status = 206;
     this.statusText = "Partial Content";
@@ -236,7 +267,8 @@ class ArchiveResponse
     const response = new Response(body, {status: this.status,
       statusText: this.statusText,
       headers: this.headers});
-    response.date = this.date;
+    // slightly hacky
+    (response as any).date = this.date;
     if (coHeaders) {
       response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
       response.headers.set("Cross-Origin-Embedder-Policy", "require-corp");
