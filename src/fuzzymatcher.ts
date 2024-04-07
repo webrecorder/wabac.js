@@ -1,6 +1,25 @@
 import levenshtein from "js-levenshtein";
 import { jsonToQueryParams } from "warcio";
 
+type FuzzyRule = {
+  match: RegExp;
+  fuzzyCanonReplace?: string;
+  replace?: string;
+  args?: any[][];
+  split?: string;
+  splitLast?: boolean;
+  fuzzyArgs?: boolean;
+  fuzzySet?: boolean;
+  maxResults?: number;
+}
+
+type KeySet = {
+  found: Set<string>;
+  value: string[];
+}
+
+type KeySets = Record<string, KeySet>;
+
 function joinRx(rxStr) {
   return new RegExp("[?&]" + rxStr.map(x => "(" + x + ")").join("|"), "gi");
 }
@@ -9,7 +28,7 @@ const MAX_ARG_LEN = 1024;
 
 const SPLIT_BASE_RX = /\[\d]+/;
 
-const DEFAULT_RULES = 
+const DEFAULT_RULES : FuzzyRule[] = 
 [
   {
     "match": /\/\/.*(?:gcs-vimeo|vod|vod-progressive)\.akamaized\.net.*?\/([\d/]+\.mp4)/,
@@ -139,8 +158,9 @@ const DEFAULT_RULES =
 ];
 
 // ===========================================================================
-class FuzzyMatcher {
-  constructor(rules) {
+export class FuzzyMatcher {
+  rules: FuzzyRule[];
+  constructor(rules?: FuzzyRule[]) {
     this.rules = rules || DEFAULT_RULES;
   }
 
@@ -176,7 +196,7 @@ class FuzzyMatcher {
       fuzzyCanonUrl = prefix;
     }
 
-    const urls = [];
+    const urls : string[] = [];
 
     if (rule && rule.args) {
       const fuzzUrl = new URL(fuzzyCanonUrl);
@@ -209,7 +229,7 @@ class FuzzyMatcher {
       const replace = matchedRule.replace;
       const fuzzyReqUrl = reqUrl.replace(match, replace);
 
-      const newResults = [];
+      const newResults : string[] = [];
   
       // find best match by regex
       for (const result of results) {
@@ -240,7 +260,7 @@ class FuzzyMatcher {
       return 0.0;
     }
 
-    const reqArgs = rule && rule.args && !rule.fuzzyArgs ? new Set(rule.args[0]) : null;
+    const reqArgs : Set<string> | null = rule && rule.args && !rule.fuzzyArgs ? new Set<string>(rule.args[0]) : null;
 
     let bestTotal = 0;
     let bestResult = null;
@@ -285,11 +305,11 @@ class FuzzyMatcher {
     return bestResult;
   }
 
-  getMatch(reqQuery, foundQuery, reqArgs = null, fuzzySet = false) {
+  getMatch(reqQuery, foundQuery, reqArgs : Set<string> | null = null, fuzzySet = false) {
     let score = 1.0;
     let total = 1.0;
 
-    const keySets = {};
+    const keySets : KeySets = {};
 
     for (let [key, value] of reqQuery) {
       let foundValue = foundQuery.get(key);
@@ -360,7 +380,7 @@ class FuzzyMatcher {
     return result;
   }
 
-  addSetMatch(keySets, key, value, foundValue) {
+  addSetMatch(keySets, key: string, value: string, foundValue: string) {
     if (!value || !foundValue || value[0] !== "/" || foundValue[0] !== "/") {
       return;
     }
@@ -388,7 +408,7 @@ class FuzzyMatcher {
     keySets[keyBase].found.add(foundNoQ);
   }
 
-  paramSetMatch(keySets, weight) {
+  paramSetMatch(keySets: KeySets, weight: number) {
     let score = 0;
 
     for (const keySet of Object.values(keySets)) {
@@ -405,13 +425,11 @@ class FuzzyMatcher {
     return score;
   }
 
-  levScore(val1, val2) {
+  levScore(val1: string, val2: string) {
     const minLen = Math.min(val1.length, val2.length);
     const lev = levenshtein(val1, val2);
     return lev < minLen ? minLen - lev : 0;
   }
 }
 
-const fuzzyMatcher = new FuzzyMatcher();
-
-export { FuzzyMatcher, fuzzyMatcher };
+export const fuzzyMatcher = new FuzzyMatcher();

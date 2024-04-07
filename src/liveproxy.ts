@@ -3,6 +3,15 @@ import { ArchiveResponse } from "./response.js";
 
 // ===========================================================================
 export class LiveProxy {
+  prefix: string;
+  proxyPathOnly: boolean;
+  isLive: boolean;
+  archivePrefix: string;
+  cloneResponse: boolean;
+  allowBody: boolean;
+  hostProxy: object | any[];
+  hostProxyOnly: boolean;
+
   constructor(extraConfig, {cloneResponse = false, allowBody = false, hostProxyOnly = false} = {}) {
     extraConfig = extraConfig || {};
 
@@ -87,7 +96,7 @@ export class LiveProxy {
       redirect: "follow"
     });
 
-    let clonedResponse = null;
+    let clonedResponse : Response | null = null;
 
     if (this.cloneResponse) {
       clonedResponse = response.clone();

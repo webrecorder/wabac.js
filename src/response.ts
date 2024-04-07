@@ -97,6 +97,8 @@ class ArchiveResponse
   isLive: boolean;
   updateTS: string | null;
 
+  clonedResponse: Response | null = null;
+
   constructor({payload, status, statusText, headers, url, date, extraOpts = null, noRW = false, isLive = false, updateTS = null} : ArchiveResponseOpts) {
     this.reader = null;
     this.buffer = null;

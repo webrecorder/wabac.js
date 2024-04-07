@@ -1,9 +1,16 @@
-class StatsTracker {
-  constructor() {
-    this.timeRanges = {};
-  }
+let self: ServiceWorkerGlobalScope;
 
-  updateStats(date, status, request, event) {
+type TimeRangeStat = {
+  count: number;
+  children: Set<string>;
+  min?: number;
+  max?: number;
+};
+
+class StatsTracker {
+  timeRanges : Record<string, TimeRangeStat> = {};
+
+  updateStats(date, status, request, event: FetchEvent) {
     const id = event.clientId || event.resultingClientId;
     
     if (!id || !date) {
@@ -18,10 +25,10 @@ class StatsTracker {
       return;
     }
 
-    let timeRange = null;
+    let timeRange : TimeRangeStat;
 
     if (this.timeRanges[id] === undefined) {
-      timeRange = { "count": 0, "children": [] };
+      timeRange = {count: 0, children: new Set<string>() };
       this.timeRanges[id] = timeRange;
       if (request.referrer.indexOf("mp_/") > 0) {
         self.clients.matchAll({ "type": "window" }).then(clients => this.updateStatsParent(id, request.referrer, clients));
@@ -44,14 +51,13 @@ class StatsTracker {
   }
 
   updateStatsParent(id, referrer, clients) {
-    for (let client of clients) {
+    for (const client of clients) {
       if (client.url === referrer) {
         //self.timeRanges[id].parent = client.id;
         if (!this.timeRanges[client.id]) {
-          this.timeRanges[client.id] = { "count": 0, "children": { id: 1 } };
-        } else {
-          this.timeRanges[client.id].children[id] = 1;
+          this.timeRanges[client.id] = { count: 0, children: new Set<string>() };
         }
+        this.timeRanges[client.id].children.add(id);
         break;
       }
     }
@@ -66,7 +72,7 @@ class StatsTracker {
 
     const params = new URLSearchParams(reqUrl.search);
 
-    let id = 0;
+    let id = "";
 
     const url = params.get("url");
 
@@ -74,7 +80,7 @@ class StatsTracker {
 
     const validIds = {};
 
-    for (let client of clients) {
+    for (const client of clients) {
       if (client.url === url) {
         id = client.id;
       }
@@ -89,9 +95,9 @@ class StatsTracker {
       "max": srcRange.max
     };
 
-    const children = (this.timeRanges[id] && Object.keys(this.timeRanges[id].children)) || [];
+    const children = this.timeRanges[id] && this.timeRanges[id].children;
 
-    for (let child of children) {
+    for (const child of children.values()) {
       const childRange = this.timeRanges[child];
 
       if (!childRange) {
@@ -99,11 +105,11 @@ class StatsTracker {
       }
 
 
-      if (!timeRange.min || (childRange.min < timeRange.min)) {
+      if (childRange.min && (!timeRange.min || (childRange.min < timeRange.min))) {
         timeRange.min = childRange.min;
       }
 
-      if (!timeRange.max || (childRange.max > timeRange.max)) {
+      if (childRange.max && (!timeRange.max || (childRange.max > timeRange.max))) {
         timeRange.max = childRange.max;
       }
 
@@ -111,7 +117,7 @@ class StatsTracker {
     }
 
     // remove invalid timeranges
-    for (let id of Object.keys(this.timeRanges)) {
+    for (const id of Object.keys(this.timeRanges)) {
       if (!validIds[id]) {
         delete this.timeRanges[id];
       }

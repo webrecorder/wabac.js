@@ -17,7 +17,7 @@ function detectTextType(bytes) {
     const text = new TextDecoder().decode(bytes);
     const lines = text.split("\n");
 
-    if (lines > 1 && lines.indexOf(" {")) {
+    if (lines.length > 1 && lines.indexOf(" {") >= 0) {
       return ".cdxj";
     }
   } catch (e) {
@@ -72,7 +72,7 @@ export function checkMagicBytes(fileBytes) {
 
 export async function detectFileType(response) {
   const reader = response.body.getReader();
-  let fileType = "";
+  let fileType : string | undefined = "";
   const { value, done } = await reader.read();
   if (!done && value.length >= PEEK_BYTES) {
     fileType = checkMagicBytes(value.slice(0, PEEK_BYTES));
