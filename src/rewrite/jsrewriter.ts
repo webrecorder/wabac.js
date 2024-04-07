@@ -189,7 +189,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     let hasDocWrite = false;
 
-    const names = [];
+    const names : string[] = [];
 
     const excludeOverrides = new Set();
 
