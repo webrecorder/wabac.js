@@ -2,7 +2,7 @@
   "compilerOptions": {
     "outDir": "./dist/",
     "module": "esnext",
-    "target": "es2022",
+    "target": "esnext",
     "moduleResolution": "node",
     "allowJs": true,
     "strict": true,
@@ -17,7 +17,7 @@
     "inlineSources": true,
     "skipLibCheck": true,
     "incremental": true,
-    "lib": ["webworker", "es2023"]
+    "lib": ["webworker", "esnext"]
   },
   "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.d.ts"]
 }

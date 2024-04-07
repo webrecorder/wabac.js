@@ -4,15 +4,16 @@ const DEFAULT_BATCH_SIZE = 1000;
 // ===========================================================================
 class BaseParser
 {
+  batchSize: number;
+  promises: Promise<void>[] = [];
+  batch: string[] = [];
+  count = 0;
+  dupeSet = new Set<string>();
+  //TODO
+  db: any;
+
   constructor(batchSize = DEFAULT_BATCH_SIZE) {
     this.batchSize = batchSize;
-
-    this.promises = [];
-
-    this.batch = [];
-    this.count = 0;
-
-    this.dupeSet = new Set();
   }
 
   addPage(page) {

@@ -10,11 +10,29 @@ import { concatChunks } from "warcio";
 
 const SPLIT_PEM = /-{5}(BEGIN|END) .*-{5}/gm;
 
-export async function verifyWACZSignature({hash, signature, publicKey, domain, domainCert, created, software} = {}) {
-  let domainActual;
-  const results = [];
+type VerifySigData = {
+  hash: string;
+  signature: string;
+  publicKey: string;
+  domain: string;
+  domainCert: string;
+  created: string;
+  software: string;
+};
 
-  signature = decodeBase64(signature);
+type VerifyResult = {
+  id: string;
+  expected: any;
+  matched: any | null;
+}
+
+export async function verifyWACZSignature({hash, signature, publicKey, domain, domainCert, created, software} : VerifySigData) {
+  let domainActual;
+  const results : VerifyResult[] = [];
+
+  const signatureBuff = decodeBase64(signature);
+
+  let publicKeyCrypto : CryptoKey;
 
   if (domainCert && domain && !publicKey) {
     const certs = domainCert.split("\n\n");
@@ -26,13 +44,13 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
 
     const cert = new x509.X509Certificate(certBuffer);
 
-    publicKey = await cert.publicKey.export();
+    publicKeyCrypto = await cert.publicKey.export();
 
     const publicKeyEncoded = encodeBase64(new Uint8Array(cert.publicKey.rawData));
     results.push({id: "publicKey", expected: publicKeyEncoded, matched: null});
 
     if (cert.subject && cert.subject.startsWith("CN=")) {
-      domainActual = cert.subject.split(3);
+      domainActual = cert.subject.substring(3);
     }
 
     signature = parseASN1Signature(signature);
@@ -45,7 +63,7 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
 
     results.push({id: "publicKey", expected: publicKey, matched: null});
 
-    publicKey = await crypto.subtle.importKey("spki", decodeBase64(publicKey), ecdsaImportParams, true, ["verify"]);
+    publicKeyCrypto = await crypto.subtle.importKey("spki", decodeBase64(publicKey), ecdsaImportParams, true, ["verify"]);
   }
 
   const ecdsaSignParams = {
@@ -55,7 +73,7 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
 
   const encoder = new TextEncoder();
 
-  const sigValid = await crypto.subtle.verify(ecdsaSignParams, publicKey, signature, encoder.encode(hash));
+  const sigValid = await crypto.subtle.verify(ecdsaSignParams, publicKeyCrypto, signatureBuff, encoder.encode(hash));
 
   results.push({id: "signature", expected: true, matched: sigValid});
 
@@ -79,8 +97,8 @@ function parseASN1Signature(signature) {
   try {
     const sig = AsnParser.parse(signature, ECDSASigValue);
 
-    const r = sig.r[0] === 0 ? sig.r.slice(1) : sig.r;
-    const s = sig.s[0] === 0 ? sig.s.slice(1) : sig.s;
+    const r = (sig.r[0] === 0 ? sig.r.slice(1) : sig.r) as Uint8Array;
+    const s = (sig.s[0] === 0 ? sig.s.slice(1) : sig.s) as Uint8Array;
     signature = concatChunks([r, s], r.length + s.length);
 
   } catch (se) {
