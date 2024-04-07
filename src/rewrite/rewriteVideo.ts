@@ -10,7 +10,7 @@ const DEFAULT_MAX_RES = 860 * 480;
 
 
 // ===========================================================================
-function getMaxResAndBand(opts = {}) {
+function getMaxResAndBand(opts : Record<string, any> = {}) {
   // read opts from warc, if any
   let maxRes, maxBand;
 
@@ -46,15 +46,15 @@ function getMaxResAndBand(opts = {}) {
 
 // ===========================================================================
 //HLS
-export function rewriteHLS(text, opts) {
+export function rewriteHLS(text: string, opts: Record<string, any>) {
   const EXT_INF = /#EXT-X-STREAM-INF:(?:.*[,])?BANDWIDTH=([\d]+)/;
   const EXT_RESOLUTION = /RESOLUTION=([\d]+)x([\d]+)/;
 
   const { maxRes, maxBand} = getMaxResAndBand(opts);
 
-  let indexes = [];
+  let indexes : number[] = [];
   let count = 0;
-  let bestIndex = null;
+  let bestIndex : number | null = null;
 
   let bestBand = 0;
   let bestRes = 0;
@@ -115,7 +115,7 @@ export const xmlOpts = {
 };
 
 
-export function rewriteDASH(text, opts, bestIds) {
+export function rewriteDASH(text: string, opts: Record<string, any>, bestIds?: string[]) {
   try {
     return _rewriteDASH(text, opts, bestIds);
   } catch (e) {
@@ -125,7 +125,7 @@ export function rewriteDASH(text, opts, bestIds) {
 }
 
 
-function _rewriteDASH(text, opts, bestIds) {
+function _rewriteDASH(text: string, opts: Record<string, any>, bestIds?: string[]) {
   const parser = new XMLParser(xmlOpts);
   const root = parser.parse(text);
 
@@ -135,7 +135,7 @@ function _rewriteDASH(text, opts, bestIds) {
   let bestRes = 0;
   let bestBand = 0;
 
-  let adaptSets = null;
+  let adaptSets : any[];
 
   if (!Array.isArray(root.MPD.Period.AdaptationSet)) {
     adaptSets = [root.MPD.Period.AdaptationSet];
@@ -148,7 +148,7 @@ function _rewriteDASH(text, opts, bestIds) {
     bestRes = 0;
     bestBand = 0;
 
-    let reps = null;
+    let reps : any[];
 
     if (!Array.isArray(adaptset.Representation)) {
       reps = [adaptset.Representation];

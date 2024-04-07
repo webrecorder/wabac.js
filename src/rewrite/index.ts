@@ -13,6 +13,7 @@ import { RxRewriter } from "./rxrewriter.js";
 import { JSRewriter } from "./jsrewriter.js";
 
 import { HTMLRewriter } from "./html.js";
+import { ArchiveRequest } from "../request.js";
 
 
 // ===========================================================================
@@ -31,11 +32,47 @@ const JSONP_CALLBACK_REGEX = /[?].*(?:callback|jsonp)=([^&]+)/i;
 const jsRules = new DomainSpecificRuleSet(JSRewriter);
 const baseRules = new DomainSpecificRuleSet(RxRewriter);
 
+type InsertFunc = (url: string) => string;
+
+type RewriterOpts = {
+  baseUrl: string;
+  prefix: string;
+  responseUrl: string;
+  workerInsertFunc: InsertFunc | null;
+  headInsertFunc: InsertFunc | null;
+  urlRewrite: boolean;
+  contentRewrite: boolean;
+  decode: boolean;
+  useBaseRules: boolean;
+};
+
 
 // ===========================================================================
 class Rewriter {
+  urlRewrite: boolean;
+  contentRewrite: boolean;
+  
+  baseUrl: string;
+  
+  dsRules: DomainSpecificRuleSet;
+  
+  decode: boolean;
+
+  prefix: string;
+  relPrefix: string = "";
+  schemeRelPrefix: string = "";
+  scheme: string;
+  url: string;
+  responseUrl: string;
+  isCharsetUTF8: boolean;
+
+  headInsertFunc: InsertFunc | null;
+  workerInsertFunc: InsertFunc | null;
+
+  _jsonpCallback: string | boolean | null;
+
   constructor({baseUrl, prefix, responseUrl, workerInsertFunc, headInsertFunc = null,
-    urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
+    urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} : RewriterOpts) {
     this.urlRewrite = urlRewrite;
     this.contentRewrite = contentRewrite;
     this.dsRules = urlRewrite && !useBaseRules ? jsRules : baseRules;
@@ -66,7 +103,7 @@ class Rewriter {
     this._jsonpCallback = null;
   }
 
-  getRewriteMode(request, response, url = "", mime = null) {
+  getRewriteMode(request: ArchiveRequest, response: ArchiveResponse, url = "", mime : string = "") {
     if (!mime && response) {
       mime = response.headers.get("Content-Type") || "";
       const parts = mime.split(";");
@@ -107,11 +144,11 @@ class Rewriter {
       return "dash";
 
     default:
-      return this.getScriptRewriteMode(mime, url, null);
+      return this.getScriptRewriteMode(mime, url);
     }
   }
 
-  getScriptRewriteMode(mime, url, defaultType) {
+  getScriptRewriteMode(mime: string, url: string, defaultType: string = "") {
     switch (mime) {
     case "text/javascript":
     case "application/javascript":
@@ -129,7 +166,7 @@ class Rewriter {
     }
   }
 
-  async rewrite(response, request) {
+  async rewrite(response: ArchiveResponse, request: ArchiveRequest) {
     const rewriteMode = this.contentRewrite ? this.getRewriteMode(request, response, this.baseUrl) : null;
 
     const isAjax = isAjaxRequest(request);
@@ -149,13 +186,13 @@ class Rewriter {
       response = await decodeResponse(response, encoding, te, rewriteMode === null);
     }
 
-    const opts = {
+    const opts : any = {
       response,
       prefix: this.prefix,
       baseUrl: this.baseUrl,
     };
 
-    let rwFunc = null;
+    let rwFunc : ((x: string, opts: any) => string) | null = null;
 
     switch (rewriteMode) {
     case "html":
@@ -199,7 +236,7 @@ class Rewriter {
     }
 
     if (urlRewrite) {
-      opts.rewriteUrl = url => this.rewriteUrl(url);
+      opts.rewriteUrl = (url: string) => this.rewriteUrl(url);
     }
 
     if (rwFunc) {
@@ -211,7 +248,7 @@ class Rewriter {
     return response;
   }
 
-  updateBaseUrl(url) {
+  updateBaseUrl(url: string) {
     // set internal base to full url
     this.baseUrl = new URL(url, this.baseUrl).href;
 
@@ -231,7 +268,7 @@ class Rewriter {
     return this.rewriteUrl(url);
   }
 
-  isRewritableUrl(url) {
+  isRewritableUrl(url: string) {
     const NO_REWRITE_URI_PREFIX = ["#", "javascript:", "data:", "mailto:", "about:", "file:", "blob:", "{"];
 
     for (let prefix of NO_REWRITE_URI_PREFIX) {
@@ -243,7 +280,7 @@ class Rewriter {
     return true;
   }
 
-  rewriteUrl(url, forceAbs = false) {
+  rewriteUrl(url: string, forceAbs = false) {
     if (!this.urlRewrite) {
       return url;
     }
@@ -276,16 +313,16 @@ class Rewriter {
   }
 
   // HTML
-  rewriteHtml(response) {
+  rewriteHtml(response: ArchiveResponse) {
     const htmlRW = new HTMLRewriter(this, this.isCharsetUTF8);
     return htmlRW.rewrite(response);
   }
 
   // CSS
-  rewriteCSS(text) {
+  rewriteCSS(text: string) {
     const rewriter = this;
 
-    function cssStyleReplacer(match, n1, n2, n3) {
+    function cssStyleReplacer(match: any, n1: string, n2: string, n3: string) {
       n2 = n2.trim();
       return n1 + rewriter.rewriteUrl(n2) + n3;
     }
@@ -297,7 +334,7 @@ class Rewriter {
   }
 
   // JS
-  rewriteJS(text, opts) {
+  rewriteJS(text: string, opts: Record<string, any>) {
     const noUrlProxyRewrite = opts && !opts.rewriteUrl && opts.isModule === undefined && !opts.inline;
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
@@ -312,7 +349,7 @@ class Rewriter {
   }
 
   // JSON
-  rewriteJSON(text, opts) {
+  rewriteJSON(text: string, opts: Record<string, any>) {
     text = this.rewriteJSONP(text);
 
     const dsRewriter = baseRules.getRewriter(this.baseUrl);
@@ -324,7 +361,7 @@ class Rewriter {
     return text;
   }
 
-  parseJSONPCallback(url) {
+  parseJSONPCallback(url: string) {
     const callback = url.match(JSONP_CALLBACK_REGEX);
     if (!callback || callback[1] === "?") {
       this._jsonpCallback = false;
@@ -336,7 +373,7 @@ class Rewriter {
   }
 
   // JSONP
-  rewriteJSONP(text) {
+  rewriteJSONP(text: string) {
     const jsonM = text.match(JSONP_REGEX);
     if (!jsonM) {
       return text;
@@ -355,8 +392,8 @@ class Rewriter {
   }
 
   //Headers
-  rewriteHeaders(headers, urlRewrite, contentRewrite, isAjax) {
-    const headerRules = {
+  rewriteHeaders(headers: Headers, urlRewrite: boolean, contentRewrite: boolean, isAjax: boolean) {
+    const headerRules : Record<string, string> = {
       "access-control-allow-origin": "prefix-if-url-rewrite",
       "access-control-allow-credentials": "prefix-if-url-rewrite",
       "access-control-expose-headers": "prefix-if-url-rewrite",
@@ -435,57 +472,57 @@ class Rewriter {
 
     let new_headers = new Headers();
 
-    for (let header of headers.entries()) {
-      const rule = headerRules[header[0]];
+    for (let [key, value] of headers.entries()) {
+      const rule = headerRules[key];
       switch (rule) {
       case "keep":
-        new_headers.append(header[0], header[1]);
+        new_headers.append(key, value);
         break;
 
       case "url-rewrite":
         if (urlRewrite) {
 
           // if location and redirect just to change scheme of the responseUrl
-          if (header[0] === "location" && this.url !== this.responseUrl) {
+          if (key === "location" && this.url !== this.responseUrl) {
             const otherScheme = (this.scheme === "http:" ? "https:" : "http:");
             const responseUrlOtherScheme = otherScheme + this.responseUrl.slice(this.scheme.length);
-            if (header[1] === responseUrlOtherScheme) {
-              header[1] = otherScheme + this.url.slice(this.url.indexOf("//"));
+            if (value === responseUrlOtherScheme) {
+              value = otherScheme + this.url.slice(this.url.indexOf("//"));
             }
           }
 
-          new_headers.append(header[0], this.rewriteUrl(header[1]));
+          new_headers.append(key, this.rewriteUrl(value));
         } else {
-          new_headers.append(header[0], header[1]);
+          new_headers.append(key, value);
         }
         break;
 
       case "prefix-if-content-rewrite":
         if (contentRewrite) {
-          new_headers.append(headerPrefix + header[0], header[1]);
+          new_headers.append(headerPrefix + key, value);
         } else {
-          new_headers.append(header[0], header[1]);
+          new_headers.append(key, value);
         }
         break;
 
       case "prefix-if-url-rewrite":
         if (urlRewrite) {
-          new_headers.append(headerPrefix + header[0], header[1]);
+          new_headers.append(headerPrefix + key, value);
         } else {
-          new_headers.append(header[0], header[1]);
+          new_headers.append(key, value);
         }
         break;
 
       case "content-length":
-        if (header[1] == "0") {
-          new_headers.append(header[0], header[1]);
+        if (value == "0") {
+          new_headers.append(key, value);
           continue;
         }
 
         if (contentRewrite) {
           try {
-            if (parseInt(header[1]) >= 0) {
-              new_headers.append(header[0], header[1]);
+            if (parseInt(value) >= 0) {
+              new_headers.append(key, value);
               continue;
             }
           } catch (e) { 
@@ -493,40 +530,40 @@ class Rewriter {
           }
         }
 
-        new_headers.append(header[0], header[1]);
+        new_headers.append(key, value);
         break;
 
       case "transfer-encoding":
         //todo: mark as needing decoding?
-        new_headers.append(headerPrefix + header[0], header[1]);
+        new_headers.append(headerPrefix + key, value);
         break;
 
       case "prefix":
-        new_headers.append(headerPrefix + header[0], header[1]);
+        new_headers.append(headerPrefix + key, value);
         break;
 
       case "cookie":
         //todo
-        new_headers.append(header[0], header[1]);
+        new_headers.append(key, value);
         break;
 
       case "link":
         if (urlRewrite && !isAjax) {
-          new_headers.append(header[0], this.rewriteLinkHeader(header[1]));
+          new_headers.append(key, this.rewriteLinkHeader(value));
         } else {
-          new_headers.append(header[0], header[1]);
+          new_headers.append(key, value);
         }
         break;
 
       default:
-        new_headers.append(header[0], header[1]);
+        new_headers.append(key, value);
       }
     }
 
     return new_headers;
   }
 
-  rewriteLinkHeader(value) {
+  rewriteLinkHeader(value: string) {
     try {
       const parsed = LinkHeader.parse(value);
 

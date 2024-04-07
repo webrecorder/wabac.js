@@ -1,12 +1,13 @@
 import brotliDecode from "brotli/decompress.js";
 
-import { Inflate } from "pako/lib/inflate.js";
+import { Inflate } from "pako";
 
 import { AsyncIterReader } from "warcio";
+import { ArchiveResponse } from "../response";
 
 
 // ===========================================================================
-async function decodeResponse(response, contentEncoding, transferEncoding, noRW) {
+async function decodeResponse(response: ArchiveResponse, contentEncoding: string | null, transferEncoding: string | null, noRW: boolean) {
 
   // use the streaming decoder if gzip only and no rewriting
   if (response.reader && noRW &&
@@ -16,7 +17,9 @@ async function decodeResponse(response, contentEncoding, transferEncoding, noRW)
     return response;
   }
 
-  const origContent = new Uint8Array(await response.getBuffer());
+  const buffer = (await response.getBuffer()) || [];
+
+  const origContent = new Uint8Array(buffer);
 
   const content = await decodeContent(origContent, contentEncoding, transferEncoding);
 
@@ -29,7 +32,7 @@ async function decodeResponse(response, contentEncoding, transferEncoding, noRW)
 
 
 // ===========================================================================
-async function decodeContent(content, contentEncoding, transferEncoding) {
+async function decodeContent(content: Uint8Array, contentEncoding: string | null, transferEncoding: string | null) {
   const origContent = content;
 
   try {
@@ -42,7 +45,7 @@ async function decodeContent(content, contentEncoding, transferEncoding) {
 
   try {
     if (contentEncoding === "br") {
-      content = brotliDecode(content);
+      content = brotliDecode(content as Buffer);
 
       // if ended up with zero-length, probably not valid, just use original
       if (content.length === 0) {
@@ -56,7 +59,7 @@ async function decodeContent(content, contentEncoding, transferEncoding) {
 
       // if error occurs (eg. not gzip), use original arraybuffer
       if (inflator.result && !inflator.err) {
-        content = inflator.result;
+        content = inflator.result as Uint8Array;
       }
     }
   } catch(e) {
@@ -68,7 +71,7 @@ async function decodeContent(content, contentEncoding, transferEncoding) {
 
 
 // ===========================================================================
-function dechunkArrayBuffer(data) {
+function dechunkArrayBuffer(data: Uint8Array) {
   let readOffset = 0;
   let writeOffset = 0;
 

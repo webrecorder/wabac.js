@@ -1,18 +1,25 @@
+export type Rule = [RegExp, (x: string, opts: Record<string, any>, offset: number, str: string) => string];
+
 
 // ===========================================================================
-class RxRewriter
+export class RxRewriter
 {
-  constructor(rules) {
+  rules: Rule[] | null;
+  rx: RegExp | null = null;
+
+  constructor(rules?: Rule[]) {
     this.rules = rules || null;
     if (this.rules) {
       this.compileRules();
-    } else {
-      this.rx = null;
     }
   }
 
   compileRules() {
     let rxBuff = "";
+
+    if (!this.rules) {
+      return;
+    }
 
     for (let rule of this.rules) {
       if (rxBuff) {
@@ -26,24 +33,26 @@ class RxRewriter
     this.rx = new RegExp(rxString, "gm");
   }
 
-  doReplace(params, opts) {
+  doReplace(params: any[], opts: Record<string, any>) {
     const offset = params[params.length - 2];
     const string = params[params.length - 1];
 
-    for (let i = 0; i < this.rules.length; i++) {
+    for (let i = 0; i < this.rules!.length; i++) {
       const curr = params[i];
       if (!curr) {
         continue;
       }
 
-      const result = this.rules[i][1].call(this, curr, opts, offset, string);
+      const result = this.rules![i][1].call(this, curr, opts, offset, string);
       if (result) {
         return result;
       }
     }
+
+    return "";
   }
 
-  rewrite(text, opts) {
+  rewrite(text: string, opts: Record<string, any>) {
     if (!this.rx) {
       return text;
     }
@@ -51,6 +60,3 @@ class RxRewriter
     return text.replace(this.rx, (match, ...params) => this.doReplace(params, opts));
   }
 }
-
-
-export { RxRewriter };

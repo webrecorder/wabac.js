@@ -1,8 +1,15 @@
+import { RxRewriter, type Rule } from "./rxrewriter";
+
 //import unescapeJs from "unescape-js";
 const MAX_BITRATE = 5000000;
 
+type Rules = {
+  contains: string[];
+  rxRules: Rule[];
+}
+
 // ===========================================================================
-const DEFAULT_RULES = [
+const DEFAULT_RULES : Rules[] = [
   {
     contains: ["youtube.com", "youtube-nocookie.com"],
     rxRules: [
@@ -70,12 +77,12 @@ const DEFAULT_RULES = [
 ];
 
 // ===========================================================================
-function ruleReplace(string) {
-  return x => string.replace("{0}", x); 
+function ruleReplace(str: string) {
+  return (x: string) => str.replace("{0}", x); 
 }
 
 // ===========================================================================
-function setMaxBitrate(opts)
+function setMaxBitrate(opts: Record<string, any>)
 {
   let maxBitrate = MAX_BITRATE;
   const extraOpts = opts.response && opts.response.extraOpts;
@@ -90,23 +97,23 @@ function setMaxBitrate(opts)
 }
 
 // ===========================================================================
-function ruleRewriteTwitterVideo(prefix) {
+function ruleRewriteTwitterVideo(prefix: string) {
 
-  return (string, opts) => {
+  return (str: string, opts: Record<string, any>) => {
     if (!opts) {
-      return string;
+      return str;
     }
 
-    const origString = string;
+    const origString = str;
 
     try {
       const W_X_H = /([\d]+)x([\d]+)/;
 
       const maxBitrate = setMaxBitrate(opts);
 
-      string = string.slice(prefix.length);
+      str = str.slice(prefix.length);
 
-      const data = JSON.parse(string);
+      const data = JSON.parse(str);
 
       let bestVariant = null;
       let bestBitrate = 0;
@@ -146,12 +153,12 @@ function ruleRewriteTwitterVideo(prefix) {
 }
 
 // ===========================================================================
-function ruleRewriteVimeoConfig(string) {
+function ruleRewriteVimeoConfig(str: string) {
   let config;
   try {
-    config = JSON.parse(string);
+    config = JSON.parse(str);
   } catch (e) {
-    return string;
+    return str;
   }
 
   if (config && config.request && config.request.files) {
@@ -169,33 +176,33 @@ function ruleRewriteVimeoConfig(string) {
     }
   }
 
-  return string.replace(/query_string_ranges=1/g, "query_string_ranges=0");
+  return str.replace(/query_string_ranges=1/g, "query_string_ranges=0");
 }
 
 // ===========================================================================
-function ruleRewriteVimeoDashManifest(string, opts) {
+function ruleRewriteVimeoDashManifest(str: string, opts: Record<string, any>) {
   if (!opts) {
-    return string;
+    return str;
   }
 
-  let vimeoManifest = null;
+  let vimeoManifest : any = null;
 
   const maxBitrate = setMaxBitrate(opts);
 
   try {
-    vimeoManifest = JSON.parse(string);
+    vimeoManifest = JSON.parse(str);
     console.log("manifest", vimeoManifest);
   } catch (e) {
-    return string;
+    return str;
   }
 
-  function filterByBitrate(array, max, mime) {
+  function filterByBitrate(array: {mime_type: string, bitrate: number}[], max: number, mime: string) {
     if (!array) {
       return null;
     }
 
-    let bestVariant = 0;
-    let bestBitrate = null;
+    let bestVariant : {mime_type: string, bitrate: number} | null = null;
+    let bestBitrate = 0;
 
     for (const variant of array) {
       if (variant.mime_type == mime && variant.bitrate > bestBitrate && variant.bitrate <= max) {
@@ -214,12 +221,18 @@ function ruleRewriteVimeoDashManifest(string, opts) {
 }
 
 // ===========================================================================
+type T = typeof RxRewriter;
 
 // ===========================================================================
-class DomainSpecificRuleSet
+export class DomainSpecificRuleSet
 {
 
-  constructor(RewriterCls, rwRules) {
+  rwRules: Rules[];
+  RewriterCls: T;
+  rewriters = new Map();
+  defaultRewriter!: RxRewriter;
+
+  constructor(RewriterCls: T, rwRules?: Rules[]) {
     this.rwRules = rwRules || DEFAULT_RULES;
     this.RewriterCls = RewriterCls;
 
@@ -237,7 +250,7 @@ class DomainSpecificRuleSet
     this.defaultRewriter = new this.RewriterCls();
   }
 
-  getRewriter(url) {
+  getRewriter(url: string) {
     for (const rule of this.rwRules) {
       if (!rule.contains) {
         continue;
@@ -256,6 +269,3 @@ class DomainSpecificRuleSet
     return this.defaultRewriter;
   }
 }
-
-export { DomainSpecificRuleSet };
-

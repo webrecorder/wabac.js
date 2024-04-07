@@ -1,4 +1,4 @@
-import { RxRewriter } from "./rxrewriter.js";
+import { Rule, RxRewriter } from "./rxrewriter.js";
 import * as acorn from "acorn";
 
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
@@ -27,7 +27,7 @@ const GLOBALS_RX = new RegExp(`(${GLOBALS_CONCAT_STR})`);
 
 
 // ===========================================================================
-const createJSRules = () => {
+const createJSRules : () => Rule[] = () => {
 
   const thisRw = "_____WB$wombat$check$this$function_____(this)";
 
@@ -35,12 +35,12 @@ const createJSRules = () => {
 
   const evalStr = "WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),";
 
-  function addPrefix(prefix) {
-    return x => prefix + x;
+  function addPrefix(prefix: string) {
+    return (x: string) => prefix + x;
   }
 
-  function replacePrefixFrom(prefix, match) {
-    return (x) => {
+  function replacePrefixFrom(prefix: string, match: string) {
+    return (x: string) => {
       const start = x.indexOf(match);
       if (start === 0) {
         return prefix;
@@ -50,10 +50,10 @@ const createJSRules = () => {
     };
   }
 
-  function addSuffix(suffix) {
-    return (x, _opts, offset, string) => {
+  function addSuffix(suffix: string) {
+    return (x: string, _opts: Record<string, any>, offset: number, str: string) => {
       if (offset > 0) {
-        const prev = string[offset - 1];
+        const prev = str[offset - 1];
         if (prev === "." || prev === "$") {
           return x;
         }
@@ -63,16 +63,16 @@ const createJSRules = () => {
   }
 
   function replaceThis() {
-    return x => x.replace("this", thisRw);
+    return (x: string) => x.replace("this", thisRw);
   }
 
-  function replace(src, target) {
-    return x => x.replace(src, target);
+  function replace(src: string, target: string) {
+    return (x: string) => x.replace(src, target);
   }
 
   function replaceThisProp() {
-    return (x, _opts, offset, string) => {
-      const prev = (offset > 0 ? string[offset - 1] : "");
+    return (x: string, _opts: Record<string, any>, offset: number, str: string) => {
+      const prev = (offset > 0 ? str[offset - 1] : "");
       if (prev === "\n") {
         return x.replace("this", ";" + thisRw);
       } else if (prev !== "." && prev !== "$") {
@@ -83,8 +83,8 @@ const createJSRules = () => {
     };
   }
 
-  function replaceImport(src, target) {
-    return (x, opts) => {
+  function replaceImport(src: string, target: string) {
+    return (x: string, opts: Record<string, any>) => {
       let res = x.replace(src, target);
       // if not module, add empty string, otherwise, import.meta.url
       res += (opts.isModule ? "import.meta.url, " : "null, ");
@@ -124,14 +124,14 @@ const createJSRules = () => {
     [/[^|&][|&]{2}\s*this\b\s*(?![|\s&.$](?:[^|&]|$))/, replaceThis()],
 
     // ignore 'async import', custom function
-    [/async\s+import\s*\(/, x => x],
+    [/async\s+import\s*\(/, (x: string) => x],
 
-    [/[^$.]\bimport\s*\([^)]*\)\s*\{/, x => x],
+    [/[^$.]\bimport\s*\([^)]*\)\s*\{/, (x: string) => x],
 
     // esm dynamic import, if found, mark as module
     [/[^$.]\bimport\s*\(/, replaceImport("import", "____wb_rewrite_import__")]
   ];
-};
+}
 
 // ===========================================================================
 const DEFAULT_RULES = createJSRules();
@@ -139,7 +139,11 @@ const DEFAULT_RULES = createJSRules();
 
 // ===========================================================================
 class JSRewriter extends RxRewriter {
-  constructor(extraRules) {
+  extraRules: Rule[];
+  firstBuff: string;
+  lastBuff: string;
+
+  constructor(extraRules: Rule[]) {
     super();
     this.extraRules = extraRules;
 
@@ -147,7 +151,7 @@ class JSRewriter extends RxRewriter {
     this.lastBuff = "\n\n}";
   }
 
-  initLocalDecl(localDecls) {
+  initLocalDecl(localDecls: string[]) {
     const assignFunc = "_____WB$wombat$assign$function_____";
     
     let buffer = `\
@@ -164,11 +168,11 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return buffer + "\n";
   }
 
-  getModuleDecl(localDecls, prefix) {
+  getModuleDecl(localDecls: string[], prefix: string) {
     return `import { ${localDecls.join(", ")} } from "${prefix}__wb_module_decl.js";\n`;
   }
 
-  detectIsModule(text) {
+  detectIsModule(text: string) {
     if (text.indexOf("import") >= 0 && text.match(IMPORT_RX)) {
       return true;
     }
@@ -180,7 +184,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return false;
   }
 
-  parseGlobals(text) {
+  parseGlobals(text: string) {
     const res = acorn.parse(text, {ecmaVersion: "latest"});
 
     let hasDocWrite = false;
@@ -189,7 +193,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     const excludeOverrides = new Set();
 
-    for (const expr of res.body) {
+    for (const expr of (res as any).body) {
       const { type } = expr;
       // Check global variable declarations
       if (type === "VariableDeclaration") {
@@ -238,10 +242,10 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     }
   }
 
-  rewrite(text, opts) {
+  rewrite(text: string, opts: Record<string, any>) {
     opts = opts || {};
     if (opts.isModule === undefined || opts.isModule === null) {
-      opts.isModule = this.detectIsModule(text, opts);
+      opts.isModule = this.detectIsModule(text);
     }
 
     let rules = DEFAULT_RULES;
@@ -288,10 +292,10 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return newText;
   }
 
-  getESMImportRule() {
+  getESMImportRule() : Rule {
     // mark as module side-effect + rewrite if http[s] url
     function rewriteImport() {
-      return (x, opts) => {
+      return (x: string, opts: Record<string, any>) => {
         const prefix = opts.prefix.replace("mp_/", "esm_/");
 
         return x.replace(IMPORT_HTTP_RX, (_, g1, g2, g3) => {

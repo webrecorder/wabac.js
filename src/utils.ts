@@ -136,7 +136,7 @@ export function makeHeaders(headers: Record<string, string>) {
 
 export function parseSetCookie(setCookie: string, scheme: string) {
   setCookie = setCookie.replace(REMOVE_EXPIRES, "");
-  const cookies = [];
+  const cookies : string[] = [];
 
   for (const cookie of setCookie.split(",")) {
     const cookieCore = cookie.split(";", 1)[0];

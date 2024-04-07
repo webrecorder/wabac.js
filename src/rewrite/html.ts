@@ -1,6 +1,7 @@
 import { RewritingStream } from "parse5-html-rewriting-stream";
 
 import { startsWithAny, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, REPLAY_TOP_FRAME_NAME } from "../utils.js";
+import { Rewriter } from "./index.js";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -65,8 +66,13 @@ const OBJECT_FLASH_DATA_RX = [{
   "replace": "youtube.com/embed/$1?"
 }];
 
+type TextNodeRewriteRule = {
+  urlMatch: RegExp;
+  match: RegExp;
+  replace: string;
+};
 
-const TEXT_NODE_REWRITE_RULES = [
+const TEXT_NODE_REWRITE_RULES : TextNodeRewriteRule[] = [
   {
     urlMatch: /[?&]:loadOrderID=([\d]+)/,
     match: /(loadOrderID&(quot;&)?#x[^;]+?;)([\d]+)/gi,
@@ -78,6 +84,11 @@ const TEXT_NODE_REWRITE_RULES = [
 // ===========================================================================
 class HTMLRewriter
 {
+  rewriter: Rewriter;
+  rule: TextNodeRewriteRule | null = null;
+  ruleMatch: RegExpMatchArray | null = null;
+  isCharsetUTF8 : boolean;
+
   constructor(rewriter, isCharsetUTF8 = false) {
     this.rewriter = rewriter;
     this.rule = null;
@@ -116,7 +127,7 @@ class HTMLRewriter
   rewriteSrcSet(value, rewriter) {
     const SRCSET_REGEX = /\s*(\S*\s+[\d.]+[wx]),|(?:\s*,(?:\s+|(?=https?:)))/;
 
-    let rv = [];
+    let rv : string[] = [];
 
     for (let v of value.split(SRCSET_REGEX)) {
       if (v) {
@@ -186,7 +197,7 @@ class HTMLRewriter
 
       else if (tagName === "script" && name === "src") {
         const rwType = this.getScriptRWType(tag);
-        const mod = (rwType === "module") ? "esm_" : null;
+        const mod = (rwType === "module") ? "esm_" : "";
         const newValue = this.rewriteUrl(rewriter, attr.value, false, mod);
         if (newValue === attr.value) {
           tag.attrs.push({"name": "__wb_orig_src", "value": attr.value});
@@ -280,7 +291,7 @@ class HTMLRewriter
     const rewriter = this.rewriter;
 
     const rwStream = new RewritingStream();
-    rwStream.tokenizer.preprocessor.bufferWaterline = Infinity;
+    (rwStream as any).tokenizer.preprocessor.bufferWaterline = Infinity;
 
     let insertAdded = false;
     let headDone = false;
@@ -288,7 +299,7 @@ class HTMLRewriter
 
     let context = "";
     let scriptRw = "";
-    let replaceTag = null;
+    let replaceTag = "";
 
     const addInsert = () => {
       if (!insertAdded && rewriter.headInsertFunc) {
@@ -351,7 +362,7 @@ class HTMLRewriter
       if (endTag.tagName === context) {
         if (replaceTag) {
           endTag.tagName = replaceTag;
-          replaceTag = null;
+          replaceTag = "";
         }
         switch (context) {
         case "head":
@@ -430,7 +441,7 @@ class HTMLRewriter
     return response;
   }
 
-  rewriteUrl(rewriter, text, forceAbs = false, mod = null) {
+  rewriteUrl(rewriter, text, forceAbs = false, mod : string = "") {
     // if html charset not utf-8, just convert the url to utf-8 for rewriting
     if (!this.isCharsetUTF8) {
       text = decoder.decode(encodeLatin1(text));
@@ -440,7 +451,7 @@ class HTMLRewriter
   }
 
   rewriteHTMLText(text) {
-    if (this.rule) {
+    if (this.rule && this.ruleMatch) {
       // todo: make more general if additional rules needed
       // for now, just replace the first match
       const replacer = this.rule.replace.replace("$U1", this.ruleMatch[1]);

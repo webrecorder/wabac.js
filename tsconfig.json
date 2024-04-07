@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist/",
+    "module": "esnext",
+    "target": "es2022",
+    "moduleResolution": "node",
+    "allowJs": true,
+    "strict": true,
+    "declaration": true,
+    "declarationMap": true,
+    "declarationDir": "./dist/types",
+    "noImplicitAny": false,
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "sourceMap": true,
+    "inlineSources": true,
+    "skipLibCheck": true,
+    "incremental": true,
+    "lib": ["webworker", "es2023"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.d.ts"]
+}

@@ -47,7 +47,7 @@ class ArchiveResponse
       headers.delete("x-redirect-statusText");
     }
 
-    let updateTS = null;
+    let updateTS : string | null = null;
 
     const origTs = headers.get("x-orig-ts");
     if (origTs) {
@@ -118,10 +118,10 @@ class ArchiveResponse
     this.updateTS = updateTS;
   }
 
-  async getText(isUTF8 = false) {
+  async getText(isUTF8 = false) : Promise<string> {
     let buff = await this.getBuffer();
     if (!buff || typeof(buff) === "string") {
-      return buff;
+      return "";
     }
 
     // Check for BOMs
@@ -259,7 +259,7 @@ class ArchiveResponse
   }
 
   makeResponse(coHeaders = false, overwriteDisposition = false) {
-    let body = null;
+    let body : Uint8Array | ReadableStream | null = null;
     if (!isNullBodyStatus(this.status)) {
       body = this.buffer || !this.reader ? this.buffer : this.reader.getReadableStream();
     }
