@@ -1,23 +1,34 @@
 import { makeHeaders, Canceled, tsToDate } from "./utils.js";
 
-import { WARCParser, postToGetUrl } from "warcio";
+import { AsyncIterReader, WARCParser, WARCRecord, postToGetUrl } from "warcio";
 
 import { extractText } from "./extract.js";
 
-import { BaseParser } from "./baseparser.js";
+import { BaseParser, ResourceEntry } from "./baseparser.js";
 
 
 // ===========================================================================
 class WARCLoader extends BaseParser {
+  reader: AsyncIterReader;
+  abort: AbortController | null;
+  loadId: string | null;
+  sourceExtra: object | null;
+
+  anyPages = false;
+  detectPages = false;
+
+  _lastRecord: WARCRecord | null = null;
+  metadata: any = {};
+  pages: string[] = [];
+  lists: string[] = [];
+  pageMap: Record<string, any> = {};
+
   constructor(reader, abort = null, loadId = null, sourceExtra = null) {
     super();
     
     this.reader = reader;
     this.abort = abort;
     this.loadId = loadId;
-
-    this.anyPages = false;
-    this.detectPages = false;
 
     this._lastRecord = null;
 
@@ -27,10 +38,10 @@ class WARCLoader extends BaseParser {
     this.pages = [];
     this.lists = [];
 
-    this.source = sourceExtra;
+    this.sourceExtra = sourceExtra;
   }
 
-  parseWarcInfo(record) {
+  parseWarcInfo(record: WARCRecord) {
     if (!record.payload) {
       return;
     }
@@ -67,13 +78,13 @@ class WARCLoader extends BaseParser {
         //  this.promises.push(this.db.addCuratedPageLists(lists, "bookmarks", "public"));
         }
 
-      } catch (e) { 
+      } catch (e: any) { 
         console.log("Page Add Error", e.toString());
       }
     }
   }
 
-  index(record, parser) {
+  index(record: WARCRecord, parser: WARCParser) {
     if (record.warcType === "warcinfo") {
       this.parseWarcInfo(record);
       return;
@@ -104,14 +115,14 @@ class WARCLoader extends BaseParser {
     }
   }
 
-  indexDone(parser) {
+  indexDone(parser: WARCParser) {
     if (this._lastRecord) {
       this.indexReqResponse(this._lastRecord, null, parser);
       this._lastRecord = null;
     }
   }
 
-  shouldIndexMetadataRecord(record) {
+  shouldIndexMetadataRecord(record: WARCRecord) {
     const targetURI = record.warcTargetURI;
     if (targetURI && targetURI.startsWith("metadata://")) {
       return true;
@@ -120,12 +131,12 @@ class WARCLoader extends BaseParser {
     return false;
   }
 
-  parseRevisitRecord(record, reqRecord) {
-    const url = record.warcTargetURI.split("#")[0];
+  parseRevisitRecord(record: WARCRecord, reqRecord: WARCRecord | null) : ResourceEntry | null {
+    const url = record.warcTargetURI!.split("#")[0];
     const date = record.warcDate;
-    const ts = new Date(date).getTime();
+    const ts = date ? new Date(date).getTime() : Date.now();
 
-    let respHeaders = undefined;
+    let respHeaders : Record<string, string> | null = null;
 
     if (record.httpHeaders) {
       const parsed = this.parseResponseHttpHeaders(record, url, reqRecord);
@@ -133,24 +144,24 @@ class WARCLoader extends BaseParser {
     }
 
     const origURL = record.warcRefersToTargetURI;
-    const origTS = new Date(record.warcRefersToDate).getTime();
+    const origTS = new Date(record.warcRefersToDate!).getTime();
 
     // self-revisit, skip
     if (origURL === url && origTS === ts) {
       return null;
     }
 
-    const digest = record.warcPayloadDigest;
+    const digest = record.warcPayloadDigest || null;
 
     return {url, ts, origURL, origTS, digest, pageId: null, respHeaders};
   }
 
-  parseResponseHttpHeaders(record, url, reqRecord) {
+  parseResponseHttpHeaders(record: WARCRecord, url: string, reqRecord: WARCRecord | null) {
     let status = 200;
-    let headers = null;
+    let headers : Headers | null = null;
     let mime = "";
 
-    const method = (reqRecord && reqRecord.httpHeaders.method);
+    const method = (reqRecord && reqRecord.httpHeaders?.method);
 
     if (record.httpHeaders) {
       status = Number(record.httpHeaders.statusCode) || 200;
@@ -186,9 +197,9 @@ class WARCLoader extends BaseParser {
       // }
     } else {
       headers = new Headers();
-      headers.set("content-type", record.warcContentType);
-      headers.set("content-length", record.warcContentLength);
-      mime = record.warcContentType;
+      headers.set("content-type", record.warcContentType!);
+      headers.set("content-length", String(record.warcContentLength!));
+      mime = record.warcContentType || "";
 
       //cl = record.warcContentLength;
     }
@@ -196,7 +207,7 @@ class WARCLoader extends BaseParser {
     return {status, method, headers, mime};
   }
 
-  indexReqResponse(record, reqRecord) {
+  indexReqResponse(record: WARCRecord, reqRecord: WARCRecord | null, parser: WARCParser) {
     const entry = this.parseRecords(record, reqRecord);
 
     if (entry) {
@@ -204,7 +215,7 @@ class WARCLoader extends BaseParser {
     }
   }
 
-  parseRecords(record, reqRecord) {
+  parseRecords(record: WARCRecord, reqRecord: WARCRecord | null) : ResourceEntry | null {
     switch (record.warcType) {
     case "revisit":
       return this.parseRevisitRecord(record, reqRecord);
@@ -226,7 +237,7 @@ class WARCLoader extends BaseParser {
       return null;
     }
 
-    let url = record.warcTargetURI.split("#")[0];
+    let url = record.warcTargetURI!.split("#")[0];
     const date = record.warcDate;
 
     const parsed = this.parseResponseHttpHeaders(record, url, reqRecord);
@@ -237,20 +248,20 @@ class WARCLoader extends BaseParser {
 
     const {status, method, headers, mime} = parsed;
 
-    let referrer = null;
-    let requestBody = null;
+    let referrer: | string | null = null;
+    let requestBody: Uint8Array | null = null;
     let requestUrl;
     let reqHeaders;
 
-    if (reqRecord && reqRecord.httpHeaders.headers) {
-      let requestHeaders = null;
+    if (reqRecord && reqRecord.httpHeaders?.headers) {
+      let requestHeaders : Headers | null = null;
       try {
-        requestHeaders = new Headers(reqRecord.httpHeaders.headers);
+        requestHeaders = new Headers(reqRecord.httpHeaders?.headers as Headers);
         const cookie = requestHeaders.get("cookie");
         if (cookie) {
           headers.set("x-wabac-preset-cookie", cookie);
         }
-        referrer = reqRecord.httpHeaders.headers.get("Referer");
+        referrer = reqRecord.httpHeaders.headers.get("Referer") || null;
       } catch(e) {
         requestHeaders = new Headers();
         console.warn(e);
@@ -261,7 +272,7 @@ class WARCLoader extends BaseParser {
       if (method !== "GET") {
         const data = {
           headers: requestHeaders,
-          method,
+          method: method || "GET",
           url,
           postData: reqRecord.payload
         };
@@ -291,16 +302,16 @@ class WARCLoader extends BaseParser {
       }
     }
 
-    const ts = new Date(date).getTime();
+    const ts = date ? new Date(date).getTime() : Date.now();
 
     const respHeaders = Object.fromEntries(headers.entries());
 
-    const digest = record.warcPayloadDigest;
+    const digest = record.warcPayloadDigest || null;
 
     const payload = record.payload;
     const reader = payload ? null : record.reader;
 
-    const entry = {url, ts, status, mime, respHeaders, reqHeaders, digest, payload, reader, referrer};
+    const entry : ResourceEntry = {url, ts, status, mime, respHeaders, reqHeaders, digest, payload, reader, referrer};
 
     if (this.pageMap[ts + "/" + url] && payload && mime.startsWith("text/")) {
       this.pageMap[ts + "/" + url].textPromise = extractText(
@@ -333,7 +344,7 @@ class WARCLoader extends BaseParser {
     if (method !== "GET" && requestUrl) {
       entry.requestUrl = requestUrl;
       entry.method = method;
-      entry.requestBody = requestBody || "";
+      entry.requestBody = requestBody || new Uint8Array([]);
     }
 
     return entry;
@@ -350,7 +361,7 @@ class WARCLoader extends BaseParser {
     return range && range === fullRange;
   }
 
-  filterRecord() {
+  filterRecord(record: WARCRecord) : string | null {
     return null;
   }
 
@@ -371,9 +382,11 @@ class WARCLoader extends BaseParser {
           continue;
         }
 
-        if (self.interruptLoads && this.loadId && self.interruptLoads[this.loadId]) {
+        const interruptLoads = (self as any).interruptLoads as Record<string, any>;
+
+        if (interruptLoads && this.loadId && interruptLoads[this.loadId]) {
           progressUpdate(Math.round((parser.offset / totalSize) * 95.0), "Loading Canceled", parser.offset, totalSize);
-          self.interruptLoads[this.loadId]();
+          interruptLoads[this.loadId]();
           if (this.abort) {
             this.abort.abort();
           }
@@ -410,7 +423,7 @@ class WARCLoader extends BaseParser {
         if (this.promises.length > 0) {
           try {
             await Promise.all(this.promises);
-          } catch (e) {
+          } catch (e: any) {
             console.warn(e.toString());
           }
           this.promises = [];
@@ -445,7 +458,7 @@ class WARCLoader extends BaseParser {
         if (textPromise) {
           try {
             page.text = await textPromise;
-          } catch (e) {
+          } catch (e: any) {
             console.warn("Error adding text: " + e.toString());
           }
         }
@@ -525,10 +538,12 @@ class SingleRecordWARCLoader extends WARCLoader
 // ===========================================================================
 class WARCInfoOnlyWARCLoader extends WARCLoader
 {
-  filterRecord(record) {
+  filterRecord(record: WARCRecord) {
     if (record.warcType != "warcinfo") {
       return "done";
     }
+
+    return null;
   }
 }
 

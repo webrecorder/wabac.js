@@ -1,23 +1,31 @@
+import { ResourceEntry } from "./baseparser.js";
 import { tsToDate } from "./utils.js";
 import { WARCLoader } from "./warcloader.js";
 
-import { CDXIndexer, AsyncIterReader, appendRequestQuery } from "warcio";
+import { CDXIndexer, AsyncIterReader, appendRequestQuery, WARCRecord, WARCParser } from "warcio";
 
 
 export const CDX_COOKIE = "req.http:cookie";
+
+type WARCRecordWithPage = WARCRecord & {
+  _isPage: boolean;
+};
 
 
 // ===========================================================================
 class CDXFromWARCLoader extends WARCLoader
 {
+  cdxindexer: CDXIndexer | null = null;
+  sourceExtra: any;
+  shaPrefix: string;
+
   constructor(reader, abort, id, sourceExtra = {}, shaPrefix = "sha256:") {
     super(reader, abort, id);
-    this.cdxindexer = null;
     this.sourceExtra = sourceExtra;
     this.shaPrefix = shaPrefix;
   }
 
-  filterRecord(record) {
+  filterRecord(record: WARCRecordWithPage) {
     switch (record.warcType) {
     case "warcinfo":
     case "revisit":
@@ -29,15 +37,17 @@ class CDXFromWARCLoader extends WARCLoader
     }
 
     const url = record.warcTargetURI;
-    const ts = new Date(record.warcDate).getTime();
+    const ts = record.warcDate ? new Date(record.warcDate).getTime() : Date.now();
 
     if (this.pageMap[ts + "/" + url]) {
       record._isPage = true;
       return null;
     }
+
+    return null;
   }
 
-  index(record, parser) {
+  index(record: WARCRecord, parser: WARCParser) {
     if (record) {
       record._offset = parser.offset;
       record._length = parser.recordLength;
@@ -45,7 +55,7 @@ class CDXFromWARCLoader extends WARCLoader
     return super.index(record, parser);
   }
 
-  indexReqResponse(record, reqRecord, parser) {
+  indexReqResponse(record: WARCRecordWithPage, reqRecord: WARCRecord, parser: WARCParser) {
     if (record._isPage) {
       return super.indexReqResponse(record, reqRecord, parser);
     }
@@ -56,7 +66,7 @@ class CDXFromWARCLoader extends WARCLoader
     }
 
     if (!this.cdxindexer) {
-      this.cdxindexer = new CDXIndexer({noSurt: true}, null);
+      this.cdxindexer = new CDXIndexer({noSurt: true});
     }
 
     const cdx = this.cdxindexer.indexRecordPair(record, reqRecord, parser, "");
@@ -65,7 +75,7 @@ class CDXFromWARCLoader extends WARCLoader
       return;
     }
 
-    if (cdx.status === 206 && !this.isFullRangeRequest(record.httpHeaders.headers)) {
+    if (cdx.status === 206 && !this.isFullRangeRequest(record.httpHeaders?.headers)) {
       return;
     }
 
@@ -108,7 +118,7 @@ class CDXFromWARCLoader extends WARCLoader
       digest = this.shaPrefix + digest;
     }
 
-    const entry = {url, ts, status, digest, recordDigest, mime, loaded: false, source};
+    const entry : ResourceEntry = {url, ts, status, digest, recordDigest, mime, loaded: false, source};
 
     if (cdx.method) {
       if (cdx.method === "HEAD" || cdx.method === "OPTIONS") {

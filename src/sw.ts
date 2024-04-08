@@ -1,6 +1,8 @@
 import { SWReplay } from "./swmain.js";
 import { WorkerLoader } from "./loaders.js";
 
+declare let self: any;
+
 if (self.registration) {
 // Service Worker Init
   self.sw = new SWReplay();

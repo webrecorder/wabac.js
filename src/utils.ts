@@ -118,9 +118,9 @@ export function randomId() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-export function makeHeaders(headers: Record<string, string>) {
+export function makeHeaders(headers: Headers | Map<string, string>) {
   try {
-    return new Headers(headers);
+    return new Headers(headers as Headers);
   } catch (e) {
     // try to sanitize the headers, if any errors
     for (let key of Object.keys(headers)) {
@@ -130,7 +130,7 @@ export function makeHeaders(headers: Record<string, string>) {
         headers[key] = newValue;
       }
     }
-    return new Headers(headers);
+    return new Headers(headers as Headers);
   }
 }
 

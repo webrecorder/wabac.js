@@ -3,6 +3,9 @@ import { BaseParser } from "./baseparser.js";
 
 // ===========================================================================
 class HARLoader extends BaseParser {
+  har: string | any;
+  pageRefs: Record<string, string>;
+
   constructor(string_or_har) {
     super();
     this.har = string_or_har;
@@ -56,7 +59,7 @@ class HARLoader extends BaseParser {
         respHeaders[name] = value;
       }
 
-      let payload = null;
+      let payload : Uint8Array | null = null;
 
       const encoder = new TextEncoder();
 

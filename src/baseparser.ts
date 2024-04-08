@@ -1,12 +1,37 @@
 const DEFAULT_BATCH_SIZE = 1000;
 
 
+export type ResourceEntry = {
+  url: string;
+  ts: number;
+  
+  digest?: string | null;
+  status?: number;
+  mime?: string;
+
+  respHeaders?: Record<string, string> | null;
+  reqHeaders?: Record<string, string> | null;
+  recordDigest?: string | null;
+  payload?: Uint8Array | null;
+  reader?: AsyncIterable<Uint8Array> | Iterable<Uint8Array> | null;
+  referrer?: string | null;
+  extraOpts?: Record<string, any> | null;
+  pageId?: string | null;
+  origURL?: string | null;
+  origTS?: number | null;
+  source?: object;
+  requestUrl?: string | null;
+  method?: string | null;
+  requestBody?: Uint8Array;
+  loaded?: boolean;
+};
+
 // ===========================================================================
 class BaseParser
 {
   batchSize: number;
   promises: Promise<void>[] = [];
-  batch: string[] = [];
+  batch: ResourceEntry[] = [];
   count = 0;
   dupeSet = new Set<string>();
   //TODO
@@ -24,7 +49,7 @@ class BaseParser
     return this.batch.length >= this.batchSize;
   }
 
-  addResource(res) {
+  addResource(res: ResourceEntry) {
     if (this.isBatchFull()) {
       this.flush();
     }
