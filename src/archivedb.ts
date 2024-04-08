@@ -1,6 +1,4 @@
-"use strict";
-
-import { openDB, deleteDB } from "idb/with-async-ittr";
+import { openDB, deleteDB, IDBPDatabase } from "idb/with-async-ittr";
 import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage,
   getTS, getStatusText, randomId, PAGE_STATE_SYNCED } from "./utils.js";
 import { fuzzyMatcher } from "./fuzzymatcher.js";
@@ -22,7 +20,18 @@ const DB_VERSION = 4;
 
 // ===========================================================================
 class ArchiveDB {
-  constructor(name, opts = {}) {
+  name: string;
+  minDedupSize: number;
+  version: number;
+  autoHttpsCheck = true;
+  useRefCounts = false;
+  allowRepeats = true;
+  repeatTracker: RepeatTracker | null = null;
+  fuzzyPrefixSearch = true;
+  initing: Promise<void>;
+  db: IDBPDatabase | null = null;
+
+  constructor(name, opts: any = {}) {
     this.name = name;
     this.db = null;
 
@@ -61,7 +70,7 @@ class ArchiveDB {
     }
   }
 
-  _initDB(db, oldV/*, newV, tx*/) {
+  _initDB(db, oldV, newV, tx) {
     if (!oldV) {
       const pageStore = db.createObjectStore("pages", { keyPath: "id" });
       pageStore.createIndex("url", "url");
@@ -86,6 +95,10 @@ class ArchiveDB {
 
   async clearAll() {
     const stores = ["pages", "resources", "payload", "digestRef"];
+
+    if (!this.db) {
+      return;
+    }
 
     for (const store of stores) {
       await this.db.clear(store);
@@ -133,12 +146,12 @@ class ArchiveDB {
       tx.store.put(p);
       return p.id;
     } else {
-      return await this.db.put("pages", p);
+      return await this.db!.put("pages", p);
     }
   }
 
   async addPages(pages, pagesTable = "pages", update = false) {
-    const tx = this.db.transaction(pagesTable, "readwrite");
+    const tx = this.db!.transaction(pagesTable, "readwrite");
 
     for (const page of pages) {
       if (update) {
@@ -150,18 +163,18 @@ class ArchiveDB {
 
     try {
       await tx.done;
-    } catch(e) {
+    } catch(e: any) {
       console.warn("addPages tx", e.toString());
     }
   }
 
   async createPageList(data) {
-    const listData = {};
+    const listData: any = {};
     listData.title = data.title;
     listData.desc = data.desc || data.description;
     listData.slug = data.id || data.slug;
 
-    return await this.db.put("pageLists", listData);
+    return await this.db!.put("pageLists", listData);
   }
 
   async addCuratedPageList(listInfo, pages) {
@@ -234,9 +247,9 @@ class ArchiveDB {
   }
 
   async getCuratedPagesByList() {
-    const allLists = await this.db.getAll("pageLists");
+    const allLists = await this.db!.getAll("pageLists");
 
-    const tx = this.db.transaction("curatedPages", "readonly");
+    const tx = this.db!.transaction("curatedPages", "readonly");
 
     for await (const cursor of tx.store.index("listPages").iterate()) {
       const list = allLists[cursor.value.list - 1];
@@ -258,7 +271,7 @@ class ArchiveDB {
   }
 
   async getAllPages() {
-    return await this.db.getAll("pages");
+    return await this.db!.getAll("pages");
   }
 
   async getPages(pages) {
@@ -273,9 +286,9 @@ class ArchiveDB {
   }
 
   async getTimestampsByURL(url) {
-    const tx = this.db.transaction("resources");
+    const tx = this.db!.transaction("resources");
     const range = IDBKeyRange.bound([url], [url, MAX_DATE_TS]);
-    const results=[]; 
+    const results = []; 
     for await (const cursor of tx.store.iterate(range)) {
       results.push(cursor.key[1]);
     }
@@ -283,7 +296,7 @@ class ArchiveDB {
   }
 
   async getPagesWithState(state) {
-    return await this.db.getAllFromIndex("pages", "state", state);
+    return await this.db!.getAllFromIndex("pages", "state", state);
   }
 
   async getVerifyInfo() {
@@ -329,7 +342,7 @@ class ArchiveDB {
     const digestRefCount = {};
     const changedDigests = new Set();
 
-    const dtx = this.db.transaction(["digestRef", "payload"], "readwrite");
+    const dtx = this.db!.transaction(["digestRef", "payload"], "readwrite");
 
     for (const data of datas) {
       let refCount = 1;
@@ -672,7 +685,7 @@ class ArchiveDB {
   }
 
   async resourcesByPage(pageId) {
-    return this.db.getAllFromIndex("resources", "pageId", pageId);
+    return this.db!.getAllFromIndex("resources", "pageId", pageId);
   }
 
   async* resourcesByPages2(pageIds) {
@@ -682,7 +695,7 @@ class ArchiveDB {
   }
 
   async* resourcesByPages(pageIds) {
-    const tx = this.db.transaction("resources", "readonly");
+    const tx = this.db!.transaction("resources", "readonly");
 
     for await (const cursor of tx.store.iterate()) {
       if (pageIds.includes(cursor.value.pageId)) {
@@ -691,8 +704,8 @@ class ArchiveDB {
     }
   }
 
-  async* matchAny(storeName, indexName, sortedKeys, subKey, openBound = false) {
-    const tx = this.db.transaction(storeName, "readonly");
+  async* matchAny(storeName: string, indexName: string, sortedKeys: string, subKey: string, openBound = false) {
+    const tx = this.db!.transaction(storeName, "readonly");
 
     const range = IDBKeyRange.lowerBound(sortedKeys[0], openBound);
 
@@ -727,18 +740,18 @@ class ArchiveDB {
     }
   }
 
-  async resourcesByUrlAndMime(url, mimes, count = 1000, prefix = true, fromUrl = "", fromTs = "") {
+  async resourcesByUrlAndMime(url: string, mimes: string, count = 1000, prefix = true, fromUrl = "", fromTs = "") {
     // if doing local mime filtering, need to remove count
     const queryCount = mimes ? null : count;
 
-    const fullResults = await this.db.getAll("resources",
+    const fullResults = await this.db!.getAll("resources",
       this.getLookupRange(url, prefix ? "prefix" : "exact", fromUrl, fromTs), queryCount);
 
-    mimes = mimes.split(",");
+    const mimesArray = mimes.split(",");
     const results = [];
 
     for (const res of fullResults) {
-      for (const mime of mimes) {
+      for (const mime of mimesArray) {
         if (!mime || (res.mime && res.mime.startsWith(mime))) {
           results.push(this.resJson(res));
           if (results.length === count) {

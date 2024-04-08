@@ -1,7 +1,7 @@
 // ===========================================================================
 import { create } from "auto-js-ipfs";
 
-let autoipfsAPI = null;
+let autoipfsAPI : any = null;
 
 export async function initAutoIPFS(opts) {
   if (!autoipfsAPI) {
