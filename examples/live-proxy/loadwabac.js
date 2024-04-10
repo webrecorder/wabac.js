@@ -3,9 +3,14 @@ const proxyPrefix = "https://wabac-cors-proxy.webrecorder.workers.dev/proxy/";
 
 class WabacLiveProxy
 {
-  constructor() {
+  constructor({collName = "liveproxy", adblockUrl = undefined} = {}) {
     this.url = "";
     this.ts = "";
+    this.collName = collName;
+    this.matchRx = new RegExp(`${collName}\\/([\\d]+)?\\w\\w_\\/(.*)`);
+    this.adblockUrl = adblockUrl;
+
+    this.queryParams = {"injectScripts": "./custom.js"};
   }
 
   async init() {
@@ -19,7 +24,7 @@ class WabacLiveProxy
     const scope = "./";
 
     // also add inject of custom.js as a script into each replayed page
-    await navigator.serviceWorker.register("./sw.js?injectScripts=./custom.js", {scope});
+    await navigator.serviceWorker.register("./sw.js?" + new URLSearchParams(this.queryParams).toString(), {scope});
 
     let initedResolve = null;
 
@@ -37,17 +42,18 @@ class WabacLiveProxy
 
     const msg = {
       msg_type: "addColl",
-      name: "liveproxy",
+      name: this.collName,
       type: "live",
       file: {"sourceUrl": `proxy:${proxyPrefix}`},
       skipExisting: false,
       extraConfig: {
-        "prefix": proxyPrefix,
-        "isLive": false,
-        "baseUrl": baseUrl.href,
-        "baseUrlHashReplay": true,
-        "noPostToGet": true,
-        "archivePrefix": "https://web.archive.org/web/"
+        prefix: proxyPrefix,
+        isLive: false,
+        baseUrl: baseUrl.href,
+        baseUrlHashReplay: true,
+        noPostToGet: true,
+        archivePrefix: "https://web.archive.org/web/",
+        adblockUrl: this.adblockUrl
       },
     };
 
@@ -85,7 +91,7 @@ class WabacLiveProxy
       return;
     }
 
-    let iframeUrl = ts ? `/w/liveproxy/${ts}mp_/${url}` : `/w/liveproxy/mp_/${url}`;
+    let iframeUrl = ts ? `/w/${this.collName}/${ts}mp_/${url}` : `/w/${this.collName}/mp_/${url}`;
 
     const iframe = document.querySelector("#content");
     iframe.src = iframeUrl;
@@ -97,7 +103,7 @@ class WabacLiveProxy
   }
 
   onIframeLoad(url) {
-    const m = url.match(/liveproxy\/([\d]+)?\w\w_\/(.*)/);
+    const m = url.match(this.matchRx);
 
     this.ts = m[1] || "";
     this.url = m[2] || "";
@@ -105,5 +111,3 @@ class WabacLiveProxy
     window.location.hash = this.ts ? `#${this.ts}/${this.url}` : `#${this.url}`;
   }
 }
-
-new WabacLiveProxy().init();

@@ -4,6 +4,8 @@ import { getTS, getSecondsStr, notFound, parseSetCookie, handleAuthNeeded, REPLA
 
 import { ArchiveResponse } from "./response.js";
 
+import { getAdBlockCSSResponse } from "./adblockcss.js";
+
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 
@@ -39,6 +41,8 @@ class Collection {
     this.liveRedirectOnNotFound = extraConfig.liveRedirectOnNotFound || false;
 
     this.rootPrefix = prefixes.root || prefixes.main;
+
+    this.adblockUrl = extraConfig.adblockUrl;
 
     this.prefix = prefixes.main;
 
@@ -91,6 +95,8 @@ class Collection {
         response = await this.getSrcDocResponse(requestURL);
       } else if (requestURL === "__wb_module_decl.js") {
         response = await this.getWrappedModuleDecl(requestURL);
+      } else if (this.adblockUrl && requestURL.startsWith("adblock:")) {
+        response = await getAdBlockCSSResponse(requestURL.slice("adblock:".length), this.adblockUrl);
       } else {
         response = await this.getReplayResponse(request, event);
         requestURL = request.url;
@@ -405,6 +411,10 @@ window.home = "${this.rootPrefix}";
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : "\"\"";
     return `
 <!-- WB Insert -->
+${this.adblockUrl ? `
+<link rel='stylesheet' href="${prefix}mp_/adblock:${urlParsed.hostname}"/>
+<link rel='stylesheet' href="${prefix}mp_/adblock:"/>
+` : ""}
 <style>
 body {
   font-family: inherit;
