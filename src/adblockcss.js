@@ -9,7 +9,11 @@ export async function getAdBlockCSSResponse(fullDomain, adblockUrl) {
       allDomains.push(domainParts.slice(i).join("."));
     }
   }
-  const domain = allDomains.length ? allDomains[allDomains.length - 1] : "";
+
+  // Note: this may actually be a TLD (eg. co.uk) domains but that shouldn't matter too much
+  // unless a list has rules for a TLD, which it generally does not.
+  // this may result in checking more lines for exact matches than is necessary
+  const possibleDomain = allDomains.length ? allDomains[allDomains.length - 1] : "";
 
   const resp = await fetch(adblockUrl);
 
@@ -24,7 +28,7 @@ export async function getAdBlockCSSResponse(fullDomain, adblockUrl) {
   async function* yieldRules(linestream) {
     try {
       for await (const line of AsyncIterReader.fromReadable(linestream.getReader())) {
-        if (domain && line.indexOf(domain) >= 0) {
+        if (possibleDomain && line.indexOf(possibleDomain) >= 0) {
           const parts = line.split("##");
           if (parts.length < 2) {
             continue;
@@ -43,7 +47,7 @@ export async function getAdBlockCSSResponse(fullDomain, adblockUrl) {
             }
           }
 
-        } else if (!domain && line.startsWith("##")) {
+        } else if (!possibleDomain && line.startsWith("##")) {
           yield line.slice(2);
         }
       }
