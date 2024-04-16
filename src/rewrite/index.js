@@ -75,6 +75,9 @@ class Rewriter {
         this.isCharsetUTF8 = parts[1].trim().toLowerCase().replace("charset=", "").replace("-", "") === "utf8";
       }
     }
+    if (request.mod === "esm_") {
+      this.isCharsetUTF8 = true;
+    }
 
     if (request) {
       switch (request.destination) {
@@ -322,6 +325,37 @@ class Rewriter {
     }
 
     return text;
+  }
+
+  // Importmap
+  rewriteImportmap(text) {
+    try {
+      const root = JSON.parse(text);
+
+      const imports = {};
+      const output = {imports};
+
+      for (const [key, value] of Object.entries(root.imports || {})) {
+        imports[this.rewriteUrl(key).replace("mp_/", "esm_/")] = value;
+      }
+
+      if (root.scopes) {
+        const scopes = {};
+        for (const [scopeKey, scopeValue] of Object.entries(root.scopes || {})) {
+          const newScope = {};
+          for (const [key, value] of Object.entries(scopeValue)) {
+            newScope[this.rewriteUrl(key).replace("mp_/", "esm_/")] = value;
+          }
+          scopes[this.rewriteUrl(scopeKey).replace("mp_/", "esm_/")] = newScope;
+        }
+        output.scopes = scopes;
+      }
+
+      return JSON.stringify(output, null, 2);
+    } catch (e) {
+      console.warn("Error parsing importmap", e);
+      return text;
+    }
   }
 
   parseJSONPCallback(url) {
