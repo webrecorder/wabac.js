@@ -427,7 +427,7 @@ test("head insert no tags", rewriteHtml,
 
 // Import map
 test("test import map", rewriteHtml,
-`\
+  `\
 <script type="importmap">
     {
       "imports": {
