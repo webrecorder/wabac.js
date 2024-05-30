@@ -96,6 +96,8 @@ const createJSRules = () => {
     // rewriting 'eval(...)' - invocation
     [/(?:^|\s)\beval\s*\(/, replacePrefixFrom(evalStr, "eval")],
 
+    [/\([\w]+,\s*eval\)\(/, () => " " + evalStr],
+
     // rewriting 'x = eval' - no invocation
     [/[=]\s*\beval\b(?![(:.$])/, replace("eval", "self.eval")],
 
