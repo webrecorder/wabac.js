@@ -145,6 +145,11 @@ test(rewriteJS,
 );
 
 test(rewriteJS,
+  "return(1, eval)(data);",
+  "return WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),data);"
+);
+
+test(rewriteJS,
   "somewindow.postMessage({'a': 'b'})",
   "somewindow.__WB_pmw(self).postMessage({'a': 'b'})",
 );
