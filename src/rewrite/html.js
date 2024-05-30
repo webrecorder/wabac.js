@@ -261,6 +261,8 @@ class HTMLRewriter
       return "js";
     } else if (scriptType.startsWith("text/")) {
       return "text";
+    } else if (scriptType === "importmap") {
+      return "importmap";
     } else {
       return "";
     }
@@ -381,6 +383,8 @@ class HTMLRewriter
             return rewriter.rewriteJS(textToken.text, {isModule, prefix});
           } else if (scriptRw === "json") {
             return rewriter.rewriteJSON(textToken.text, {prefix});
+          } else if (scriptRw === "importmap") {
+            return rewriter.rewriteImportmap(textToken.text, {prefix});
           } else {
             return textToken.text;
           }
