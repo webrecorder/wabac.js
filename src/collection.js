@@ -118,7 +118,7 @@ class Collection {
         // ignore invalid URL
       }
 
-      const msg = `
+      const msg =`
       <html>
       <body style="font-family: sans-serif">
       <h2>Archived Page Not Found</h2>
@@ -131,8 +131,25 @@ class Collection {
       </script>
       ` : `
       `}
+      <p id="goback" style="display: none"><a href="#" onclick="window.history.back()">Go Back</a> to the previous page.</a></p>
+      
       <p>
-      <a target="_blank" href="${requestURL}">Click Here</a> to try to load the live page in a new tab (or to download the URL as a file).</p>
+      <a target="_blank" href="${requestURL}">Load the live page</a> in a new tab (or download the file, if this URL points to a file).
+      </p>
+
+      <script>
+      let isTop = true;
+      try {
+        if (window.parent._WB_wombat_location) {
+          isTop = false;
+        }
+      } catch (e) {
+
+      }
+      if (isTop) {
+        document.querySelector("#goback").style.display = "";
+      }
+      </script>
       </body>
       </html>
       `; 
