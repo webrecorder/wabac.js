@@ -134,7 +134,7 @@ class Collection {
       <p id="goback" style="display: none"><a href="#" onclick="window.history.back()">Go Back</a> to the previous page.</a></p>
       
       <p>
-      <a target="_blank" href="${requestURL}">Load the live page</a> in a new tab (or to attempt to download the URL as a file).
+      <a target="_blank" href="${requestURL}">Load the live page</a> in a new tab (or download the file, if this URL points to a file).
       </p>
 
       <script>
