@@ -388,7 +388,11 @@ test("script", rewriteHtml,
 
 test("object pdf", rewriteHtml,
   "<object type=\"application/pdf\" data=\"https://example.com/some/file.pdf\">",
-  "<iframe type=\"application/pdf\" src=\"https://example.com/some/file.pdf\">");
+  "<iframe type=\"application/pdf\" src=\"http://localhost:8080/prefix/20201226101010mp_/https://example.com/some/file.pdf\">");
+
+test("object svg", rewriteHtml,
+  "<object type=\"image/svg+xml\" data=\"https://example.com/some/file.svg\">",
+  "<img type=\"image/svg+xml\" src=\"http://localhost:8080/prefix/20201226101010mp_/https://example.com/some/file.svg\">");
 
 
 test("textarea text", rewriteHtml,

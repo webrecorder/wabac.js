@@ -203,10 +203,15 @@ class HTMLRewriter
       else if (tagName === "object" && name === "data") {
         const type = this.getAttr(tag.attrs, "type");
 
-        // convert object tag to iframe
-        if (type === "application/pdf" || type === "image/svg+xml") {
+        // convert object tag to iframe or img
+        if (type === "application/pdf") {
           attr.name = "src";
+          attr.value = this.rewriteUrl(rewriter, attr.value);
           tag.tagName = "iframe";
+        } else if (type === "image/svg+xml") {
+          attr.name = "src";
+          attr.value = this.rewriteUrl(rewriter, attr.value);
+          tag.tagName = "img";
         } else if (type === "application/x-shockwave-flash") {
           for (const rule of OBJECT_FLASH_DATA_RX) {
             const value = attr.value.replace(rule.match, rule.replace);
