@@ -115,11 +115,6 @@ test(rewriteJSWrapped,
   " location = http://example.com/2",
   " location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/2");
 
-test(rewriteJSWrapped,
-  "func(location = 0)",
-  "func(location = 0)"
-);
-
 test(rewriteJS,
   " eval(a)",
   " WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),a)"
@@ -288,6 +283,10 @@ test(rewriteJSWrapped, "window.eval(a)");
 test(rewriteJSWrapped, "x = window.eval; x(a);");
 
 test(rewriteJSWrapped, "this. location = 'http://example.com/'");
+
+test(rewriteJSWrapped, "abc-location = http://example.com/");
+
+test(rewriteJSWrapped, "func(location = 0)");
 
 test(rewriteJS, "obj = { eval : 1 }");
 
