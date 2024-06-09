@@ -21,22 +21,39 @@ export class HashingAsyncIterReader extends AsyncIterReader
 {
   constructor(source, compressed = "gzip", dechunk = false) {
     super(source, compressed, dechunk);
+    this.hasher = null;
+    this.hashInited = false;
+    this.hash = "";
   }
 
   async initHasher() {
-    this.hasher = await createSHA256();
+    try {
+      this.hasher = await createSHA256();
+    } catch (e) {
+      console.warn("Hasher init failed, not hashing", e);
+    } finally {
+      this.hashInited = true;
+    }
   }
 
   async _loadNext()  {
     const value = await super._loadNext();
     if (value) {
-      this.hasher.update(value);
+      if (!this.hashInited) {
+        await this.initHasher();
+      }
+      if (this.hasher) {
+        this.hasher.update(value);
+      }
+    } else if (this.hasher) {
+      this.hash = "sha256:" + this.hasher.digest("hex");
+      this.hasher = null;
     }
     return value;
   }
 
   getHash() {
-    return "sha256:" + this.hasher.digest("hex");
+    return this.hash;
   }
 }
 
@@ -286,10 +303,6 @@ export class ZipRangeReader
       // need to deflate, than unzip again
       reader = new AsyncIterReader(new AsyncIterReader(reader, "deflate"));
       reader = wrapHasher(reader);
-    }
-
-    if (hasher) {
-      await hasher.initHasher();
     }
 
     return {reader, hasher};

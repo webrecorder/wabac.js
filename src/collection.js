@@ -123,7 +123,7 @@ class Collection {
       <body style="font-family: sans-serif">
       <h2>Archived Page Not Found</h2>
       <p>Sorry, this page was not found in this archive:</p>
-      <p><code style="word-break: break-all; font-size: larger">${requestURL}</code></p>
+      <p><code id="url" style="word-break: break-all; font-size: larger"></code></p>
       ${this.liveRedirectOnNotFound && request.mode === "navigate" ? `
       <p>Redirecting to live page now... (If this URL is a file download, the download should have started).</p>
       <script>
@@ -138,6 +138,7 @@ class Collection {
       </p>
 
       <script>
+      document.querySelector("#url").innerText = "${requestURL}";
       let isTop = true;
       try {
         if (window.parent._WB_wombat_location) {
