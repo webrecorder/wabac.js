@@ -75,6 +75,7 @@ class Rewriter {
         this.isCharsetUTF8 = parts[1].trim().toLowerCase().replace("charset=", "").replace("-", "") === "utf8";
       }
     }
+    mime = mime.toLowerCase();
     if (request.mod === "esm_") {
       this.isCharsetUTF8 = true;
     }
@@ -102,7 +103,7 @@ class Rewriter {
     case "text/css":
       return "css";
 
-    case "application/x-mpegURL":
+    case "application/x-mpegurl":
     case "application/vnd.apple.mpegurl":
       return "hls";
 

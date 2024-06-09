@@ -26,7 +26,7 @@ class RxRewriter
     this.rx = new RegExp(rxString, "gm");
   }
 
-  doReplace(params, opts) {
+  doReplace(match, params, opts) {
     const offset = params[params.length - 2];
     const string = params[params.length - 1];
 
@@ -41,6 +41,8 @@ class RxRewriter
         return result;
       }
     }
+    console.warn(`rx no match found for ${match} - rx rule contains extra matching group?`);
+    return match;
   }
 
   rewrite(text, opts) {
@@ -48,7 +50,7 @@ class RxRewriter
       return text;
     }
 
-    return text.replace(this.rx, (match, ...params) => this.doReplace(params, opts));
+    return text.replace(this.rx, (match, ...params) => this.doReplace(match, params, opts));
   }
 }
 

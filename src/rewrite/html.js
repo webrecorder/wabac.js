@@ -133,6 +133,11 @@ class HTMLRewriter
     const isUrl = (val) => { return startsWithAny(val, DATA_RW_PROTOCOLS); };
     const tagName = tag.tagName;
 
+    // no attribute rewriting for web-component tags, which must contain a '-'
+    if (tagName.indexOf("-") > 0) {
+      return;
+    }
+
     for (let attr of tag.attrs) {
       const name = attr.name || "";
       const value = attr.value || "";

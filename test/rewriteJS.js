@@ -91,6 +91,22 @@ test(rewriteJS,
 
 
 test(rewriteJS,
+  `a = 5
+
+this.location = x;`,
+  `a = 5
+
+;_____WB$wombat$check$this$function_____(this).location = x;`);
+
+test(rewriteJS,
+  `a = 5
+
+(this.location = x);`,
+  `a = 5
+
+(_____WB$wombat$check$this$function_____(this).location = x);`);
+
+test(rewriteJS,
   "return this.location",
   "return _____WB$wombat$check$this$function_____(this).location");
 
@@ -114,11 +130,6 @@ test(rewriteJSWrapped,
 test(rewriteJSWrapped,
   " location = http://example.com/2",
   " location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/2");
-
-test(rewriteJSWrapped,
-  "func(location = 0)",
-  "func(location = 0)"
-);
 
 test(rewriteJS,
   " eval(a)",
@@ -288,6 +299,10 @@ test(rewriteJSWrapped, "window.eval(a)");
 test(rewriteJSWrapped, "x = window.eval; x(a);");
 
 test(rewriteJSWrapped, "this. location = 'http://example.com/'");
+
+test(rewriteJSWrapped, "abc-location = http://example.com/");
+
+test(rewriteJSWrapped, "func(location = 0)");
 
 test(rewriteJS, "obj = { eval : 1 }");
 
