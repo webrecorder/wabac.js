@@ -91,6 +91,22 @@ test(rewriteJS,
 
 
 test(rewriteJS,
+  `a = 5
+
+this.location = x;`,
+  `a = 5
+
+;_____WB$wombat$check$this$function_____(this).location = x;`);
+
+test(rewriteJS,
+  `a = 5
+
+(this.location = x);`,
+  `a = 5
+
+(_____WB$wombat$check$this$function_____(this).location = x);`);
+
+test(rewriteJS,
   "return this.location",
   "return _____WB$wombat$check$this$function_____(this).location");
 
