@@ -72,10 +72,10 @@ const createJSRules = () => {
 
   function replaceThisProp() {
     return (x, _opts, offset, string) => {
-      const prev = (offset > 0 ? string[offset - 1] : "");
-      if (prev === "\n") {
+      const firstChar = string[offset];
+      if (firstChar === "\n") {
         return x.replace("this", ";" + thisRw);
-      } else if (prev !== "." && prev !== "$") {
+      } else if (firstChar !== "." && firstChar !== "$") {
         return x.replace("this", thisRw);
       } else {
         return x;
@@ -107,7 +107,7 @@ const createJSRules = () => {
     [/\.postMessage\b\(/, addPrefix(".__WB_pmw(self)")],
 
     // rewriting 'location = ' to custom expression '(...).href =' assignment
-    [/[^$.]?\s?\blocation\b\s*[=]\s*(?![\s\d=])/, addSuffix(checkLoc)],
+    [/(?:^|[^$.+*/%^-])\s?\blocation\b\s*[=]\s*(?![\s\d=])/, addSuffix(checkLoc)],
 
     // rewriting 'return this'
     [/\breturn\s+this\b\s*(?![\s\w.$])/, replaceThis()],

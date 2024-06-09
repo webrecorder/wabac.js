@@ -48,7 +48,8 @@ const DEFAULT_RULES = [
   },
 
   {
-    contains: ["api.twitter.com/2/", "twitter.com/i/api/2/", "twitter.com/i/api/graphql/"],
+    contains: ["api.twitter.com/2/", "twitter.com/i/api/2/", "twitter.com/i/api/graphql/",
+      "api.x.com/2/", "x.com/i/api/2/", "x.com/i/api/graphql/"],
     rxRules: [
       [/"video_info":.*?}]}/, ruleRewriteTwitterVideo("\"video_info\":")]
     ]
