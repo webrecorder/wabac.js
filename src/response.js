@@ -95,25 +95,28 @@ class ArchiveResponse
   async getText(isUTF8 = false) {
     let buff = await this.getBuffer();
     if (typeof(buff) === "string") {
-      return buff;
+      return {bomFound: false, text: buff};
     }
 
-    // Check for BOMs
+    // Check for BOMs -- since we're removing BOM, set 'bomFound'
+    // to re-encode as UTF-8 without BOM
+    // UTF-8
     if (buff[0] === 0xEF && buff[1] === 0xBB && buff[2] === 0xBF) {
-      return decoder.decode(buff.slice(3));
+      return {bomFound: true, text: decoder.decode(buff.slice(3))};
     // UTF-16BE -- convert to buffer, swap, and decode LE
     } else if (buff[0] === 0xFE && buff[1] === 0xFF) {
-      return Buffer.from(buff.slice(2)).swap16().toString("utf16le");
+      return {bomFound: true, text: Buffer.from(buff.slice(2)).swap16().toString("utf16le")};
     // UTF-16LE -- convert to buffer, decode LE
     } else if (buff[0] === 0xFF && buff[1] === 0xFE) {
-      return Buffer.from(buff.slice(2)).toString("utf16le");
+      return {bomFound: true, text: Buffer.from(buff.slice(2)).toString("utf16le")};
     }
 
-    return isUTF8 ? decoder.decode(buff) : decodeLatin1(buff);
+    // if no BOM, go by 'isUTF8' param
+    return {bomFound: false, text: isUTF8 ? decoder.decode(buff) : decodeLatin1(buff)};
   }
 
-  setText(text, isUTF8 = false) {
-    this.setBuffer(isUTF8 ? encoder.encode(text) : encodeLatin1(text));
+  setText(text, encodeUTF8 = false) {
+    this.setBuffer(encodeUTF8 ? encoder.encode(text) : encodeLatin1(text));
   }
 
   async getBuffer() {
