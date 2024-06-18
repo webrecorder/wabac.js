@@ -36,7 +36,12 @@ async function doRewrite({
 
   const res = await RW.rewrite(resp, new Request(url, {headers: respHeaders, mode: "same-origin"}));
 
-  return returnHeaders ? res.headers : await res.getText(encoding === "utf8");
+  if (returnHeaders) {
+    return res.headers;
+  } else { 
+    const { text } = await res.getText(encoding === "utf8");
+    return text;
+  }
 }
 
 export { doRewrite };
