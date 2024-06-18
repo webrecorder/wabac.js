@@ -207,8 +207,18 @@ class Rewriter {
     }
 
     if (rwFunc) {
-      let text = await response.getText(this.isCharsetUTF8);
+      let {bomFound, text} = await response.getText(this.isCharsetUTF8);
       text = rwFunc.call(this, text, opts);
+      // if BOM found and not already UTF-8, add charset explicitly
+      if (bomFound && !this.isCharsetUTF8) {
+        let mime = headers.get("Content-Type") || "";
+        const parts = mime.split(";");
+        mime = parts[0];
+        if (mime) {
+          headers.set("Content-Type", mime + "; charset=utf-8");
+        }
+        this.isCharsetUTF8 = true;
+      }
       response.setText(text, this.isCharsetUTF8);
     }
 
