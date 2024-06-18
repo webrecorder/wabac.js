@@ -157,9 +157,10 @@ class Collection {
         document.querySelector("#goback").style.display = "";
 
         window.parent.postMessage({
+          wb_type: "archive-not-found",
           url: window.requestURL,
-          wb_type: "error-not-found",
-        });
+          ts: "${requestTS}"
+        }, "*");
       }
       </script>
       </body>
