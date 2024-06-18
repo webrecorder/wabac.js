@@ -6,6 +6,8 @@ import { Rewriter } from "../../src/rewrite/index.js";
 
 import { ArchiveResponse } from "../../src/response.js";
 
+import { encodeLatin1 } from "../../src/utils.js";
+
 async function doRewrite({
   content,
   contentType,
@@ -22,7 +24,7 @@ async function doRewrite({
   const RW = new Rewriter({baseUrl: url, prefix: "http://localhost:8080/prefix/20201226101010mp_/", useBaseRules, headInsertFunc});
   //const resp = new Response(content, {"headers": {"Content-Type": contentType}});
   const date = new Date("2019-01-02T03:00:00Z");
-  const payload = new TextEncoder(encoding).encode(content);
+  const payload = encoding !== "latin1" ? new TextEncoder(encoding).encode(content) : encodeLatin1(content);
 
   headers = new Headers({...headers, "Content-Type": contentType});
 
