@@ -120,6 +120,11 @@ class Collection {
 
       const msg =`
       <html>
+      <head>
+      <script>
+      window.requestURL = "${requestURL}";
+      </script>
+      </head>
       <body style="font-family: sans-serif">
       <h2>Archived Page Not Found</h2>
       <p>Sorry, this page was not found in this archive:</p>
@@ -127,18 +132,19 @@ class Collection {
       ${this.liveRedirectOnNotFound && request.mode === "navigate" ? `
       <p>Redirecting to live page now... (If this URL is a file download, the download should have started).</p>
       <script>
-      window.top.location.href = "${requestURL}";
+      window.top.location.href = window.requestURL;
       </script>
       ` : `
       `}
       <p id="goback" style="display: none"><a href="#" onclick="window.history.back()">Go Back</a> to the previous page.</a></p>
       
       <p>
-      <a target="_blank" href="${requestURL}">Load the live page</a> in a new tab (or download the file, if this URL points to a file).
+      <a id="livelink" target="_blank" href="">Load the live page</a> in a new tab (or download the file, if this URL points to a file).
       </p>
 
       <script>
-      document.querySelector("#url").innerText = "${requestURL}";
+      document.querySelector("#url").innerText = window.requestURL;
+      document.querySelector("#livelink").href = window.requestURL;
       let isTop = true;
       try {
         if (window.parent._WB_wombat_location) {
@@ -149,11 +155,17 @@ class Collection {
       }
       if (isTop) {
         document.querySelector("#goback").style.display = "";
+
+        window.parent.postMessage({
+          wb_type: "archive-not-found",
+          url: window.requestURL,
+          ts: "${requestTS}"
+        }, "*");
       }
       </script>
       </body>
       </html>
-      `; 
+      `;
       return notFound(request, msg);
     } else if (response instanceof Response) {
       // custom Response, not an ArchiveResponse, just return
