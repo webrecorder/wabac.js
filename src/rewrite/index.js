@@ -6,12 +6,15 @@ import { decodeResponse } from "./decoder.js";
 
 import { rewriteDASH, rewriteHLS } from "./rewriteVideo.js";
 
-import { DomainSpecificRuleSet, HTML_RULES } from "./dsruleset.js";
+import { DomainSpecificRuleSet, HTML_ONLY_RULES } from "./dsruleset.js";
 
 import { RxRewriter } from "./rxrewriter.js";
 import { JSRewriter } from "./jsrewriter.js";
 
 import { HTMLRewriter } from "./html.js";
+
+// keep for backwards compatibility with RWP and AWP
+export { ArchiveResponse } from "../response.js";
 
 
 // ===========================================================================
@@ -30,8 +33,8 @@ const JSONP_CALLBACK_REGEX = /[?].*(?:callback|jsonp)=([^&]+)/i;
 export const jsRules = new DomainSpecificRuleSet(JSRewriter);
 export const baseRules = new DomainSpecificRuleSet(RxRewriter);
 
-// HTML Rx Rewriter
-export const htmlRules = new DomainSpecificRuleSet(RxRewriter, HTML_RULES);
+// HTML Rx Rewriter (only used externally for now)
+export const htmlRules = new DomainSpecificRuleSet(RxRewriter, HTML_ONLY_RULES);
 
 
 // ===========================================================================

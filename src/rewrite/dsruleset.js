@@ -2,7 +2,7 @@
 const MAX_BITRATE = 5000000;
 
 // ===========================================================================
-const DEFAULT_RULES = [
+export const DEFAULT_RULES = [
   {
     contains: ["youtube.com", "youtube-nocookie.com"],
     rxRules: [
@@ -71,7 +71,7 @@ const DEFAULT_RULES = [
 ];
 
 // ===========================================================================
-export const HTML_RULES = [
+export const HTML_ONLY_RULES = [
   {
     contains: ["youtube.com", "youtube-nocookie.com"],
     rxRules: [
