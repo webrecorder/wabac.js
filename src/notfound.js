@@ -26,7 +26,6 @@ export function notFoundByTypeResponse(request, requestURL, requestTS, liveRedir
   case "iframe":
   case "frame":
   default:
-    console.log("wb not found", request.destination);
     content = getHTMLNotFound(request, requestURL, requestTS, liveRedirectOnNotFound);
     contentType = "text/html; charset=utf-8";
   }
