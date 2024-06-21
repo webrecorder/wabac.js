@@ -88,10 +88,7 @@ function ruleReplace(string) {
 // ===========================================================================
 function ruleDisableMediaSourceTypeSupported() {
   return (x) => `
-    ${x}<script>
-    //window.MediaSource.isTypeSupported = () => false;
-    window.MediaSource = undefined;
-    </script>
+    ${x}<script>window.MediaSource.isTypeSupported = () => false;</script>
   `;
 }
 
