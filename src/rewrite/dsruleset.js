@@ -72,7 +72,12 @@ const DEFAULT_RULES = [
 
 // ===========================================================================
 export const HTML_RULES = [
-  [/[^"]<head.*?>/, ruleDisableMediaSourceTypeSupported()]
+  {
+    contains: ["youtube.com", "youtube-nocookie.com"],
+    rxRules: [
+      [/[^"]<head.*?>/, ruleDisableMediaSourceTypeSupported()]
+    ]
+  }
 ];
 
 // ===========================================================================
