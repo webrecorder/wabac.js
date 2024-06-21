@@ -3,11 +3,10 @@ import LinkHeader from "http-link-header";
 import { isAjaxRequest } from "../utils.js";
 
 import { decodeResponse } from "./decoder.js";
-import { ArchiveResponse } from "../response.js";
 
 import { rewriteDASH, rewriteHLS } from "./rewriteVideo.js";
 
-import { DomainSpecificRuleSet } from "./dsruleset.js";
+import { DomainSpecificRuleSet, HTML_RULES } from "./dsruleset.js";
 
 import { RxRewriter } from "./rxrewriter.js";
 import { JSRewriter } from "./jsrewriter.js";
@@ -28,12 +27,15 @@ const JSONP_REGEX = /^(?:\s*(?:(?:\/\*[^*]*\*\/)|(?:\/\/[^\n]+[\n])))*\s*([\w.]+
 const JSONP_CALLBACK_REGEX = /[?].*(?:callback|jsonp)=([^&]+)/i;
 
 // JS Rewriters
-const jsRules = new DomainSpecificRuleSet(JSRewriter);
-const baseRules = new DomainSpecificRuleSet(RxRewriter);
+export const jsRules = new DomainSpecificRuleSet(JSRewriter);
+export const baseRules = new DomainSpecificRuleSet(RxRewriter);
+
+// HTML Rx Rewriter
+export const htmlRules = new DomainSpecificRuleSet(RxRewriter, HTML_RULES);
 
 
 // ===========================================================================
-class Rewriter {
+export class Rewriter {
   constructor({baseUrl, prefix, responseUrl, workerInsertFunc, headInsertFunc = null,
     urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} = {}) {
     this.urlRewrite = urlRewrite;
@@ -588,6 +590,4 @@ class Rewriter {
     }
   }
 }
-
-export { Rewriter, ArchiveResponse, baseRules, jsRules };
 

@@ -17,7 +17,7 @@ const DEFAULT_RULES = [
   {
     contains: ["player.vimeo.com/video/"],
     rxRules: [
-      [/^\{.+\}$/, ruleRewriteVimeoConfig]
+      [/^\{.+\}$/, ruleRewriteVimeoConfig],
     ]
   },
   {
@@ -71,8 +71,25 @@ const DEFAULT_RULES = [
 ];
 
 // ===========================================================================
+export const HTML_RULES = [
+  {
+    contains: ["youtube.com", "youtube-nocookie.com"],
+    rxRules: [
+      [/[^"]<head.*?>/, ruleDisableMediaSourceTypeSupported()]
+    ]
+  }
+];
+
+// ===========================================================================
 function ruleReplace(string) {
   return x => string.replace("{0}", x); 
+}
+
+// ===========================================================================
+function ruleDisableMediaSourceTypeSupported() {
+  return (x) => `
+    ${x}<script>window.MediaSource.isTypeSupported = () => false;</script>
+  `;
 }
 
 // ===========================================================================
