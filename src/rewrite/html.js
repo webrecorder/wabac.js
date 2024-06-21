@@ -13,7 +13,7 @@ const DATA_RW_PROTOCOLS = ["http://", "https://", "//"];
 
 const defmod = "mp_";
 
-const MAX_HTML_REWRITE_SIZE = 5000000;
+const MAX_HTML_REWRITE_SIZE = 50000000;
 
 const rewriteTags = {
   "a": { "href": defmod },
