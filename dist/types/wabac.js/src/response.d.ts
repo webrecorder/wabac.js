@@ -33,7 +33,10 @@ declare class ArchiveResponse {
     updateTS: string | null;
     clonedResponse: Response | null;
     constructor({ payload, status, statusText, headers, url, date, extraOpts, noRW, isLive, updateTS }: ArchiveResponseOpts);
-    getText(isUTF8?: boolean): Promise<string>;
+    getText(isUTF8?: boolean): Promise<{
+        bomFound: boolean;
+        text: string;
+    }>;
     setText(text: string, encodeUTF8?: boolean): void;
     getBuffer(): Promise<Uint8Array | null>;
     setBuffer(buffer: Uint8Array): void;

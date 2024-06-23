@@ -1,8 +1,8 @@
 import { getStatusText } from "./utils.js";
 
 export function notFoundByTypeResponse(request, requestURL, requestTS, liveRedirectOnNotFound = false, status = 404) {
-  let content;
-  let contentType;
+  let content : string;
+  let contentType : string;
 
   switch (request.destination) {
   case "json":
@@ -35,7 +35,7 @@ export function notFoundByTypeResponse(request, requestURL, requestTS, liveRedir
   const initOpt = {
     "status": status,
     "statusText": getStatusText(status),
-    "headers": { "Content-Type": contentType, "Content-Length": buff.length }
+    "headers": { "Content-Type": contentType, "Content-Length": buff.length + "" }
   };
 
   return new Response(buff, initOpt);

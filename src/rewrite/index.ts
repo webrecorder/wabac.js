@@ -13,6 +13,7 @@ import { JSRewriter } from "./jsrewriter.js";
 
 import { HTMLRewriter } from "./html.js";
 import { ArchiveRequest } from "../request.js";
+import { ArchiveResponse } from "../response.js";
 
 // keep for backwards compatibility with RWP and AWP
 export { ArchiveResponse } from "../response.js";
@@ -381,7 +382,7 @@ export class Rewriter {
   }
 
   // Importmap
-  rewriteImportmap(text) {
+  rewriteImportmap(text: string) {
     try {
       const root = JSON.parse(text);
 
@@ -396,12 +397,12 @@ export class Rewriter {
         const scopes = {};
         for (const [scopeKey, scopeValue] of Object.entries(root.scopes || {})) {
           const newScope = {};
-          for (const [key, value] of Object.entries(scopeValue)) {
+          for (const [key, value] of Object.entries(scopeValue as Record<string, any>)) {
             newScope[this.rewriteUrl(key).replace("mp_/", "esm_/")] = value;
           }
           scopes[this.rewriteUrl(scopeKey).replace("mp_/", "esm_/")] = newScope;
         }
-        output.scopes = scopes;
+        (output as Record<string, any>).scopes = scopes;
       }
 
       return JSON.stringify(output, null, 2);

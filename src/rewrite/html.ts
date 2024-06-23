@@ -405,7 +405,7 @@ class HTMLRewriter
           } else if (scriptRw === "json") {
             return rewriter.rewriteJSON(textToken.text, {prefix});
           } else if (scriptRw === "importmap") {
-            return rewriter.rewriteImportmap(textToken.text, {prefix});
+            return rewriter.rewriteImportmap(textToken.text);
           } else {
             return textToken.text;
           }

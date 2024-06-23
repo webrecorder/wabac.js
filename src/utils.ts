@@ -118,7 +118,7 @@ export function randomId() {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
-export function makeHeaders(headers: Headers | Map<string, string>) {
+export function makeHeaders(headers: Headers | Record<string, string> | Map<string, string>) {
   try {
     return new Headers(headers as Headers);
   } catch (e) {

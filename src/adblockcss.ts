@@ -2,7 +2,7 @@ import { AsyncIterReader } from "warcio";
 
 export async function getAdBlockCSSResponse(fullDomain, adblockUrl) {
   const domainParts = fullDomain.split(".");
-  const allDomains = [];
+  const allDomains : string[] = [];
 
   for (let i = 0; i < domainParts.length - 1; i++) {
     if (domainParts[i] !== "www") {
@@ -19,15 +19,24 @@ export async function getAdBlockCSSResponse(fullDomain, adblockUrl) {
 
   let body = resp.body;
 
+  const headers = new Headers({"Content-Type": "text/css"});
+
+  if (!body) {
+    return new Response("", {status: 400, headers, statusText: "Not Found"})
+  }
+
   if (adblockUrl.endsWith(".gz")) {
     body = body.pipeThrough(new self.DecompressionStream("gzip"));
   }
 
-  const linestream = body.pipeThrough(new ByLineStream());
+  const linestream : ReadableStream<string> = body.pipeThrough(new ByLineStream());
 
-  async function* yieldRules(linestream) {
+  async function* yieldRules(linestream: ReadableStream<string>) {
     try {
-      for await (const line of AsyncIterReader.fromReadable(linestream.getReader())) {
+      let res;
+      const reader = linestream.getReader();
+      while ((res = await reader.read()) && !res.done) {
+        const line = res.value;
         if (possibleDomain && line.indexOf(possibleDomain) >= 0) {
           const parts = line.split("##");
           if (parts.length < 2) {
@@ -85,7 +94,6 @@ export async function getAdBlockCSSResponse(fullDomain, adblockUrl) {
 
   const status = 200;
   const statusText = "OK";
-  const headers = new Headers({"Content-Type": "text/css"});
   return new Response(rs, {status, statusText, headers});
 }
 
@@ -116,11 +124,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 export class ByLineTransform {
-  constructor() {
-    this._buffer = [];
-    this._lastChunkEndedWithCR = false;
-    this.decoder = new TextDecoder();
-  }
+  _buffer : string[] = [];
+  _lastChunkEndedWithCR = false;
+  decoder = new TextDecoder();
 
   transform(chunkArray, controller) {
     const chunk = this.decoder.decode(chunkArray);
@@ -145,13 +151,13 @@ export class ByLineTransform {
     while (buffer.length > 1) {
       const line = buffer.shift();
       // skip empty lines
-      if (line.length) controller.enqueue(line);
+      if (line && line.length) controller.enqueue(line);
     }
 
     while (lines.length > 1) {
       const line = lines.shift();
       // skip empty lines
-      if (line.length) controller.enqueue(line);
+      if (line && line.length) controller.enqueue(line);
     }
   }
 
@@ -161,12 +167,12 @@ export class ByLineTransform {
     while (buffer.length) {
       const line = buffer.shift();
       // skip empty lines
-      if (line.length) controller.enqueue(line);
+      if (line && line.length) controller.enqueue(line);
     }
   }
 }
 
-export class ByLineStream extends TransformStream {
+export class ByLineStream extends TransformStream<Uint8Array, string> {
   constructor() {
     super(new ByLineTransform);
   }

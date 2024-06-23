@@ -24,12 +24,11 @@ class LoadMoreException
 export class HashingAsyncIterReader extends AsyncIterReader
 {
   hasher: IHasher | null = null;
+  hashInited = false;
+  hash = "";
 
   constructor(source, compressed = "gzip", dechunk = false) {
     super(source, compressed, dechunk);
-    this.hasher = null;
-    this.hashInited = false;
-    this.hash = "";
   }
 
   async initHasher() {

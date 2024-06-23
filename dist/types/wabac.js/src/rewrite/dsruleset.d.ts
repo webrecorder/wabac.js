@@ -4,10 +4,7 @@ type Rules = {
     rxRules: Rule[];
 };
 export declare const DEFAULT_RULES: Rules[];
-export declare const HTML_ONLY_RULES: {
-    contains: string[];
-    rxRules: (RegExp | ((x: any) => string))[][];
-}[];
+export declare const HTML_ONLY_RULES: Rules[];
 type T = typeof RxRewriter;
 export declare class DomainSpecificRuleSet {
     rwRules: Rules[];

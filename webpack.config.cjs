@@ -11,7 +11,7 @@ module.exports = {
   entry: {
     "wombat": "@webrecorder/wombat/src/wbWombat.js",
     "wombatWorkers": "@webrecorder/wombat/src/wombatWorkers.js",
-    "sw": "./src/sw.js"
+    "sw": "./src/sw.ts"
   },
   output: {
     path: path.join(__dirname, "dist"),

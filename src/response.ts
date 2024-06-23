@@ -13,9 +13,9 @@ type ArchiveResponseOpts = {
   url: string;
   date: Date | null;
   extraOpts?: Record<string, any> | null;
-  noRW: boolean;
-  isLive: boolean;
-  updateTS : string | null;
+  noRW?: boolean;
+  isLive?: boolean;
+  updateTS? : string | null;
 }
 
 // ===========================================================================
@@ -120,10 +120,13 @@ class ArchiveResponse
     this.updateTS = updateTS;
   }
 
-  async getText(isUTF8 = false) : Promise<string> {
+  async getText(isUTF8 = false) : Promise<{bomFound: boolean, text: string}> {
     let buff = await this.getBuffer();
     if (typeof(buff) === "string") {
       return {bomFound: false, text: buff};
+    }
+    if (!buff) {
+      return {bomFound: false, text: ""};
     }
 
     // Check for BOMs -- since we're removing BOM, set 'bomFound'

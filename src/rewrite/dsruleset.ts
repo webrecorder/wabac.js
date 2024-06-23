@@ -77,7 +77,7 @@ export const DEFAULT_RULES : Rules[] = [
   }
 ];
 
-export const HTML_ONLY_RULES = [
+export const HTML_ONLY_RULES : Rules[] = [
   {
     contains: ["youtube.com", "youtube-nocookie.com"],
     rxRules: [

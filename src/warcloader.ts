@@ -4,7 +4,8 @@ import { AsyncIterReader, WARCParser, WARCRecord, postToGetUrl } from "warcio";
 
 import { extractText } from "./extract.js";
 
-import { BaseParser, ResourceEntry } from "./baseparser.js";
+import { BaseParser } from "./baseparser.js";
+import { ResourceEntry } from "./types.js";
 
 
 // ===========================================================================
@@ -138,9 +139,14 @@ class WARCLoader extends BaseParser {
 
     let respHeaders : Record<string, string> | null = null;
 
+    let status : number | undefined;
+
     if (record.httpHeaders) {
       const parsed = this.parseResponseHttpHeaders(record, url, reqRecord);
-      respHeaders = parsed && Object.fromEntries(parsed.headers.entries());
+      if (parsed) {
+        respHeaders = Object.fromEntries(parsed.headers.entries());
+        status = parsed.status;
+      }
     }
 
     const origURL = record.warcRefersToTargetURI;
@@ -153,7 +159,7 @@ class WARCLoader extends BaseParser {
 
     const digest = record.warcPayloadDigest || null;
 
-    return {url, ts, origURL, origTS, digest, pageId: null, respHeaders};
+    return {url, ts, origURL, origTS, digest, pageId: null, respHeaders, status};
   }
 
   parseResponseHttpHeaders(record: WARCRecord, url: string, reqRecord: WARCRecord | null) {

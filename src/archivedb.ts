@@ -3,6 +3,7 @@ import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage,
   getTS, getStatusText, randomId, PAGE_STATE_SYNCED } from "./utils.js";
 import { fuzzyMatcher } from "./fuzzymatcher.js";
 import { ArchiveResponse } from "./response.js";
+import { DigestRefCount, ResAPIResponse, ResourceEntry } from "./types.js";
 
 
 const MAX_FUZZY_MATCH = 128000;
@@ -18,8 +19,9 @@ const EMPTY_PAYLOAD_SHA1 = "sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ";
 
 const DB_VERSION = 4;
 
+
 // ===========================================================================
-class ArchiveDB {
+export class ArchiveDB {
   name: string;
   minDedupSize: number;
   version: number;
@@ -275,7 +277,7 @@ class ArchiveDB {
   }
 
   async getPages(pages) {
-    const results = [];
+    const results : string[] = [];
     pages.sort();
 
     for await (const result of this.matchAny("pages", null, pages)) {
@@ -288,7 +290,7 @@ class ArchiveDB {
   async getTimestampsByURL(url) {
     const tx = this.db!.transaction("resources");
     const range = IDBKeyRange.bound([url], [url, MAX_DATE_TS]);
-    const results = []; 
+    const results : string[] = []; 
     for await (const cursor of tx.store.iterate(range)) {
       results.push(cursor.key[1]);
     }
@@ -311,7 +313,7 @@ class ArchiveDB {
     return;
   }
 
-  async dedupResource(digest, payload, tx, count = 1) {
+  async dedupResource(digest, payload, tx, count = 1) : Promise<DigestRefCount | null> {
     const digestRefStore = tx.objectStore("digestRef");
     const ref = await digestRefStore.get(digest);
 
@@ -335,12 +337,12 @@ class ArchiveDB {
     return null;
   }
 
-  async addResources(datas) {
-    const revisits = [];
-    const regulars = [];
+  async addResources(datas: ResourceEntry[]) {
+    const revisits : ResourceEntry[] = [];
+    const regulars : ResourceEntry[] = [];
 
-    const digestRefCount = {};
-    const changedDigests = new Set();
+    const digestRefCount : Record<string, DigestRefCount | null> = {};
+    const changedDigests = new Set<string>();
 
     const dtx = this.db!.transaction(["digestRef", "payload"], "readwrite");
 
@@ -359,10 +361,11 @@ class ArchiveDB {
       }
 
       if (this.useRefCounts && data.digest) {
-        if (!digestRefCount[data.digest]) {
+        const currDigest = digestRefCount[data.digest];
+        if (!currDigest) {
           digestRefCount[data.digest] = await this.dedupResource(data.digest, data.payload, dtx, refCount);
         } else {
-          digestRefCount[data.digest].count += refCount;
+          currDigest.count += refCount;
           changedDigests.add(data.digest);
         }
         delete data.payload;
@@ -384,7 +387,7 @@ class ArchiveDB {
     }
 
     // Add resources
-    const tx = this.db.transaction("resources", "readwrite");
+    const tx = this.db!.transaction("resources", "readwrite");
 
     // First, add revisits
     for (const data of revisits) {
@@ -403,8 +406,8 @@ class ArchiveDB {
     }
   }
 
-  getFuzzyUrl(result) {
-    if (result.status >= 200 && result.status < 400 && result.status !== 304 && result.status !== 204) {
+  getFuzzyUrl(result: ResourceEntry) : ResourceEntry | null {
+    if (result.status && result.status >= 200 && result.status < 400 && result.status !== 304 && result.status !== 204) {
       const {fuzzyCanonUrl} = fuzzyMatcher.getRuleFor(result.url);
 
       if (!fuzzyCanonUrl || fuzzyCanonUrl === result.url) {
@@ -426,21 +429,21 @@ class ArchiveDB {
     return null;
   }
 
-  async addResource(data) {
+  async addResource(data: ResourceEntry) : Promise<boolean> {
     if (data.payload && data.payload.length > this.minDedupSize) {
       if (!data.digest) {
         data.digest = await digestMessage(data.payload, "sha-256");
       }
     }
 
-    let digestRefCount = null;
+    let digestRefCount : DigestRefCount | null = null;
     let isNew = false;
 
-    const tx = this.db.transaction(["resources", "digestRef", "payload"], "readwrite");
+    const tx = this.db!.transaction(["resources", "digestRef", "payload"], "readwrite");
 
     if (data.payload && data.payload.length > this.minDedupSize) {
       digestRefCount = await this.dedupResource(data.digest, data.payload, tx);
-      isNew = (digestRefCount && digestRefCount.count === 1);
+      isNew = (!!digestRefCount && digestRefCount.count === 1);
       delete data.payload;
     } else if (data.payload) {
       isNew = true;
@@ -480,11 +483,11 @@ class ArchiveDB {
     return isNew;
   }
 
-  async getResource(request, rwPrefix, event, opts = {}) {
+  async getResource(request, rwPrefix, event, opts : Record<string, any> = {}) {
     const ts = tsToDate(request.timestamp).getTime();
-    let url = request.url;
+    let url : string = request.url;
 
-    let result = null;
+    let result : ResourceEntry | null = null;
 
     const skip = this.repeatTracker ? this.repeatTracker.getSkipCount(event, url, request.request.method) : 0;
     const newOpts = {...opts, skip};
@@ -529,19 +532,19 @@ class ArchiveDB {
       return null;
     }
 
-    const status = result.status;
-    const statusText = result.statusText || getStatusText(status);
+    const status = result.status || 0;
+    const statusText : string = result.statusText || getStatusText(status);
 
     let payload = null;
 
-    if (!isNullBodyStatus()) {
+    if (!isNullBodyStatus(status)) {
       payload = await this.loadPayload(result, opts);
       if (!payload) {
         return null;
       }
     }
 
-    const headers = makeHeaders(result.respHeaders);
+    const headers = result.respHeaders ? makeHeaders(result.respHeaders) : new Headers();
 
     const date = new Date(result.ts);
 
@@ -556,12 +559,12 @@ class ArchiveDB {
     return new ArchiveResponse({url, payload, status, statusText, headers, date, extraOpts});
   }
 
-  async loadPayload(result/*, opts*/) {
+  async loadPayload(result, opts: Record<string, any>) {
     if (result.digest && !result.payload) {
       if (result.digest === EMPTY_PAYLOAD_SHA256 || result.digest === EMPTY_PAYLOAD_SHA1) {
         return new Uint8Array([]);
       }
-      const payloadRes = await this.db.get("payload", result.digest);
+      const payloadRes = await this.db!.get("payload", result.digest);
       if (!payloadRes) {
         return null;
       }
@@ -576,7 +579,7 @@ class ArchiveDB {
     try {
       if (result && result.respHeaders && result.status >= 300 && result.status < 400) {
         const location = new Headers(result.respHeaders).get("location");
-        if (new URL(location, url).href === url) {
+        if (new URL(self.location.href, url).href === url) {
           return true;
         }
       }
@@ -587,8 +590,8 @@ class ArchiveDB {
     return false;
   }
 
-  async lookupUrl(url, ts, opts = {}) {
-    const tx = this.db.transaction("resources", "readonly");
+  async lookupUrl(url, ts, opts : Record<string, any> = {}) : Promise<ResourceEntry | null> {
+    const tx = this.db!.transaction("resources", "readonly");
 
     if (ts) {
       const range = IDBKeyRange.bound([url, ts], [url, MAX_DATE_TS]);
@@ -668,19 +671,19 @@ class ArchiveDB {
     }
 
     //todo: explore optimizing with incremental loading?
-    const results = await this.db.getAll("resources", this.getLookupRange(prefix, "prefix"), MAX_FUZZY_MATCH);
+    const results = await this.db!.getAll("resources", this.getLookupRange(prefix, "prefix"), MAX_FUZZY_MATCH);
 
     return fuzzyMatcher.fuzzyCompareUrls(url, results, rule);
   }
 
-  resJson(res) {
+  resJson(res: ResourceEntry) : ResAPIResponse {
     const date = new Date(res.ts).toISOString();
     return {
       url: res.url,
       date: date,
       ts: getTS(date),
-      mime: res.mime,
-      status: res.status
+      mime: res.mime || "",
+      status: res.status || 0
     };
   }
 
@@ -704,7 +707,8 @@ class ArchiveDB {
     }
   }
 
-  async* matchAny(storeName: string, indexName: string, sortedKeys: string, subKey: string, openBound = false) {
+  async* matchAny(storeName: string, indexName: string | null, sortedKeys: any[], subKey? : number, openBound = false)
+    : AsyncGenerator<any> {
     const tx = this.db!.transaction(storeName, "readonly");
 
     const range = IDBKeyRange.lowerBound(sortedKeys[0], openBound);
@@ -740,15 +744,16 @@ class ArchiveDB {
     }
   }
 
-  async resourcesByUrlAndMime(url: string, mimes: string, count = 1000, prefix = true, fromUrl = "", fromTs = "") {
+  async resourcesByUrlAndMime(url: string, mimes: string, count = 1000, prefix = true, fromUrl = "", fromTs = "")
+    : Promise<ResAPIResponse[]> {
     // if doing local mime filtering, need to remove count
-    const queryCount = mimes ? null : count;
+    const queryCount = mimes ? 0 : count;
 
-    const fullResults = await this.db!.getAll("resources",
+    const fullResults : ResourceEntry[] = await this.db!.getAll("resources",
       this.getLookupRange(url, prefix ? "prefix" : "exact", fromUrl, fromTs), queryCount);
 
     const mimesArray = mimes.split(",");
-    const results = [];
+    const results : ResAPIResponse[] = [];
 
     for (const res of fullResults) {
       for (const mime of mimesArray) {
@@ -765,13 +770,14 @@ class ArchiveDB {
     return results;
   }
 
-  async resourcesByMime(mimes, count = 100, fromMime = "", fromUrl = "", fromStatus = 0) {
+  async resourcesByMime(mimes, count = 100, fromMime = "", fromUrl = "", fromStatus = 0)
+    : Promise<ResAPIResponse[]> {
     mimes = mimes.split(",");
-    const results = [];
+    const results : ResAPIResponse[] = [];
 
     mimes.sort();
 
-    let startKey = [];
+    let startKey : [string, number, string][] = [];
 
     if (fromMime) {
       startKey.push([fromMime, fromStatus, fromUrl]);
@@ -817,7 +823,7 @@ class ArchiveDB {
   }
 
   async deletePage(id) {
-    const tx = this.db.transaction("pages", "readwrite");
+    const tx = this.db!.transaction("pages", "readwrite");
     const page = await tx.store.get(id);
     await tx.store.delete(id);
 
@@ -829,7 +835,7 @@ class ArchiveDB {
   async deletePageResources(pageId) {
     const digestSet = {};
 
-    const tx = this.db.transaction("resources", "readwrite");
+    const tx = this.db!.transaction("resources", "readwrite");
 
     let cursor = await tx.store.index("pageId").openCursor(pageId);
 
@@ -851,7 +857,7 @@ class ArchiveDB {
     await tx.done;
 
     // delete payloads
-    const tx2 = this.db.transaction(["payload", "digestRef"], "readwrite");
+    const tx2 = this.db!.transaction(["payload", "digestRef"], "readwrite");
     const digestRefStore = tx2.objectStore("digestRef");
 
     for (const digest of Object.keys(digestSet)) {
@@ -878,7 +884,7 @@ class ArchiveDB {
     return url.slice(0, -1) + String.fromCharCode(url.charCodeAt(url.length - 1) + 1);
   }
 
-  getLookupRange(url, type, fromUrl, fromTs) {
+  getLookupRange(url, type, fromUrl?, fromTs?) : IDBKeyRange {
     let lower;
     let upper;
 
@@ -917,11 +923,9 @@ class ArchiveDB {
 
 // ===========================================================================
 class RepeatTracker {
-  constructor() {
-    this.repeats = {};
-  }
+  repeats : Record<string, Record<string, number>> = {};
 
-  getSkipCount(event, url, method) {
+  getSkipCount(event: any, url: string, method: string) {
     if (method !== "POST" && !url.endsWith(".m3u8")) {
       return 0;
     }
@@ -948,8 +952,5 @@ class RepeatTracker {
     return this.repeats[id][url];
   }
 }
-
-
-export { ArchiveDB };
 
 

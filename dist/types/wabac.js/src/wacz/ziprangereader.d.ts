@@ -3,10 +3,12 @@ import { BaseLoader } from "../blockloaders.js";
 import { IHasher } from "hash-wasm/dist/lib/WASMInterface.js";
 export declare class HashingAsyncIterReader extends AsyncIterReader {
     hasher: IHasher | null;
+    hashInited: boolean;
+    hash: string;
     constructor(source: any, compressed?: string, dechunk?: boolean);
     initHasher(): Promise<void>;
     _loadNext(): Promise<Uint8Array | null>;
-    getHash(): any;
+    getHash(): string;
 }
 export declare class ZipRangeReader {
     loader: BaseLoader;
