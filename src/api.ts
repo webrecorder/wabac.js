@@ -3,9 +3,9 @@ import { getCollData } from "./utils.js";
 
 // ===========================================================================
 class APIRouter {
-  constructor(paths) {
-    this.routes = {};
-
+  routes : Record<string, Record<string, Path>> = {};
+  
+  constructor(paths: Record<string, string | [string, string]>) {
     for (const [name, value] of Object.entries(paths)) {
       let route, method;
 
@@ -22,7 +22,7 @@ class APIRouter {
     }
   }
 
-  match(url, method = "GET") {
+  match(url: string, method = "GET") {
     for (const [name, route] of Object.entries(this.routes[method] || [])) {
       const parts = url.split("?", 2);
       const matchUrl = parts[0];
@@ -42,13 +42,16 @@ class APIRouter {
 
 // ===========================================================================
 class API {
+  router : APIRouter;
+  collections: any;
+
   constructor(collections) {
     this.router = new APIRouter(this.routes);
 
     this.collections = collections;
   }
 
-  get routes() {
+  get routes() : Record<string, string | [string, string]> {
     return {
       "index": "coll-index",
       "coll": "c/:coll",
@@ -65,7 +68,7 @@ class API {
     };
   }
 
-  async apiResponse(url, request, event) {
+  async apiResponse(url: string, request: Request, event) {
     const params = this.router.match(url, request.method);
     const response = await this.handleApi(request, params, event);
     if (response instanceof Response) {
@@ -75,7 +78,7 @@ class API {
     return this.makeResponse(response, status);
   }
 
-  async handleApi(request, params/*, event*/) {
+  async handleApi(request: Request, params, event: FetchEvent) {
     switch (params._route) {
     case "index":
       return await this.listAll(params._query.get("filter"));
@@ -230,9 +233,9 @@ class API {
     }
   }
 
-  async listAll(filter) {
+  async listAll(filter?: string) {
     const response = await this.collections.listAll();
-    const collections = [];
+    const collections : any[] = [];
 
     response.forEach((coll) => {
       if (coll.type === "live" || coll.type === "remoteproxy") {

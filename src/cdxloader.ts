@@ -1,4 +1,4 @@
-import { ResourceEntry } from "./baseparser.js";
+import { ResourceEntry } from "./types.js";
 import { tsToDate } from "./utils.js";
 import { WARCLoader } from "./warcloader.js";
 

@@ -72,7 +72,7 @@ const createJSRules : () => Rule[] = () => {
 
   function replaceThisProp() {
     return (x: string, _opts: Record<string, any>, offset: number, str: string) => {
-      const firstChar = string[offset];
+      const firstChar = x[offset];
       if (firstChar === "\n") {
         return x.replace("this", ";" + thisRw);
       } else if (firstChar !== "." && firstChar !== "$") {
