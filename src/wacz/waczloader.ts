@@ -1,14 +1,20 @@
+import { BaseLoader } from "../blockloaders.js";
 import { MAX_FULL_DOWNLOAD_SIZE } from "../utils.js";
 
 import { WARCLoader } from "../warcloader.js";
 
 import { DEFAULT_WACZ, WACZFile } from "./waczfile.js";
 import { WACZImporter } from "./waczimporter.js";
+import { ZipBlockLoader } from "./ziprangereader.js";
 
 
 // ============================================================================
 export class SingleWACZLoader
 {
+  loader: BaseLoader;
+  loadId: string | null = null;
+  loadUrl: string;
+
   constructor(loader, config, loadId = null) {
     this.loader = loader;
     this.loadId = loadId;
@@ -17,17 +23,17 @@ export class SingleWACZLoader
 
   async load(db, /*progressUpdate, fullTotalSize*/) {
     // if size less than MAX_FULL_DOWNLOAD_SIZE
-    if (db.fullConfig && this.loader.arrayBuffer &&
-      this.loader.arrayBuffer.byteLength <= MAX_FULL_DOWNLOAD_SIZE) {
+    const loader = this.loader as any;
+    if (db.fullConfig && loader.arrayBuffer &&
+      loader.arrayBuffer.byteLength <= MAX_FULL_DOWNLOAD_SIZE) {
       if (!db.fullConfig.extra) {
         db.fullConfig.extra = {};
       }
-      db.fullConfig.extra.arrayBuffer = this.loader.arrayBuffer;
+      db.fullConfig.extra.arrayBuffer = loader.arrayBuffer;
     }
 
     const name = DEFAULT_WACZ;
     const path = this.loadUrl;
-    const loader = this.loader;
     return await db.addNewWACZ({name, path, loader});
   }
 }
@@ -35,6 +41,10 @@ export class SingleWACZLoader
 // ==========================================================================
 export class SingleWACZFullImportLoader
 {
+  loader: BaseLoader;
+  loadId: string | null = null;
+  config: any;
+
   constructor(loader, config, loadId = null) {
     this.config = config;
     this.loadId = loadId;
@@ -42,7 +52,7 @@ export class SingleWACZFullImportLoader
     this.loader = loader;
   }
 
-  async load(db, progressUpdateCallback = null, fullTotalSize = 0) {
+  async load(db, progressUpdateCallback : ((prog: number, x: any, offset: number, size: number) => void) | null = null, fullTotalSize = 0) {
 
     const file = new WACZFile({loader: this.loader});
     await file.init();
@@ -63,7 +73,7 @@ export class SingleWACZFullImportLoader
 
     // load CDX and IDX
     for (const filename of file.iterContainedFiles()) {
-      const entryTotal = zipreader.getCompressedSize(filename);
+      const entryTotal = zipreader?.getCompressedSize(filename);
       if (filename.endsWith(".warc.gz") || filename.endsWith(".warc")) {
         await this.loadWARC(db, zipreader, filename, progressUpdate, entryTotal);
       }
@@ -87,6 +97,8 @@ export class SingleWACZFullImportLoader
 // ==========================================================================
 export class JSONResponseMultiWACZLoader
 {
+  response: Response;
+  
   constructor(response) {
     this.response = response;
   }

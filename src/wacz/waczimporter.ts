@@ -1,6 +1,8 @@
 import yaml from "js-yaml";
 
 import { verifyWACZSignature } from "./certutils.js";
+import { MultiWACZ } from "./multiwacz.js";
+import { WACZFile } from "./waczfile.js";
 
 export const MAIN_PAGES_JSON = "pages/pages.jsonl";
 export const EXTRA_PAGES_JSON = "pages/extraPages.jsonl";
@@ -14,6 +16,11 @@ const PAGE_BATCH_SIZE = 500;
 // ==========================================================================
 export class WACZImporter
 {
+  store: MultiWACZ;
+  file: WACZFile;
+  isRoot: boolean;
+  waczname: string;
+
   constructor(store, file, isRoot = true) {
     this.file = file;
     this.waczname = file.waczname;
@@ -134,7 +141,7 @@ export class WACZImporter
 
     // All Pages
     if (this.file.containsFile(MAIN_PAGES_JSON)) {
-      const pageInfo = await this.loadPages(MAIN_PAGES_JSON, pagesHash);
+      const pageInfo : any = await this.loadPages(MAIN_PAGES_JSON, pagesHash);
 
       if (pageInfo.hasText) {
         this.store.textIndex = metadata.textIndex = MAIN_PAGES_JSON;
@@ -154,7 +161,7 @@ export class WACZImporter
 
     const root = yaml.load(text);
 
-    const metadata = {
+    const metadata : Record<string, any> = {
       desc: root.desc,
       title: root.title
     };
@@ -197,7 +204,7 @@ export class WACZImporter
 
     let pageListInfo = null;
   
-    let pages = [];
+    let pages : Record<string, any>[] = [];
   
     for await (const textLine of reader.iterLines()) {
       const page = JSON.parse(textLine);

@@ -5,9 +5,9 @@ import { AccessDeniedError, digestMessage, handleAuthNeeded, tsToDate } from "..
 import { getSurt } from "warcio";
 import { LiveProxy } from "../liveproxy.js";
 
-import { INDEX_CDX, INDEX_IDX, INDEX_NOT_LOADED, NO_LOAD_WACZ, WACZFile, WACZ_LEAF } from "./waczfile.js";
+import { INDEX_CDX, INDEX_IDX, INDEX_NOT_LOADED, NO_LOAD_WACZ, WACZFile, WACZType, WACZ_LEAF } from "./waczfile.js";
 import { EXTRA_PAGES_JSON, WACZImporter } from "./waczimporter.js";
-import { createLoader } from "../blockloaders.js";
+import { BaseLoader, createLoader } from "../blockloaders.js";
 
 const MAX_BLOCKS = 3;
 
@@ -17,7 +17,18 @@ const IS_SURT = /^([\w-]+,)*[\w-]+(:\d+)?,?\)\//;
 // ==========================================================================
 export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSource
 {
-  constructor(config, sourceLoader, rootSourceType = "wacz") {
+  config: any;
+  waczfiles: Record<string, WACZFile>;
+  waczNameForHash: Record<string, string>;
+  ziploadercache: Record<string, BaseLoader>;
+  updating: any | null;
+  rootSourceType: "wacz" | "json";
+  sourceLoader: BaseLoader;
+  externalSource: LiveProxy | null;
+  textIndex: string;
+  fuzzyUrlRules: {match: RegExp, replace: any}[];
+
+  constructor(config, sourceLoader, rootSourceType : "wacz" | "json" = "wacz") {
     super(config.dbname, config.noCache);
 
     this.config = config;
@@ -62,7 +73,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
 
   updateHeaders(headers) {
     if (this.sourceLoader) {
-      this.sourceLoader.headers = headers;
+      (this.sourceLoader as any).headers = headers;
     }
   }
 
@@ -111,7 +122,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
 
       const indexType = ziplines.length > 0 ? INDEX_IDX : INDEX_CDX;
       const hash = await this.computeHash(waczname);
-      const filedata = new WACZFile({waczname, hash, url: waczname, entries, indexType});
+      const filedata = new WACZFile({waczname, hash, path: waczname, entries, indexType});
 
       tx.objectStore("waczfiles").put(filedata.serialize());
 
@@ -121,7 +132,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     }
   }
 
-  addWACZFile(file) {
+  addWACZFile(file: WACZFileOptions) {
     this.waczfiles[file.waczname] = new WACZFile(file);
     this.waczNameForHash[file.hash] = file.waczname;
     return this.waczfiles[file.waczname];
@@ -130,7 +141,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
   async init() {
     await super.init();
 
-    const fileDatas = await this.db.getAll("waczfiles") || [];
+    const fileDatas = await this.db!.getAll("waczfiles") || [];
 
     for (const file of fileDatas) {
       this.addWACZFile({...file, parent: this});
@@ -162,11 +173,11 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     const stores = ["waczfiles", "ziplines"];
 
     for (const store of stores) {
-      await this.db.clear(store);
+      await this.db!.clear(store);
     }
   }
 
-  async addVerifyData(prefix = "", id, expected, actual, log = false) {
+  async addVerifyData(prefix = "", id, expected, actual: string | null, log = false) {
     let matched = null;
 
     if (prefix) {
@@ -837,13 +848,13 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     }
   }
 
-  async loadFromJSON(response = null) {
+  async loadFromJSON(response : Response | null = null) {
     if (!response) {
       const result = await this.sourceLoader.doInitialFetch(false);
-      response = result.response;
+      response = result && result.response;
     }
 
-    if (response.status !== 206 && response.status !== 200) {
+    if (!response || (response.status !== 206 && response.status !== 200)) {
       console.warn("WACZ update failed from: " + this.config.loadUrl);
       return {};
     }

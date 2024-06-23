@@ -10,7 +10,7 @@ const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
 type ResponseAbort = {
   response: Response | null;
   abort: AbortController | null;
-}
+} | null;
 
 
 // ===========================================================================
@@ -72,6 +72,8 @@ export abstract class BaseLoader
   constructor(canLoadOnDemand: boolean) {
     this.canLoadOnDemand = canLoadOnDemand;
   }
+
+  abstract doInitialFetch(tryHead: boolean) : Promise<ResponseAbort>; 
 
   abstract getLength() : Promise<number>;
 
@@ -254,9 +256,9 @@ class GoogleDriveLoader extends BaseLoader
     return this.length;
   }
 
-  async doInitialFetch(tryHead) {
+  async doInitialFetch(tryHead) : Promise<ResponseAbort> {
     let loader : FetchRangeLoader | null = null;
-    let result : ResponseAbort | null = null;
+    let result : ResponseAbort = null;
 
     if (this.publicUrl) {
       loader = new FetchRangeLoader({url: this.publicUrl, length: this.length});
@@ -389,12 +391,12 @@ class ArrayBufferLoader extends BaseLoader
     return this.size;
   }
 
-  async doInitialFetch(tryHead = false) {
+  async doInitialFetch(tryHead = false) : Promise<ResponseAbort> {
     const stream = tryHead ? null : getReadableStreamFromArray(this.arrayBuffer);
 
     const response = new Response(stream);
 
-    return {response};
+    return {response, abort: null};
   }
 
   async getRange(offset, length, streaming = false/*, signal*/) {
@@ -437,7 +439,7 @@ class BlobCacheLoader extends BaseLoader
     return this.size;
   }
 
-  async doInitialFetch(tryHead = false) {
+  async doInitialFetch(tryHead = false) : Promise<ResponseAbort> {
     if (!this.blob) {
       try {
         const response = await fetch(this.url);
@@ -456,7 +458,7 @@ class BlobCacheLoader extends BaseLoader
 
     const response = new Response(stream);
 
-    return {response};
+    return {response, abort: null};
   }
 
   async getRange(offset, length, streaming = false/*, signal*/) {
@@ -537,7 +539,7 @@ class FileHandleLoader extends BaseLoader
     this.size = this.file.size;
   }
 
-  async doInitialFetch(tryHead = false) {
+  async doInitialFetch(tryHead = false) : Promise<ResponseAbort> {
     if (!this.file) {
       await this.initFileObject();
     }
@@ -546,7 +548,7 @@ class FileHandleLoader extends BaseLoader
 
     const response = new Response(stream);
 
-    return {response};
+    return {response, abort: null};
   }
 
   async getRange(offset, length, streaming = false/*, signal*/) {

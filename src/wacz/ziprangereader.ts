@@ -68,7 +68,7 @@ export class ZipRangeReader
   enableHashing = false;
   entries: Record<string, any> | null = null;
   
-  constructor(loader, entries = null) {
+  constructor(loader, entries : Record<string, any> | null = null) {
     this.loader = loader;
     this.entries = entries;
     this.entriesUpdated = false;

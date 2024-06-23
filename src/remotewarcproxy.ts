@@ -1,11 +1,15 @@
 import { ArchiveResponse } from "./response.js";
 import { fuzzyMatcher } from "./fuzzymatcher.js";
 
-import { WARCParser, AsyncIterReader } from "warcio";
+import { WARCParser, AsyncIterReader, Source } from "warcio";
 
 
 // ===========================================================================
 export class RemoteWARCProxy {
+  sourceUrl: string;
+  type: string;
+  notFoundPageUrl: string;
+
   constructor(rootConfig) {
     const config = rootConfig.extraConfig || {};
 
@@ -60,15 +64,15 @@ export class RemoteWARCProxy {
         reqHeaders = {"Range": range};
       }
 
-      let payload = null;
+      let payload : AsyncIterReader | Uint8Array | null = null;
 
-      let response = null;
+      let response : Response | null = null;
 
       if (hasPayload) {
         response = await fetch(this.sourceUrl + "A/" + encodedUrl, {headers: reqHeaders});
 
         if (response.body) {
-          payload = new AsyncIterReader(response.body.getReader(), false);
+          payload = new AsyncIterReader(response.body.getReader(), null, false);
         }
 
         if (response.status === 206) {
@@ -99,7 +103,7 @@ export class RemoteWARCProxy {
     }
   }
 
-  async resolveHeaders(url) {
+  async resolveHeaders(url: string) {
     const urlNoScheme = url.slice(url.indexOf("//") + 2);
 
     // need to escape utf-8, then % encode the entire string
@@ -112,14 +116,18 @@ export class RemoteWARCProxy {
       return null;
     }
 
-    let headers = null;
-    let date = null;
-    let status = null;
-    let statusText = null;
+    let headers : Headers | null = null;
+    let date : Date | null = null;
+    let status : number | null = null;
+    let statusText : string | null = null;
     let hasPayload = false;
 
     try {
-      const record = await WARCParser.parse(headersResp.body);
+      const record = await WARCParser.parse(headersResp.body as Source);
+
+      if (!record) {
+        return null;
+      }
 
       if (record.warcType === "revisit") {
         const warcRevisitTarget = record.warcHeaders.headers.get("WARC-Refers-To-Target-URI");
@@ -128,17 +136,17 @@ export class RemoteWARCProxy {
         }
       }
       
-      date = new Date(record.warcDate);
+      date = new Date(record.warcDate!);
 
       if (record.httpHeaders) {
-        headers = record.httpHeaders.headers;
+        headers = record.httpHeaders.headers as Headers;
         status = Number(record.httpHeaders.statusCode);
         statusText = record.httpHeaders.statusText;
         hasPayload = record.httpHeaders.headers.get("Content-Length") !== "0";
       } else if (record.warcType === "resource") {
         headers = new Headers();
-        headers.set("Content-Type", record.warcContentType);
-        headers.set("Content-Length", record.warcContentLength);
+        headers.set("Content-Type", record.warcContentType || "");
+        headers.set("Content-Length", record.warcContentLength + "");
         status = 200;
         statusText = "OK";
         hasPayload = record.warcContentLength > 0;

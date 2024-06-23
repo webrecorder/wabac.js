@@ -1,35 +1,55 @@
+import { BaseLoader } from "../blockloaders.js";
 import { ZipBlockLoader, ZipRangeReader } from "./ziprangereader.js";
 
 export const NO_LOAD_WACZ = "local";
 export const DEFAULT_WACZ = "default";
 
+export type IndexType = 0 | 1 | 2;
 export const INDEX_NOT_LOADED = 0;
 export const INDEX_CDX = 1;
 export const INDEX_IDX = 2;
 
+export type WACZType = "wacz" | "multi-wacz";
 export const WACZ_LEAF = "wacz";
 export const MULTI_WACZ = "multi-wacz";
 
+export type WACZFileInitOptions = {
+  waczname?: string;
+  hash?: string;
+  path?: string;
+  parent?: WACZFile | null;
+  fileType?: WACZType;
+  indexType?: IndexType;
+  entries?: Record<string, any> | null;
+  nonSurt?: boolean;
+  loader?: BaseLoader | null;
+}
+
 // ==========================================================================
-class WACZLoadSource
+export abstract class WACZLoadSource
 {
-  getLoadPath(/*path*/) {
-    // not implemented;
-  }
+  abstract getLoadPath(path: string);
 
-  getName(/*name*/) {
-    // not implemented;
-  }
+  abstract getName(name: string);
 
-  async createLoader(/*opts*/) {
-    // not implemented;
-  }
+  abstract createLoader(opts: any) : Promise<ZipBlockLoader>;
 }
 
 // ==========================================================================
 export class WACZFile extends WACZLoadSource
 {
-  constructor({waczname, hash, path, parent = null, entries = null, fileType = WACZ_LEAF, indexType = INDEX_NOT_LOADED, nonSurt = false, loader = null} = {}) {
+  waczname?: string;
+  hash?: string;
+  path?: string;
+  parent: WACZFile | null;
+  fileType: WACZType;
+  indexType: IndexType;
+  entries: Record<string, any> | null;
+  nonSurt: boolean;
+  loader: BaseLoader | null;
+  zipreader: ZipRangeReader | null;
+  
+  constructor({waczname, hash, path, parent = null, entries = null, fileType = WACZ_LEAF, indexType = INDEX_NOT_LOADED, nonSurt = false, loader = null} : WACZFileInitOptions) {
     super();
     this.waczname = waczname;
     this.hash = hash;
@@ -47,20 +67,26 @@ export class WACZFile extends WACZLoadSource
     this.fileType = MULTI_WACZ;
   }
 
-  async init(path) {
+  async init(path?: string) : Promise<Record<string, any>> {
     if (path) {
       this.path = path;
     }
-    const loader = this.loader ? this.loader : await this.parent.createLoader({url: this.path});
+    if (this.loader) {
+      return await this.initFromLoader(this.loader);
+    }
+    if (!this.parent) {
+      throw new Error("must have either loader or parent");
+    }
+    const loader = await this.parent.createLoader({url: this.path});
 
     return await this.initFromLoader(loader);
   }
 
-  async initFromLoader(loader) {
+  private async initFromLoader(loader) {
     this.zipreader = new ZipRangeReader(loader, this.entries);
 
     if (!this.entries) {
-      this.entries = await this.zipreader.load();
+      this.entries = await this.zipreader.load() || {};
     }
 
     return this.entries;
@@ -71,11 +97,11 @@ export class WACZFile extends WACZLoadSource
       await this.init();
     }
 
-    return await this.zipreader.loadFile(filename, opts);
+    return await this.zipreader!.loadFile(filename, opts);
   }
 
   containsFile(filename) {
-    return !!this.entries[filename];
+    return this.entries && !!this.entries[filename];
   }
 
   getSizeOf(filename) {
@@ -107,15 +133,15 @@ export class WACZFile extends WACZLoadSource
     return this.entries ? Object.keys(this.entries) : [];
   }
 
-  getLoadPath(path) {
+  override getLoadPath(path) {
     return this.waczname + "#!/" + path;
   }
 
-  getName(name) {
+  override getName(name) {
     return this.waczname + "#!/" + name;
   }
 
-  async createLoader(opts) {
+  override async createLoader(opts: any) {
     const { url } = opts;
     const inx = url.lastIndexOf("#!/");
 
@@ -125,6 +151,8 @@ export class WACZFile extends WACZLoadSource
 
     if (inx >= 0) {
       return new ZipBlockLoader(this.zipreader, url.slice(inx + 3));
+    } else {
+      throw new Error("invalid wacz url: " + url)
     }
   }
 }
