@@ -388,7 +388,11 @@ test("script", rewriteHtml,
 
 test("object pdf", rewriteHtml,
   "<object type=\"application/pdf\" data=\"https://example.com/some/file.pdf\">",
-  "<iframe type=\"application/pdf\" src=\"https://example.com/some/file.pdf\">");
+  "<iframe type=\"application/pdf\" src=\"http://localhost:8080/prefix/20201226101010mp_/https://example.com/some/file.pdf\">");
+
+test("object svg", rewriteHtml,
+  "<object type=\"image/svg+xml\" data=\"https://example.com/some/file.svg\">",
+  "<img type=\"image/svg+xml\" src=\"http://localhost:8080/prefix/20201226101010mp_/https://example.com/some/file.svg\">");
 
 
 test("textarea text", rewriteHtml,
@@ -425,8 +429,34 @@ test("head insert no tags", rewriteHtml,
   {headInsertText: "<!-- head insert -->"}
 );
 
-
-
+// Import map
+test("test import map", rewriteHtml,
+  `\
+<script type="importmap">
+    {
+      "imports": {
+        "resources": "./javascript/resources.js",
+        "javascript/resources": "./javascript/resources.js",
+        "../javascript/resources": "./javascript/resources.js",
+        "https://example.com/resources": "./javascript/resources.js",
+        "https://website.test.example.org/resources": "./javascript/resources.js",
+        "https://xn--wbsite-bva.test.example.org/resources": "./javascript/resources.js",
+        "https://wébsite.test.example.org/resources": "./javascript/resources.js"
+      }
+    }
+  </script>\
+`, `\
+<script type="importmap">{
+  "imports": {
+    "resources": "./javascript/resources.js",
+    "javascript/resources": "./javascript/resources.js",
+    "http://localhost:8080/prefix/20201226101010esm_/https://example.com/some/javascript/resources": "./javascript/resources.js",
+    "http://localhost:8080/prefix/20201226101010esm_/https://example.com/resources": "./javascript/resources.js",
+    "http://localhost:8080/prefix/20201226101010esm_/https://website.test.example.org/resources": "./javascript/resources.js",
+    "http://localhost:8080/prefix/20201226101010esm_/https://xn--wbsite-bva.test.example.org/resources": "./javascript/resources.js",
+    "http://localhost:8080/prefix/20201226101010esm_/https://wébsite.test.example.org/resources": "./javascript/resources.js"
+  }
+}</script>`);
 
 
 

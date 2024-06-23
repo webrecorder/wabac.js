@@ -72,10 +72,10 @@ const createJSRules : () => Rule[] = () => {
 
   function replaceThisProp() {
     return (x: string, _opts: Record<string, any>, offset: number, str: string) => {
-      const prev = (offset > 0 ? str[offset - 1] : "");
-      if (prev === "\n") {
+      const firstChar = string[offset];
+      if (firstChar === "\n") {
         return x.replace("this", ";" + thisRw);
-      } else if (prev !== "." && prev !== "$") {
+      } else if (firstChar !== "." && firstChar !== "$") {
         return x.replace("this", thisRw);
       } else {
         return x;
@@ -96,6 +96,8 @@ const createJSRules : () => Rule[] = () => {
     // rewriting 'eval(...)' - invocation
     [/(?:^|\s)\beval\s*\(/, replacePrefixFrom(evalStr, "eval")],
 
+    [/\([\w]+,\s*eval\)\(/, () => " " + evalStr],
+
     // rewriting 'x = eval' - no invocation
     [/[=]\s*\beval\b(?![(:.$])/, replace("eval", "self.eval")],
 
@@ -105,7 +107,7 @@ const createJSRules : () => Rule[] = () => {
     [/\.postMessage\b\(/, addPrefix(".__WB_pmw(self)")],
 
     // rewriting 'location = ' to custom expression '(...).href =' assignment
-    [/[^$.]?\s?\blocation\b\s*[=]\s*(?![\s\d=])/, addSuffix(checkLoc)],
+    [/(?:^|[^$.+*/%^-])\s?\blocation\b\s*[=]\s*(?![\s\d=])/, addSuffix(checkLoc)],
 
     // rewriting 'return this'
     [/\breturn\s+this\b\s*(?![\s\w.$])/, replaceThis()],

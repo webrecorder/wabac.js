@@ -14,7 +14,7 @@ const DATA_RW_PROTOCOLS = ["http://", "https://", "//"];
 
 const defmod = "mp_";
 
-const MAX_HTML_REWRITE_SIZE = 5000000;
+const MAX_HTML_REWRITE_SIZE = 50000000;
 
 const rewriteTags = {
   "a": { "href": defmod },
@@ -144,6 +144,11 @@ class HTMLRewriter
     const isUrl = (val) => { return startsWithAny(val, DATA_RW_PROTOCOLS); };
     const tagName = tag.tagName;
 
+    // no attribute rewriting for web-component tags, which must contain a '-'
+    if (tagName.indexOf("-") > 0) {
+      return;
+    }
+
     for (let attr of tag.attrs) {
       const name = attr.name || "";
       const value = attr.value || "";
@@ -214,10 +219,15 @@ class HTMLRewriter
       else if (tagName === "object" && name === "data") {
         const type = this.getAttr(tag.attrs, "type");
 
-        // convert object tag to iframe
-        if (type === "application/pdf" || type === "image/svg+xml") {
+        // convert object tag to iframe or img
+        if (type === "application/pdf") {
           attr.name = "src";
+          attr.value = this.rewriteUrl(rewriter, attr.value);
           tag.tagName = "iframe";
+        } else if (type === "image/svg+xml") {
+          attr.name = "src";
+          attr.value = this.rewriteUrl(rewriter, attr.value);
+          tag.tagName = "img";
         } else if (type === "application/x-shockwave-flash") {
           for (const rule of OBJECT_FLASH_DATA_RX) {
             const value = attr.value.replace(rule.match, rule.replace);
@@ -272,6 +282,8 @@ class HTMLRewriter
       return "js";
     } else if (scriptType.startsWith("text/")) {
       return "text";
+    } else if (scriptType === "importmap") {
+      return "importmap";
     } else {
       return "";
     }
@@ -392,6 +404,8 @@ class HTMLRewriter
             return rewriter.rewriteJS(textToken.text, {isModule, prefix});
           } else if (scriptRw === "json") {
             return rewriter.rewriteJSON(textToken.text, {prefix});
+          } else if (scriptRw === "importmap") {
+            return rewriter.rewriteImportmap(textToken.text, {prefix});
           } else {
             return textToken.text;
           }

@@ -9,7 +9,7 @@ type Rules = {
 }
 
 // ===========================================================================
-const DEFAULT_RULES : Rules[] = [
+export const DEFAULT_RULES : Rules[] = [
   {
     contains: ["youtube.com", "youtube-nocookie.com"],
     rxRules: [
@@ -24,7 +24,7 @@ const DEFAULT_RULES : Rules[] = [
   {
     contains: ["player.vimeo.com/video/"],
     rxRules: [
-      [/^\{.+\}$/, ruleRewriteVimeoConfig]
+      [/^\{.+\}$/, ruleRewriteVimeoConfig],
     ]
   },
   {
@@ -55,7 +55,8 @@ const DEFAULT_RULES : Rules[] = [
   },
 
   {
-    contains: ["api.twitter.com/2/", "twitter.com/i/api/2/", "twitter.com/i/api/graphql/"],
+    contains: ["api.twitter.com/2/", "twitter.com/i/api/2/", "twitter.com/i/api/graphql/",
+      "api.x.com/2/", "x.com/i/api/2/", "x.com/i/api/graphql/"],
     rxRules: [
       [/"video_info":.*?}]}/, ruleRewriteTwitterVideo("\"video_info\":")]
     ]
@@ -76,13 +77,29 @@ const DEFAULT_RULES : Rules[] = [
   }
 ];
 
+export const HTML_ONLY_RULES = [
+  {
+    contains: ["youtube.com", "youtube-nocookie.com"],
+    rxRules: [
+      [/[^"]<head.*?>/, ruleDisableMediaSourceTypeSupported()]
+    ]
+  }
+];
+
 // ===========================================================================
 function ruleReplace(str: string) {
-  return (x: string) => str.replace("{0}", x); 
+  return x => str.replace("{0}", x); 
 }
 
 // ===========================================================================
-function setMaxBitrate(opts: Record<string, any>)
+function ruleDisableMediaSourceTypeSupported() {
+  return (x) => `
+    ${x}<script>window.MediaSource.isTypeSupported = () => false;</script>
+  `;
+}
+
+// ===========================================================================
+function setMaxBitrate(opts)
 {
   let maxBitrate = MAX_BITRATE;
   const extraOpts = opts.response && opts.response.extraOpts;

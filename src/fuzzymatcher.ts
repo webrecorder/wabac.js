@@ -31,7 +31,7 @@ const SPLIT_BASE_RX = /\[\d]+/;
 const DEFAULT_RULES : FuzzyRule[] = 
 [
   {
-    "match": /\/\/.*(?:gcs-vimeo|vod|vod-progressive)\.akamaized\.net.*?\/([\d/]+\.mp4)/,
+    "match": /\/\/.*(?:gcs-vimeo|vod|vod-progressive|vod-adaptive)\.akamaized\.net.*?\/([\d/]+\.mp4)/,
     "fuzzyCanonReplace": "//vimeo-cdn.fuzzy.replayweb.page/$1",
     "split": ".net",
   },
@@ -87,13 +87,13 @@ const DEFAULT_RULES : FuzzyRule[] =
     "args": [[{"arg": "data",
       "keys": ["query_type", "fbid", "v", "cursor", "data"]}]]
   },
-  // Twitter
+  // Twitter/X
   {
-    "match": /(twitter.com\/[^/]+\/status\/[^?]+)(\?.*)/,
+    "match": /((?:twitter|x)\.com\/[^/]+\/status\/[^?]+)(\?.*)/,
     "fuzzyCanonReplace": "$1"
   },
   {
-    "match": /(twitter.com\/i\/api\/graphql\/.*)/,
+    "match": /((?:twitter|x)\.com\/i\/api\/graphql\/.*)/,
     "args": [["cursor"]],
     "fuzzyArgs": true
   },

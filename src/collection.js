@@ -4,6 +4,9 @@ import { getTS, getSecondsStr, notFound, parseSetCookie, handleAuthNeeded, REPLA
 
 import { ArchiveResponse } from "./response.js";
 
+import { getAdBlockCSSResponse } from "./adblockcss.js";
+import { notFoundByTypeResponse } from "./notfound.js";
+
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 
@@ -39,6 +42,8 @@ class Collection {
     this.liveRedirectOnNotFound = extraConfig.liveRedirectOnNotFound || false;
 
     this.rootPrefix = prefixes.root || prefixes.main;
+
+    this.adblockUrl = extraConfig.adblockUrl;
 
     this.prefix = prefixes.main;
 
@@ -91,6 +96,8 @@ class Collection {
         response = await this.getSrcDocResponse(requestURL);
       } else if (requestURL === "__wb_module_decl.js") {
         response = await this.getWrappedModuleDecl(requestURL);
+      } else if (this.adblockUrl && requestURL.startsWith("adblock:")) {
+        response = await getAdBlockCSSResponse(requestURL.slice("adblock:".length), this.adblockUrl);
       } else {
         response = await this.getReplayResponse(request, event);
         requestURL = request.url;
@@ -112,25 +119,8 @@ class Collection {
         // ignore invalid URL
       }
 
-      const msg = `
-      <html>
-      <body style="font-family: sans-serif">
-      <h2>Archived Page Not Found</h2>
-      <p>Sorry, this page was not found in this archive:</p>
-      <p><code style="word-break: break-all; font-size: larger">${requestURL}</code></p>
-      ${this.liveRedirectOnNotFound && request.mode === "navigate" ? `
-      <p>Redirecting to live page now... (If this URL is a file download, the download should have started).</p>
-      <script>
-      window.top.location.href = "${requestURL}";
-      </script>
-      ` : `
-      `}
-      <p>
-      <a target="_blank" href="${requestURL}">Click Here</a> to try to load the live page in a new tab (or to download the URL as a file).</p>
-      </body>
-      </html>
-      `; 
-      return notFound(request, msg);
+      return notFoundByTypeResponse(request, requestURL, requestTS, this.liveRedirectOnNotFound);
+
     } else if (response instanceof Response) {
       // custom Response, not an ArchiveResponse, just return
       return response;
@@ -248,7 +238,7 @@ class Collection {
   }
 
   getSrcDocResponse(url, base64str) {
-    const string = base64str ? decodeURIComponent(atob(base64str)) : "<!DOCTYPE html><html><head></head><body></body></html>";
+    const string = base64str ? decodeURIComponent(atob(base64str)) : "<html><head></head><body></body></html>";
     const payload = new TextEncoder().encode(string);
 
     const status = 200;
@@ -405,6 +395,10 @@ window.home = "${this.rootPrefix}";
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : "\"\"";
     return `
 <!-- WB Insert -->
+${this.adblockUrl ? `
+<link rel='stylesheet' href="${prefix}mp_/adblock:${urlParsed.hostname}"/>
+<link rel='stylesheet' href="${prefix}mp_/adblock:"/>
+` : ""}
 <style>
 body {
   font-family: inherit;

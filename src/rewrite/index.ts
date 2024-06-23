@@ -3,17 +3,19 @@ import LinkHeader from "http-link-header";
 import { isAjaxRequest } from "../utils.js";
 
 import { decodeResponse } from "./decoder.js";
-import { ArchiveResponse } from "../response.js";
 
 import { rewriteDASH, rewriteHLS } from "./rewriteVideo.js";
 
-import { DomainSpecificRuleSet } from "./dsruleset.js";
+import { DomainSpecificRuleSet, HTML_ONLY_RULES } from "./dsruleset.js";
 
 import { RxRewriter } from "./rxrewriter.js";
 import { JSRewriter } from "./jsrewriter.js";
 
 import { HTMLRewriter } from "./html.js";
 import { ArchiveRequest } from "../request.js";
+
+// keep for backwards compatibility with RWP and AWP
+export { ArchiveResponse } from "../response.js";
 
 
 // ===========================================================================
@@ -29,8 +31,11 @@ const JSONP_REGEX = /^(?:\s*(?:(?:\/\*[^*]*\*\/)|(?:\/\/[^\n]+[\n])))*\s*([\w.]+
 const JSONP_CALLBACK_REGEX = /[?].*(?:callback|jsonp)=([^&]+)/i;
 
 // JS Rewriters
-const jsRules = new DomainSpecificRuleSet(JSRewriter);
-const baseRules = new DomainSpecificRuleSet(RxRewriter);
+export const jsRules = new DomainSpecificRuleSet(JSRewriter);
+export const baseRules = new DomainSpecificRuleSet(RxRewriter);
+
+// HTML Rx Rewriter (only used externally for now)
+export const htmlRules = new DomainSpecificRuleSet(RxRewriter, HTML_ONLY_RULES);
 
 type InsertFunc = (url: string) => string;
 
@@ -48,7 +53,7 @@ type RewriterOpts = {
 
 
 // ===========================================================================
-class Rewriter {
+export class Rewriter {
   urlRewrite: boolean;
   contentRewrite: boolean;
   
@@ -112,6 +117,10 @@ class Rewriter {
         this.isCharsetUTF8 = parts[1].trim().toLowerCase().replace("charset=", "").replace("-", "") === "utf8";
       }
     }
+    mime = mime.toLowerCase();
+    if (request.mod === "esm_") {
+      this.isCharsetUTF8 = true;
+    }
 
     if (request) {
       switch (request.destination) {
@@ -136,7 +145,7 @@ class Rewriter {
     case "text/css":
       return "css";
 
-    case "application/x-mpegURL":
+    case "application/x-mpegurl":
     case "application/vnd.apple.mpegurl":
       return "hls";
 
@@ -240,8 +249,18 @@ class Rewriter {
     }
 
     if (rwFunc) {
-      let text = await response.getText(this.isCharsetUTF8);
+      let {bomFound, text} = await response.getText(this.isCharsetUTF8);
       text = rwFunc.call(this, text, opts);
+      // if BOM found and not already UTF-8, add charset explicitly
+      if (bomFound && !this.isCharsetUTF8) {
+        let mime = headers.get("Content-Type") || "";
+        const parts = mime.split(";");
+        mime = parts[0];
+        if (mime) {
+          headers.set("Content-Type", mime + "; charset=utf-8");
+        }
+        this.isCharsetUTF8 = true;
+      }
       response.setText(text, this.isCharsetUTF8);
     }
 
@@ -359,6 +378,37 @@ class Rewriter {
     }
 
     return text;
+  }
+
+  // Importmap
+  rewriteImportmap(text) {
+    try {
+      const root = JSON.parse(text);
+
+      const imports = {};
+      const output = {imports};
+
+      for (const [key, value] of Object.entries(root.imports || {})) {
+        imports[this.rewriteUrl(key).replace("mp_/", "esm_/")] = value;
+      }
+
+      if (root.scopes) {
+        const scopes = {};
+        for (const [scopeKey, scopeValue] of Object.entries(root.scopes || {})) {
+          const newScope = {};
+          for (const [key, value] of Object.entries(scopeValue)) {
+            newScope[this.rewriteUrl(key).replace("mp_/", "esm_/")] = value;
+          }
+          scopes[this.rewriteUrl(scopeKey).replace("mp_/", "esm_/")] = newScope;
+        }
+        output.scopes = scopes;
+      }
+
+      return JSON.stringify(output, null, 2);
+    } catch (e) {
+      console.warn("Error parsing importmap", e);
+      return text;
+    }
   }
 
   parseJSONPCallback(url: string) {
@@ -580,6 +630,4 @@ class Rewriter {
     }
   }
 }
-
-export { Rewriter, ArchiveResponse, baseRules, jsRules };
 

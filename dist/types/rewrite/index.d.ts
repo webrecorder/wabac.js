@@ -1,0 +1,51 @@
+import { ArchiveResponse } from "../response.js";
+import { DomainSpecificRuleSet } from "./dsruleset.js";
+import { ArchiveRequest } from "../request.js";
+declare const jsRules: DomainSpecificRuleSet;
+declare const baseRules: DomainSpecificRuleSet;
+type InsertFunc = (url: string) => string;
+type RewriterOpts = {
+    baseUrl: string;
+    prefix: string;
+    responseUrl: string;
+    workerInsertFunc: InsertFunc | null;
+    headInsertFunc: InsertFunc | null;
+    urlRewrite: boolean;
+    contentRewrite: boolean;
+    decode: boolean;
+    useBaseRules: boolean;
+};
+declare class Rewriter {
+    urlRewrite: boolean;
+    contentRewrite: boolean;
+    baseUrl: string;
+    dsRules: DomainSpecificRuleSet;
+    decode: boolean;
+    prefix: string;
+    relPrefix: string;
+    schemeRelPrefix: string;
+    scheme: string;
+    url: string;
+    responseUrl: string;
+    isCharsetUTF8: boolean;
+    headInsertFunc: InsertFunc | null;
+    workerInsertFunc: InsertFunc | null;
+    _jsonpCallback: string | boolean | null;
+    constructor({ baseUrl, prefix, responseUrl, workerInsertFunc, headInsertFunc, urlRewrite, contentRewrite, decode, useBaseRules }: RewriterOpts);
+    getRewriteMode(request: ArchiveRequest, response: ArchiveResponse, url?: string, mime?: string): string;
+    getScriptRewriteMode(mime: string, url: string, defaultType?: string): string;
+    rewrite(response: ArchiveResponse, request: ArchiveRequest): Promise<any>;
+    updateBaseUrl(url: string): string;
+    isRewritableUrl(url: string): boolean;
+    rewriteUrl(url: string, forceAbs?: boolean): string;
+    rewriteHtml(response: ArchiveResponse): Promise<any>;
+    rewriteCSS(text: string): string;
+    rewriteJS(text: string, opts: Record<string, any>): any;
+    rewriteJSON(text: string, opts: Record<string, any>): any;
+    parseJSONPCallback(url: string): boolean;
+    rewriteJSONP(text: string): string;
+    rewriteHeaders(headers: Headers, urlRewrite: boolean, contentRewrite: boolean, isAjax: boolean): Headers;
+    rewriteLinkHeader(value: string): string;
+}
+export { Rewriter, ArchiveResponse, baseRules, jsRules };
+//# sourceMappingURL=index.d.ts.map
