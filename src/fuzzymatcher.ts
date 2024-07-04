@@ -170,7 +170,8 @@ export class FuzzyMatcher {
     const matchUrl = reqUrl.indexOf("?") === -1 ? reqUrl + "?" : reqUrl;
 
     for (const testRule of this.rules) {
-      if (matchUrl.match(testRule.match)) {
+      // very large URLs likely do not match any of our existing rules, so just skip
+      if (matchUrl.length < MAX_ARG_LEN*4 && matchUrl.match(testRule.match)) {
         rule = testRule;
         break;
       }
