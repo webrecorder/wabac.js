@@ -324,6 +324,7 @@ class ArchiveDB {
 
   async addResources(datas) {
     const revisits = [];
+    const redirectsAndErrors = [];
     const regulars = [];
 
     const digestRefCount = {};
@@ -334,7 +335,9 @@ class ArchiveDB {
     for (const data of datas) {
       let refCount = 1;
 
-      const array = data.mime === REVISIT ? revisits : regulars;
+      const status = data.status || 200;
+
+      const array = data.mime === REVISIT ? revisits : status >= 300 ? redirectsAndErrors : regulars;
 
       array.push(data);
 
@@ -378,7 +381,12 @@ class ArchiveDB {
       tx.store.put(data);
     }
 
-    // Then, add non-revisits, overriding any revisits
+    // Then, add non-revisit errors and redirects, overriding any revisits
+    for (const data of redirectsAndErrors) {
+      tx.store.put(data);
+    }
+
+    // Then, add non-revisits success entries, overriding any previous entries
     for (const data of regulars) {
       tx.store.put(data);
     }
