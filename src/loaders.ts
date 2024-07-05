@@ -10,29 +10,33 @@ import { CDXLoader, CDXFromWARCLoader } from "./cdxloader.js";
 import { SingleWACZLoader, SingleWACZFullImportLoader, JSONResponseMultiWACZLoader } from "./wacz/waczloader.js";
 import { MultiWACZ } from "./wacz/multiwacz.js";
 
-import { createLoader } from "./blockloaders.js";
+import { BaseLoader, createLoader } from "./blockloaders.js";
 
 import { RemoteWARCProxy } from "./remotewarcproxy.js";
 import { LiveProxy } from "./liveproxy.js";
 
-import { deleteDB, openDB } from "idb/with-async-ittr";
+import { IDBPDatabase, deleteDB, openDB } from "idb/with-async-ittr";
 import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils.js";
 import { detectFileType, getKnownFileExtension } from "./detectfiletype.js";
+import { DBStore } from "./types.js";
 
 if (!globalThis.self) {
-  globalThis.self = globalThis;
+  (globalThis as any).self = globalThis;
 }
 
-self.interruptLoads = {};
+const interruptLoads = {};
+(self as any).interruptLoads = interruptLoads;
 
 
 // ===========================================================================
-class CollectionLoader
+export class CollectionLoader
 {
+  root: string | null = null;
+  colldb: IDBPDatabase | null = null;
+  checkIpfs = true;
+  _init_db: Promise<void>;
+
   constructor() {
-    this.colldb = null;
-    this.root = null;
-    this.checkIpfs = true;
     this._init_db = this._initDB();
   }
 
@@ -56,7 +60,7 @@ class CollectionLoader
           const config = {dbname: parts[1], sourceName: parts[1], decode: false};
           const collData = {name: parts[0], type: "archive", config};
           console.log("Adding Coll: " + JSON.stringify(collData));
-          await this.colldb.put("colls", collData);
+          await this.colldb!.put("colls", collData);
         }
       }
     }
@@ -67,7 +71,7 @@ class CollectionLoader
       const promises = allColls.map((data) => this._initColl(data));
   
       await Promise.all(promises);
-    } catch (e) {
+    } catch (e: any) {
       console.warn(e.toString());
     }
 
@@ -76,12 +80,12 @@ class CollectionLoader
 
   async listAll() {
     await this._init_db;
-    return await this.colldb.getAll("colls");
+    return await this.colldb!.getAll("colls");
   }
 
   async loadColl(name) {
     await this._init_db;
-    const data = await this.colldb.get("colls", name);
+    const data = await this.colldb!.get("colls", name);
     if (!data) {
       return null;
     }
@@ -95,7 +99,7 @@ class CollectionLoader
 
   async deleteColl(name) {
     await this._init_db;
-    const data = await this.colldb.get("colls", name);
+    const data = await this.colldb!.get("colls", name);
     if (!data) {
       return false;
     }
@@ -113,37 +117,37 @@ class CollectionLoader
       }
     }
 
-    await this.colldb.delete("colls", name);
+    await this.colldb!.delete("colls", name);
 
     return true;
   }
 
   async updateAuth(name, newHeaders) {
     await this._init_db;
-    const data = await this.colldb.get("colls", name);
+    const data = await this.colldb!.get("colls", name);
     if (!data) {
       return false;
     }
     data.config.headers = newHeaders;
-    await this.colldb.put("colls", data);
+    await this.colldb!.put("colls", data);
     return true;
   }
 
   async updateMetadata(name, newMetadata) {
     await this._init_db;
-    const data = await this.colldb.get("colls", name);
+    const data = await this.colldb!.get("colls", name);
     if (!data) {
       return false;
     }
     data.config.metadata = {...data.config.metadata, ...newMetadata};
 
-    await this.colldb.put("colls", data);
+    await this.colldb!.put("colls", data);
     return data.config.metadata;
   }
 
   async updateSize(name, fullSize, dedupSize, decodeUpdate) {
     await this._init_db;
-    const data = await this.colldb.get("colls", name);
+    const data = await this.colldb!.get("colls", name);
     if (!data) {
       return false;
     }
@@ -157,7 +161,7 @@ class CollectionLoader
     if (decodeUpdate !== undefined) {
       data.config.decode = decodeUpdate;
     }
-    await this.colldb.put("colls", data);
+    await this.colldb!.put("colls", data);
     return metadata;
   }
 
@@ -183,7 +187,7 @@ class CollectionLoader
     };
 
     const coll = await this._initColl(data);
-    await this.colldb.put("colls", data);
+    await this.colldb!.put("colls", data);
     return coll;
   }
 
@@ -201,8 +205,8 @@ class CollectionLoader
   }
 
   async _initStore(type, config) {
-    let sourceLoader = null;
-    let store = null;
+    let sourceLoader : BaseLoader;
+    let store : DBStore | null = null;
 
     switch (type) {
     case "archive":
@@ -248,8 +252,8 @@ class CollectionLoader
       return null;
     }
 
-    if (store.initing) {
-      await store.initing;
+    if ((store as ArchiveDB).initing) {
+      await (store as ArchiveDB).initing;
     }
 
     return store;
@@ -261,7 +265,7 @@ class CollectionLoader
 }
 
 // ===========================================================================
-class WorkerLoader extends CollectionLoader
+export class WorkerLoader extends CollectionLoader
 {
   constructor(worker) {
     super();
@@ -271,7 +275,7 @@ class WorkerLoader extends CollectionLoader
   async hasCollection(name) {
     await this._init_db;
 
-    return await this.colldb.getKey("colls", name) != null;
+    return await this.colldb!.getKey("colls", name) != null;
   }
 
   registerListener(worker) {
@@ -310,7 +314,7 @@ class WorkerLoader extends CollectionLoader
       let res;
 
       try {
-        res = await this.colldb.get("colls", name);
+        res = await this.colldb!.get("colls", name);
         if (res) {
           if (!event.data.skipExisting) {
             await this.deleteColl(name);
@@ -335,14 +339,14 @@ class WorkerLoader extends CollectionLoader
           return;
         }
 
-      } catch (e) {
+      } catch (e: any) {
         if (e instanceof AuthNeededError) {
           console.warn(e);
           progressUpdate(0, "permission_needed", null, null, e.info && e.info.fileHandle);
           return;
         } else if (e.name === "ConstraintError") {
           console.log("already being added, just continue...");
-          res = await this.colldb.get("colls", name);
+          res = await this.colldb!.get("colls", name);
         } else {
           console.warn(e);
           progressUpdate(0, "An unexpected error occured: " + e.toString());
@@ -364,13 +368,13 @@ class WorkerLoader extends CollectionLoader
     {
       const name = event.data.name;
 
-      const p = new Promise((resolve) => self.interruptLoads[name] = resolve);
+      const p = new Promise((resolve) => interruptLoads[name] = resolve);
 
       await p;
 
       await this.deleteColl(name);
 
-      delete self.interruptLoads[name];
+      delete interruptLoads[name];
 
       break;
     }
@@ -397,7 +401,7 @@ class WorkerLoader extends CollectionLoader
   }
 
   async doListAll(client) {
-    const msgData = [];
+    const msgData : Record<string, any>[] = [];
     const allColls = await this.listAll();
 
     for (const coll of allColls) {
@@ -457,7 +461,7 @@ class WorkerLoader extends CollectionLoader
       type = "archive";
 
       if (file.newFullImport && file.importCollId) {
-        const existing = await this.colldb.get("colls", file.importCollId);
+        const existing = await this.colldb!.get("colls", file.importCollId);
         if (!existing || existing.type !== "archive") {
           progressUpdate(0, "Invalid Existing Collection: " + file.importCollId);
           return;
@@ -499,7 +503,7 @@ class WorkerLoader extends CollectionLoader
           config.extra = {fileHandle: this._fileHandles[config.sourceUrl]};
         } else {
           progressUpdate(0, "missing_local_file");
-          return;
+          return {};
         }
       }
 
@@ -668,6 +672,3 @@ Make sure this is a valid URL and you have access to this file.`);
     return collData;
   }
 }
-
-
-export { CollectionLoader, WorkerLoader };

@@ -2,10 +2,12 @@ import { ArchiveResponse } from "./response.js";
 import { fuzzyMatcher } from "./fuzzymatcher.js";
 
 import { WARCParser, AsyncIterReader, Source } from "warcio";
+import { DBStore } from "./types.js";
+import { ArchiveRequest } from "./request.js";
 
 
 // ===========================================================================
-export class RemoteWARCProxy {
+export class RemoteWARCProxy implements DBStore {
   sourceUrl: string;
   type: string;
   notFoundPageUrl: string;
@@ -22,7 +24,7 @@ export class RemoteWARCProxy {
     return [];
   }
 
-  async getResource(request, prefix) {
+  async getResource(request: ArchiveRequest, prefix: string) : Promise<ArchiveResponse | Response | null> {
     const { url, headers } = request.prepareProxyRequest(prefix);
     let reqHeaders = headers;
 
@@ -101,6 +103,8 @@ export class RemoteWARCProxy {
 
       return new ArchiveResponse({payload, status, statusText, headers, url, date, noRW, isLive});
     }
+
+    return null;
   }
 
   async resolveHeaders(url: string) {

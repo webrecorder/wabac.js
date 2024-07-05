@@ -786,7 +786,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource
   }
 
   async getResource(request: ArchiveRequest, prefix: string, event: FetchEvent, {pageId} : Record<string, any> = {}) : 
-  Promise<ArchiveResponse | null> {
+  Promise<ArchiveResponse | Response | null> {
     await this.initing;
 
     if (this.externalSource) {
@@ -799,7 +799,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource
     let hash = pageId;
     let waczname : string | null = null;
 
-    let resp : ArchiveResponse | null = null;
+    let resp : ArchiveResponse | Response | null = null;
 
     if (hash) {
       waczname = this.waczNameForHash[hash];
@@ -833,11 +833,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource
     }
 
     if (waczname) {   
-      return ArchiveResponse.fromResponse({
-        url: request.url,
-        response: Response.redirect(`${prefix}:${foundHash}/${request.timestamp}mp_/${request.url}`),
-        date: new Date()
-      });
+      return Response.redirect(`${prefix}:${foundHash}/${request.timestamp}mp_/${request.url}`);
     }
 
     if (this.fuzzyUrlRules.length) {

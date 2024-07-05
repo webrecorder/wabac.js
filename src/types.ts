@@ -1,3 +1,6 @@
+import { ArchiveRequest } from "./request";
+import { ArchiveResponse } from "./response";
+
 export type ResourceEntry = {
   url: string;
   ts: number;
@@ -36,4 +39,10 @@ export type ResAPIResponse = {
   ts: string;
   mime: string;
   status: number;
+}
+
+export interface DBStore {
+  getResource(request: ArchiveRequest, prefix: string, event?: FetchEvent, opts? : Record<string, any>) : Promise<ArchiveResponse | Response | null>;
+
+  getAllPages() : Promise<any[]>;
 }

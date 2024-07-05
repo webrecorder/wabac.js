@@ -1,8 +1,10 @@
+import { ArchiveRequest } from "./request.js";
 import { ArchiveResponse } from "./response.js";
+import { DBStore } from "./types.js";
 
 
 // ===========================================================================
-export class LiveProxy {
+export class LiveProxy implements DBStore {
   prefix: string;
   proxyPathOnly: boolean;
   isLive: boolean;
@@ -72,7 +74,7 @@ export class LiveProxy {
   }
 
 
-  async getResource(request, prefix) {
+  async getResource(request: ArchiveRequest, prefix: string) {
     const { headers, credentials, url} = request.prepareProxyRequest(prefix, true);
 
     const fetchUrl = this.getFetchUrl(url, request, headers);
@@ -81,7 +83,7 @@ export class LiveProxy {
       return null;
     }
 
-    let body = null;
+    let body : Uint8Array | null = null;
 
     if (this.allowBody && (request.method === "POST" || request.method === "PUT")) {
       body = await request.getBody();

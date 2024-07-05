@@ -3,7 +3,8 @@ import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage,
   getTS, getStatusText, randomId, PAGE_STATE_SYNCED } from "./utils.js";
 import { fuzzyMatcher } from "./fuzzymatcher.js";
 import { ArchiveResponse } from "./response.js";
-import { DigestRefCount, ResAPIResponse, ResourceEntry } from "./types.js";
+import { DBStore, DigestRefCount, ResAPIResponse, ResourceEntry } from "./types.js";
+import { ArchiveRequest } from "./request.js";
 
 
 const MAX_FUZZY_MATCH = 128000;
@@ -21,7 +22,7 @@ const DB_VERSION = 4;
 
 
 // ===========================================================================
-export class ArchiveDB {
+export class ArchiveDB implements DBStore {
   name: string;
   minDedupSize: number;
   version: number;
@@ -483,7 +484,8 @@ export class ArchiveDB {
     return isNew;
   }
 
-  async getResource(request, rwPrefix, event, opts : Record<string, any> = {}) {
+  async getResource(request: ArchiveRequest, prefix: string, event: FetchEvent, opts : Record<string, any> = {})
+  : Promise<ArchiveResponse | Response | null> {
     const ts = tsToDate(request.timestamp).getTime();
     let url : string = request.url;
 
