@@ -49,7 +49,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       return null;
     }
 
-    if (remote.url !== cdx.url && !(cdx.method && cdx.url.startsWith(remote.url))) {
+    if (remote.url !== cdx.url && !(cdx.method && decodeURIComponent(cdx.url).startsWith(decodeURIComponent(remote.url)))) {
       console.log(`Wrong url: expected ${cdx.url}, got ${remote.url}`);
       return null;
     }
