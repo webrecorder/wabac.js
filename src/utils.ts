@@ -171,14 +171,14 @@ export function getStatusText(status: number) {
   }
 }
 
-export function isAjaxRequest(request: ArchiveRequest) {
+export function isAjaxRequest(request: ArchiveRequest | Request) {
   if (request.headers.get("X-Pywb-Requested-With") === "XMLHttpRequest") {
     return true;
   }
 
   if (request.mode === "cors") {
     // if 'mod' is esm_, then likely a module import
-    if (request.destination === "script" && request.mod === "esm_") {
+    if (request.destination === "script" && (request as any).mod === "esm_") {
       return false;
     }
     return true;
@@ -209,7 +209,7 @@ export async function handleAuthNeeded(e: any, config: any) {
 }
 
 
-export function notFound(request: Request, msg: string, status = 404) {
+export function notFound(request: Request, msg?: string, status = 404) {
   let content;
   let contentType;
 

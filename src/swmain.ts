@@ -1,4 +1,4 @@
-import { Collection } from "./collection.js";
+import { Collection, Prefixes } from "./collection.js";
 import { WorkerLoader } from "./loaders.js";
 
 import { notFound, isAjaxRequest } from "./utils.js";
@@ -14,11 +14,22 @@ import { ArchiveRequest } from "./request.js";
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 
+declare let self: ServiceWorkerGlobalScope;
+
 
 // ===========================================================================
 class SWCollections extends WorkerLoader
 {
-  constructor(prefixes, root = null, defaultConfig = {}) {
+  prefixes: Prefixes;
+  colls: Record<string, Collection>;
+  inited: Promise<boolean> | null;
+  root: string | null;
+  defaultConfig: Record<string, any>;
+
+  _fileHandles: Record<string, FileSystemFileHandle>;
+
+
+  constructor(prefixes, root : string | null = null, defaultConfig = {}) {
     super(self);
     this.prefixes = prefixes;
     this.colls = {};
@@ -33,7 +44,7 @@ class SWCollections extends WorkerLoader
     return new Collection(opts, this.prefixes, this.defaultConfig);
   }
 
-  loadAll(dbColl) {
+  loadAll(dbColl?: any) : Promise<boolean> {
     this.colls = {};
     this.inited = super.loadAll(dbColl);
     return this.inited;
@@ -64,7 +75,7 @@ class SWCollections extends WorkerLoader
 
   async deleteColl(name, keepFileHandle = false) {
     if (this.colls[name]) {
-      if (this.colls[name].store && this.colls[name].store.delete) {
+      if (this.colls[name].store) {
         await this.colls[name].store.delete();
       }
 
@@ -90,11 +101,11 @@ class SWCollections extends WorkerLoader
   }
 
   async updateAuth(name, headers) {
-    if (this.colls[name] && this.colls[name].store.updateHeaders) {
-      this.colls[name].store.updateHeaders(headers);
+    if (this.colls[name] && (this.colls[name].store as any).updateHeaders) {
+      (this.colls[name].store as any).updateHeaders(headers);
     }
 
-    await super.updateAuth(name, headers);
+    return await super.updateAuth(name, headers);
   }
 
   async updateMetadata(name, newMetadata) {
@@ -119,10 +130,36 @@ class SWCollections extends WorkerLoader
   }
 }
 
+type SWReplayInitOpts = {
+  staticData?: Map<string, any> | null;
+  ApiClass?: typeof API;
+  defaultConfig?: Record<string, any>;
+  CollectionsClass?: typeof SWCollections;
+}
+
 
 // ===========================================================================
 class SWReplay {
-  constructor({staticData = null, ApiClass = API, defaultConfig = {}, CollectionsClass = SWCollections} = {}) {
+  prefix: string;
+  replayPrefix: string;
+  staticPrefix: string;
+  distPrefix: string;
+  
+  staticData: Map<string, any>;
+
+  collections: SWCollections;
+  
+  proxyOriginMode: boolean;
+
+  api: API;
+  apiPrefix: string;
+
+  allowRewrittenCache: boolean;
+
+  stats: StatsTracker | null;
+
+
+  constructor({staticData = null, ApiClass = API, defaultConfig = {}, CollectionsClass = SWCollections} : SWReplayInitOpts = {}) {
     this.prefix = self.registration ? self.registration.scope : "";
 
     this.replayPrefix = this.prefix;
@@ -132,7 +169,7 @@ class SWReplay {
     let replayPrefixPath = "w";
 
     if (sp.has("replayPrefix")) {
-      replayPrefixPath = sp.get("replayPrefix");
+      replayPrefixPath = sp.get("replayPrefix")!;
     }
 
     if (replayPrefixPath) {
@@ -142,7 +179,7 @@ class SWReplay {
     this.staticPrefix = this.prefix + "static/";
     this.distPrefix = this.prefix + "dist/";
 
-    const prefixes = {
+    const prefixes : Prefixes = {
       static: this.staticPrefix,
       root: this.prefix,
       main: this.replayPrefix
@@ -159,7 +196,7 @@ class SWReplay {
     }
 
     if (sp.has("injectScripts")) {
-      const injectScripts = sp.get("injectScripts").split(",");
+      const injectScripts = sp.get("injectScripts")!.split(",");
       defaultConfig.injectScripts = defaultConfig.injectScripts ?
         [...injectScripts, ...defaultConfig.injectScripts] : injectScripts;
     }
@@ -204,7 +241,7 @@ class SWReplay {
     });
   }
 
-  getIndexHtml(sp) {
+  getIndexHtml(sp: URLSearchParams) {
     const uiScript = sp.get("indexScript") || "./ui.js";
     const appTag = sp.get("indexAppTag") || "replay-app-main";
     return `
@@ -216,7 +253,7 @@ class SWReplay {
     </body></html>`;
   }
 
-  handleFetch(event) {
+  handleFetch(event: FetchEvent) : Promise<Response> | Response {
     const url = event.request.url;
 
     if (this.proxyOriginMode) {
@@ -274,15 +311,15 @@ class SWReplay {
     return this.defaultFetch(request);
   }
 
-  defaultFetch(request) {
-    const opts = {};
+  defaultFetch(request: Request) {
+    const opts : RequestInit = {};
     if (request.cache === "only-if-cached" && request.mode !== "same-origin") {
       opts.cache = "default";
     }
     return self.fetch(request, opts);
   }
 
-  async ensureCached(urls) {
+  async ensureCached(urls: string[]) {
     const cache = await caches.open("wabac-offline");
 
     for (let url of urls) {
@@ -294,7 +331,7 @@ class SWReplay {
 
       //console.log(`Auto Cacheing: ${url}`);
       try {
-        response = await this.defaultFetch(url);
+        response = await this.defaultFetch(new Request(url));
         await cache.put(url, response);
       } catch(e) {
         console.warn(`Failed to Auto Cache: ${url}`, e);
@@ -302,8 +339,8 @@ class SWReplay {
     }
   }
 
-  async handleOffline(request) {
-    let response = null;
+  async handleOffline(request: Request) : Promise<Response> {
+    let response : Response | null | undefined = null;
     
     const cache = await caches.open("wabac-offline");
 
@@ -333,7 +370,7 @@ class SWReplay {
     return response;
   }
 
-  async getResponseFor(request, event) {
+  async getResponseFor(request: Request, event: FetchEvent) {
     // API
     if (!this.proxyOriginMode && request.url.startsWith(this.apiPrefix)) {
       if (this.stats && request.url.startsWith(this.apiPrefix + "stats.json")) {
@@ -372,7 +409,7 @@ class SWReplay {
 
     const wbUrlStr = this.proxyOriginMode ? request.url : request.url.substring(coll.prefix.length);
 
-    const opts = {
+    const opts : Record<string, any> = {
       isRoot: !!this.collections.root
     };
 
@@ -392,7 +429,7 @@ class SWReplay {
 
     if (response) {
       if (this.stats) {
-        this.stats.updateStats(response.date, response.status, request, event);
+        this.stats.updateStats((response as any).date, response.status, request, event);
       }
 
       if (this.allowRewrittenCache && response.status === 200) {

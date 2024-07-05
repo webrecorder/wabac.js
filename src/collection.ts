@@ -12,8 +12,14 @@ import { ArchiveRequest } from "./request.js";
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 
+export type Prefixes = {
+  static: string;
+  root: string;
+  main: string;
+}
+
 // ===========================================================================
-class Collection {
+export class Collection {
   name: string;
   store: ArchiveDB;
   
@@ -46,7 +52,7 @@ class Collection {
 
   staticPrefix: string;
 
-  constructor(opts, prefixes, defaultConfig = {}) {
+  constructor(opts, prefixes: Prefixes, defaultConfig = {}) {
     const { name, store, config } = opts;
 
     this.name = name;
@@ -492,6 +498,3 @@ ${this.injectScripts.map((script) => `<script src='${script}'> </script>`).join(
   `;
   }
 }
-
-export { Collection };
-
