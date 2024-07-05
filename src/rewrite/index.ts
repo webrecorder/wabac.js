@@ -49,7 +49,7 @@ type RewriterOpts = {
   urlRewrite: boolean;
   contentRewrite: boolean;
   decode: boolean;
-  useBaseRules: boolean;
+  useBaseRules?: boolean;
 };
 
 
@@ -176,7 +176,7 @@ export class Rewriter {
     }
   }
 
-  async rewrite(response: ArchiveResponse, request: ArchiveRequest) {
+  async rewrite(response: ArchiveResponse, request: ArchiveRequest) : Promise<ArchiveResponse> {
     const rewriteMode = this.contentRewrite ? this.getRewriteMode(request, response, this.baseUrl) : null;
 
     const isAjax = isAjaxRequest(request);

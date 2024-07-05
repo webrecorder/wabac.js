@@ -187,7 +187,7 @@ export function isAjaxRequest(request: ArchiveRequest) {
   return false;
 }
 
-export async function handleAuthNeeded(e: Error, config: any) {
+export async function handleAuthNeeded(e: any, config: any) {
   if (e instanceof AuthNeededError) {
     //const client = await self.clients.get(event.clientId || event.resultingClientId);
     const clients = await self.clients.matchAll({ "type": "window" });

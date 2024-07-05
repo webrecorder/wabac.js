@@ -1,4 +1,4 @@
-import { Rewriter } from "./rewrite/index.ts";
+import { Rewriter } from "./rewrite/index.js";
 
 import { getTS, getSecondsStr, notFound, parseSetCookie, handleAuthNeeded, REPLAY_TOP_FRAME_NAME } from "./utils.js";
 
@@ -6,12 +6,46 @@ import { ArchiveResponse } from "./response.js";
 
 import { getAdBlockCSSResponse } from "./adblockcss.js";
 import { notFoundByTypeResponse } from "./notfound.js";
+import { ArchiveDB } from "./archivedb.js";
+import { ArchiveRequest } from "./request.js";
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 
 // ===========================================================================
 class Collection {
+  name: string;
+  store: ArchiveDB;
+  
+  config: Record<string, any>;
+  metadata: Record<string, any>;
+  
+  injectScripts: string[];
+  
+  noRewritePrefixes: string[] | null;
+  
+  noPostToGet: boolean;
+  convertPostToGet: boolean;
+
+  coHeaders: boolean;
+  csp: string;
+  injectRelCanon: boolean;
+
+  baseFramePrefix: string;
+  baseFrameUrl: string;
+  baseFrameHashReplay = false;
+
+  liveRedirectOnNotFound = false;
+
+  rootPrefix: string;
+  isRoot: boolean;
+
+  prefix: string;
+
+  adblockUrl?: string;
+
+  staticPrefix: string;
+
   constructor(opts, prefixes, defaultConfig = {}) {
     const { name, store, config } = opts;
 
@@ -58,7 +92,7 @@ class Collection {
     this.staticPrefix = prefixes.static;
   }
 
-  async handleRequest(request, event) {
+  async handleRequest(request: ArchiveRequest, event: FetchEvent) {
     // force timestamp for root coll
     //if (!requestTS && this.isRoot) {
     //requestTS = "2";
@@ -75,7 +109,7 @@ class Collection {
     }
 
     // exact or fuzzy match
-    let response = null;
+    let response : ArchiveResponse | Response | null = null;
 
     let baseUrl = requestURL;
     
@@ -95,19 +129,19 @@ class Collection {
       } else if (requestURL === "about:blank") {
         response = await this.getSrcDocResponse(requestURL);
       } else if (requestURL === "__wb_module_decl.js") {
-        response = await this.getWrappedModuleDecl(requestURL);
+        response = await this.getWrappedModuleDecl();
       } else if (this.adblockUrl && requestURL.startsWith("adblock:")) {
         response = await getAdBlockCSSResponse(requestURL.slice("adblock:".length), this.adblockUrl);
       } else {
         response = await this.getReplayResponse(request, event);
         requestURL = request.url;
-        if (response && response.updateTS) {
+        if (response && response instanceof ArchiveResponse && response.updateTS) {
           requestTS = response.updateTS;
         }
       }
     } catch (e) { 
       if (await handleAuthNeeded(e, this.config)) {
-        return notFound(request, "<p style=\"margin: auto\">Please wait, this page will reload after authentication...</p>", 401);
+        return notFound(request.request, "<p style=\"margin: auto\">Please wait, this page will reload after authentication...</p>", 401);
       }
     }
 
@@ -129,12 +163,13 @@ class Collection {
     if (!response.noRW) {
       const basePrefix = this.prefix + (request.pageId ? `:${request.pageId}/` : "");
       const basePrefixTS = basePrefix + requestTS;
+      const arResponse = response;
 
       const headInsertFunc = (url) => {
-        let presetCookie = response.headers.get("x-wabac-preset-cookie") || "";
-        const setCookie = response.headers.get("Set-Cookie");
+        let presetCookie = arResponse.headers.get("x-wabac-preset-cookie") || "";
+        const setCookie = arResponse.headers.get("Set-Cookie");
         const topUrl = basePrefixTS + (requestTS ? "/" : "") + url;
-        return this.makeHeadInsert(url, requestTS, response.date, topUrl, basePrefix, presetCookie, setCookie, response.isLive, request.referrer, response.extraOpts);
+        return this.makeHeadInsert(url, requestTS, arResponse.date, topUrl, basePrefix, presetCookie, setCookie, arResponse.isLive, request.referrer, arResponse.extraOpts);
       };
 
       const workerInsertFunc = (text) => {
@@ -180,7 +215,7 @@ class Collection {
     return response.makeResponse(this.coHeaders, deleteDisposition);
   }
 
-  getCanonRedirect(query) {
+  getCanonRedirect(query: ArchiveRequest) {
     let {url, timestamp, mod, referrer} = query;
     const schemeRel = url.startsWith("//");
 
@@ -237,7 +272,7 @@ class Collection {
     return new Response(payload, {headers, status, statusText});
   }
 
-  getSrcDocResponse(url, base64str) {
+  getSrcDocResponse(url: string, base64str?: string) {
     const string = base64str ? decodeURIComponent(atob(base64str)) : "<html><head></head><body></body></html>";
     const payload = new TextEncoder().encode(string);
 
@@ -263,8 +298,8 @@ class Collection {
     return new ArchiveResponse({payload, status, statusText, headers, url, date});
   }
 
-  async getReplayResponse(query, event) {
-    let response = this.getCanonRedirect(query);
+  async getReplayResponse(query: ArchiveRequest, event: FetchEvent) : Promise<Response | ArchiveResponse | null> {
+    let response : Response | ArchiveResponse | null = this.getCanonRedirect(query);
 
     if (response) {
       return response;
@@ -279,7 +314,7 @@ class Collection {
     // necessary as service worker seem to not be allowed to return a redirect in some circumstances (eg. in extension)
     if ((request.destination === "video" || request.destination === "audio") && request.mode !== "navigate") {
       while (response && (response.status >= 301 && response.status < 400)) {
-        const newUrl = new URL(response.headers.get("location"), url);
+        const newUrl = new URL(response.headers.get("location") || "", url);
         query.url = newUrl.href;
         console.log(`resolve redirect ${url} -> ${query.url}`);
         response = await this.store.getResource(query, this.prefix, event, opts);
@@ -289,8 +324,8 @@ class Collection {
     return response;
   }
 
-  async makeTopFrame(url, requestTS) {
-    let baseUrl = null;
+  async makeTopFrame(url: string, requestTS: string) {
+    let baseUrl : string = "";
 
     if (this.baseFrameUrl && !this.baseFramePrefix) {
       baseUrl = this.baseFrameUrl;
@@ -310,7 +345,7 @@ class Collection {
       return Response.redirect(baseUrl);
     }
 
-    let content = null;
+    let content : string = "";
 
     if (this.config.topTemplateUrl) {
       const resp = await fetch(this.config.topTemplateUrl);
