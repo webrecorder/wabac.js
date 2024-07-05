@@ -2,24 +2,36 @@ import { ArchiveDB } from "./archivedb.js";
 import { SingleRecordWARCLoader } from "./warcloader.js";
 import { BaseAsyncIterReader, AsyncIterReader, LimitReader, concatChunks } from "warcio";
 
-import { createLoader } from "./blockloaders.js";
+import { BaseLoader, createLoader } from "./blockloaders.js";
+import { ResourceEntry } from "./types.js";
 
 const MAX_CACHE_SIZE = 25_000_000;
 
+export type GetHash = {
+  getHash: () => string;
+}
+
+export type LoadRecordFromSourceType = Promise<{remote: ResourceEntry | null, hasher?: GetHash | null}>;
+
 
 // ===========================================================================
-class OnDemandPayloadArchiveDB extends ArchiveDB
+export abstract class OnDemandPayloadArchiveDB extends ArchiveDB
 {
+  noCache: boolean;
+  streamMap: Map<string, ChunkStore>;
+
   constructor(name, noCache = false) {
     super(name);
     this.noCache = noCache;
 
     this.useRefCounts = !noCache;
 
-    this.streamMap = new Map();
+    this.streamMap = new Map<string, ChunkStore>();
   }
 
-  async loadRecordFromSource(cdx) {
+  abstract loadSource(source: string);
+
+  async loadRecordFromSource(cdx: Record<string, any>) : LoadRecordFromSourceType {
     const responseStream = await this.loadSource(cdx.source);
 
     const loader = new SingleRecordWARCLoader(responseStream);
@@ -81,7 +93,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
         cdx.respHeaders = remote.respHeaders;
         if (!this.noCache) {
           try {
-            await this.db.put("resources", cdx);
+            await this.db!.put("resources", cdx);
           } catch(e) {
             console.log(e);
           }
@@ -108,7 +120,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       }
 
       // if revisit record has header, use those, otherwise use headers from original
-      if (remote.respHeaders) {
+      if (remote.respHeaders && origResult.respHeaders) {
         cdx.respHeaders = remote.respHeaders;
         if (origResult.respHeaders["content-length"]) {
           // ensure content-length is the original result content length always
@@ -133,7 +145,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
         delete cdx.payload;
 
         try {
-          await this.db.put("resources", cdx);
+          await this.db!.put("resources", cdx);
         } catch(e) {
           console.log(e);
         }
@@ -185,7 +197,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
 
       if (!this.noCache && !tooBigForCache) {
         try {
-          await this.db.put("resources", cdx);
+          await this.db!.put("resources", cdx);
         } catch (e) {
           console.warn(`Resource Update Error: ${cdx.url}`);
           console.warn(e);
@@ -201,7 +213,7 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
       return;
     }
 
-    const tx = this.db.transaction(["payload", "digestRef"], "readwrite");
+    const tx = this.db!.transaction(["payload", "digestRef"], "readwrite");
 
     try {
       //const payloadEntry = await tx.objectStore("payload").get(digest);
@@ -226,8 +238,10 @@ class OnDemandPayloadArchiveDB extends ArchiveDB
 
 
 // ===========================================================================
-class RemoteSourceArchiveDB extends OnDemandPayloadArchiveDB
+export class RemoteSourceArchiveDB extends OnDemandPayloadArchiveDB
 {
+  loader: BaseLoader;
+  
   constructor(name, loader, noCache = false) {
     super(name, noCache);
 
@@ -247,9 +261,12 @@ class RemoteSourceArchiveDB extends OnDemandPayloadArchiveDB
 
 
 // ===========================================================================
-class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB
+export class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB
 {
-  constructor(name, remoteUrlPrefix, headers, noCache = false) {
+  remoteUrlPrefix: string;
+  headers: Record<string, string>;
+
+  constructor(name: string, remoteUrlPrefix: string, headers: Record<string, string>, noCache = false) {
     super(name, noCache);
 
     this.remoteUrlPrefix = remoteUrlPrefix;
@@ -266,7 +283,7 @@ class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB
     const headers =  new Headers(this.headers);
     const url = new URL(source.path, this.remoteUrlPrefix).href;
 
-    const loader = await createLoader(url, headers);
+    const loader = await createLoader({url, headers});
 
     return await loader.getRange(start, length, true);
   }
@@ -274,10 +291,13 @@ class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB
 
 
 // ===========================================================================
-class PartialStreamReader extends BaseAsyncIterReader
+class PartialStreamReader
 {
+  chunkstore: ChunkStore;
+  offset: number;
+  size: number;
+
   constructor(chunkstore) {
-    super();
     this.chunkstore = chunkstore;
     this.offset = 0;
     this.size = this.chunkstore.totalLength;
@@ -297,9 +317,10 @@ class PartialStreamReader extends BaseAsyncIterReader
   getReadableStream() {
     console.log(`Offset: ${this.offset}, Size: ${this.size}`);
 
-    const reader = this.chunkstore.getChunkIter();
+    const reader : AsyncGenerator<Uint8Array> = this.chunkstore.getChunkIter();
 
-    const limitreader = new LimitReader(reader, this.size, this.offset);
+    //todo: fix this type conversion
+    const limitreader = new LimitReader(reader as unknown as AsyncIterReader, this.size, this.offset);
     return limitreader.getReadableStream();
   }
 }
@@ -307,7 +328,15 @@ class PartialStreamReader extends BaseAsyncIterReader
 // ===========================================================================
 class ChunkStore
 {
-  constructor(totalLength) {
+  chunks: Uint8Array[];
+  size = 0;
+  done = false;
+  totalLength: number;
+
+  nextChunk : Promise<boolean>;
+  _nextResolve: (x: boolean) => void = () => {};
+
+  constructor(totalLength: number) {
     this.chunks = [];
     this.size = 0;
     this.done = false;
@@ -316,21 +345,21 @@ class ChunkStore
     this.nextChunk = new Promise(resolve => this._nextResolve = resolve);
   }
 
-  add(chunk) {
+  add(chunk: Uint8Array) : void {
     this.chunks.push(chunk);
     this.size += chunk.byteLength;
     this._nextResolve(true);
     this.nextChunk = new Promise(resolve => this._nextResolve = resolve);
   }
 
-  concatChunks() {
+  concatChunks() : Uint8Array {
     this._nextResolve(false);
     this.done = true;
 
     return concatChunks(this.chunks, this.size);
   }
 
-  async* getChunkIter() {
+  async* getChunkIter() : AsyncGenerator<Uint8Array> {
     for (const chunk of this.chunks) {
       yield chunk;
     }
@@ -353,6 +382,24 @@ class ChunkStore
 // ===========================================================================
 class PayloadBufferingReader extends BaseAsyncIterReader
 {
+  db: OnDemandPayloadArchiveDB;
+  reader: LimitReader;
+
+  digest: string;
+  url; string; 
+
+  commit = true;
+  fullbuff: Uint8Array | null = null;
+  hasher: GetHash;
+  expectedHash: string;
+  source: Record<string, string>;
+
+  isRange = false;
+  totalLength = -1;
+  fixedSize = 0;
+
+  streamMap: Map<string, ChunkStore>;
+
   constructor(db, reader, digest, url = "", streamMap, hasher, expectedHash, source) {
     super();
     this.db = db;
@@ -394,7 +441,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader
   }
 
   async* [Symbol.asyncIterator]() {
-    let chunkstore = null;
+    let chunkstore : ChunkStore | null = null;
 
     if (this.commit) {
       chunkstore = new ChunkStore(this.totalLength);
@@ -425,7 +472,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader
       }
 
       if (this.commit) {
-        this.fullbuff = chunkstore.concatChunks();
+        this.fullbuff = chunkstore!.concatChunks();
         await this.db.commitPayload(this.fullbuff, this.digest);
       }
     }
@@ -447,7 +494,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader
       //this.commit = true;
       await this._consumeIter(this);
     }
-    return this.fullbuff;
+    return this.fullbuff!;
   }
 
   getReadableStream() {
@@ -482,8 +529,9 @@ class PayloadBufferingReader extends BaseAsyncIterReader
       }
     });
   }
+
+  readlineRaw(maxLength?: number | undefined): Promise<Uint8Array | null> {
+    throw new Error("Method not implemented.");
+  }
 }
-
-
-export { OnDemandPayloadArchiveDB, RemotePrefixArchiveDB, RemoteSourceArchiveDB };
 

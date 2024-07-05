@@ -14,7 +14,7 @@ type ResponseAbort = {
 
 
 // ===========================================================================
-async function createLoader(opts) {
+export async function createLoader(opts) : Promise<BaseLoader> {
   const { url } = opts;
 
   if (opts.extra && opts.extra.arrayBuffer) {
@@ -68,6 +68,7 @@ async function createLoader(opts) {
 export abstract class BaseLoader
 {
   canLoadOnDemand: boolean = true;
+  headers: Record<string, string> | null = null;
 
   constructor(canLoadOnDemand: boolean) {
     this.canLoadOnDemand = canLoadOnDemand;
@@ -567,7 +568,6 @@ class IPFSRangeLoader extends BaseLoader
 {
   url: string;
   opts: Record<string, any>;
-  headers: Headers | null;
   length: number | null;
   isValid = false;
 
@@ -676,5 +676,3 @@ export function getReadableStreamFromArray(array) {
     }
   });
 }
-
-export { createLoader };

@@ -57,7 +57,7 @@ export class SingleWACZFullImportLoader
     const file = new WACZFile({loader: this.loader});
     await file.init();
     
-    const zipreader = file.zipreader;
+    const zipreader = file.zipreader!;
     const importer = new WACZImporter(db, file);
 
     const metadata = await importer.load();
@@ -73,7 +73,7 @@ export class SingleWACZFullImportLoader
 
     // load CDX and IDX
     for (const filename of file.iterContainedFiles()) {
-      const entryTotal = zipreader?.getCompressedSize(filename);
+      const entryTotal = zipreader.getCompressedSize(filename);
       if (filename.endsWith(".warc.gz") || filename.endsWith(".warc")) {
         await this.loadWARC(db, zipreader, filename, progressUpdate, entryTotal);
       }

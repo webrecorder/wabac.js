@@ -1,26 +1,41 @@
-import { OnDemandPayloadArchiveDB } from "../remotearchivedb.js";
+import { GetHash, LoadRecordFromSourceType, OnDemandPayloadArchiveDB, RemoteSourceArchiveDB } from "../remotearchivedb.js";
 import { SingleRecordWARCLoader } from "../warcloader.js";
 import { CDXLoader, CDX_COOKIE } from "../cdxloader.js";
 import { AccessDeniedError, digestMessage, handleAuthNeeded, tsToDate } from "../utils.js";
-import { getSurt } from "warcio";
+import { AsyncIterReader, getSurt } from "warcio";
 import { LiveProxy } from "../liveproxy.js";
 
-import { INDEX_CDX, INDEX_IDX, INDEX_NOT_LOADED, NO_LOAD_WACZ, WACZFile, WACZType, WACZ_LEAF } from "./waczfile.js";
+import { INDEX_CDX, INDEX_IDX, INDEX_NOT_LOADED, IndexType, NO_LOAD_WACZ, WACZFile, WACZFileInitOptions, WACZFileOptions, WACZLoadSource, WACZ_LEAF } from "./waczfile.js";
 import { EXTRA_PAGES_JSON, WACZImporter } from "./waczimporter.js";
 import { BaseLoader, createLoader } from "../blockloaders.js";
+import { ArchiveResponse } from "../response.js";
+import { ArchiveRequest } from "../request.js";
+import { LoadWACZEntry } from "./ziprangereader.js";
+import { ResourceEntry } from "../types.js";
 
 const MAX_BLOCKS = 3;
 
 const IS_SURT = /^([\w-]+,)*[\w-]+(:\d+)?,?\)\//;
 
 
+export type IDXLine = {
+  waczname: string;
+  prefix: string;
+  filename: string;
+  offset: number;
+  length: number;
+  digest?: string;
+  loaded: boolean;
+}
+
+
 // ==========================================================================
-export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSource
+export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource
 {
   config: any;
   waczfiles: Record<string, WACZFile>;
   waczNameForHash: Record<string, string>;
-  ziploadercache: Record<string, BaseLoader>;
+  ziploadercache: Record<string, Promise<void>>;
   updating: any | null;
   rootSourceType: "wacz" | "json";
   sourceLoader: BaseLoader;
@@ -121,7 +136,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       }
 
       const indexType = ziplines.length > 0 ? INDEX_IDX : INDEX_CDX;
-      const hash = await this.computeHash(waczname);
+      const hash = await this.computeFileHash(waczname, "");
       const filedata = new WACZFile({waczname, hash, path: waczname, entries, indexType});
 
       tx.objectStore("waczfiles").put(filedata.serialize());
@@ -177,8 +192,8 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     }
   }
 
-  async addVerifyData(prefix = "", id, expected, actual: string | null, log = false) {
-    let matched = null;
+  async addVerifyData(prefix = "", id: string, expected: string, actual: string | null = null, log = false) {
+    let matched = false;
 
     if (prefix) {
       id = prefix + id;
@@ -190,11 +205,11 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
         console.log(`verify ${id}: ${matched}`);
       }
     }
-    await this.db.put("verification", {id, expected, matched});
+    await this.db!.put("verification", {id, expected, matched});
   }
 
-  async addVerifyDataList(prefix, datalist) {
-    const tx = this.db.transaction("verification", "readwrite");
+  async addVerifyDataList(prefix: string, datalist: any[]) {
+    const tx = this.db!.transaction("verification", "readwrite");
 
     for (const data of datalist) {
       if (prefix) {
@@ -211,12 +226,12 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
   }
 
   async getVerifyInfo() {
-    const results =  await this.db.getAll("verification");
+    const results =  await this.db!.getAll("verification");
 
     let numValid = 0;
     let numInvalid = 0;
 
-    let info = {};
+    let info : Record<string, any> = {};
 
     const includeProps = ["domain", "created", "certFingerprint", "software", "datapackageHash", "publicKey"];
 
@@ -239,7 +254,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
   }
 
   async getVerifyExpected(id) {
-    const res = await this.db.get("verification", id);
+    const res = await this.db!.get("verification", id);
     return res && res.expected;
   }
 
@@ -249,20 +264,20 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     await this.clearZipData();
   }
 
-  async loadRecordFromSource(cdx) {
+  async loadRecordFromSource(cdx) : LoadRecordFromSourceType {
     const {start, length, path, wacz} = cdx.source;
     const params = {offset: start, length, unzip: true, computeHash: true};
     const waczname = wacz;
 
     const {reader, hasher} = await this.loadFileFromNamedWACZ(waczname, "archive/" + path, params);
     
-    const loader = new SingleRecordWARCLoader(reader, hasher);
+    const loader = new SingleRecordWARCLoader(reader);
 
     await this.waczfiles[waczname].save(this.db);
 
     const remote = await loader.load();
 
-    if (cdx[CDX_COOKIE]) {
+    if (cdx[CDX_COOKIE] && remote?.respHeaders) {
       remote.respHeaders["x-wabac-preset-cookie"] = cdx[CDX_COOKIE];
     }
 
@@ -301,14 +316,14 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       }
     }
 
-    this.waczfiles[waczname].indexType = indexType;
+    this.waczfiles[waczname].indexType = indexType as IndexType;
 
     await this.waczfiles[waczname].save(this.db, true);
 
     return {indexType, isNew: true};
   }
 
-  async loadCDX(filename, waczname, progressUpdate, total) {
+  async loadCDX(filename, waczname, progressUpdate?, total?) {
     const { reader, hasher } = await this.loadFileFromNamedWACZ(waczname, filename, {computeHash: true});
 
     const loader = new CDXLoader(reader, null, waczname, {wacz: waczname});
@@ -325,10 +340,15 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     return res;
   }
 
-  async loadIDX(filename, waczname, progressUpdate, total) {
+  async loadIDX(filename, waczname, progressUpdate?, total?) : Promise<void> {
     const { reader, hasher } = await this.loadFileFromNamedWACZ(waczname, filename, {computeHash: true});
 
-    let batch = [];
+    if (!reader) {
+      console.warn("IDX reader not found");
+      return;
+    }
+
+    let batch : IDXLine[] = [];
     let defaultFilename = "";
 
     // start out as non surt, if surt detected, set to false
@@ -360,12 +380,12 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
         }
       }
 
-      let entry;
+      let entry : IDXLine;
 
       if (line.indexOf("\t") > 0) {
-        let [prefix, filename, offset, length] = line.split("\t");
-        offset = Number(offset);
-        length = Number(length);
+        let [prefix, filename, offsetStr, lengthStr] = line.split("\t");
+        const offset = Number(offsetStr);
+        const length = Number(lengthStr);
 
         entry = {waczname, prefix, filename, offset, length, loaded: false};
 
@@ -402,7 +422,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       }
     }
 
-    const tx = this.db.transaction("ziplines", "readwrite");
+    const tx = this.db!.transaction("ziplines", "readwrite");
 
     for (const entry of batch) {
       tx.store.put(entry);
@@ -430,9 +450,9 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
 
     const key = IDBKeyRange.upperBound([waczname, upperBound], true);
 
-    const tx = this.db.transaction("ziplines", "readonly");
+    const tx = this.db!.transaction("ziplines", "readonly");
 
-    const values = [];
+    const values : IDXLine[] = [];
 
     for await (const cursor of tx.store.iterate(key, "prev")) {
       // restrict to specific waczname
@@ -449,7 +469,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
 
     await tx.done;
 
-    const cdxloaders = [];
+    const cdxloaders : Promise<void>[] = [];
 
     if (values.length > MAX_BLOCKS && datetime) {
       values.sort((a, b) => {
@@ -498,7 +518,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     return cdxloaders.length > 0;
   }
 
-  async doCDXLoad(cacheKey, zipblock, waczname) {
+  async doCDXLoad(cacheKey, zipblock, waczname) : Promise<void> {
     try {
       const filename = "indexes/" + zipblock.filename;
       const params = {offset: zipblock.offset, length: zipblock.length, unzip: true, computeHash: !!zipblock.digest};
@@ -514,7 +534,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       }
 
       zipblock.loaded = true;
-      await this.db.put("ziplines", zipblock);
+      await this.db!.put("ziplines", zipblock);
 
     } catch (e) {
       if (!await handleAuthNeeded(e, this.config)) {
@@ -526,7 +546,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
   }
 
   async findPageAtUrl(url, ts) {
-    const pages = await this.db.getAllFromIndex("pages", "url", url);
+    const pages = await this.db!.getAllFromIndex("pages", "url", url);
     let currPage = null;
     let minDiff = Number.MAX_SAFE_INTEGER;
 
@@ -544,7 +564,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     return currPage;
   }
 
-  async lookupUrl(url, datetime, opts = {}) {
+  async lookupUrl(url, datetime, opts : Record<string, any> = {}) {
     try {
       let result = await super.lookupUrl(url, datetime, opts);
 
@@ -589,7 +609,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     return await super.lookupUrl(url, datetime, opts);
   }
 
-  async resourcesByUrlAndMime(url, ...args) {
+  async resourcesByUrlAndMime(url, ...args: [string, number, boolean, string, string]) {
     let results = await super.resourcesByUrlAndMime(url, ...args);
 
     if (results.length > 0) {
@@ -628,7 +648,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     return results;
   }
 
-  async loadFileFromWACZ(waczfile, filename, opts) {
+  async loadFileFromWACZ(waczfile, filename, opts) : LoadWACZEntry {
     try {
       return await waczfile.loadFile(filename, opts);
     } catch (e) {
@@ -640,7 +660,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     }
   }
 
-  async loadFileFromNamedWACZ(waczname, filename, opts) {
+  async loadFileFromNamedWACZ(waczname, filename, opts) : LoadWACZEntry {
     const waczfile = this.waczfiles[waczname];
 
     if (!waczfile) {
@@ -650,16 +670,21 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     return await this.loadFileFromWACZ(waczfile, filename, opts);
   }
 
-  async addNewWACZ({name, hash, path, parent = null, loader = null} = {}) {
-    const waczname = name || path;
-
+  async computeFileHash(waczname: string, hash?: string) : Promise<string> {
     if (!hash) {
       hash = await digestMessage(waczname, "sha-256", "");
     } else if (hash.indexOf(":") > 0) {
       hash = hash.split(":")[1];
     }
+    return hash;
+  }
 
-    const file = this.addWACZFile({waczname, hash, path, parent, loader}, true);
+  async addNewWACZ({name, hash, path, parent, loader = null}) {
+    const waczname = name || path;
+
+    hash = await this.computeFileHash(waczname, hash);
+
+    const file = this.addWACZFile({waczname, hash, path, parent, loader});
 
     await file.init();
 
@@ -670,8 +695,8 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     return await importer.load();
   }
 
-  async loadWACZFiles(json, parent = this) {
-    const promises = [];
+  async loadWACZFiles(json: Record<string, any>, parent: WACZLoadSource = this) {
+    const promises : Promise<void>[] = [];
 
     const update = async (name, path) => {
       await this.waczfiles[name].init(path);
@@ -732,7 +757,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       return new Response(reader.getReadableStream(), {headers});
     } else {
 
-      const readers = [];
+      const readers : AsyncIterReader[] = [];
 
       for (const waczname of keys) {
         try {
@@ -760,20 +785,21 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     }
   }
 
-  async getResource(request, prefix, event, {pageId} = {}) {
+  async getResource(request: ArchiveRequest, prefix: string, event: FetchEvent, {pageId} : Record<string, any> = {}) : 
+  Promise<ArchiveResponse | null> {
     await this.initing;
 
     if (this.externalSource) {
-      const res = await this.externalSource.getResource(request, prefix, event);
+      const res = await this.externalSource.getResource(request, prefix);
       if (res) {
         return res;
       }
     }
 
     let hash = pageId;
-    let waczname = null;
+    let waczname : string | null = null;
 
-    let resp = null;
+    let resp : ArchiveResponse | null = null;
 
     if (hash) {
       waczname = this.waczNameForHash[hash];
@@ -786,7 +812,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       }
     }
 
-    let foundHash = null;
+    let foundHash;
 
     for (const [name, file] of Object.entries(this.waczfiles)) {
       if (file.fileType !== WACZ_LEAF) {
@@ -807,7 +833,11 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     }
 
     if (waczname) {   
-      return Response.redirect(`${prefix}:${foundHash}/${request.timestamp}mp_/${request.url}`);
+      return ArchiveResponse.fromResponse({
+        url: request.url,
+        response: Response.redirect(`${prefix}:${foundHash}/${request.timestamp}mp_/${request.url}`),
+        date: new Date()
+      });
     }
 
     if (this.fuzzyUrlRules.length) {
@@ -880,7 +910,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
     return name;
   }
 
-  async createLoader(opts) {
+  async createLoader(opts) : Promise<BaseLoader> {
     return await createLoader(opts);
   }
 }

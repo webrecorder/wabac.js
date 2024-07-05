@@ -305,11 +305,11 @@ export class ArchiveDB {
     return {};
   }
 
-  async addVerifyData() {
+  async addVerifyData(prefix = "", id: string, expected: string, actual: string | null = null, log = false) {
     return;
   }
 
-  async addVerifyDataList() {
+  async addVerifyDataList(prefix: string, datalist: any[]) {
     return;
   }
 

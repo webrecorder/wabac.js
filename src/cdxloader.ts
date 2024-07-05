@@ -143,7 +143,7 @@ class CDXFromWARCLoader extends WARCLoader
 // ===========================================================================
 class CDXLoader extends CDXFromWARCLoader
 {
-  async load(db, progressUpdate, totalSize) {
+  async load(db, progressUpdate?, totalSize?) {
     this.db = db;
 
     let reader = this.reader;

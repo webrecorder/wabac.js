@@ -23,7 +23,7 @@ class ArchiveResponse
 {
 
   static fromResponse({url, response, date, noRW, isLive, archivePrefix} : 
-    {url: string, response: Response, date: Date, noRW: boolean, isLive: boolean, archivePrefix: string}) {
+    {url: string, response: Response, date: Date, noRW?: boolean, isLive?: boolean, archivePrefix?: string}) {
     const payload = response.body ? new AsyncIterReader(response.body.getReader(), null, false) : null;
     const status = Number(response.headers.get("x-redirect-status") || response.status);
     const statusText = response.headers.get("x-redirect-statusText") || response.statusText;

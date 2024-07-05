@@ -55,8 +55,12 @@ export class WACZImporter
     return metadata || {};
   }
 
-  async loadTextFileFromWACZ(filename, expectedHash = false) {
+  async loadTextFileFromWACZ(filename, expectedHash = "") : Promise<string> {
     const { reader, hasher } = await this.loadFileFromWACZ(filename, {computeHash: !!expectedHash});
+    if (!reader) {
+      return "";
+    }
+    
     const text = new TextDecoder().decode(await reader.readFully());
     if (expectedHash && hasher) {
       await this.store.addVerifyData(this.waczname, filename, expectedHash, hasher.getHash());
@@ -77,7 +81,7 @@ export class WACZImporter
       const sigPrefix = this.isRoot ? "" : this.waczname + ":";
 
       if (!digestData.signedData || digestData.signedData.hash !== datapackageHash) {
-        await store.addVerifyData(sigPrefix, "signature");
+        await store.addVerifyData(sigPrefix, "signature", "");
         return;
       }
 
@@ -199,10 +203,14 @@ export class WACZImporter
     return metadata;
   }
 
-  async loadPages(filename = MAIN_PAGES_JSON, expectedHash = null) {
+  async loadPages(filename = MAIN_PAGES_JSON, expectedHash = null) : Promise<Record<string, any>[]> {
     const {reader, hasher} = await this.loadFileFromWACZ(filename, {unzip: true, computeHash: true});
 
-    let pageListInfo = null;
+    if (!reader) {
+      return [];
+    }
+
+    let pageListInfo = [];
   
     let pages : Record<string, any>[] = [];
   

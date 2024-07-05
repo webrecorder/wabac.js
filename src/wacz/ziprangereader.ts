@@ -2,10 +2,20 @@ import { AsyncIterReader, concatChunks } from "warcio";
 import { createSHA256 } from "hash-wasm";
 import { BaseLoader, getReadableStreamFromIter } from "../blockloaders.js";
 import { IHasher } from "hash-wasm/dist/lib/WASMInterface.js";
+import { GetHash } from "../remotearchivedb.js";
 
 // ===========================================================================
 const MAX_INT32 = 0xFFFFFFFF;
 const MAX_INT16 = 0xFFFF;
+
+
+// ===========================================================================
+export type ReaderAndHasher = {
+  reader: AsyncIterReader | null;
+  hasher?: GetHash | null;
+};
+
+export type LoadWACZEntry = Promise<ReaderAndHasher>;
 
 
 // ===========================================================================
@@ -21,7 +31,7 @@ class LoadMoreException
 }
 
 // ===========================================================================
-export class HashingAsyncIterReader extends AsyncIterReader
+export class HashingAsyncIterReader extends AsyncIterReader implements GetHash
 {
   hasher: IHasher | null = null;
   hashInited = false;
@@ -55,7 +65,7 @@ export class HashingAsyncIterReader extends AsyncIterReader
     return value;
   }
 
-  getHash() {
+  getHash() : string {
     return this.hash;
   }
 }
@@ -246,7 +256,7 @@ export class ZipRangeReader
     return entries;
   }
 
-  getCompressedSize(name) {
+  getCompressedSize(name) : number {
     if (this.entries === null) {
       return 0;
     }
@@ -261,7 +271,8 @@ export class ZipRangeReader
   }
 
   async loadFile(name, {offset = 0, length = -1, signal = null, unzip = false, computeHash = false} : 
-    {offset?: number, length?: number, signal?: AbortSignal | null, unzip?: boolean, computeHash?: boolean}) {
+    {offset?: number, length?: number, signal?: AbortSignal | null, unzip?: boolean, computeHash?: boolean}) :
+    Promise<ReaderAndHasher> {
     if (this.entries === null) {
       await this.load();
     }
@@ -340,16 +351,16 @@ export class ZipRangeReader
 }
 
 // ===========================================================================
-export class ZipBlockLoader
+export class ZipBlockLoader extends BaseLoader
 {
   zipreader: ZipRangeReader;
   filename: string;
-  size: number | null;
+  size: number = 0
 
   constructor(zipreader, filename) {
+    super(true);
     this.zipreader = zipreader;
     this.filename = filename;
-    this.size = null;
   }
 
   async doInitialFetch(tryHead = false) {
@@ -366,7 +377,7 @@ export class ZipBlockLoader
 
     const response = new Response(stream);
 
-    return {response};
+    return {response, abort: null};
   }
 
   async getLength() {
