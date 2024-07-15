@@ -77,6 +77,12 @@ export const HTML_ONLY_RULES = [
     rxRules: [
       [/[^"]<head.*?>/, ruleDisableMediaSourceTypeSupported()]
     ]
+  },
+  {
+    contains: ["facebook.com", "www.fbsbx.com"],
+    rxRules: [
+      [/[^"]<head.*?>/, ruleDisableMediaSourceTypeSupported()]
+    ]
   }
 ];
 
