@@ -112,6 +112,7 @@ export const xmlOpts = {
   removeNSPrefix: false,
   format: false,
   suppressEmptyNode: true,
+  suppressBooleanAttributes: false
 };
 
 
@@ -185,5 +186,10 @@ function _rewriteDASH(text: string, opts: Record<string, any>, bestIds?: string[
   const toXML = new XMLBuilder(xmlOpts);
   const xml = toXML.build(root);
 
-  return "<?xml version='1.0' encoding='UTF-8'?>\n" + xml.trim();
+  const xmlOutput = xml.trim();
+  if (!xmlOutput.slice(0, 5).toLowerCase().startsWith("<?xml")) {
+    return "<?xml version='1.0' encoding='UTF-8'?>\n" + xmlOutput;
+  } else {
+    return xmlOutput;
+  }
 }

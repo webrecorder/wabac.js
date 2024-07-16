@@ -517,6 +517,9 @@ export class Rewriter {
 
       "x-frame-options": "prefix",
       "x-xss-protection": "prefix",
+
+      // this header may cause a crash in some version of Chrome if not rewritten
+      "origin-agent-cluster": "prefix",
     };
 
     const headerPrefix = "X-Archive-Orig-";

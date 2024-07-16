@@ -340,6 +340,7 @@ export class ArchiveDB implements DBStore {
 
   async addResources(datas: ResourceEntry[]) {
     const revisits : ResourceEntry[] = [];
+    const redirectsAndErrors : ResourceEntry[] = [];
     const regulars : ResourceEntry[] = [];
 
     const digestRefCount : Record<string, DigestRefCount | null> = {};
@@ -350,7 +351,9 @@ export class ArchiveDB implements DBStore {
     for (const data of datas) {
       let refCount = 1;
 
-      const array = data.mime === REVISIT ? revisits : regulars;
+      const status = data.status || 200;
+
+      const array = data.mime === REVISIT ? revisits : status >= 300 ? redirectsAndErrors : regulars;
 
       array.push(data);
 
@@ -395,7 +398,12 @@ export class ArchiveDB implements DBStore {
       tx.store.put(data);
     }
 
-    // Then, add non-revisits, overriding any revisits
+    // Then, add non-revisit errors and redirects, overriding any revisits
+    for (const data of redirectsAndErrors) {
+      tx.store.put(data);
+    }
+
+    // Then, add non-revisits success entries, overriding any previous entries
     for (const data of regulars) {
       tx.store.put(data);
     }
