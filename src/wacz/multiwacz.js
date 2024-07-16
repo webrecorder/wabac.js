@@ -1,7 +1,7 @@
 import { OnDemandPayloadArchiveDB } from "../remotearchivedb.js";
 import { SingleRecordWARCLoader } from "../warcloader.js";
 import { CDXLoader, CDX_COOKIE } from "../cdxloader.js";
-import { AccessDeniedError, digestMessage, handleAuthNeeded, tsToDate } from "../utils.js";
+import { AccessDeniedError, digestMessage, handleAuthNeeded, tsToDate, getTS } from "../utils.js";
 import { getSurt } from "warcio";
 import { LiveProxy } from "../liveproxy.js";
 
@@ -535,17 +535,19 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
 
   async lookupUrl(url, datetime, opts = {}) {
     try {
-      let result = await super.lookupUrl(url, datetime, opts);
+      const { waczname } = opts;
+
+      let result;
+
+      if (waczname && waczname !== NO_LOAD_WACZ) {
+        result = await this.lookupUrlForWACZ(waczname, url, datetime, opts);
+      }
 
       if (result && (!opts.noRevisits || result.mime !== "warc/revisit")) {
         return result;
       }
 
-      const { waczname } = opts;
-
-      if (waczname && waczname !== NO_LOAD_WACZ) {
-        result = await this.lookupUrlForWACZ(waczname, url, datetime, opts);
-      }
+      result = await super.lookupUrl(url, datetime, opts);
 
       return result;
     } catch (e) {
@@ -775,7 +777,7 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
       }
     }
 
-    let foundHash = null;
+    let foundMap = new Map();
 
     for (const [name, file] of Object.entries(this.waczfiles)) {
       if (file.fileType !== WACZ_LEAF) {
@@ -787,16 +789,30 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
         continue;
       }
 
-      resp = await super.getResource(request, prefix, event, {waczname: name, noFuzzyCheck: true});
+      resp = await super.getResource(request, prefix, event, {waczname: name, noFuzzyCheck: true, loadFirst: true});
       if (resp) {
-        waczname = name;
-        foundHash = file.hash;
-        break;
+        foundMap.set(resp.date, {name, hash: file.hash});
       }
     }
 
-    if (waczname) {   
-      return Response.redirect(`${prefix}:${foundHash}/${request.timestamp}mp_/${request.url}`);
+    if (foundMap.size > 0) {
+      const requestTS = tsToDate(request.timestamp);
+      let min = -1;
+      let ts;
+      let foundHash;
+
+      for (const date of foundMap.keys()) {
+        const dist = Math.abs(date.getTime() - requestTS);
+        if (min < 0 || dist < min) {
+          const {name, hash} = foundMap.get(date);
+          waczname = name;
+          foundHash = hash;
+          ts = getTS(date.toISOString());
+          min = dist;
+        }
+      }
+
+      return Response.redirect(`${prefix}:${foundHash}/${ts}mp_/${request.url}`);
     }
 
     if (this.fuzzyUrlRules.length) {
