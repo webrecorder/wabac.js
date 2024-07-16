@@ -37,14 +37,14 @@ test("test head", async t => {
   const res = await fetch(t.context.baseUrl + "/sample_dash.mpd",
     {method: "HEAD"});
 
-  t.is(res.headers.get("Content-Length"), "3268");
+  t.is(res.headers.get("Content-Length"), "3229");
 
 });
 
 
 test("test range", async t => {
   const res = await fetch(t.context.baseUrl + "/sample_dash.mpd",
-    {headers: {"Range": "bytes=51-63"}});
+    {headers: {"Range": "bytes=12-24"}});
 
   t.is(await res.text(), "urn:mpeg:dash");
 });
