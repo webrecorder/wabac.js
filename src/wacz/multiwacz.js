@@ -549,10 +549,6 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB// implements WACZLoadSou
 
       result = await super.lookupUrl(url, datetime, opts);
 
-      // if (waczname && waczname !== NO_LOAD_WACZ && !loadFirst) {
-      //   result = await this.lookupUrlForWACZ(waczname, url, datetime, opts);
-      // }
-
       return result;
     } catch (e) {
       console.warn(e);
