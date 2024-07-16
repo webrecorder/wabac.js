@@ -16,7 +16,7 @@ test("DASH", async t => {
   const result = await doRewrite({content, contentType: "application/dash+xml", url: "http://example.com/path/manifest.mpd", isLive: true});
 
   const expected = `\
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version="1.0" encoding="UTF-8"?>
 <MPD xmlns="urn:mpeg:dash:schema:mpd:2011" mediaPresentationDuration="PT0H3M1.63S" minBufferTime="PT1.5S" profiles="urn:mpeg:dash:profile:isoff-on-demand:2011" type="static">
   <Period duration="PT0H3M1.63S" start="PT0S">
     <AdaptationSet>

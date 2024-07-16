@@ -274,18 +274,6 @@ class Collection {
 
     response = await this.store.getResource(query, this.prefix, event, opts);
 
-    const {request, url} = query;
-
-    // necessary as service worker seem to not be allowed to return a redirect in some circumstances (eg. in extension)
-    // if ((request.destination === "video" || request.destination === "audio") && request.mode !== "navigate") {
-    //   while (response && (response.status >= 301 && response.status < 400)) {
-    //     const newUrl = new URL(response.headers.get("location"), url);
-    //     query.url = newUrl.href;
-    //     console.log(`resolve redirect ${url} -> ${query.url}`);
-    //     response = await this.store.getResource(query, this.prefix, event, opts);
-    //   }
-    // }
-
     return response;
   }
 

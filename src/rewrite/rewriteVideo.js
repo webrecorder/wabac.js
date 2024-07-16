@@ -187,7 +187,7 @@ function _rewriteDASH(text, opts, bestIds) {
   const xml = toXML.build(root);
 
   const xmlOutput = xml.trim();
-  if (!xmlOutput.toLowerCase().startsWith("<?xml")) {
+  if (!xmlOutput.slice(0, 5).toLowerCase().startsWith("<?xml")) {
     return "<?xml version='1.0' encoding='UTF-8'?>\n" + xmlOutput;
   } else {
     return xmlOutput;
