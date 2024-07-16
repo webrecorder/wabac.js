@@ -43,10 +43,10 @@ test("DASH", async t => {
   t.is(result, "<?xml version='1.0' encoding='UTF-8'?>" + expected);
 
   // with <?xml line already added, don't add duplicate
-  const result_with_xml = await doRewrite({content: "<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n" + content, contentType: "application/dash+xml", url: "http://example.com/path/manifest.mpd", isLive: true});
+  const result_with_xml = await doRewrite({content: "<?xml version='1.0' encoding='UTF-8'?>\n" + content, contentType: "application/dash+xml", url: "http://example.com/path/manifest.mpd", isLive: true});
 
   // line not re-added, but not with double quotes
-  t.is(result_with_xml, `<?xml version="1.0" encoding="UTF-8"?>` + expected);
+  t.is(result_with_xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + expected);
 
 });
 
