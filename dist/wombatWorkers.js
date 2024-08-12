@@ -1,1 +1,1 @@
-/*! wombatWorkers.js (wabac.js 2.19.5) is part of Webrecorder project. Copyright (C) 2020-2024, Webrecorder Software. Licensed under the Affero General Public License v3. */(()=>{"use strict"})();
+/*! wombatWorkers.js (wabac.js 2.19.6) is part of Webrecorder project. Copyright (C) 2020-2024, Webrecorder Software. Licensed under the Affero General Public License v3. */(()=>{"use strict"})();

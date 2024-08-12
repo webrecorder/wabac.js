@@ -1,6 +1,6 @@
 {
   "name": "@webrecorder/wabac",
-  "version": "2.19.5",
+  "version": "2.19.6",
   "main": "index.js",
   "type": "module",
   "license": "AGPL-3.0-or-later",
