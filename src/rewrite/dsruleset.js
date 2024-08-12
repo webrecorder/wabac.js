@@ -1,18 +1,6 @@
 //import unescapeJs from "unescape-js";
 const MAX_BITRATE = 5000000;
 
-const fbRules = [
-  //[/"dash_prefetch_experimental.*"playlist".*?(?=["][,]["]dash)/, ruleRewriteFBDash],
-
-  [/"dash_/, ruleReplace("\"__nodash__")],
-  [/_dash"/, ruleReplace("__nodash__\"")],
-  [/_dash_/, ruleReplace("__nodash__")],
-  [/"playlist/, ruleReplace("\"__playlist__")],
-  [/"debugNoBatching\s?":(?:false|0)/, ruleReplace("\"debugNoBatching\":true")],
-  [/"bulkRouteFetchBatchSize\s?":(?:[^{},]+)/, ruleReplace("\"bulkRouteFetchBatchSize\":1")],
-  [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplace("\"maxBatchSize\":1")]
-];
-
 // ===========================================================================
 export const DEFAULT_RULES = [
   {
@@ -40,7 +28,16 @@ export const DEFAULT_RULES = [
   },
   {
     contains: ["facebook.com/", "fbsbx.com/"],
-    rxRules: fbRules,
+    rxRules: [
+      //[/"dash_prefetch_experimental.*"playlist".*?(?=["][,]["]dash)/, ruleRewriteFBDash],
+      [/"dash_/, ruleReplace("\"__nodash__")],
+      [/_dash"/, ruleReplace("__nodash__\"")],
+      [/_dash_/, ruleReplace("__nodash__")],
+      [/"playlist/, ruleReplace("\"__playlist__")],
+      [/"debugNoBatching\s?":(?:false|0)/, ruleReplace("\"debugNoBatching\":true")],
+      [/"bulkRouteFetchBatchSize\s?":(?:[^{},]+)/, ruleReplace("\"bulkRouteFetchBatchSize\":1")],
+      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplace("\"maxBatchSize\":1")]
+    ]
   },
   {
     contains: ["instagram.com/"],
@@ -81,13 +78,6 @@ export const HTML_ONLY_RULES = [
       [/[^"]<head.*?>/, ruleDisableMediaSourceTypeSupported()]
     ]
   },
-  {
-    contains: ["facebook.com/", "fbsbx.com/"],
-    rxRules: [
-      ...fbRules,
-      [/[^"]<head.*?>/, ruleDisableWebsockets()]
-    ]
-  },
   ...DEFAULT_RULES
 ];
 
@@ -100,13 +90,6 @@ function ruleReplace(string) {
 function ruleDisableMediaSourceTypeSupported() {
   return (x) => `
     ${x}<script>window.MediaSource.isTypeSupported = () => false;</script>
-  `;
-}
-
-// ===========================================================================
-function ruleDisableWebsockets() {
-  return (x) => `
-    ${x}<script>globalThis.WebSocket = undefined;</script>
   `;
 }
 
@@ -248,7 +231,6 @@ function ruleRewriteVimeoDashManifest(string, opts) {
 
   return JSON.stringify(vimeoManifest);
 }
-
 
 // ===========================================================================
 
