@@ -161,8 +161,8 @@ function _rewriteDASH(text, opts, bestIds) {
       const currRes = Number(repres["@_width"] || "0") * Number(repres["@_height"] || "0");
       const currBand = Number(repres["@_bandwidth"] || "0");
 
-      if (currRes && maxRes) {
-        if (currRes <= maxRes && currRes > bestRes) {
+      if (currRes && maxRes && currRes <= maxRes) {
+        if (currRes > bestRes) {
           bestRes = currRes;
           bestBand = currBand;
           best = repres;
