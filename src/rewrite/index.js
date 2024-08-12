@@ -38,7 +38,7 @@ export const baseRules = new DomainSpecificRuleSet(RxRewriter);
 export const htmlRules = new DomainSpecificRuleSet(RxRewriter, HTML_ONLY_RULES);
 
 export function getCustomRewriter(url, isHTML) {
-  const rules = contentType === isHTML ? htmlRules : baseRules;
+  const rules = isHTML ? htmlRules : baseRules;
   return rules.getCustomRewriter(url);
 }
 
