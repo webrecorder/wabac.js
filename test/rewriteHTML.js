@@ -394,6 +394,9 @@ test("object svg", rewriteHtml,
   "<object type=\"image/svg+xml\" data=\"https://example.com/some/file.svg\">",
   "<img type=\"image/svg+xml\" src=\"http://localhost:8080/prefix/20201226101010mp_/https://example.com/some/file.svg\">");
 
+test("object other", rewriteHtml,
+  "<object type=\"some/other\" data=\"https://example.com/some/file.bin\">",
+  "<object type=\"some/other\" data=\"https://example.com/some/file.bin\">");
 
 test("textarea text", rewriteHtml,
   "<textarea>&quot;loadOrderID&#x3d;0&amp;&quot;</textarea>",
