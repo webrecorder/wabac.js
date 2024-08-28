@@ -8,7 +8,7 @@
     "@peculiar/asn1-ecc": "^2.3.4",
     "@peculiar/asn1-schema": "^2.3.3",
     "@peculiar/x509": "^1.9.2",
-    "@webrecorder/wombat": "github:webrecorder/wombat#3.8.0-work",
+    "@webrecorder/wombat": "^3.8.0",
     "acorn": "^8.10.0",
     "auto-js-ipfs": "^2.1.1",
     "base64-js": "^1.5.1",
@@ -27,7 +27,7 @@
     "path-parser": "^6.1.0",
     "process": "^0.11.10",
     "stream-browserify": "^3.0.0",
-    "warcio": "^2.3.0-beta.0"
+    "warcio": "^2.3.0"
   },
   "devDependencies": {
     "ava": "^5.3.1",
