@@ -1,1 +1,1 @@
-{"version":3,"file":"ipfs.d.ts","sourceRoot":"","sources":["../../src/ipfs.js"],"names":[],"mappings":"AAKA,sDAMC"}
+{"version":3,"file":"ipfs.d.ts","sourceRoot":"","sources":["../../src/ipfs.ts"],"names":[],"mappings":"AAKA,wBAAsB,YAAY,CAAC,IAAI,KAAA,gBAMtC"}

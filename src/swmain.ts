@@ -6,8 +6,10 @@ import { StatsTracker } from "./statstracker.js";
 
 import { API } from "./api.js";
 
-import WOMBAT from "../dist/wombat.js";
-import WOMBAT_WORKERS from "@webrecorder/wombat/src/wombatWorkers.js";
+import WOMBAT from "./wombat/wombat.js";
+//import WOMBAT_WORKERS from "./wombat/wombatWorkers.js";
+//import WOMBAT_WORKERS from "@webrecorder/wombat/src/wombatWorkers.js";
+const WOMBAT_WORKERS = "";
 
 import { ArchiveRequest } from "./request.js";
 
@@ -17,16 +19,15 @@ const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 declare let self: ServiceWorkerGlobalScope;
 
 
+
 // ===========================================================================
-class SWCollections extends WorkerLoader
+export class SWCollections extends WorkerLoader
 {
   prefixes: Prefixes;
   colls: Record<string, Collection>;
   inited: Promise<boolean> | null;
   root: string | null;
   defaultConfig: Record<string, any>;
-
-  _fileHandles: Record<string, FileSystemFileHandle>;
 
 
   constructor(prefixes, root : string | null = null, defaultConfig = {}) {
@@ -79,7 +80,7 @@ class SWCollections extends WorkerLoader
         await this.colls[name].store.delete();
       }
 
-      if (keepFileHandle && this.colls[name].config && this.colls[name].config.extra &&
+      if (this._fileHandles && keepFileHandle && this.colls[name].config && this.colls[name].config.extra &&
         this.colls[name].config.extra.fileHandle) {
         this._fileHandles[this.colls[name].config.sourceUrl] = this.colls[name].config.extra.fileHandle;
       }
@@ -139,7 +140,7 @@ type SWReplayInitOpts = {
 
 
 // ===========================================================================
-class SWReplay {
+export class SWReplay {
   prefix: string;
   replayPrefix: string;
   staticPrefix: string;
@@ -455,6 +456,4 @@ class SWReplay {
     return notFound(request);
   }
 }
-
-export { SWReplay, SWCollections };
 

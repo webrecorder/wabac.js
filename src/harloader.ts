@@ -12,7 +12,7 @@ class HARLoader extends BaseParser {
     this.pageRefs = {};
   }
 
-  async load(db) {
+  override async load(db) : Promise<void> {
     this.db = db;
     if (typeof this.har === "string") {
       this.har = JSON.parse(this.har);
@@ -23,8 +23,6 @@ class HARLoader extends BaseParser {
     this.parsePages(this.har);
 
     await this.finishIndexing();
-
-    return {};
   }
 
   parsePages(har) {

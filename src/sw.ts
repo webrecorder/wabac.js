@@ -1,5 +1,5 @@
-import { SWReplay } from "./swmain.js";
-import { WorkerLoader } from "./loaders.js";
+import { SWReplay } from "./swmain";
+import { WorkerLoader } from "./loaders";
 
 declare let self: any;
 

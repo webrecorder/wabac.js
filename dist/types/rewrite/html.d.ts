@@ -14,7 +14,7 @@ declare class HTMLRewriter {
     rewriteSrcSet(value: any, rewriter: any): string;
     rewriteTagAndAttrs(tag: any, attrRules: any, rewriter: any): void;
     getAttr(attrs: any, name: any): any;
-    getScriptRWType(tag: any): "" | "module" | "json" | "js" | "text";
+    getScriptRWType(tag: any): "" | "json" | "text" | "module" | "js" | "importmap";
     rewrite(response: any): Promise<any>;
     rewriteUrl(rewriter: any, text: any, forceAbs?: boolean, mod?: string): any;
     rewriteHTMLText(text: any): any;

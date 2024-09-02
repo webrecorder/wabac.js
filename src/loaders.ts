@@ -1,24 +1,24 @@
-import { ArchiveDB } from "./archivedb.js";
-import { RemoteSourceArchiveDB, RemotePrefixArchiveDB } from "./remotearchivedb.js";
+import { ArchiveDB } from "./archivedb";
+import { RemoteSourceArchiveDB, RemotePrefixArchiveDB } from "./remotearchivedb";
 //import { WACZRemoteArchiveDB } from "./waczarchive";
 
-import { HARLoader } from "./harloader.js";
+import { HARLoader } from "./harloader";
 //import { WBNLoader } from "./wbnloader";
-import { WARCLoader } from "./warcloader.js";
-import { CDXLoader, CDXFromWARCLoader } from "./cdxloader.js";
+import { WARCLoader } from "./warcloader";
+import { CDXLoader, CDXFromWARCLoader } from "./cdxloader";
 
-import { SingleWACZLoader, SingleWACZFullImportLoader, JSONResponseMultiWACZLoader } from "./wacz/waczloader.js";
-import { MultiWACZ } from "./wacz/multiwacz.js";
+import { SingleWACZLoader, SingleWACZFullImportLoader, JSONResponseMultiWACZLoader } from "./wacz/waczloader";
+import { MultiWACZ } from "./wacz/multiwacz";
 
-import { BaseLoader, createLoader } from "./blockloaders.js";
+import { BaseLoader, createLoader } from "./blockloaders";
 
-import { RemoteWARCProxy } from "./remotewarcproxy.js";
-import { LiveProxy } from "./liveproxy.js";
+import { RemoteWARCProxy } from "./remotewarcproxy";
+import { LiveProxy } from "./liveproxy";
 
 import { IDBPDatabase, deleteDB, openDB } from "idb/with-async-ittr";
-import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils.js";
-import { detectFileType, getKnownFileExtension } from "./detectfiletype.js";
-import { DBStore } from "./types.js";
+import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils";
+import { detectFileType, getKnownFileExtension } from "./detectfiletype";
+import { ArchiveLoader, DBStore } from "./types";
 
 if (!globalThis.self) {
   (globalThis as any).self = globalThis;
@@ -28,6 +28,27 @@ const interruptLoads = {};
 (self as any).interruptLoads = interruptLoads;
 
 
+export type LoadColl = {
+  name?: string;
+  type?: string;
+  config: Record<string, any>;
+  store?: DBStore;
+}
+
+export type CollConfig = {
+  root: string;
+  dbname?: string;
+
+  sourceUrl: string;
+  extraConfig?: Record<string, any>;
+
+  topTemplateUrl?: string;
+  metadata: Record<string, any>;
+
+  type: string;
+}
+
+
 // ===========================================================================
 export class CollectionLoader
 {
@@ -35,6 +56,8 @@ export class CollectionLoader
   colldb: IDBPDatabase | null = null;
   checkIpfs = true;
   _init_db: Promise<void>;
+
+  _fileHandles: Record<string, FileSystemFileHandle> | null = null;
 
   constructor() {
     this._init_db = this._initDB();
@@ -349,7 +372,7 @@ export class WorkerLoader extends CollectionLoader
           res = await this.colldb!.get("colls", name);
         } else {
           console.warn(e);
-          progressUpdate(0, "An unexpected error occured: " + e.toString());
+          progressUpdate(0, "An unexpected error occured: " + e.toString(), null, null);
           return;
         }
       }
@@ -418,14 +441,14 @@ export class WorkerLoader extends CollectionLoader
     client.postMessage({ "msg_type": "listAll", "colls": msgData });
   }
   
-  async addCollection(data, progressUpdate) {
+  async addCollection(data, progressUpdate) : Promise<LoadColl | false> {
     let name = data.name;
 
-    let type = null;
-    let config = {root: data.root || false};
-    let db = null;
+    let type : string | null = null;
+    let config : Record<string, any> = {root: data.root || false};
+    let generalDB : DBStore | null = null;
 
-    let updateExistingConfig = null;
+    let updateExistingConfig : Record<string, any> | null = null;
 
     const file = data.file;
 
@@ -446,10 +469,11 @@ export class WorkerLoader extends CollectionLoader
       config.metadata = {};
       type = data.type || config.extraConfig.type || "remotewarcproxy";
 
-      db = await this._initStore(type, config);
+      generalDB = await this._initStore(type, config);
 
     } else {
-      let loader = null;
+      let loader : ArchiveLoader | null = null;
+      let db : ArchiveDB | null = null;
 
       if (file.newFullImport) {
         name = randomId();
@@ -464,11 +488,13 @@ export class WorkerLoader extends CollectionLoader
         const existing = await this.colldb!.get("colls", file.importCollId);
         if (!existing || existing.type !== "archive") {
           progressUpdate(0, "Invalid Existing Collection: " + file.importCollId);
-          return;
+          return false;
         }
         config.dbname = existing.config.dbname;
         updateExistingConfig = existing.config;
-        updateExistingConfig.decode = true;
+        if (updateExistingConfig) {
+          updateExistingConfig.decode = true;
+        }
       }
 
       let loadUrl = file.loadUrl || file.sourceUrl;
@@ -503,7 +529,7 @@ export class WorkerLoader extends CollectionLoader
           config.extra = {fileHandle: this._fileHandles[config.sourceUrl]};
         } else {
           progressUpdate(0, "missing_local_file");
-          return {};
+          return false;
         }
       }
 
@@ -520,7 +546,7 @@ export class WorkerLoader extends CollectionLoader
       });
 
       if (file.loadEager) {
-        const {response} = await sourceLoader.doInitialFetch(false, true);
+        const { response } = await sourceLoader.doInitialFetch(false, true);
         const arrayBuffer = new Uint8Array(await response.arrayBuffer());
         const extra = {arrayBuffer};
 
@@ -535,9 +561,9 @@ export class WorkerLoader extends CollectionLoader
         });
       }
 
-      let sourceExt = getKnownFileExtension(config.sourceName);
+      let sourceExt : string | undefined = getKnownFileExtension(config.sourceName);
 
-      let { abort, response } = await sourceLoader.doInitialFetch(sourceExt === ".wacz");
+      let { abort, response } = await sourceLoader.doInitialFetch(sourceExt === ".wacz", false);
 
       if (!sourceExt) {
         sourceExt = await detectFileType(await response.clone());
@@ -548,7 +574,7 @@ export class WorkerLoader extends CollectionLoader
       config.onDemand = sourceLoader.canLoadOnDemand && !file.newFullImport;
 
       if (!sourceLoader.isValid) {
-        const text = sourceLoader.length <= 1000 ? await response.text() : "";
+        const text = (sourceLoader.length && sourceLoader.length <= 1000) ? await response.text() : "";
         progressUpdate(0, `\
 Sorry, this URL could not be loaded.
 Make sure this is a valid URL and you have access to this file.
@@ -638,7 +664,7 @@ Make sure this is a valid URL and you have access to this file.`);
 
       try {
         config.metadata = await loader.load(db, progressUpdate, contentLength);
-      } catch (e) {
+      } catch (e: any) {
         if (!(e instanceof Canceled)) {
           progressUpdate(0, `Unexpected Loading Error: ${e.toString()}`);
           console.warn(e);
@@ -658,6 +684,8 @@ Make sure this is a valid URL and you have access to this file.`);
       if (!config.metadata.title) {
         config.metadata.title = config.sourceName;
       }
+
+      generalDB = db;
     }
 
     config.ctime = new Date().getTime();
@@ -666,9 +694,9 @@ Make sure this is a valid URL and you have access to this file.`);
       delete this._fileHandles[config.sourceUrl];
     }
 
-    const collData = {name, type, config};
-    await this.colldb.add("colls", collData);
-    collData.store = db;
-    return collData;
+    const collData : Record<string, any> = {name, type, config};
+    await this.colldb!.add("colls", collData);
+    collData.store = generalDB;
+    return collData as LoadColl;
   }
 }

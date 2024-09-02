@@ -1,4 +1,3 @@
-/// <reference types="web" />
 export declare class ArchiveRequest {
     url: string;
     timestamp: string;

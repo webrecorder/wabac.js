@@ -46,3 +46,7 @@ export interface DBStore {
 
   getAllPages() : Promise<any[]>;
 }
+
+export interface ArchiveLoader {
+  load(db: DBStore, progressUpdateCallback?: any, totalLength?: number) : Promise<void>;
+};

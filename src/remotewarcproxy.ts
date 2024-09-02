@@ -145,7 +145,7 @@ export class RemoteWARCProxy implements DBStore {
       if (record.httpHeaders) {
         headers = record.httpHeaders.headers as Headers;
         status = Number(record.httpHeaders.statusCode);
-        statusText = record.httpHeaders.statusText;
+        statusText = record.httpHeaders.statusText || null;
         hasPayload = record.httpHeaders.headers.get("Content-Length") !== "0";
       } else if (record.warcType === "resource") {
         headers = new Headers();

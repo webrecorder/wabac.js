@@ -3,6 +3,8 @@ type Rules = {
     contains: string[];
     rxRules: Rule[];
 };
+export declare const DEFAULT_RULES: Rules[];
+export declare const HTML_ONLY_RULES: Rules[];
 type T = typeof RxRewriter;
 export declare class DomainSpecificRuleSet {
     rwRules: Rules[];
@@ -11,6 +13,7 @@ export declare class DomainSpecificRuleSet {
     defaultRewriter: RxRewriter;
     constructor(RewriterCls: T, rwRules?: Rules[]);
     _initRules(): void;
+    getCustomRewriter(url: string): any;
     getRewriter(url: string): any;
 }
 export {};

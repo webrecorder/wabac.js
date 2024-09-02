@@ -19,13 +19,13 @@ export declare function digestMessage(message: string | Uint8Array, hashtype: st
 export declare function decodeLatin1(buf: Uint8Array): string;
 export declare function encodeLatin1(str: string): Uint8Array;
 export declare function randomId(): string;
-export declare function makeHeaders(headers: Record<string, string>): Headers;
+export declare function makeHeaders(headers: Headers | Record<string, string> | Map<string, string>): Headers;
 export declare function parseSetCookie(setCookie: string, scheme: string): string;
 export declare function isNullBodyStatus(status: number): boolean;
 export declare function getStatusText(status: number): string;
-export declare function isAjaxRequest(request: ArchiveRequest): boolean;
-export declare function handleAuthNeeded(e: Error, config: any): Promise<boolean>;
-export declare function notFound(request: Request, msg: string, status?: number): Response;
+export declare function isAjaxRequest(request: ArchiveRequest | Request): boolean;
+export declare function handleAuthNeeded(e: any, config: any): Promise<boolean>;
+export declare function notFound(request: Request, msg?: string, status?: number): Response;
 export declare function getCollData(coll: any): any;
 export declare class RangeError {
     info: Record<string, any>;

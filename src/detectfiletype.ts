@@ -52,7 +52,7 @@ export function getKnownFileExtension(name) {
       return ext;
     }
   }
-  return "";
+  return undefined;
 }
 
 export function checkMagicBytes(fileBytes) {

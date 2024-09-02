@@ -7,18 +7,18 @@ type ArchiveResponseOpts = {
     url: string;
     date: Date | null;
     extraOpts?: Record<string, any> | null;
-    noRW: boolean;
-    isLive: boolean;
-    updateTS: string | null;
+    noRW?: boolean;
+    isLive?: boolean;
+    updateTS?: string | null;
 };
 declare class ArchiveResponse {
     static fromResponse({ url, response, date, noRW, isLive, archivePrefix }: {
         url: string;
         response: Response;
         date: Date;
-        noRW: boolean;
-        isLive: boolean;
-        archivePrefix: string;
+        noRW?: boolean;
+        isLive?: boolean;
+        archivePrefix?: string;
     }): ArchiveResponse;
     reader: AsyncIterReader | null;
     buffer: Uint8Array | null;
@@ -31,9 +31,13 @@ declare class ArchiveResponse {
     noRW: boolean;
     isLive: boolean;
     updateTS: string | null;
+    clonedResponse: Response | null;
     constructor({ payload, status, statusText, headers, url, date, extraOpts, noRW, isLive, updateTS }: ArchiveResponseOpts);
-    getText(isUTF8?: boolean): Promise<string>;
-    setText(text: string, isUTF8?: boolean): void;
+    getText(isUTF8?: boolean): Promise<{
+        bomFound: boolean;
+        text: string;
+    }>;
+    setText(text: string, encodeUTF8?: boolean): void;
     getBuffer(): Promise<Uint8Array | null>;
     setBuffer(buffer: Uint8Array): void;
     setReader(reader: AsyncIterReader | ReadableStream): void;

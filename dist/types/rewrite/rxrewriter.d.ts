@@ -4,7 +4,7 @@ export declare class RxRewriter {
     rx: RegExp | null;
     constructor(rules?: Rule[]);
     compileRules(): void;
-    doReplace(params: any[], opts: Record<string, any>): string;
+    doReplace(match: string, params: any[], opts: Record<string, any>): string;
     rewrite(text: string, opts: Record<string, any>): string;
 }
 //# sourceMappingURL=rxrewriter.d.ts.map

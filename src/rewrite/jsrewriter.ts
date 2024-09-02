@@ -79,7 +79,7 @@ const createJSRules : () => Rule[] = () => {
 
   function replaceThis() {
     return (x: string, _opts: any, offset: number, fullString: string) => {
-      if (isInString(string, offset)) {
+      if (isInString(x, offset)) {
         return x;
       }
       return x.replace("this", thisRw);

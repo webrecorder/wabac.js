@@ -363,6 +363,10 @@ export class ZipBlockLoader extends BaseLoader
     this.filename = filename;
   }
 
+  get isValid() {
+    return true;
+  }
+
   async doInitialFetch(tryHead = false) {
     await this.zipreader.load();
 

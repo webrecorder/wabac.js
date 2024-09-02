@@ -828,7 +828,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource
 
       resp = await super.getResource(request, prefix, event, {waczname: name, noFuzzyCheck: true, loadFirst: true});
       if (resp) {
-        foundMap.set(resp.date, {name, hash: file.hash});
+        foundMap.set((resp as ArchiveResponse).date, {name, hash: file.hash});
       }
     }
 
@@ -839,7 +839,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource
       let foundHash;
 
       for (const date of foundMap.keys()) {
-        const dist = Math.abs(date.getTime() - requestTS);
+        const dist = Math.abs(date.getTime() - requestTS.getTime());
         if (min < 0 || dist < min) {
           const {name, hash} = foundMap.get(date);
           waczname = name;
@@ -892,7 +892,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource
 
   async loadFromJSON(response : Response | null = null) {
     if (!response) {
-      const result = await this.sourceLoader.doInitialFetch(false);
+      const result = await this.sourceLoader.doInitialFetch(false, false);
       response = result && result.response;
     }
 

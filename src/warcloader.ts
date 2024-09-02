@@ -24,7 +24,7 @@ class WARCLoader extends BaseParser {
   lists: string[] = [];
   pageMap: Record<string, any> = {};
 
-  constructor(reader, abort = null, loadId = null, sourceExtra = null) {
+  constructor(reader, abort: AbortController | null = null, loadId = null, sourceExtra = null) {
     super();
     
     this.reader = reader;

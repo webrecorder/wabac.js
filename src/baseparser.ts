@@ -1,3 +1,5 @@
+import { ArchiveLoader, DBStore } from "./types";
+
 const DEFAULT_BATCH_SIZE = 1000;
 
 
@@ -27,7 +29,7 @@ export type ResourceEntry = {
 };
 
 // ===========================================================================
-class BaseParser
+abstract class BaseParser implements ArchiveLoader
 {
   batchSize: number;
   promises: Promise<void>[] = [];
@@ -98,6 +100,8 @@ class BaseParser
   _finishLoad() {
 
   }
+
+  abstract load(db: DBStore, progressUpdateCallback?: any, totalLength?: number);
 }
 
 export { BaseParser };

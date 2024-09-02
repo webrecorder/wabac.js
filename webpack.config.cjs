@@ -4,6 +4,7 @@ const path = require("path");
 const webpack = require("webpack");
 const TerserPlugin = require("terser-webpack-plugin");
 const package_json = require("./package.json");
+const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 
 module.exports = {
   mode: "production",
@@ -37,6 +38,11 @@ module.exports = {
     //publicPath: "/dist/"
   },
 
+  resolve: {
+    extensions: [".ts", ".js"],
+    plugins: [new TsconfigPathsPlugin()],
+  },
+
   module: {
     rules: [
       {
@@ -44,7 +50,7 @@ module.exports = {
         loader: "ts-loader",
         include: path.resolve(__dirname, "src"),
         options: {
-          onlyCompileBundledFiles: true,
+          onlyCompileBundledFiles: false,
         },
       }, {
         test: /(dist\/wombat.js|src\/wombatWorkers.js)$/i,

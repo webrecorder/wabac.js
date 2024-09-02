@@ -4,6 +4,7 @@ export declare const xmlOpts: {
     removeNSPrefix: boolean;
     format: boolean;
     suppressEmptyNode: boolean;
+    suppressBooleanAttributes: boolean;
 };
-export declare function rewriteDASH(text: string, opts: Record<string, any>, bestIds?: string[]): string;
+export declare function rewriteDASH(text: string, opts: Record<string, any>, bestIds?: string[]): any;
 //# sourceMappingURL=rewriteVideo.d.ts.map
