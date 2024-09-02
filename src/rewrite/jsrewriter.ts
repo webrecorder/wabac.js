@@ -35,6 +35,21 @@ const createJSRules : () => Rule[] = () => {
 
   const evalStr = "WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),";
 
+  function isInString(str: string, offset: number) {
+    // partial detection when inside a string, 
+    // check if nearest " are actually \"
+    // detects a subset of matches inside longer strings
+    let inx = str.lastIndexOf("\"", offset);
+    if (inx < 0) {
+      inx = str.indexOf("\"", offset);
+    }
+    if (inx > 0 && str[inx - 1] === "\\") {
+      // last " was a \", so likely inside string, don't rewrite
+      return true;
+    }
+    return false;
+  }
+
   function addPrefix(prefix: string) {
     return (x: string) => prefix + x;
   }
@@ -63,7 +78,12 @@ const createJSRules : () => Rule[] = () => {
   }
 
   function replaceThis() {
-    return (x: string) => x.replace("this", thisRw);
+    return (x: string, _opts: any, offset: number, fullString: string) => {
+      if (isInString(string, offset)) {
+        return x;
+      }
+      return x.replace("this", thisRw);
+    };
   }
 
   function replace(src: string, target: string) {

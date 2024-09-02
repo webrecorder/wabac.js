@@ -31,6 +31,7 @@ const JSONP_REGEX = /^(?:\s*(?:(?:\/\*[^*]*\*\/)|(?:\/\/[^\n]+[\n])))*\s*([\w.]+
 
 const JSONP_CALLBACK_REGEX = /[?].*(?:callback|jsonp)=([^&]+)/i;
 
+// ===========================================================================
 // JS Rewriters
 export const jsRules = new DomainSpecificRuleSet(JSRewriter);
 export const baseRules = new DomainSpecificRuleSet(RxRewriter);
@@ -52,6 +53,10 @@ type RewriterOpts = {
   useBaseRules?: boolean;
 };
 
+export function getCustomRewriter(url: string, isHTML: boolean) {
+  const rules = isHTML ? htmlRules : baseRules;
+  return rules.getCustomRewriter(url);
+}
 
 // ===========================================================================
 export class Rewriter {
