@@ -1,14 +1,15 @@
-"use strict";
+import test, {ExecutionContext} from "ava";
+import { Rewriter } from "../src/rewrite/index";
 
-import test from "ava";
-import { Rewriter } from "../src/rewrite/index.js";
+const rewriteUrl = test.macro({
+	exec(t: ExecutionContext, url: string, baseUrl: string, prefix: string, expected: string) : void {
+    t.is(new Rewriter({baseUrl, prefix}).rewriteUrl(url), expected);
+  },
 
-function rewriteUrl(t, url, baseUrl, prefix, expected) {
-  t.is(new Rewriter({baseUrl, prefix}).rewriteUrl(url), expected);
-}
-
-rewriteUrl.title = (providedTitle = "URL", url, baseUrl, prefix, expected) => `${providedTitle}: Rewriter(${prefix}${baseUrl}).RW(${url}) => ${expected}`.trim();
-
+	title(providedTitle = "URL", url, baseUrl, prefix, expected) {
+     return `${providedTitle}: Rewriter(${prefix}${baseUrl}).RW(${url}) => ${expected}`.trim();
+  }
+});
 
 test(rewriteUrl,
   "other.html", "http://example.com/path/page.html", "https://web.archive.org/web/",

@@ -44,7 +44,7 @@ type InsertFunc = (url: string) => string;
 type RewriterOpts = {
   baseUrl: string;
   prefix: string;
-  responseUrl: string;
+  responseUrl?: string;
   workerInsertFunc?: InsertFunc | null;
   headInsertFunc?: InsertFunc | null;
   urlRewrite?: boolean;
@@ -82,7 +82,7 @@ export class Rewriter {
 
   _jsonpCallback: string | boolean | null;
 
-  constructor({baseUrl, prefix, responseUrl, workerInsertFunc = null, headInsertFunc = null,
+  constructor({baseUrl, prefix, responseUrl = undefined, workerInsertFunc = null, headInsertFunc = null,
     urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} : RewriterOpts) {
     this.urlRewrite = urlRewrite;
     this.contentRewrite = contentRewrite;
@@ -108,7 +108,7 @@ export class Rewriter {
 
     this.headInsertFunc = headInsertFunc;
     this.workerInsertFunc = workerInsertFunc;
-    this.responseUrl = responseUrl;
+    this.responseUrl = responseUrl || baseUrl;
     this.isCharsetUTF8 = false;
 
     this._jsonpCallback = null;

@@ -1,6 +1,6 @@
-import brotliDecode from "brotli/decompress";
+import brotliDecode from "brotli/decompress.js";
 
-import { Inflate } from "pako";
+import pako from "pako";
 
 import { AsyncIterReader } from "warcio";
 import { ArchiveResponse } from "../response";
@@ -53,7 +53,7 @@ async function decodeContent(content: Uint8Array, contentEncoding: string | null
       }
 
     } else if (contentEncoding === "gzip" || transferEncoding === "gzip") {
-      const inflator = new Inflate();
+      const inflator = new pako.Inflate();
 
       inflator.push(content, true);
 

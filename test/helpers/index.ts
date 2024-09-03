@@ -9,6 +9,7 @@ import { ArchiveRequest } from "../../src/request";
 
 import { encodeLatin1 } from "../../src/utils";
 
+
 export async function doRewrite({
   content,
   contentType,
@@ -22,9 +23,7 @@ export async function doRewrite({
   encoding = "utf8",
   headersDict={}}) {
 
-  const RW = new Rewriter({baseUrl: url, prefix: "http://localhost:8080/prefix/20201226101010mp_/", useBaseRules, headInsertFunc,
-    responseUrl: url
-  });
+  const RW = new Rewriter({baseUrl: url, prefix: "http://localhost:8080/prefix/20201226101010mp_/", useBaseRules, headInsertFunc});
   //const resp = new Response(content, {"headers": {"Content-Type": contentType}});
   const date = new Date("2019-01-02T03:00:00Z");
   const payload = encoding !== "latin1" ? new TextEncoder().encode(content) : encodeLatin1(content);
@@ -41,10 +40,7 @@ export async function doRewrite({
 
   const res = await RW.rewrite(resp, new ArchiveRequest("20201226101010mp_/" + url, new Request(url, {headers: respHeaders, mode: "same-origin"})));
 
-  if (returnHeaders) {
-    return res.headers;
-  } else { 
-    const { text } = await res.getText(encoding === "utf8");
-    return text;
-  }
+  const { text } = await res.getText(encoding === "utf8");
+
+  return { text, headers: res.headers };
 }

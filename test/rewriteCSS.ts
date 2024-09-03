@@ -4,22 +4,26 @@ import { doRewrite } from "./helpers/index.js";
 
 
 // ===========================================================================
-async function rewriteCSS(t, content, expected, encoding = "utf8", expectedContentType = "text/css") {
-  const opts = {content, contentType: "text/css", useBaseRules: false, encoding};
-  const actual = await doRewrite(opts);
+const rewriteCSS = test.macro({
+  async exec(t, content: string, expected: string, encoding: string = "utf8", expectedContentType: string = "text/css") {
+    const opts = {content, contentType: "text/css", useBaseRules: false, encoding};
+    const {text: actual} = await doRewrite(opts);
 
-  if (!expected) {
-    expected = content;
+    if (!expected) {
+      expected = content;
+    }
+
+    t.is(actual, expected);
+
+    const {headers} = await doRewrite({returnHeaders: true, ...opts});
+
+    t.is(headers.get("content-type"), expectedContentType);
+  },
+
+  title(providedTitle = "CSS", input: string/*, expected*/) {
+    return `${providedTitle}: ${input.replace(/\n/g, "\\n")}`.trim();
   }
-
-  t.is(actual, expected);
-
-  const headers = await doRewrite({returnHeaders: true, ...opts});
-
-  t.is(headers.get("content-type"), expectedContentType);
-}
-
-rewriteCSS.title = (providedTitle = "CSS", input/*, expected*/) => `${providedTitle}: ${input.replace(/\n/g, "\\n")}`.trim();
+});
 
 
 test(rewriteCSS,

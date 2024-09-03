@@ -4,15 +4,19 @@ import { doRewrite } from "./helpers/index.js";
 
 
 // ===========================================================================
-async function rewriteHeaders(t, headerName, value, expected, isAjax = false) {
-  const headers = {};
-  headers[headerName] = value;
-  const actual = await doRewrite({content: "", headers, returnHeaders: true, isAjax});
-
-  t.is(actual.get(headerName), expected);
-}
-
-rewriteHeaders.title = (providedTitle = "Headers", name, value, expected) => `${providedTitle}: ${value} => ${expected}`.trim();
+const rewriteHeaders = test.macro({
+  async exec(t, headerName: string, value: string, expected: string, isAjax : boolean = false) {
+    const headersDict : Record<string, string> = {};
+    headersDict[headerName] = value;
+    const { headers } = await doRewrite({content: "", headersDict, returnHeaders: true, isAjax, contentType: "text/html"});
+  
+    t.is(headers.get(headerName), expected);
+  },
+  
+  title(providedTitle = "Headers", name, value, expected) {
+    return `${providedTitle}: ${value} => ${expected}`.trim();
+  }
+});
 
 
 test(rewriteHeaders,
