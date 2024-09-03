@@ -1,19 +1,21 @@
 "use strict";
 
-import test from "ava";
+import test, {ExecutionContext} from "ava";
 import { FuzzyMatcher } from "../src/fuzzymatcher.js";
 
 const fuzzy = new FuzzyMatcher();
 
-function fuzzyMatch(t, url, result) {
-  t.deepEqual(fuzzy.fuzzyCompareUrls(url, [result]), result);
+function fuzzyMatch(t: ExecutionContext, url: string, result: string) {
+  const res = fuzzy.fuzzyCompareUrls(url, [{url: result, status: 200}]);
+  t.deepEqual(res ? res.url : "", result);
 }
 
-function fuzzyMatchMany(t, url, results, expected) {
-  t.deepEqual(fuzzy.fuzzyCompareUrls(url, results), expected);
+function fuzzyMatchMany(t: ExecutionContext, url: string, results: string[], expected: string) {
+  const res = fuzzy.fuzzyCompareUrls(url, results.map((url: string) => {return {url, status: 200}}));
+  t.deepEqual(res ? res.url : "", expected);
 }
 
-function fuzzyCanonWithArgs(t, url, expected) {
+function fuzzyCanonWithArgs(t: ExecutionContext, url: string, expected: string[]) {
   const fuzzyCanonUrls = fuzzy.getFuzzyCanonsWithArgs(url);
   t.deepEqual(fuzzyCanonUrls, expected);
 }

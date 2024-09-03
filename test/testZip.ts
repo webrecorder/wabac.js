@@ -1,17 +1,19 @@
 //import { fetch } from "node:fetch";
 
-import test from "ava";
+import anyTest, {TestFn, ExecutionContext} from "ava";
 import http from "http";
 
 import listen from "test-listen";
 
 import serveStatic from "serve-static";
 
-import { ZipRangeReader } from "../src/wacz/ziprangereader.js";
+import { ZipRangeReader } from "../src/wacz/ziprangereader";
 
-import { createLoader } from "../src/blockloaders.js";
+import { createLoader } from "../src/blockloaders";
 
 import { WARCParser } from "warcio";
+
+const test = anyTest as TestFn<{baseUrl: string, server: http.Server}>;
 
 
 const decoder = new TextDecoder("utf-8");
@@ -22,7 +24,7 @@ function createServer() {
 }
 
 
-test.before(async t => {
+test.before(async (t) => {
   t.context.server = createServer();
   t.context.baseUrl = await listen(t.context.server);
 });
@@ -91,12 +93,15 @@ test("load test.zip WARC.GZ record", async t => {
 
   const parser = new WARCParser(reader);
   const record = await parser.parse();
-
+  if (!record) {
+    t.fail();
+    return;
+  }
   t.is(record.warcType, "response");
   t.is(record.warcTargetURI, "http://example.com/");
   t.is(record.warcPayloadDigest, "sha1:G7HRM7BGOKSKMSXZAHMUQTTV53QOFSMK");
 
-  t.is(record.httpHeaders.headers.get("Content-Type"), "text/html");
+  t.is(record.httpHeaders?.headers.get("Content-Type"), "text/html");
 
   const line = await record.readline();
   t.is(line, "<!doctype html>\n");
@@ -109,12 +114,15 @@ test("load test.zip WARC record", async t => {
 
   const parser = new WARCParser(reader);
   const record = await parser.parse();
-
+  if (!record) {
+    t.fail();
+    return;
+  }
   t.is(record.warcType, "response");
   t.is(record.warcTargetURI, "http://www.iana.org/");
   t.is(record.warcPayloadDigest, "sha1:b1f949b4920c773fd9c863479ae9a788b948c7ad");
 
-  t.is(record.httpHeaders.headers.get("Content-Type"), "text/html; charset=UTF-8");
+  t.is(record.httpHeaders?.headers.get("Content-Type"), "text/html; charset=UTF-8");
 
   let text = "";
   let count = 0;

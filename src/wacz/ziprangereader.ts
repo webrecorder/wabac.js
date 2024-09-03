@@ -23,7 +23,7 @@ export type ZipEntry = {
   uncompressedSize: number;
   compressedSize: number;
   localEntryOffset: number;
-  offset: number;
+  offset?: number;
 };
 
 
@@ -252,7 +252,6 @@ export class ZipRangeReader
           uncompressedSize,
           compressedSize,
           localEntryOffset,
-          offset: 0,
         };
 
         // optimization if no extraFieldLength, can set offset and avoid extra lookup
@@ -281,7 +280,7 @@ export class ZipRangeReader
   }
 
   async loadFile(name: string, {offset = 0, length = -1, signal = null, unzip = false, computeHash = false} : 
-    {offset?: number, length?: number, signal?: AbortSignal | null, unzip?: boolean, computeHash?: boolean}) :
+    {offset?: number, length?: number, signal?: AbortSignal | null, unzip?: boolean, computeHash?: boolean} = {}) :
     Promise<ReaderAndHasher> {
     if (this.entries === null) {
       await this.load();

@@ -45,11 +45,11 @@ type RewriterOpts = {
   baseUrl: string;
   prefix: string;
   responseUrl: string;
-  workerInsertFunc: InsertFunc | null;
-  headInsertFunc: InsertFunc | null;
-  urlRewrite: boolean;
-  contentRewrite: boolean;
-  decode: boolean;
+  workerInsertFunc?: InsertFunc | null;
+  headInsertFunc?: InsertFunc | null;
+  urlRewrite?: boolean;
+  contentRewrite?: boolean;
+  decode?: boolean;
   useBaseRules?: boolean;
 };
 
@@ -82,7 +82,7 @@ export class Rewriter {
 
   _jsonpCallback: string | boolean | null;
 
-  constructor({baseUrl, prefix, responseUrl, workerInsertFunc, headInsertFunc = null,
+  constructor({baseUrl, prefix, responseUrl, workerInsertFunc = null, headInsertFunc = null,
     urlRewrite = true, contentRewrite = true, decode = true, useBaseRules = false} : RewriterOpts) {
     this.urlRewrite = urlRewrite;
     this.contentRewrite = contentRewrite;
