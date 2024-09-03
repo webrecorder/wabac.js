@@ -260,13 +260,13 @@ export class FuzzyMatcher {
     return this.fuzzyBestMatchQuery(reqUrl, results, matchedRule);
   }
 
-  fuzzyBestMatchQuery(reqUrlStr: string, results: FuzzyResEntry[], rule?: FuzzyRule) {
+  fuzzyBestMatchQuery(reqUrlStr: string, results: FuzzyResEntry[], rule?: FuzzyRule) : FuzzyResEntry | null {
     let reqUrl : URL;
     
     try {
       reqUrl = new URL(reqUrlStr);
     } catch (e) {
-      return 0.0;
+      return null;
     }
 
     const reqArgs : Set<string> | null = rule && rule.args && !rule.fuzzyArgs ? new Set<string>(rule.args[0]) : null;

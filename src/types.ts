@@ -31,8 +31,19 @@ export type ResourceEntry = {
 
 export type PageEntry = {
   url: string;
+
   date?: string | null;
+  datetime?: string | null;
+  ts?: number | string;
+  
   title?: string;
+  id?: string;
+  state?: number;
+
+  timestamp?: string;
+
+  pos?: number;
+  list?: any;
 }
 
 export type DigestRefCount = {

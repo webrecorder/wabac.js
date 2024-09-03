@@ -574,7 +574,7 @@ export class WorkerLoader extends CollectionLoader
 
       config.onDemand = sourceLoader.canLoadOnDemand && !file.newFullImport;
 
-      if (!sourceLoader.isValid || !stream) {
+      if (!sourceLoader.isValid) {
         const text = (sourceLoader.length && sourceLoader.length <= 1000) ? await response.text() : "";
         progressUpdate(0, `\
 Sorry, this URL could not be loaded.
@@ -621,7 +621,7 @@ Make sure this is a valid URL and you have access to this file.`);
           return false;
         }
 
-      } else if (sourceExt === ".warc" || sourceExt === ".warc.gz") {
+      } else if (stream && (sourceExt === ".warc" || sourceExt === ".warc.gz")) {
         if (!config.noCache && (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand)) {
           loader = new WARCLoader(stream, abort, name);
         } else {
@@ -630,7 +630,7 @@ Make sure this is a valid URL and you have access to this file.`);
           db = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
         }
 
-      } else if (sourceExt === ".cdx" || sourceExt === ".cdxj") {
+      } else if (stream && (sourceExt === ".cdx" || sourceExt === ".cdxj")) {
         config.remotePrefix = data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
         loader = new CDXLoader(stream, abort, name);
         type = "remoteprefix";

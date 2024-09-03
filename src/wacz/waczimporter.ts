@@ -3,6 +3,7 @@ import yaml from "js-yaml";
 import { verifyWACZSignature } from "./certutils";
 import { MultiWACZ } from "./multiwacz";
 import { WACZFile } from "./waczfile";
+import { PageEntry } from "../types";
 
 export const MAIN_PAGES_JSON = "pages/pages.jsonl";
 export const EXTRA_PAGES_JSON = "pages/extraPages.jsonl";
@@ -210,9 +211,9 @@ export class WACZImporter
       return [];
     }
 
-    let pageListInfo = [];
+    let pageListInfo = null;
   
-    let pages : Record<string, any>[] = [];
+    let pages : PageEntry[] = [];
   
     for await (const textLine of reader.iterLines()) {
       const page = JSON.parse(textLine);

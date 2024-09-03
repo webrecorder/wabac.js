@@ -101,7 +101,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB
         return new Uint8Array([]);
       }
 
-      const origResult = await this.lookupUrl(remote.origURL, remote.origTS, {...opts, noRevisits: true});
+      const origResult = await this.lookupUrl(remote.origURL, remote.origTS || 0, {...opts, noRevisits: true});
       if (!origResult) {
         return null;
       }

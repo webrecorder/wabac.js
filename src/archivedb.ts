@@ -3,7 +3,7 @@ import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage,
   getTS, getStatusText, randomId, PAGE_STATE_SYNCED } from "./utils";
 import { fuzzyMatcher } from "./fuzzymatcher";
 import { ArchiveResponse } from "./response";
-import { DBStore, DigestRefCount, ResAPIResponse, ResourceEntry } from "./types";
+import { DBStore, DigestRefCount, PageEntry, ResAPIResponse, ResourceEntry } from "./types";
 import { ArchiveRequest } from "./request";
 
 
@@ -34,7 +34,7 @@ export class ArchiveDB implements DBStore {
   initing: Promise<void>;
   db: IDBPDatabase | null = null;
 
-  constructor(name, opts: any = {}) {
+  constructor(name: string, opts: any = {}) {
     this.name = name;
     this.db = null;
 
@@ -73,7 +73,7 @@ export class ArchiveDB implements DBStore {
     }
   }
 
-  _initDB(db, oldV, newV, tx) {
+  _initDB(db: any, oldV: number, newV: number | null, tx: any) {
     if (!oldV) {
       const pageStore = db.createObjectStore("pages", { keyPath: "id" });
       pageStore.createIndex("url", "url");
@@ -124,7 +124,7 @@ export class ArchiveDB implements DBStore {
     });
   }
 
-  async addPage(page, tx) {
+  async addPage(page: PageEntry, tx: any) {
     const url = page.url;
     const title = page.title || page.url;
     const id = page.id || this.newPageId();
@@ -153,7 +153,7 @@ export class ArchiveDB implements DBStore {
     }
   }
 
-  async addPages(pages, pagesTable = "pages", update = false) {
+  async addPages(pages: PageEntry[], pagesTable = "pages", update = false) {
     const tx = this.db!.transaction(pagesTable, "readwrite");
 
     for (const page of pages) {
@@ -171,7 +171,7 @@ export class ArchiveDB implements DBStore {
     }
   }
 
-  async createPageList(data) {
+  async createPageList(data: Record<string, any>) {
     const listData: any = {};
     listData.title = data.title;
     listData.desc = data.desc || data.description;
@@ -180,7 +180,7 @@ export class ArchiveDB implements DBStore {
     return await this.db!.put("pageLists", listData);
   }
 
-  async addCuratedPageList(listInfo, pages) {
+  async addCuratedPageList(listInfo: Record<string, any>, pages: PageEntry[]) {
     const listId = await this.createPageList(listInfo);
 
     let pos = 0;
@@ -193,7 +193,7 @@ export class ArchiveDB implements DBStore {
     await this.addPages(pages, "curatedPages");
   }
 
-  async addCuratedPageLists(pageLists, pageKey = "pages", filter = "public") {
+  async addCuratedPageLists(pageLists: any[], pageKey = "pages", filter = "public") {
     for (const list of pageLists) {
       if (filter && !list[filter]) {
         continue;
@@ -205,7 +205,7 @@ export class ArchiveDB implements DBStore {
     }
   }
 
-  async convertCuratedPagesToV2(db) {
+  async convertCuratedPagesToV2(db: any) {
     const curatedPages = await db.getAll("curatedPages");
 
     if (!curatedPages || !curatedPages.length) {
@@ -277,7 +277,7 @@ export class ArchiveDB implements DBStore {
     return await this.db!.getAll("pages");
   }
 
-  async getPages(pages) {
+  async getPages(pages: PageEntry[]) {
     const results : string[] = [];
     pages.sort();
 
@@ -288,17 +288,17 @@ export class ArchiveDB implements DBStore {
     return results;
   }
 
-  async getTimestampsByURL(url) {
+  async getTimestampsByURL(url: string) {
     const tx = this.db!.transaction("resources");
     const range = IDBKeyRange.bound([url], [url, MAX_DATE_TS]);
     const results : string[] = []; 
     for await (const cursor of tx.store.iterate(range)) {
-      results.push(cursor.key[1]);
+      results.push((cursor.key as string[])[1]);
     }
     return results;
   }
 
-  async getPagesWithState(state) {
+  async getPagesWithState(state: number) {
     return await this.db!.getAllFromIndex("pages", "state", state);
   }
 
@@ -314,7 +314,7 @@ export class ArchiveDB implements DBStore {
     return;
   }
 
-  async dedupResource(digest, payload, tx, count = 1) : Promise<DigestRefCount | null> {
+  async dedupResource(digest: string, payload: Uint8Array | null | undefined, tx: any, count = 1) : Promise<DigestRefCount | null> {
     const digestRefStore = tx.objectStore("digestRef");
     const ref = await digestRefStore.get(digest);
 
@@ -451,7 +451,7 @@ export class ArchiveDB implements DBStore {
     const tx = this.db!.transaction(["resources", "digestRef", "payload"], "readwrite");
 
     if (data.payload && data.payload.length > this.minDedupSize) {
-      digestRefCount = await this.dedupResource(data.digest, data.payload, tx);
+      digestRefCount = await this.dedupResource(data.digest || "", data.payload, tx);
       isNew = (!!digestRefCount && digestRefCount.count === 1);
       delete data.payload;
     } else if (data.payload) {
@@ -569,7 +569,7 @@ export class ArchiveDB implements DBStore {
     return new ArchiveResponse({url, payload, status, statusText, headers, date, extraOpts});
   }
 
-  async loadPayload(result, opts: Record<string, any>) {
+  async loadPayload(result: Record<string, any>, opts: Record<string, any>) {
     if (result.digest && !result.payload) {
       if (result.digest === EMPTY_PAYLOAD_SHA256 || result.digest === EMPTY_PAYLOAD_SHA1) {
         return new Uint8Array([]);
@@ -585,9 +585,9 @@ export class ArchiveDB implements DBStore {
     return result.payload;
   }
 
-  isSelfRedirect(url, result) {
+  isSelfRedirect(url: string, result: ResourceEntry) {
     try {
-      if (result && result.respHeaders && result.status >= 300 && result.status < 400) {
+      if (result && result.respHeaders && result.status && result.status >= 300 && result.status < 400) {
         const location = new Headers(result.respHeaders).get("location");
         if (new URL(self.location.href, url).href === url) {
           return true;
@@ -600,7 +600,7 @@ export class ArchiveDB implements DBStore {
     return false;
   }
 
-  async lookupUrl(url, ts, opts : Record<string, any> = {}) : Promise<ResourceEntry | null> {
+  async lookupUrl(url: string, ts: number, opts : Record<string, any> = {}) : Promise<ResourceEntry | null> {
     const tx = this.db!.transaction("resources", "readonly");
 
     if (ts) {
@@ -662,7 +662,7 @@ export class ArchiveDB implements DBStore {
     return null;
   }
 
-  async lookupQueryPrefix(url, opts) {
+  async lookupQueryPrefix(url: string, opts: Record<string, any>) : Promise<ResourceEntry | null> {
     const {rule, prefix, fuzzyCanonUrl/*, fuzzyPrefix*/} = fuzzyMatcher.getRuleFor(url);
 
     if (fuzzyCanonUrl !== url) {
@@ -683,7 +683,7 @@ export class ArchiveDB implements DBStore {
     //todo: explore optimizing with incremental loading?
     const results = await this.db!.getAll("resources", this.getLookupRange(prefix, "prefix"), MAX_FUZZY_MATCH);
 
-    return fuzzyMatcher.fuzzyCompareUrls(url, results, rule);
+    return fuzzyMatcher.fuzzyCompareUrls(url, results, rule) as ResourceEntry;
   }
 
   resJson(res: ResourceEntry) : ResAPIResponse {
@@ -697,17 +697,17 @@ export class ArchiveDB implements DBStore {
     };
   }
 
-  async resourcesByPage(pageId) {
+  async resourcesByPage(pageId: string) {
     return this.db!.getAllFromIndex("resources", "pageId", pageId);
   }
 
-  async* resourcesByPages2(pageIds) {
+  async* resourcesByPages2(pageIds: string[]) {
     pageIds.sort();
 
     yield* this.matchAny("resources", "pageId", pageIds);
   }
 
-  async* resourcesByPages(pageIds) {
+  async* resourcesByPages(pageIds: string[]) {
     const tx = this.db!.transaction("resources", "readonly");
 
     for await (const cursor of tx.store.iterate()) {
@@ -731,7 +731,7 @@ export class ArchiveDB implements DBStore {
       let currKey, matchKey, matches;
 
       if (subKey !== undefined) {
-        currKey = cursor.key[subKey];
+        currKey = (cursor.key as string[])[subKey];
         matchKey = sortedKeys[i][subKey];
         matches = currKey.startsWith(matchKey);
       } else {
@@ -780,9 +780,9 @@ export class ArchiveDB implements DBStore {
     return results;
   }
 
-  async resourcesByMime(mimes, count = 100, fromMime = "", fromUrl = "", fromStatus = 0)
+  async resourcesByMime(mimesStr: string, count = 100, fromMime = "", fromUrl = "", fromStatus = 0)
     : Promise<ResAPIResponse[]> {
-    mimes = mimes.split(",");
+    const mimes = mimesStr.split(",");
     const results : ResAPIResponse[] = [];
 
     mimes.sort();
@@ -838,12 +838,11 @@ export class ArchiveDB implements DBStore {
     await tx.store.delete(id);
 
     const size = await this.deletePageResources(id);
-    return {pageSize: page?.size || 0,
-      dedupSize: size};
+    return {pageSize: page?.size || 0, dedupSize: size};
   }
 
   async deletePageResources(pageId: string) : Promise<number> {
-    const digestSet = {};
+    const digestSet : Record<string, number> = {};
 
     const tx = this.db!.transaction("resources", "readwrite");
 
@@ -890,11 +889,11 @@ export class ArchiveDB implements DBStore {
     return size;
   }
 
-  prefixUpperBound(url) {
+  prefixUpperBound(url: string) {
     return url.slice(0, -1) + String.fromCharCode(url.charCodeAt(url.length - 1) + 1);
   }
 
-  getLookupRange(url, type, fromUrl?, fromTs?) : IDBKeyRange {
+  getLookupRange(url: string, type: string, fromUrl?: string, fromTs?: string) : IDBKeyRange {
     let lower;
     let upper;
 
