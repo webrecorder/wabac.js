@@ -1,22 +1,21 @@
 import { BaseParser } from "./baseparser";
 
 
+type HAR = Record<string, any>;
+
 // ===========================================================================
 class HARLoader extends BaseParser {
-  har: string | any;
+  har: HAR;
   pageRefs: Record<string, string>;
 
-  constructor(string_or_har) {
+  constructor(string_or_har: string | HAR) {
     super();
-    this.har = string_or_har;
+    this.har = (typeof string_or_har === "string") ? JSON.parse(string_or_har) : string_or_har;
     this.pageRefs = {};
   }
 
-  override async load(db) : Promise<void> {
+  override async load(db: any) : Promise<void> {
     this.db = db;
-    if (typeof this.har === "string") {
-      this.har = JSON.parse(this.har);
-    }
 
     this.parseEntries(this.har);
 
@@ -25,7 +24,7 @@ class HARLoader extends BaseParser {
     await this.finishIndexing();
   }
 
-  parsePages(har) {
+  parsePages(har: HAR) {
     for (const page of har.log.pages) {
       if (!page.pageTimings || !page.pageTimings.onLoad) {
         continue;
@@ -47,11 +46,11 @@ class HARLoader extends BaseParser {
     }
   }
 
-  parseEntries(har) {
+  parseEntries(har: HAR) {
     for (const entry of har.log.entries) {
       const ts = new Date(entry.startedDateTime).getTime();
 
-      const respHeaders = {};
+      const respHeaders : Record<string, string> = {};
 
       for (const {name, value} of entry.response.headers) {
         respHeaders[name] = value;

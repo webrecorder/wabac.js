@@ -17,6 +17,15 @@ export type ReaderAndHasher = {
 
 export type LoadWACZEntry = Promise<ReaderAndHasher>;
 
+export type ZipEntry = {
+  filename: string;
+  deflate: boolean;
+  uncompressedSize: number;
+  compressedSize: number;
+  localEntryOffset: number;
+  offset: number;
+};
+
 
 // ===========================================================================
 class LoadMoreException
@@ -24,7 +33,7 @@ class LoadMoreException
   start: number;
   length: number;
 
-  constructor(start, length) {
+  constructor(start: number, length: number) {
     this.start = start;
     this.length = length;
   }
@@ -37,7 +46,7 @@ export class HashingAsyncIterReader extends AsyncIterReader implements GetHash
   hashInited = false;
   hash = "";
 
-  constructor(source, compressed = "gzip", dechunk = false) {
+  constructor(source: AsyncIterReader, compressed = "gzip", dechunk = false) {
     super(source, compressed, dechunk);
   }
 
@@ -76,9 +85,9 @@ export class ZipRangeReader
   loader: BaseLoader;
   entriesUpdated = false;
   enableHashing = false;
-  entries: Record<string, any> | null = null;
+  entries: Record<string, ZipEntry> | null = null;
   
-  constructor(loader, entries : Record<string, any> | null = null) {
+  constructor(loader: BaseLoader, entries : Record<string, ZipEntry> | null = null) {
     this.loader = loader;
     this.entries = entries;
     this.entriesUpdated = false;
@@ -87,7 +96,7 @@ export class ZipRangeReader
     this.enableHashing = true;
   }
 
-  async load(always = false) {
+  async load(always = false) : Promise<Record<string, ZipEntry>> {
     if (!this.entries || always) {
       const totalLength = await this.loader.getLength();
 
@@ -107,10 +116,10 @@ export class ZipRangeReader
 
       this.entriesUpdated = true;
     }
-    return this.entries;
+    return this.entries!;
   }
 
-  _loadEntries(data, dataStartOffset) : Record<string, any> | null {
+  _loadEntries(data: Uint8Array, dataStartOffset: number) : Record<string, any> | null {
     // Adapted from
     // Copyright (c) 2016 Rob Wu <rob@robwu.nl> (https://robwu.nl)
     //  * Published under a MIT license.
@@ -125,7 +134,7 @@ export class ZipRangeReader
 
     const utf8Decoder = new TextDecoder("utf8");
     const asciiDecoder = new TextDecoder("ascii");
-    const entries = {};
+    const entries : Record<string, ZipEntry> = {};
 
     let entriesLeft = 0;
     let offset = 0;
@@ -243,6 +252,7 @@ export class ZipRangeReader
           uncompressedSize,
           compressedSize,
           localEntryOffset,
+          offset: 0,
         };
 
         // optimization if no extraFieldLength, can set offset and avoid extra lookup
@@ -256,7 +266,7 @@ export class ZipRangeReader
     return entries;
   }
 
-  getCompressedSize(name) : number {
+  getCompressedSize(name: string) : number {
     if (this.entries === null) {
       return 0;
     }
@@ -270,7 +280,7 @@ export class ZipRangeReader
     return isNaN(entry.compressedSize) ? 0 : entry.compressedSize;
   }
 
-  async loadFile(name, {offset = 0, length = -1, signal = null, unzip = false, computeHash = false} : 
+  async loadFile(name: string, {offset = 0, length = -1, signal = null, unzip = false, computeHash = false} : 
     {offset?: number, length?: number, signal?: AbortSignal | null, unzip?: boolean, computeHash?: boolean}) :
     Promise<ReaderAndHasher> {
     if (this.entries === null) {
@@ -334,7 +344,7 @@ export class ZipRangeReader
   }
 
   // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView
-  getUint64(dataview, byteOffset, littleEndian) {
+  getUint64(dataview: DataView, byteOffset: number, littleEndian: boolean) {
     // split 64-bit number into two 32-bit (4-byte) parts
     const left =  dataview.getUint32(byteOffset, littleEndian);
     const right = dataview.getUint32(byteOffset+4, littleEndian);
@@ -356,7 +366,7 @@ export class ZipBlockLoader extends BaseLoader
   filename: string;
   size: number = 0
 
-  constructor(zipreader, filename) {
+  constructor(zipreader: ZipRangeReader, filename: string) {
     super(true);
     this.zipreader = zipreader;
     this.filename = filename;
@@ -391,7 +401,7 @@ export class ZipBlockLoader extends BaseLoader
     return this.size;
   }
 
-  async getRange(offset, length, streaming = false, signal = null) {
+  async getRange(offset: number, length: number, streaming = false, signal = null) {
     const { reader } = await this.zipreader.loadFile(this.filename, {offset, length, signal, unzip: true});
 
     if (streaming) {

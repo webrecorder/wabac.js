@@ -97,10 +97,11 @@ export class ArchiveRequest
     return this.url;
   }
 
-  prepareProxyRequest(prefix: string, isLive = true) {
+  prepareProxyRequest(prefix: string, isLive = true) : 
+  {referrer?: string, headers: Headers, credentials: RequestCredentials, url: string} {
     let headers;
     let referrer;
-    let credentials;
+    let credentials : RequestCredentials;
 
     if (isLive) {
       headers = new Headers(this.request.headers);

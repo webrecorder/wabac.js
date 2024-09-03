@@ -123,11 +123,23 @@ export function makeHeaders(headers: Headers | Record<string, string> | Map<stri
     return new Headers(headers as Headers);
   } catch (e) {
     // try to sanitize the headers, if any errors
-    for (let key of Object.keys(headers)) {
-      const value = headers[key];
-      const newValue = value.replace(/[\r\n]+/g, ", ");
-      if (value != newValue) {
-        headers[key] = newValue;
+    if (typeof(headers) === "object") {
+      const headersObj = headers as Record<string, string>;
+      for (const key of Object.keys(headers)) {
+        const value = headersObj[key];
+        const newValue = value.replace(/[\r\n]+/g, ", ");
+        if (value != newValue) {
+          headersObj[key] = newValue;
+        }
+      }
+    } else {
+      const headersMap = headers as Map<string, string>;
+      for (const key of Object.keys(headers)) {
+        const value = headersMap.get(key) || "";
+        const newValue = value.replace(/[\r\n]+/g, ", ");
+        if (value != newValue) {
+          headersMap.set(key, newValue);
+        }
       }
     }
     return new Headers(headers as Headers);

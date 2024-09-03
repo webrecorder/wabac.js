@@ -9,7 +9,7 @@
     "declaration": true,
     "declarationMap": true,
     "declarationDir": "./dist/types",
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "importHelpers": true,

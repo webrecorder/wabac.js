@@ -1,7 +1,9 @@
 import { RewritingStream } from "parse5-html-rewriting-stream";
 
 import { startsWithAny, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, REPLAY_TOP_FRAME_NAME } from "../utils";
-import { Rewriter } from "./index.js";
+import { ArchiveResponse, Rewriter } from "./index.js";
+import { StartTag } from "parse5-sax-parser";
+import { type Token } from 'parse5';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -16,7 +18,7 @@ const defmod = "mp_";
 
 const MAX_HTML_REWRITE_SIZE = 50000000;
 
-const rewriteTags = {
+const rewriteTags : Record<string, Record<string, string> > = {
   "a": { "href": defmod },
   "applet": {
     "codebase": "oe_",
@@ -89,7 +91,7 @@ class HTMLRewriter
   ruleMatch: RegExpMatchArray | null = null;
   isCharsetUTF8 : boolean;
 
-  constructor(rewriter, isCharsetUTF8 = false) {
+  constructor(rewriter: Rewriter, isCharsetUTF8 = false) {
     this.rewriter = rewriter;
     this.rule = null;
 
@@ -105,7 +107,7 @@ class HTMLRewriter
     this.isCharsetUTF8 = isCharsetUTF8;
   }
 
-  rewriteMetaContent(attrs, attr, rewriter) {
+  rewriteMetaContent(attrs: Token.Attribute[], attr: Token.Attribute, rewriter: Rewriter) {
     let equiv = this.getAttr(attrs, "http-equiv");
     if (equiv) {
       equiv = equiv.toLowerCase();
@@ -124,7 +126,7 @@ class HTMLRewriter
     return attr.value;
   }
 
-  rewriteSrcSet(value, rewriter) {
+  rewriteSrcSet(value: string, rewriter: Rewriter) {
     const SRCSET_REGEX = /\s*(\S*\s+[\d.]+[wx]),|(?:\s*,(?:\s+|(?=https?:)))/;
 
     let rv : string[] = [];
@@ -140,8 +142,8 @@ class HTMLRewriter
     return rv.join(", ");
   }
 
-  rewriteTagAndAttrs(tag, attrRules, rewriter) {
-    const isUrl = (val) => { return startsWithAny(val, DATA_RW_PROTOCOLS); };
+  rewriteTagAndAttrs(tag: StartTag, attrRules: Record<string, string>, rewriter: Rewriter) {
+    const isUrl = (val: string) => { return startsWithAny(val, DATA_RW_PROTOCOLS); };
     const tagName = tag.tagName;
 
     // no attribute rewriting for web-component tags, which must contain a '-'
@@ -261,7 +263,7 @@ class HTMLRewriter
     }
   }
 
-  getAttr(attrs, name) {
+  getAttr(attrs: Token.Attribute[], name: string) {
     for (let attr of attrs) {
       if (attr.name === name) {
         return attr.value;
@@ -271,7 +273,7 @@ class HTMLRewriter
     return null;
   }
 
-  getScriptRWType(tag) {
+  getScriptRWType(tag: StartTag) {
     const scriptType = this.getAttr(tag.attrs, "type");
 
     if (scriptType === "module") {
@@ -289,7 +291,7 @@ class HTMLRewriter
     }
   }
 
-  async rewrite(response) {
+  async rewrite(response: ArchiveResponse) {
     if (!response.buffer && !response.reader) {
       //console.warn("Missing response body for: " + response.url);
       return response;
@@ -455,7 +457,7 @@ class HTMLRewriter
     return response;
   }
 
-  rewriteUrl(rewriter, text, forceAbs = false, mod : string = "") {
+  rewriteUrl(rewriter: Rewriter, text: string, forceAbs = false, mod : string = "") {
     // if html charset not utf-8, just convert the url to utf-8 for rewriting
     if (!this.isCharsetUTF8) {
       text = decoder.decode(encodeLatin1(text));
@@ -464,7 +466,7 @@ class HTMLRewriter
     return mod ? res.replace("mp_/", mod + "/") : res;
   }
 
-  rewriteHTMLText(text) {
+  rewriteHTMLText(text: string) {
     if (this.rule && this.ruleMatch) {
       // todo: make more general if additional rules needed
       // for now, just replace the first match
@@ -477,7 +479,7 @@ class HTMLRewriter
     return text;
   }
 
-  rewriteJSBase64(text, rewriter) {
+  rewriteJSBase64(text: string, rewriter: Rewriter) {
     const parts = text.split(",");
     const content = rewriter.rewriteJS(atob(parts[1]), {isModule: false});
     parts[1] = btoa(content);

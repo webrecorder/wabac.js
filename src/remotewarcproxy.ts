@@ -12,7 +12,7 @@ export class RemoteWARCProxy implements DBStore {
   type: string;
   notFoundPageUrl: string;
 
-  constructor(rootConfig) {
+  constructor(rootConfig: Record<string, any>) {
     const config = rootConfig.extraConfig || {};
 
     this.sourceUrl = config.prefix;
@@ -26,7 +26,7 @@ export class RemoteWARCProxy implements DBStore {
 
   async getResource(request: ArchiveRequest, prefix: string) : Promise<ArchiveResponse | Response | null> {
     const { url, headers } = request.prepareProxyRequest(prefix);
-    let reqHeaders = headers;
+    let reqHeaders : HeadersInit = headers;
 
     if (this.type === "kiwix") {
       let headersData = await this.resolveHeaders(url);
@@ -63,12 +63,18 @@ export class RemoteWARCProxy implements DBStore {
       if (reqHeaders.has("Range")) {
         const range = reqHeaders.get("Range");
         // ensure uppercase range to avoid bug in kiwix-serve
-        reqHeaders = {"Range": range};
+        if (range) {
+          reqHeaders = {"Range": range};
+        }
       }
 
       let payload : AsyncIterReader | Uint8Array | null = null;
 
       let response : Response | null = null;
+
+      if (!headers) {
+        headers = new Headers();
+      }
 
       if (hasPayload) {
         response = await fetch(this.sourceUrl + "A/" + encodedUrl, {headers: reqHeaders});
@@ -78,11 +84,15 @@ export class RemoteWARCProxy implements DBStore {
         }
 
         if (response.status === 206) {
-          status = 206;
-          statusText = "Partial Content";
-          headers.set("Content-Length", response.headers.get("Content-Length"));
-          headers.set("Content-Range", response.headers.get("Content-Range"));
-          headers.set("Accept-Ranges", "bytes");
+          const CL = response.headers.get("Content-Length");
+          const CR = response.headers.get("Content-Range");
+          if (CL && CR) {
+            status = 206;
+            statusText = "Partial Content";
+            headers.set("Content-Length", CL);
+            headers.set("Content-Range", CR);
+            headers.set("Accept-Ranges", "bytes");
+          }
         }
       }
 
@@ -94,10 +104,6 @@ export class RemoteWARCProxy implements DBStore {
         date = new Date();
       }
 
-      if (!headers) {
-        headers = new Headers();
-      }
-
       const isLive = false;
       const noRW = false;
 
@@ -107,7 +113,9 @@ export class RemoteWARCProxy implements DBStore {
     return null;
   }
 
-  async resolveHeaders(url: string) {
+  async resolveHeaders(url: string) :
+  Promise<{encodedUrl: string, headers: Headers | null, date: Date | null, 
+    status: number, statusText: string, hasPayload: boolean} | null> {
     const urlNoScheme = url.slice(url.indexOf("//") + 2);
 
     // need to escape utf-8, then % encode the entire string
@@ -120,10 +128,10 @@ export class RemoteWARCProxy implements DBStore {
       return null;
     }
 
-    let headers : Headers | null = null;
+    let headers : Headers | null = null;;
     let date : Date | null = null;
-    let status : number | null = null;
-    let statusText : string | null = null;
+    let status : number = 200;
+    let statusText : string = "OK";
     let hasPayload = false;
 
     try {
@@ -145,7 +153,7 @@ export class RemoteWARCProxy implements DBStore {
       if (record.httpHeaders) {
         headers = record.httpHeaders.headers as Headers;
         status = Number(record.httpHeaders.statusCode);
-        statusText = record.httpHeaders.statusText || null;
+        statusText = record.httpHeaders.statusText || "";
         hasPayload = record.httpHeaders.headers.get("Content-Length") !== "0";
       } else if (record.warcType === "resource") {
         headers = new Headers();

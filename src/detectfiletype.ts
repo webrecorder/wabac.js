@@ -12,7 +12,7 @@ const isWarcFile = hasMagicBytes(warcMagicBytes);
 const PEEK_BYTES = 4;
 
 // todo: improve this to do full detection of different text types
-function detectTextType(bytes) {
+function detectTextType(bytes: Uint8Array) {
   try {
     const text = new TextDecoder().decode(bytes);
     const lines = text.split("\n");
@@ -25,8 +25,8 @@ function detectTextType(bytes) {
   }
 }
 
-function hasMagicBytes(magicBytes) {
-  return fileBytes => {
+function hasMagicBytes(magicBytes: number[]) {
+  return (fileBytes: Uint8Array) => {
     for (const [index, value] of magicBytes.entries()) {
       if (value !== fileBytes[index]) {
         return false;
@@ -36,7 +36,7 @@ function hasMagicBytes(magicBytes) {
   };
 }
 
-export function getKnownFileExtension(name) {
+export function getKnownFileExtension(name: string) {
   const fileExtensions = [
     ".warc",
     ".warc.gz",
@@ -55,7 +55,7 @@ export function getKnownFileExtension(name) {
   return undefined;
 }
 
-export function checkMagicBytes(fileBytes) {
+export function checkMagicBytes(fileBytes: Uint8Array) {
   // todo: add additional detection for WACZ besides just zip
   if (isZipFile(fileBytes)) {
     return ".wacz";
@@ -70,8 +70,8 @@ export function checkMagicBytes(fileBytes) {
   }
 }
 
-export async function detectFileType(response) {
-  const reader = response.body.getReader();
+export async function detectFileType(response: Response) {
+  const reader = response.body!.getReader();
   let fileType : string | undefined = "";
   const { value, done } = await reader.read();
   if (!done && value.length >= PEEK_BYTES) {

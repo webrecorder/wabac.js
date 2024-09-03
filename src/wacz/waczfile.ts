@@ -16,9 +16,9 @@ export const MULTI_WACZ = "multi-wacz";
 // ==========================================================================
 export interface WACZLoadSource
 {
-  getLoadPath(path: string);
+  getLoadPath(path: string): string;
 
-  getName(name: string);
+  getName(name: string): string;
 
   createLoader(opts: any) : Promise<BaseLoader>;
 }
@@ -89,7 +89,7 @@ export class WACZFile implements WACZLoadSource
     return await this.initFromLoader(loader);
   }
 
-  private async initFromLoader(loader) {
+  private async initFromLoader(loader: BaseLoader) {
     this.zipreader = new ZipRangeReader(loader, this.entries);
 
     if (!this.entries) {
@@ -99,7 +99,7 @@ export class WACZFile implements WACZLoadSource
     return this.entries;
   }
 
-  async loadFile(filename, opts) : LoadWACZEntry {
+  async loadFile(filename: string, opts: Record<string, any>) : LoadWACZEntry {
     if (!this.zipreader) {
       await this.init();
     }
@@ -107,11 +107,11 @@ export class WACZFile implements WACZLoadSource
     return await this.zipreader!.loadFile(filename, opts);
   }
 
-  containsFile(filename) {
+  containsFile(filename: string) {
     return this.entries && !!this.entries[filename];
   }
 
-  getSizeOf(filename) {
+  getSizeOf(filename: string) {
     return this.zipreader ? this.zipreader.getCompressedSize(filename) : 0 ;
   }
 
@@ -126,7 +126,7 @@ export class WACZFile implements WACZLoadSource
     };
   }
 
-  async save(db, always = false) {
+  async save(db: any, always = false) {
     const zipreader = this.zipreader;
     if (always || (zipreader && zipreader.entriesUpdated)) {
       await db.put("waczfiles", this.serialize());
@@ -140,11 +140,11 @@ export class WACZFile implements WACZLoadSource
     return this.entries ? Object.keys(this.entries) : [];
   }
 
-  getLoadPath(path) {
+  getLoadPath(path: string) {
     return this.waczname + "#!/" + path;
   }
 
-  getName(name) {
+  getName(name: string) {
     return this.waczname + "#!/" + name;
   }
 
@@ -157,7 +157,7 @@ export class WACZFile implements WACZLoadSource
     }
 
     if (inx >= 0) {
-      return new ZipBlockLoader(this.zipreader, url.slice(inx + 3));
+      return new ZipBlockLoader(this.zipreader!, url.slice(inx + 3));
     } else {
       throw new Error("invalid wacz url: " + url)
     }

@@ -1,10 +1,10 @@
 import { getStatusText } from "./utils";
 
-export function notFoundByTypeResponse(request, requestURL, requestTS, liveRedirectOnNotFound = false, status = 404) {
+export function notFoundByTypeResponse(request: Request, requestURL: string, requestTS: string, liveRedirectOnNotFound = false, status = 404) {
   let content : string;
   let contentType : string;
 
-  switch (request.destination) {
+  switch (request.destination as string) {
   case "json":
   case "":
     content = getJSONNotFound(requestURL, requestTS);
@@ -42,7 +42,7 @@ export function notFoundByTypeResponse(request, requestURL, requestTS, liveRedir
 }
 
 
-function getHTMLNotFound(request, requestURL, requestTS, liveRedirectOnNotFound) {
+function getHTMLNotFound(request: Request, requestURL: string, requestTS: string, liveRedirectOnNotFound: boolean) {
   return `
   <!doctype html>
   <html>
@@ -94,7 +94,7 @@ function getHTMLNotFound(request, requestURL, requestTS, liveRedirectOnNotFound)
   `;
 }
 
-function getScriptCSSNotFound(type, requestURL, requestTS) {
+function getScriptCSSNotFound(type: string, requestURL: string, requestTS: string) {
   return `\
 /* 
    ${type} Not Found
@@ -104,6 +104,6 @@ function getScriptCSSNotFound(type, requestURL, requestTS) {
   `;
 }
 
-function getJSONNotFound(URL, TS, error = "not_found") {
+function getJSONNotFound(URL: string, TS: string, error = "not_found") {
   return JSON.stringify({error, URL, TS});
 }

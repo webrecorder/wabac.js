@@ -25,7 +25,15 @@ export type ResourceEntry = {
   requestBody?: Uint8Array;
   loaded?: boolean;
   statusText?: string;
+
+  "req.http:cookie"?: string;
 };
+
+export type PageEntry = {
+  url: string;
+  date?: string | null;
+  title?: string;
+}
 
 export type DigestRefCount = {
   digest: string;

@@ -89,18 +89,18 @@ export const HTML_ONLY_RULES : Rules[] = [
 
 // ===========================================================================
 function ruleReplace(str: string) {
-  return x => str.replace("{0}", x); 
+  return (x: string) => str.replace("{0}", x); 
 }
 
 // ===========================================================================
 function ruleDisableMediaSourceTypeSupported() {
-  return (x) => `
+  return (x: string) => `
     ${x}<script>window.MediaSource.isTypeSupported = () => false;</script>
   `;
 }
 
 // ===========================================================================
-function setMaxBitrate(opts)
+function setMaxBitrate(opts: any)
 {
   let maxBitrate = MAX_BITRATE;
   const extraOpts = opts.response && opts.response.extraOpts;

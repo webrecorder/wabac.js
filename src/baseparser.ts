@@ -1,4 +1,4 @@
-import { ArchiveLoader, DBStore } from "./types";
+import { ArchiveLoader, DBStore, PageEntry } from "./types";
 
 const DEFAULT_BATCH_SIZE = 1000;
 
@@ -43,7 +43,7 @@ abstract class BaseParser implements ArchiveLoader
     this.batchSize = batchSize;
   }
 
-  addPage(page) {
+  addPage(page: PageEntry) {
     this.promises.push(this.db.addPage(page));
   }
 
@@ -101,7 +101,7 @@ abstract class BaseParser implements ArchiveLoader
 
   }
 
-  abstract load(db: DBStore, progressUpdateCallback?: any, totalLength?: number);
+  abstract load(db: DBStore, progressUpdateCallback?: any, totalLength?: number) : Promise<void>;
 }
 
 export { BaseParser };

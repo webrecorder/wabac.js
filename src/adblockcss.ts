@@ -1,4 +1,6 @@
-export async function getAdBlockCSSResponse(fullDomain, adblockUrl) {
+
+
+export async function getAdBlockCSSResponse(fullDomain: string, adblockUrl: string) {
   const domainParts = fullDomain.split(".");
   const allDomains : string[] = [];
 
@@ -126,7 +128,7 @@ export class ByLineTransform {
   _lastChunkEndedWithCR = false;
   decoder = new TextDecoder();
 
-  transform(chunkArray, controller) {
+  transform(chunkArray: Uint8Array, controller: TransformStreamDefaultController) {
     const chunk = this.decoder.decode(chunkArray);
     // see: http://www.unicode.org/reports/tr18/#Line_Boundaries
     const lines = chunk.split(/\r\n|[\n\v\f\r\x85\u2028\u2029]/g);
@@ -159,7 +161,7 @@ export class ByLineTransform {
     }
   }
 
-  flush(controller) {
+  flush(controller: TransformStreamDefaultController) {
     const buffer = this._buffer;
 
     while (buffer.length) {

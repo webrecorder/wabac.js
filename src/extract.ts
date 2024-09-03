@@ -7,7 +7,7 @@ const SKIPPED_TAGS = ["script", "style", "header", "footer", "banner-div", "nosc
 
 
 // ===========================================================================
-async function extractText(url, buffer, ce, te) {
+async function extractText(url: string, buffer: Uint8Array, ce: string | null, te: string | null) {
   const parser = new SAXParser();
   const textChunks : string[] = [];
   let context : string | null = null;

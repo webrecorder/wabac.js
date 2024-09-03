@@ -19,7 +19,7 @@ class CDXFromWARCLoader extends WARCLoader
   sourceExtra: any;
   shaPrefix: string;
 
-  constructor(reader, abort, id, sourceExtra = {}, shaPrefix = "sha256:") {
+  constructor(reader: AsyncIterReader, abort: AbortController, id: string, sourceExtra = {}, shaPrefix = "sha256:") {
     super(reader, abort, id);
     this.sourceExtra = sourceExtra;
     this.shaPrefix = shaPrefix;
@@ -75,8 +75,11 @@ class CDXFromWARCLoader extends WARCLoader
       return;
     }
 
-    if (cdx.status === 206 && !this.isFullRangeRequest(record.httpHeaders?.headers)) {
-      return;
+    if (cdx.status === 206) {
+      const headers = record.httpHeaders?.headers;
+      if (headers && !this.isFullRangeRequest(headers)) {
+        return;
+      }
     }
 
     if (reqRecord && reqRecord.httpHeaders) {
@@ -89,7 +92,7 @@ class CDXFromWARCLoader extends WARCLoader
     this.addCdx(cdx);
   }
 
-  getSource(cdx) {
+  getSource(cdx: Record<string, any>) {
     return {
       ...this.sourceExtra,
       path: cdx.filename,
@@ -98,7 +101,7 @@ class CDXFromWARCLoader extends WARCLoader
     };
   }
 
-  addCdx(cdx) {
+  addCdx(cdx: Record<string, any>) {
     const { url, mime } = cdx;
 
     const status = Number(cdx.status) || 200;
@@ -143,7 +146,7 @@ class CDXFromWARCLoader extends WARCLoader
 // ===========================================================================
 class CDXLoader extends CDXFromWARCLoader
 {
-  async load(db, progressUpdate?, totalSize?) {
+  async load(db: any, progressUpdate?: any, totalSize?: number) {
     this.db = db;
 
     let reader = this.reader;
@@ -182,7 +185,7 @@ class CDXLoader extends CDXFromWARCLoader
         cdx.url = urlkey;
         console.warn(`URL missing, using urlkey ${urlkey}`);
       }
-      if (progressUpdate && this.isBatchFull()) {
+      if (progressUpdate && totalSize && this.isBatchFull()) {
         progressUpdate(Math.round((numRead / totalSize) * 100), null, numRead, totalSize);
       }
       this.addCdx(cdx);

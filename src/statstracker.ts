@@ -10,7 +10,7 @@ type TimeRangeStat = {
 class StatsTracker {
   timeRanges : Record<string, TimeRangeStat> = {};
 
-  updateStats(date, status, request, event: FetchEvent) {
+  updateStats(date: Date, status: number, request: Request, event: FetchEvent) {
     const id = event.clientId || event.resultingClientId;
     
     if (!id || !date) {
@@ -50,7 +50,7 @@ class StatsTracker {
     timeRange.count++;
   }
 
-  updateStatsParent(id, referrer, clients) {
+  updateStatsParent(id: string, referrer: string, clients: readonly WindowClient[]) {
     for (const client of clients) {
       if (client.url === referrer) {
         //self.timeRanges[id].parent = client.id;
@@ -63,7 +63,7 @@ class StatsTracker {
     }
   }
 
-  async getStats(event) {
+  async getStats(event: FetchEvent) {
     //const client = await self.clients.get(fe.clientId);
 
     //const timeRange = self.timeRanges[client.url] || {};
@@ -78,7 +78,7 @@ class StatsTracker {
 
     const clients = await self.clients.matchAll({ "type": "window" });
 
-    const validIds = {};
+    const validIds : Record<string, number> = {};
 
     for (const client of clients) {
       if (client.url === url) {

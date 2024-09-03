@@ -24,7 +24,7 @@ class WARCLoader extends BaseParser {
   lists: string[] = [];
   pageMap: Record<string, any> = {};
 
-  constructor(reader, abort: AbortController | null = null, loadId = null, sourceExtra = null) {
+  constructor(reader: AsyncIterReader, abort: AbortController | null = null, loadId : string | null = null, sourceExtra = null) {
     super();
     
     this.reader = reader;
@@ -356,10 +356,10 @@ class WARCLoader extends BaseParser {
     return entry;
   }
 
-  isFullRangeRequest(headers) {
+  isFullRangeRequest(headers: Headers | Map<string, string>) {
     const range = headers.get("content-range");
 
-    const cl = parseInt(headers.get("content-length") || 0);
+    const cl = parseInt(headers.get("content-length") || "0");
 
     const fullRange = `bytes 0-${cl-1}/${cl}`;
 
@@ -371,7 +371,7 @@ class WARCLoader extends BaseParser {
     return null;
   }
 
-  async load(db, progressUpdate, totalSize) {
+  async load(db: any, progressUpdate: any, totalSize: number) {
     this.db = db;
 
     const parser = new WARCParser(this.reader);
@@ -480,7 +480,7 @@ class WARCLoader extends BaseParser {
 
 
 // ===========================================================================
-function isPage(url, status, mime) {
+function isPage(url: string, status: number, mime: string) {
   if (status != 200) {
     return false;
   }
@@ -516,7 +516,7 @@ function isPage(url, status, mime) {
 // ===========================================================================
 class SingleRecordWARCLoader extends WARCLoader
 {
-  constructor(reader) {
+  constructor(reader: AsyncIterReader) {
     super(reader);
     this.detectPages = false;
   }

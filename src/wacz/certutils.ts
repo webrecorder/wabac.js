@@ -53,7 +53,7 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
       domainActual = cert.subject.substring(3);
     }
 
-    signature = parseASN1Signature(signature);
+    //signature = parseASN1Signature(signature);
   
   } else {
     const ecdsaImportParams = {
@@ -92,13 +92,16 @@ export async function verifyWACZSignature({hash, signature, publicKey, domain, d
   return results;
 }
 
-function parseASN1Signature(signature) {
+function parseASN1Signature(signature: Uint8Array) {
   // extract r|s values from asn1
   try {
     const sig = AsnParser.parse(signature, ECDSASigValue);
 
-    const r = (sig.r[0] === 0 ? sig.r.slice(1) : sig.r) as Uint8Array;
-    const s = (sig.s[0] === 0 ? sig.s.slice(1) : sig.s) as Uint8Array;
+    const sigR = sig.r as Uint8Array;
+    const sigS = sig.s as Uint8Array;
+
+    const r = (sigR[0] === 0 ? sigR.slice(1) : sigR);
+    const s = (sigS[0] === 0 ? sigS.slice(1) : sigS);
     signature = concatChunks([r, s], r.length + s.length);
 
   } catch (se) {

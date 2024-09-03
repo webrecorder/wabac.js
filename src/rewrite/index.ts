@@ -391,7 +391,7 @@ export class Rewriter {
     try {
       const root = JSON.parse(text);
 
-      const imports = {};
+      const imports : Record<string, any> = {};
       const output = {imports};
 
       for (const [key, value] of Object.entries(root.imports || {})) {
@@ -399,9 +399,9 @@ export class Rewriter {
       }
 
       if (root.scopes) {
-        const scopes = {};
+        const scopes : Record<string, any> = {};
         for (const [scopeKey, scopeValue] of Object.entries(root.scopes || {})) {
-          const newScope = {};
+          const newScope : Record<string, any> = {};
           for (const [key, value] of Object.entries(scopeValue as Record<string, any>)) {
             newScope[this.rewriteUrl(key).replace("mp_/", "esm_/")] = value;
           }

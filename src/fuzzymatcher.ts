@@ -13,6 +13,12 @@ type FuzzyRule = {
   maxResults?: number;
 }
 
+type FuzzyResEntry = {
+  url: string;
+  status: number;
+  fuzzyMatchUrl?: string;
+}
+
 type KeySet = {
   found: Set<string>;
   value: string[];
@@ -20,8 +26,8 @@ type KeySet = {
 
 type KeySets = Record<string, KeySet>;
 
-function joinRx(rxStr) {
-  return new RegExp("[?&]" + rxStr.map(x => "(" + x + ")").join("|"), "gi");
+function joinRx(rxStr: string[]) {
+  return new RegExp("[?&]" + rxStr.map((x: string) => "(" + x + ")").join("|"), "gi");
 }
 
 const MAX_ARG_LEN = 1024;
@@ -164,7 +170,7 @@ export class FuzzyMatcher {
     this.rules = rules || DEFAULT_RULES;
   }
 
-  getRuleFor(reqUrl) {
+  getRuleFor(reqUrl: string) {
     let rule;
 
     const matchUrl = reqUrl.indexOf("?") === -1 ? reqUrl + "?" : reqUrl;
@@ -190,7 +196,7 @@ export class FuzzyMatcher {
     return {prefix, rule, fuzzyCanonUrl};
   }
 
-  getFuzzyCanonsWithArgs(reqUrl) {
+  getFuzzyCanonsWithArgs(reqUrl: string) {
     let { fuzzyCanonUrl, prefix, rule } = this.getRuleFor(reqUrl);
 
     if (fuzzyCanonUrl === reqUrl) {
@@ -218,7 +224,7 @@ export class FuzzyMatcher {
     return [fuzzyCanonUrl];
   }
 
-  fuzzyCompareUrls(reqUrl, results, matchedRule) {
+  fuzzyCompareUrls(reqUrl: string, results: FuzzyResEntry[], matchedRule?: FuzzyRule) {
     if (!results || !results.length) {
       return null;
     }
@@ -230,11 +236,11 @@ export class FuzzyMatcher {
       const replace = matchedRule.replace;
       const fuzzyReqUrl = reqUrl.replace(match, replace);
 
-      const newResults : string[] = [];
+      const newResults : FuzzyResEntry[] = [];
   
       // find best match by regex
       for (const result of results) {
-        const url = (typeof result === "string" ? result : result.url);
+        const url = result.url;
   
         const fuzzyMatchUrl = url.replace(match, replace);
 
@@ -254,9 +260,11 @@ export class FuzzyMatcher {
     return this.fuzzyBestMatchQuery(reqUrl, results, matchedRule);
   }
 
-  fuzzyBestMatchQuery(reqUrl, results, rule) {
+  fuzzyBestMatchQuery(reqUrlStr: string, results: FuzzyResEntry[], rule?: FuzzyRule) {
+    let reqUrl : URL;
+    
     try {
-      reqUrl = new URL(reqUrl);
+      reqUrl = new URL(reqUrlStr);
     } catch (e) {
       return 0.0;
     }
@@ -274,10 +282,10 @@ export class FuzzyMatcher {
         continue;
       }
 
-      let url = (typeof result === "string" ? result : result.fuzzyMatchUrl || result.url);
+      let url : URL;
 
       try {
-        url = new URL(url);
+        url = new URL(result.fuzzyMatchUrl || result.url);
       } catch (e) {
         continue;
       }
@@ -306,7 +314,7 @@ export class FuzzyMatcher {
     return bestResult;
   }
 
-  getMatch(reqQuery, foundQuery, reqArgs : Set<string> | null = null, fuzzySet = false) {
+  getMatch(reqQuery: URLSearchParams, foundQuery: URLSearchParams, reqArgs : Set<string> | null = null, fuzzySet = false) {
     let score = 1.0;
     let total = 1.0;
 
@@ -345,7 +353,7 @@ export class FuzzyMatcher {
 
       total += weight;
 
-      if (fuzzySet) {
+      if (fuzzySet && foundValue) {
         this.addSetMatch(keySets, key, value, foundValue);
       }
 
@@ -381,7 +389,7 @@ export class FuzzyMatcher {
     return result;
   }
 
-  addSetMatch(keySets, key: string, value: string, foundValue: string) {
+  addSetMatch(keySets: KeySets, key: string, value: string, foundValue: string) {
     if (!value || !foundValue || value[0] !== "/" || foundValue[0] !== "/") {
       return;
     }

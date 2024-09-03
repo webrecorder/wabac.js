@@ -11,10 +11,10 @@ export class LiveProxy implements DBStore {
   archivePrefix: string;
   cloneResponse: boolean;
   allowBody: boolean;
-  hostProxy: object | any[];
+  hostProxy: Record<string, any>;
   hostProxyOnly: boolean;
 
-  constructor(extraConfig, {cloneResponse = false, allowBody = false, hostProxyOnly = false} = {}) {
+  constructor(extraConfig: Record<string, any>, {cloneResponse = false, allowBody = false, hostProxyOnly = false} = {}) {
     extraConfig = extraConfig || {};
 
     this.prefix = extraConfig.prefix || "";
@@ -27,7 +27,7 @@ export class LiveProxy implements DBStore {
     this.hostProxy = extraConfig.hostProxy;
 
     if (this.hostProxy instanceof Array) {
-      const byHost = {};
+      const byHost : Record<string, any> = {};
       for (const entry of this.hostProxy) {
         byHost[entry.host] = entry;
       }
@@ -41,7 +41,7 @@ export class LiveProxy implements DBStore {
     return [];
   }
 
-  getFetchUrl(url, request, headers) {
+  getFetchUrl(url: string, request: ArchiveRequest, headers: Headers) {
     let parsedUrl;
 
     if (this.hostProxy) {
