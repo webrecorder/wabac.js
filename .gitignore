@@ -5,3 +5,4 @@
 **/*.wacz
 **/adblock.gz
 **/node_modules
+**/dist
