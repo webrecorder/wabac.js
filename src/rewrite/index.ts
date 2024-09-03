@@ -18,6 +18,8 @@ import { ArchiveResponse } from "../response";
 // keep for backwards compatibility with RWP and AWP
 export { ArchiveResponse } from "../response";
 
+export { rewriteDASH, rewriteHLS } from "./rewriteVideo";
+
 // ===========================================================================
 const STYLE_REGEX = /(url\s*\(\s*[\\"']*)([^)'"]+)([\\"']*\s*\))/gi;
 
