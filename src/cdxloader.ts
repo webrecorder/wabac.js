@@ -2,7 +2,7 @@ import { ResourceEntry } from "./types";
 import { tsToDate } from "./utils";
 import { WARCLoader } from "./warcloader";
 
-import { CDXIndexer, AsyncIterReader, appendRequestQuery, WARCRecord, WARCParser } from "warcio";
+import { CDXIndexer, AsyncIterReader, appendRequestQuery, WARCRecord, WARCParser, Source } from "warcio";
 
 
 export const CDX_COOKIE = "req.http:cookie";
@@ -19,7 +19,7 @@ class CDXFromWARCLoader extends WARCLoader
   sourceExtra: any;
   shaPrefix: string;
 
-  constructor(reader: AsyncIterReader, abort: AbortController, id: string, sourceExtra = {}, shaPrefix = "sha256:") {
+  constructor(reader: Source, abort: AbortController | null, id: string, sourceExtra = {}, shaPrefix = "sha256:") {
     super(reader, abort, id);
     this.sourceExtra = sourceExtra;
     this.shaPrefix = shaPrefix;
@@ -149,7 +149,7 @@ class CDXLoader extends CDXFromWARCLoader
   async load(db: any, progressUpdate?: any, totalSize?: number) {
     this.db = db;
 
-    let reader = this.reader;
+    let reader = this.reader as any;
 
     if (!reader.iterLines) {
       reader = new AsyncIterReader(this.reader);

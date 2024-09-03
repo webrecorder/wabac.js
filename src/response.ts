@@ -11,7 +11,7 @@ type ArchiveResponseOpts = {
   statusText: string;
   headers: Headers;
   url: string;
-  date: Date | null;
+  date: Date;
   extraOpts?: Record<string, any> | null;
   noRW?: boolean;
   isLive?: boolean;
@@ -90,7 +90,7 @@ class ArchiveResponse
   status: number;
   statusText: string;
   url: string;
-  date: Date | null;
+  date: Date;
   extraOpts: Record<string, any> | null;
   headers: Headers;
   noRW: boolean;

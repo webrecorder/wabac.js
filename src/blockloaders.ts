@@ -12,9 +12,17 @@ export type ResponseAbort = {
   abort: AbortController | null;
 };
 
+export type BlockLoaderOpts = {
+  url: string;
+  headers?: Record<string, string> | Headers;
+  extra?: Record<string, any>;
+  size?: number;
+  blob?: Blob;
+}
+
 
 // ===========================================================================
-export async function createLoader(opts) : Promise<BaseLoader> {
+export async function createLoader(opts: BlockLoaderOpts) : Promise<BaseLoader> {
   const { url } = opts;
 
   if (opts.extra && opts.extra.arrayBuffer) {
@@ -68,7 +76,7 @@ export async function createLoader(opts) : Promise<BaseLoader> {
 export abstract class BaseLoader
 {
   canLoadOnDemand: boolean = true;
-  headers: Record<string, string> | null = null;
+  headers: Record<string, string> | Headers = {};
   length: number | null = null;
 
   constructor(canLoadOnDemand: boolean) {
@@ -89,14 +97,13 @@ export abstract class BaseLoader
 class FetchRangeLoader extends BaseLoader
 {
   url: string;
-  headers: Record<string, string>;
   length: number | null;
   isValid = false;
   ipfsAPI = null;
   loadingIPFS = null;
 
   constructor({url, headers, length = null, canLoadOnDemand = false} : 
-    {url: string, headers?: Record<string, string>, length?: number | null, canLoadOnDemand?: boolean}) {
+    {url: string, headers?: Record<string, string> | Headers, length?: number | null, canLoadOnDemand?: boolean}) {
     super(canLoadOnDemand);
 
     this.url = url;
@@ -105,7 +112,7 @@ class FetchRangeLoader extends BaseLoader
     this.canLoadOnDemand = canLoadOnDemand;
   }
 
-  override async doInitialFetch(tryHead, skipRange = false) : Promise<ResponseAbort> {
+  override async doInitialFetch(tryHead: boolean, skipRange = false) : Promise<ResponseAbort> {
     const headers = new Headers(this.headers);
     if (!skipRange) {
       headers.set("Range", "bytes=0-");
@@ -186,7 +193,7 @@ class FetchRangeLoader extends BaseLoader
     const headers = new Headers(this.headers);
     headers.set("Range", `bytes=${offset}-${offset + length - 1}`);
 
-    const cache = "no-store";
+    const cache : RequestCache = "no-store";
 
     const options = {signal, headers, cache};
 
@@ -218,7 +225,7 @@ class FetchRangeLoader extends BaseLoader
     }
   }
 
-  async retryFetch(url, options) : Promise<Response> {
+  async retryFetch(url: string, options: RequestInit) : Promise<Response> {
     let backoff = 1000;
     for (let count = 0; count < 20; count++) {
       const resp = await fetch(url, options);
@@ -237,30 +244,29 @@ class GoogleDriveLoader extends BaseLoader
 {
   fileId: string;
   apiUrl: string;
-  headers: Record<string, string>;
   length: number;
 
   publicUrl: string | null = null;
   isValid = false;
 
-  constructor({url, headers, size, extra}) {
+  constructor({url, headers, size, extra} : {url: string, headers?: Record<string, string> | Headers, size?: number, extra?: Record<string, any>}) {
     super(true);
 
     this.fileId = url.slice("googledrive://".length);
     this.apiUrl = `https://www.googleapis.com/drive/v3/files/${this.fileId}?alt=media`;
 
-    this.headers = headers;
+    this.headers = headers || {};
     if (extra && extra.publicUrl) {
       this.publicUrl = extra.publicUrl;
     }
-    this.length = size;
+    this.length = size || 0;
   }
 
   override async getLength() : Promise<number> {
     return this.length;
   }
 
-  override async doInitialFetch(tryHead) : Promise<ResponseAbort> {
+  override async doInitialFetch(tryHead: boolean) : Promise<ResponseAbort> {
     let loader : FetchRangeLoader | null = null;
     let result : ResponseAbort | null = null;
 
@@ -376,7 +382,7 @@ class ArrayBufferLoader extends BaseLoader
   arrayBuffer: Uint8Array;
   size: number;
 
-  constructor(arrayBuffer) {
+  constructor(arrayBuffer: Uint8Array) {
     super(true);
 
     this.arrayBuffer = arrayBuffer;
@@ -400,7 +406,7 @@ class ArrayBufferLoader extends BaseLoader
     return {response, abort: null};
   }
 
-  async getRange(offset, length, streaming = false/*, signal*/) {
+  async getRange(offset: number, length: number, streaming = false/*, signal*/) {
     const range = this.arrayBuffer.slice(offset, offset + length);
 
     return streaming ? getReadableStreamFromArray(range) : range;
@@ -416,7 +422,7 @@ class BlobCacheLoader extends BaseLoader
   size: number;
   arrayBuffer: Uint8Array | null = null;
 
-  constructor({url, blob = null, size = null} : {url: string, blob: Blob | null, size: number | null}) {
+  constructor({url, blob = null, size = null} : {url: string, blob?: Blob | null, size?: number | null}) {
     super(true);
     this.url = url;
     this.blob = blob;
@@ -461,7 +467,7 @@ class BlobCacheLoader extends BaseLoader
     return {response, abort: null};
   }
 
-  async getRange(offset, length, streaming = false/*, signal*/) {
+  async getRange(offset: number, length: number, streaming = false/*, signal*/) {
     if (!this.arrayBuffer) {
       await this.doInitialFetch(true);
     }
@@ -496,13 +502,13 @@ class FileHandleLoader extends BaseLoader
   size: number;
   fileHandle: FileSystemFileHandle;
 
-  constructor({blob, size, extra, url} : {blob?: Blob, size: number, extra: any, url: string})
+  constructor({blob, size, extra, url} : {blob?: Blob | null, size?: number, extra?: any, url: string})
   {
     super(true);
 
     this.url = url;
     this.file = null;
-    this.size = blob ? blob.size : size;
+    this.size = blob ? blob.size : size || 0;
     this.length = this.size;
 
     this.fileHandle = extra.fileHandle;
@@ -549,7 +555,7 @@ class FileHandleLoader extends BaseLoader
     return {response, abort: null};
   }
 
-  async getRange(offset, length, streaming = false/*, signal*/) {
+  async getRange(offset: number, length: number, streaming = false/*, signal*/) {
     if (!this.file) {
       await this.initFileObject();
     }
@@ -568,18 +574,18 @@ class IPFSRangeLoader extends BaseLoader
   length: number | null;
   isValid = false;
 
-  constructor({url, headers, ...opts}) {
+  constructor({url, headers, ...opts} : {url: string, headers?: Record<string, any>, opts?: Record<string, any>}) {
     super(true);
 
     this.url = url;
     this.opts = opts;
 
-    let inx = url.lastIndexOf("#");
-    if (inx < 0) {
-      inx = undefined;
-    }
+    // let inx = url.lastIndexOf("#");
+    // if (inx < 0) {
+    //   inx = undefined;
+    // }
 
-    this.headers = headers;
+    this.headers = headers || {};
     this.length = null;
   }
 
@@ -591,7 +597,7 @@ class IPFSRangeLoader extends BaseLoader
     return this.length!;
   }
 
-  override async doInitialFetch(tryHead) : Promise<ResponseAbort> {
+  override async doInitialFetch(tryHead: boolean) : Promise<ResponseAbort> {
     const autoipfsClient = await initAutoIPFS(this.opts);
 
     try {
@@ -650,7 +656,7 @@ class IPFSRangeLoader extends BaseLoader
   }
 }
 
-export function getReadableStreamFromIter(stream) {
+export function getReadableStreamFromIter(stream: AsyncIterable<Uint8Array>) {
   return new ReadableStream({
     start: async (controller) => {
       try {
@@ -665,7 +671,7 @@ export function getReadableStreamFromIter(stream) {
   });
 }
 
-export function getReadableStreamFromArray(array) {
+export function getReadableStreamFromArray(array: Uint8Array) {
   return new ReadableStream({
     start(controller) {
       controller.enqueue(array);

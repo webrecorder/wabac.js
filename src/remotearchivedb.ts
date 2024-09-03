@@ -20,7 +20,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB
   noCache: boolean;
   streamMap: Map<string, ChunkStore>;
 
-  constructor(name, noCache = false) {
+  constructor(name: string, noCache = false) {
     super(name);
     this.noCache = noCache;
 
@@ -29,7 +29,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB
     this.streamMap = new Map<string, ChunkStore>();
   }
 
-  abstract loadSource(source: string);
+  abstract loadSource(source: Record<string, number>) : Promise< ReadableStream<Uint8Array> >;
 
   async loadRecordFromSource(cdx: Record<string, any>) : LoadRecordFromSourceType {
     const responseStream = await this.loadSource(cdx.source);
@@ -40,7 +40,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB
     return {remote};
   }
 
-  async loadPayload(cdx, opts) {
+  async loadPayload(cdx: Record<string, any>, opts: Record<string, any>) {
     let payload = await super.loadPayload(cdx, opts);
     if (payload) {
       if (cdx.respHeaders && (cdx.mime !== "warc/revisit" || (cdx.status >= 300 && cdx.status < 400))) {
@@ -151,7 +151,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB
         }
 
         // cache here only if somehow the digests don't match (wrong digest from previous versions?)
-        if (origResult.digest !== remote.digest && !payload[Symbol.asyncIterator]) {
+        if (origResult.digest !== remote.digest && !payload[Symbol.asyncIterator] && remote.digest) {
           await this.commitPayload(payload, remote.digest);
         }
       }
@@ -164,7 +164,8 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB
     const tooBigForCache = cdx.source.length >= MAX_CACHE_SIZE;
 
     if (!this.noCache && !tooBigForCache && remote.reader && digest) {
-      remote.reader = new PayloadBufferingReader(this, remote.reader, digest, cdx.url, this.streamMap, hasher, cdx.recordDigest, cdx.source);
+      remote.reader = new PayloadBufferingReader(this, remote.reader as LimitReader, digest, cdx.url, 
+        this.streamMap, hasher || null, cdx.recordDigest, cdx.source);
     }
 
     if (tooBigForCache) {
@@ -179,7 +180,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB
 
     // Update payload if cacheing
     try {
-      if (payload && !this.noCache && !tooBigForCache) {
+      if (payload && !this.noCache && !tooBigForCache && digest) {
         await this.commitPayload(payload, digest);
       }
     } catch(e) {
@@ -208,7 +209,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB
     return payload ? payload : remote.reader;
   }
 
-  async commitPayload(payload, digest) {
+  async commitPayload(payload: Uint8Array, digest: string) {
     if (!payload || payload.length === 0) {
       return;
     }
@@ -242,20 +243,20 @@ export class RemoteSourceArchiveDB extends OnDemandPayloadArchiveDB
 {
   loader: BaseLoader;
   
-  constructor(name, loader, noCache = false) {
+  constructor(name: string, loader: BaseLoader, noCache = false) {
     super(name, noCache);
 
     this.loader = loader;
   }
 
-  updateHeaders(headers) {
+  updateHeaders(headers: Record<string, string>) {
     this.loader.headers = headers;
   }
 
-  async loadSource(source) {
+  override async loadSource(source: Record<string, any>) : Promise<ReadableStream<Uint8Array> >{
     const { start, length } = source;
 
-    return await this.loader.getRange(start, length, true);
+    return await this.loader.getRange(start, length, true) as ReadableStream<Uint8Array>;
   }
 }
 
@@ -273,11 +274,11 @@ export class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB
     this.headers = headers;
   }
 
-  updateHeaders(headers) {
+  updateHeaders(headers: Record<string, string>) {
     this.headers = headers; 
   }
 
-  async loadSource(source) {
+  override async loadSource(source: Record<string, any>) : Promise< ReadableStream<Uint8Array> > {
     const { start, length } = source;
 
     const headers =  new Headers(this.headers);
@@ -285,7 +286,7 @@ export class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB
 
     const loader = await createLoader({url, headers});
 
-    return await loader.getRange(start, length, true);
+    return await loader.getRange(start, length, true) as ReadableStream<Uint8Array>;
   }
 }
 
@@ -297,7 +298,7 @@ class PartialStreamReader
   offset: number;
   size: number;
 
-  constructor(chunkstore) {
+  constructor(chunkstore: ChunkStore) {
     this.chunkstore = chunkstore;
     this.offset = 0;
     this.size = this.chunkstore.totalLength;
@@ -310,7 +311,7 @@ class PartialStreamReader
     }
   }
 
-  setRangeAll(length) {
+  setRangeAll(length: number) {
     this.size = length;
   }
 
@@ -386,11 +387,11 @@ class PayloadBufferingReader extends BaseAsyncIterReader
   reader: LimitReader;
 
   digest: string;
-  url; string; 
+  url: string; 
 
   commit = true;
   fullbuff: Uint8Array | null = null;
-  hasher: GetHash;
+  hasher: GetHash | null;
   expectedHash: string;
   source: Record<string, string>;
 
@@ -400,7 +401,8 @@ class PayloadBufferingReader extends BaseAsyncIterReader
 
   streamMap: Map<string, ChunkStore>;
 
-  constructor(db, reader, digest, url = "", streamMap, hasher, expectedHash, source) {
+  constructor(db: OnDemandPayloadArchiveDB, reader: LimitReader, digest: string, url = "", 
+              streamMap: Map<string, ChunkStore>, hasher: GetHash | null, expectedHash: string, source: Record<string, string>) {
     super();
     this.db = db;
     this.reader = reader;
@@ -421,7 +423,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader
     this.streamMap = streamMap;
   }
 
-  setRangeAll(length) {
+  setRangeAll(length: number) {
     this.isRange = true;
     this.totalLength = length;
   }
@@ -483,7 +485,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader
     }
   }
 
-  async _consumeIter(iter) {
+  async _consumeIter(iter: AsyncIterable<any>) {
     // eslint-disable-next-line no-unused-vars
     for await (const chunk of iter);
   }
@@ -517,7 +519,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader
     }
   }
 
-  getFixedSizeReader(reader, size) {
+  getFixedSizeReader(reader: ReadableStreamDefaultReader<any>, size: number) {
     return new ReadableStream({
       async start(controller) {
         const {value, done} = await reader.read();
@@ -525,7 +527,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader
           controller.enqueue(value.slice(0, size));
         }
         controller.close();
-        reader.close();
+        //(reader as any).close();
       }
     });
   }

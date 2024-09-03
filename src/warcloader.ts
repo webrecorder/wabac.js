@@ -1,6 +1,6 @@
 import { makeHeaders, Canceled, tsToDate } from "./utils";
 
-import { AsyncIterReader, WARCParser, WARCRecord, postToGetUrl } from "warcio";
+import { AsyncIterReader, Source, WARCParser, WARCRecord, postToGetUrl } from "warcio";
 
 import { extractText } from "./extract";
 
@@ -10,7 +10,7 @@ import { ResourceEntry } from "./types";
 
 // ===========================================================================
 class WARCLoader extends BaseParser {
-  reader: AsyncIterReader;
+  reader: Source;
   abort: AbortController | null;
   loadId: string | null;
   sourceExtra: object | null;
@@ -24,7 +24,7 @@ class WARCLoader extends BaseParser {
   lists: string[] = [];
   pageMap: Record<string, any> = {};
 
-  constructor(reader: AsyncIterReader, abort: AbortController | null = null, loadId : string | null = null, sourceExtra = null) {
+  constructor(reader: Source, abort: AbortController | null = null, loadId : string | null = null, sourceExtra = null) {
     super();
     
     this.reader = reader;
@@ -516,7 +516,7 @@ function isPage(url: string, status: number, mime: string) {
 // ===========================================================================
 class SingleRecordWARCLoader extends WARCLoader
 {
-  constructor(reader: AsyncIterReader) {
+  constructor(reader: Source) {
     super(reader);
     this.detectPages = false;
   }

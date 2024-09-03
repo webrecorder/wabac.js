@@ -1,5 +1,9 @@
 import { Path } from "path-parser";
 import { getCollData } from "./utils";
+import { SWCollections } from "./swmain";
+
+
+type RouteMatch = Record<string, any>;
 
 // ===========================================================================
 class APIRouter {
@@ -22,7 +26,7 @@ class APIRouter {
     }
   }
 
-  match(url: string, method = "GET") {
+  match(url: string, method = "GET") : RouteMatch | {_route: null} {
     for (const [name, route] of Object.entries(this.routes[method] || [])) {
       const parts = url.split("?", 2);
       const matchUrl = parts[0];
@@ -43,9 +47,9 @@ class APIRouter {
 // ===========================================================================
 class API {
   router : APIRouter;
-  collections: any;
+  collections: SWCollections;
 
-  constructor(collections) {
+  constructor(collections: SWCollections) {
     this.router = new APIRouter(this.routes);
 
     this.collections = collections;
@@ -68,7 +72,7 @@ class API {
     };
   }
 
-  async apiResponse(url: string, request: Request, event) {
+  async apiResponse(url: string, request: Request, event: FetchEvent) {
     const params = this.router.match(url, request.method);
     const response = await this.handleApi(request, params, event);
     if (response instanceof Response) {
@@ -78,7 +82,7 @@ class API {
     return this.makeResponse(response, status);
   }
 
-  async handleApi(request: Request, params, event: FetchEvent) {
+  async handleApi(request: Request, params: RouteMatch, event: FetchEvent) {
     switch (params._route) {
     case "index":
       return await this.listAll(params._query.get("filter"));
@@ -109,9 +113,12 @@ class API {
 
         data.verify = await coll.store.getVerifyInfo();
 
-      } else {
+      } else if (coll.store.db) {
         data.numLists = await coll.store.db.count("pageLists");
         data.numPages = await coll.store.db.count("pages");
+      } else {
+        data.numLists = 0;
+        data.numPages = 0;
       }
 
       if (coll.config.metadata.ipfsPins) {
@@ -198,8 +205,8 @@ class API {
       if (!coll) {
         return {error: "collection_not_found"};
       }
-      if (coll.store.getTextIndex) {
-        return await coll.store.getTextIndex();
+      if ((coll.store as any).getTextIndex) {
+        return await (coll.store as any).getTextIndex();
       } else {
         return {};
       }
@@ -211,6 +218,9 @@ class API {
         return {error: "collection_not_found"};
       }
       const list = Number(params.list);
+      if (!coll.store.db) {
+        return {curated: []};
+      }
       const curated = await coll.store.db.getAllFromIndex("curatedPages", "listPages", 
         IDBKeyRange.bound([list], [list + 1]));
       return {curated};
@@ -221,11 +231,11 @@ class API {
       if (!coll) {
         return {error: "collection_not_found"};
       }
-      const {pageSize, deleteSize} = coll.store.deletePage(params.page);
+      const {pageSize, dedupSize} = await coll.store.deletePage(params.page);
 
-      this.collections.updateSize(params.coll, pageSize, deleteSize);
+      this.collections.updateSize(params.coll, pageSize, dedupSize);
 
-      return {pageSize, deleteSize};
+      return {pageSize, dedupSize};
     }
 
     default:
@@ -233,7 +243,7 @@ class API {
     }
   }
 
-  async listAll(filter?: string) {
+  async listAll(filter?: string | null) {
     const response = await this.collections.listAll();
     const collections : any[] = [];
 
@@ -252,7 +262,7 @@ class API {
     return {"colls": collections};
   }
 
-  makeResponse(response, status = 200) {
+  makeResponse(response: Response, status = 200) {
     return new Response(JSON.stringify(response), {status, headers: {"Content-Type": "application/json"}});
   }
 }

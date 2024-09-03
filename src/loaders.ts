@@ -24,13 +24,13 @@ if (!globalThis.self) {
   (globalThis as any).self = globalThis;
 }
 
-const interruptLoads = {};
+const interruptLoads : Record<string, () => void> = {};
 (self as any).interruptLoads = interruptLoads;
 
 
 export type LoadColl = {
   name?: string;
-  type?: string;
+  type: string;
   config: Record<string, any>;
   store?: DBStore;
 }
@@ -73,7 +73,7 @@ export class CollectionLoader
     });
   }
 
-  async loadAll(dbColls) {
+  async loadAll(dbColls: string) {
     await this._init_db;
 
     if (dbColls) {
@@ -106,7 +106,7 @@ export class CollectionLoader
     return await this.colldb!.getAll("colls");
   }
 
-  async loadColl(name) {
+  async loadColl(name: string) {
     await this._init_db;
     const data = await this.colldb!.get("colls", name);
     if (!data) {
@@ -116,11 +116,11 @@ export class CollectionLoader
     return await this._initColl(data);
   }
 
-  async reload(name) {
+  async reload(name: string) {
     return this.loadColl(name);
   }
 
-  async deleteColl(name) {
+  async deleteColl(name: string) {
     await this._init_db;
     const data = await this.colldb!.get("colls", name);
     if (!data) {
@@ -145,7 +145,7 @@ export class CollectionLoader
     return true;
   }
 
-  async updateAuth(name, newHeaders) {
+  async updateAuth(name: string, newHeaders: Record<string, string>) {
     await this._init_db;
     const data = await this.colldb!.get("colls", name);
     if (!data) {
@@ -156,7 +156,7 @@ export class CollectionLoader
     return true;
   }
 
-  async updateMetadata(name, newMetadata) {
+  async updateMetadata(name: string, newMetadata: Record<string, string>) {
     await this._init_db;
     const data = await this.colldb!.get("colls", name);
     if (!data) {
@@ -168,7 +168,7 @@ export class CollectionLoader
     return data.config.metadata;
   }
 
-  async updateSize(name, fullSize, dedupSize, decodeUpdate) {
+  async updateSize(name: string, fullSize: number, dedupSize: number, decodeUpdate?: boolean) {
     await this._init_db;
     const data = await this.colldb!.get("colls", name);
     if (!data) {
@@ -188,7 +188,7 @@ export class CollectionLoader
     return metadata;
   }
 
-  async initNewColl(metadata, extraConfig = {}, type = "archive") {
+  async initNewColl(metadata: Record<string, any>, extraConfig = {}, type = "archive") {
     await this._init_db;
     const id = randomId();
     const dbname = "db:" + id;
@@ -214,20 +214,20 @@ export class CollectionLoader
     return coll;
   }
 
-  async _initColl(data) {
-    const store = await this._initStore(data.type, data.config);
+  async _initColl(data: LoadColl) : Promise<any> {
+    const store = await this._initStore(data.type || "", data.config);
 
     const name = data.name;
     const config = data.config;
 
     if (data.config.root && !this.root) {
-      this.root = name;
+      this.root = name || null;
     }
 
     return this._createCollection({name, store, config});
   }
 
-  async _initStore(type, config) {
+  async _initStore(type: string, config: Record<string, any>) {
     let sourceLoader : BaseLoader;
     let store : DBStore | null = null;
 
@@ -282,7 +282,7 @@ export class CollectionLoader
     return store;
   }
 
-  _createCollection(opts) {
+  _createCollection(opts: Record<string, any>) {
     return opts;
   }
 }
@@ -290,28 +290,28 @@ export class CollectionLoader
 // ===========================================================================
 export class WorkerLoader extends CollectionLoader
 {
-  constructor(worker) {
+  constructor(worker: WorkerGlobalScope) {
     super();
     this.registerListener(worker);
   }
 
-  async hasCollection(name) {
+  async hasCollection(name: string) {
     await this._init_db;
 
     return await this.colldb!.getKey("colls", name) != null;
   }
 
-  registerListener(worker) {
-    worker.addEventListener("message", event => {
-      if (event.waitUntil) {
-        event.waitUntil(this._handleMessage(event));
+  registerListener(worker: WorkerGlobalScope) {
+    worker.addEventListener("message", (event: any) => {
+      if ((event as any).waitUntil) {
+        (event as any).waitUntil(this._handleMessage(event as MessageEvent));
       } else {
         this._handleMessage(event);
       }
     });
   }
 
-  async _handleMessage(event) {
+  async _handleMessage(event: MessageEvent) {
     await this._init_db;
 
     const client = event.source || self;
@@ -321,7 +321,8 @@ export class WorkerLoader extends CollectionLoader
     {
       const name = event.data.name; 
 
-      const progressUpdate = (percent, error, currentSize, totalSize, fileHandle = null, extraMsg = null) => {
+      const progressUpdate = (percent?: number, error?: string, currentSize?: number | null, 
+                              totalSize?: number | null, fileHandle = null, extraMsg = null) => {
         client.postMessage({
           "msg_type": "collProgress",
           name,
@@ -391,7 +392,7 @@ export class WorkerLoader extends CollectionLoader
     {
       const name = event.data.name;
 
-      const p = new Promise((resolve) => interruptLoads[name] = resolve);
+      const p = new Promise<void>((resolve) => interruptLoads[name] = resolve);
 
       await p;
 
@@ -423,7 +424,7 @@ export class WorkerLoader extends CollectionLoader
     }
   }
 
-  async doListAll(client) {
+  async doListAll(client: (WorkerGlobalScope & typeof globalThis) | MessageEventSource) {
     const msgData : Record<string, any>[] = [];
     const allColls = await this.listAll();
 
@@ -441,10 +442,10 @@ export class WorkerLoader extends CollectionLoader
     client.postMessage({ "msg_type": "listAll", "colls": msgData });
   }
   
-  async addCollection(data, progressUpdate) : Promise<LoadColl | false> {
+  async addCollection(data: Record<string, any>, progressUpdate: any) : Promise<LoadColl | false> {
     let name = data.name;
 
-    let type : string | null = null;
+    let type : string = "";
     let config : Record<string, any> = {root: data.root || false};
     let generalDB : DBStore | null = null;
 
@@ -573,7 +574,7 @@ export class WorkerLoader extends CollectionLoader
 
       config.onDemand = sourceLoader.canLoadOnDemand && !file.newFullImport;
 
-      if (!sourceLoader.isValid) {
+      if (!sourceLoader.isValid || !stream) {
         const text = (sourceLoader.length && sourceLoader.length <= 1000) ? await response.text() : "";
         progressUpdate(0, `\
 Sorry, this URL could not be loaded.
@@ -674,7 +675,7 @@ Make sure this is a valid URL and you have access to this file.`);
 
       if (updateExistingConfig) {
         await this.updateSize(file.importCollId, contentLength, contentLength, updateExistingConfig.decode);
-        return {config: updateExistingConfig};
+        return {config: updateExistingConfig, type: ""};
       }
 
       if (!config.metadata.size) {

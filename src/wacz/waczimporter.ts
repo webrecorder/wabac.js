@@ -21,14 +21,14 @@ export class WACZImporter
   isRoot: boolean;
   waczname: string;
 
-  constructor(store, file, isRoot = true) {
+  constructor(store: MultiWACZ, file: WACZFile, isRoot = true) {
     this.file = file;
-    this.waczname = file.waczname;
+    this.waczname = file.waczname || "";
     this.store = store;
     this.isRoot = isRoot;
   }
 
-  async loadFileFromWACZ(filename, opts) {
+  async loadFileFromWACZ(filename: string, opts: Record<string, any>) {
     if (this.store.loadFileFromWACZ) {
       return await this.store.loadFileFromWACZ(this.file, filename, opts);
     } else {
@@ -55,7 +55,7 @@ export class WACZImporter
     return metadata || {};
   }
 
-  async loadTextFileFromWACZ(filename, expectedHash = "") : Promise<string> {
+  async loadTextFileFromWACZ(filename: string, expectedHash = "") : Promise<string> {
     const { reader, hasher } = await this.loadFileFromWACZ(filename, {computeHash: !!expectedHash});
     if (!reader) {
       return "";
@@ -68,7 +68,7 @@ export class WACZImporter
     return text;
   }
 
-  async loadDigestData(filename) {
+  async loadDigestData(filename: string) {
     try {
       const digestData = JSON.parse(await this.loadTextFileFromWACZ(filename));
       let datapackageHash;
@@ -98,7 +98,7 @@ export class WACZImporter
     }
   }
 
-  async loadPackage(filename, expectedDigest) {
+  async loadPackage(filename: string, expectedDigest: string) {
     const text = await this.loadTextFileFromWACZ(filename, expectedDigest);
 
     const root = JSON.parse(text);
@@ -123,13 +123,13 @@ export class WACZImporter
     }
   }
 
-  async loadMultiWACZPackage(root) {
+  async loadMultiWACZPackage(root: Record<string, any>) {
     this.file.markAsMultiWACZ();
     await this.store.loadWACZFiles(root, this.file);
     return root;
   }
 
-  async loadLeafWACZPackage(datapackage) {
+  async loadLeafWACZPackage(datapackage: Record<string, any>) {
     const metadata = datapackage.metadata || {};
 
     let pagesHash = null;
@@ -160,10 +160,10 @@ export class WACZImporter
   }
 
   // Old WACZ 0.1.0 Format
-  async loadOldPackageYAML(filename) {
+  async loadOldPackageYAML(filename: string) {
     const text = await this.loadTextFileFromWACZ(filename);
 
-    const root = yaml.load(text);
+    const root : Record<string, any> = yaml.load(text) as Record<string, any>;
 
     const metadata : Record<string, any> = {
       desc: root.desc,

@@ -11,7 +11,7 @@ const MAX_INT16 = 0xFFFF;
 
 // ===========================================================================
 export type ReaderAndHasher = {
-  reader: AsyncIterReader | null;
+  reader: AsyncIterReader;
   hasher?: GetHash | null;
 };
 
@@ -288,13 +288,13 @@ export class ZipRangeReader
     }
 
     if (!this.entries) {
-      return {reader: null};
+      throw new Error("entries not loaded");
     }
 
     const entry = this.entries[name];
 
     if (!entry) {
-      return {reader: null};
+      throw new Error("file not found in zip: " + name);
     }
 
     if (entry.offset === undefined) {
@@ -406,10 +406,8 @@ export class ZipBlockLoader extends BaseLoader
 
     if (streaming) {
       return getReadableStreamFromIter(reader);
-    } else if (reader) {
-      return await reader.readFully();
     } else {
-      throw new Error("null reader");
+      return await reader.readFully();
     }
   }
 }

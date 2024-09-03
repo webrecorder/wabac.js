@@ -1,6 +1,7 @@
+import { ArchiveRequest } from "./request";
 import { getStatusText } from "./utils";
 
-export function notFoundByTypeResponse(request: Request, requestURL: string, requestTS: string, liveRedirectOnNotFound = false, status = 404) {
+export function notFoundByTypeResponse(request: ArchiveRequest, requestURL: string, requestTS: string, liveRedirectOnNotFound = false, status = 404) {
   let content : string;
   let contentType : string;
 
@@ -42,7 +43,7 @@ export function notFoundByTypeResponse(request: Request, requestURL: string, req
 }
 
 
-function getHTMLNotFound(request: Request, requestURL: string, requestTS: string, liveRedirectOnNotFound: boolean) {
+function getHTMLNotFound(request: ArchiveRequest, requestURL: string, requestTS: string, liveRedirectOnNotFound: boolean) {
   return `
   <!doctype html>
   <html>

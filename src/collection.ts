@@ -52,7 +52,7 @@ export class Collection {
 
   staticPrefix: string;
 
-  constructor(opts, prefixes: Prefixes, defaultConfig = {}) {
+  constructor(opts: Record<string, any>, prefixes: Prefixes, defaultConfig = {}) {
     const { name, store, config } = opts;
 
     this.name = name;
@@ -171,14 +171,14 @@ export class Collection {
       const basePrefixTS = basePrefix + requestTS;
       const arResponse = response;
 
-      const headInsertFunc = (url) => {
+      const headInsertFunc = (url: string) => {
         let presetCookie = arResponse.headers.get("x-wabac-preset-cookie") || "";
         const setCookie = arResponse.headers.get("Set-Cookie");
         const topUrl = basePrefixTS + (requestTS ? "/" : "") + url;
         return this.makeHeadInsert(url, requestTS, arResponse.date, topUrl, basePrefix, presetCookie, setCookie, arResponse.isLive, request.referrer, arResponse.extraOpts);
       };
 
-      const workerInsertFunc = (text) => {
+      const workerInsertFunc = (text: string) => {
         return `
         (function() { self.importScripts('${this.staticPrefix}wombatWorkers.js');\
             new WBWombat({'prefix': '${basePrefixTS}/', 'prefixMod': '${basePrefixTS}wkrf_/', 'originalURL': '${requestURL}'});\
@@ -289,7 +289,7 @@ export class Collection {
     return new ArchiveResponse({payload, status, statusText, headers, url, date});
   }
 
-  async getBlobResponse(url) {
+  async getBlobResponse(url: string) {
     const resp = await fetch(url);
 
     const status = resp.status;
@@ -397,7 +397,9 @@ window.home = "${this.rootPrefix}";
     return new Response(content, responseData);
   }
 
-  makeHeadInsert(url, requestTS, date, topUrl, prefix, presetCookie, setCookie, isLive, referrer, extraOpts) {
+  makeHeadInsert(url: string, requestTS: string, date: Date, topUrl: string, prefix: string, 
+                 presetCookie: string, setCookie: string | null, isLive: boolean, referrer: string, 
+                 extraOpts: Record<string, any> | null) {
     const coll = this.name;
 
     const seconds = getSecondsStr(date);

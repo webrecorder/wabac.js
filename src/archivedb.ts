@@ -832,17 +832,17 @@ export class ArchiveDB implements DBStore {
 */
   }
 
-  async deletePage(id) {
+  async deletePage(id: string) : Promise<{pageSize: number, dedupSize: number}> {
     const tx = this.db!.transaction("pages", "readwrite");
     const page = await tx.store.get(id);
     await tx.store.delete(id);
 
     const size = await this.deletePageResources(id);
-    return {pageSize: page && page.size || 0,
+    return {pageSize: page?.size || 0,
       dedupSize: size};
   }
 
-  async deletePageResources(pageId) {
+  async deletePageResources(pageId: string) : Promise<number> {
     const digestSet = {};
 
     const tx = this.db!.transaction("resources", "readwrite");

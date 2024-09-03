@@ -29,7 +29,7 @@ export class SWCollections extends WorkerLoader
   defaultConfig: Record<string, any>;
 
 
-  constructor(prefixes, root : string | null = null, defaultConfig = {}) {
+  constructor(prefixes: Prefixes, root : string | null = null, defaultConfig = {}) {
     super(self);
     this.prefixes = prefixes;
     this.colls = {};
@@ -40,7 +40,7 @@ export class SWCollections extends WorkerLoader
     this._fileHandles = {};
   }
 
-  _createCollection(opts) {
+  _createCollection(opts: Record<string, any>) : Collection {
     return new Collection(opts, this.prefixes, this.defaultConfig);
   }
 
@@ -50,20 +50,20 @@ export class SWCollections extends WorkerLoader
     return this.inited;
   }
 
-  async getColl(name) {
+  async getColl(name: string) {
     if (!this.colls[name]) {
       this.colls[name] = await this.loadColl(name);
     }
     return this.colls[name];
   }
 
-  async reload(name) {
+  async reload(name: string) {
     delete this.colls[name];
 
     await this.getColl(name);
   }
 
-  async addCollection(data, progressUpdate) {
+  async addCollection(data: any, progressUpdate: any) {
     const opts = await super.addCollection(data, progressUpdate);
 
     if (opts && opts.name) {
@@ -73,7 +73,7 @@ export class SWCollections extends WorkerLoader
     return opts;
   }
 
-  async deleteColl(name, keepFileHandle = false) {
+  async deleteColl(name: string, keepFileHandle = false) {
     if (this.colls[name]) {
       if (this.colls[name].store) {
         await this.colls[name].store.delete();
@@ -92,7 +92,7 @@ export class SWCollections extends WorkerLoader
     return true;
   }
 
-  async initNewColl(metadata, extraConfig = {}, type = "archive") {
+  async initNewColl(metadata: any, extraConfig = {}, type = "archive") {
     const coll = await super.initNewColl(metadata, extraConfig, type);
     if (coll) {
       this.colls[coll.name] = coll;
@@ -100,7 +100,7 @@ export class SWCollections extends WorkerLoader
     return coll;
   }
 
-  async updateAuth(name, headers) {
+  async updateAuth(name: string, headers: Record<string, string>) {
     if (this.colls[name] && (this.colls[name].store as any).updateHeaders) {
       (this.colls[name].store as any).updateHeaders(headers);
     }
@@ -108,7 +108,7 @@ export class SWCollections extends WorkerLoader
     return await super.updateAuth(name, headers);
   }
 
-  async updateMetadata(name, newMetadata) {
+  async updateMetadata(name: string, newMetadata: Record<string, string>) {
     const metadata = await super.updateMetadata(name, newMetadata);
     if (this.colls[name] && metadata) {
       this.colls[name].config.metadata = metadata;
@@ -117,7 +117,7 @@ export class SWCollections extends WorkerLoader
     return metadata;
   }
 
-  async updateSize(name, fullSize, dedupSize, updateDecode) {
+  async updateSize(name: string, fullSize: number, dedupSize: number, updateDecode?: boolean) {
     const metadata = await super.updateSize(name, fullSize, dedupSize, updateDecode);
     if (this.colls[name] && metadata) {
       this.colls[name].config.metadata = metadata;
@@ -202,7 +202,7 @@ export class SWReplay {
     }
 
     if (defaultConfig.injectScripts) {
-      defaultConfig.injectScripts = defaultConfig.injectScripts.map(url => this.staticPrefix + "proxy/" + url);
+      defaultConfig.injectScripts = defaultConfig.injectScripts.map((url: string) => this.staticPrefix + "proxy/" + url);
     }
 
     if (sp.has("adblockUrl")) {
@@ -304,7 +304,7 @@ export class SWReplay {
     }
   }
 
-  staticPathProxy(url, request) {
+  staticPathProxy(url: string, request: Request) {
     url = url.slice((this.staticPrefix + "proxy/").length);
     url = new URL(url, self.location.href).href;
     request = new Request(url);
