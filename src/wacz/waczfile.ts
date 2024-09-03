@@ -1,5 +1,5 @@
-import { BaseLoader } from "../blockloaders.js";
-import { LoadWACZEntry, ZipBlockLoader, ZipRangeReader } from "./ziprangereader.js";
+import { BaseLoader } from "../blockloaders";
+import { LoadWACZEntry, ZipBlockLoader, ZipRangeReader } from "./ziprangereader";
 
 export const NO_LOAD_WACZ = "local";
 export const DEFAULT_WACZ = "default";

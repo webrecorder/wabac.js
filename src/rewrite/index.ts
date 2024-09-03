@@ -1,22 +1,22 @@
 import LinkHeader from "http-link-header";
 
-import { isAjaxRequest } from "../utils.js";
+import { isAjaxRequest } from "../utils";
 
-import { decodeResponse } from "./decoder.js";
+import { decodeResponse } from "./decoder";
 
-import { rewriteDASH, rewriteHLS } from "./rewriteVideo.js";
+import { rewriteDASH, rewriteHLS } from "./rewriteVideo";
 
-import { DomainSpecificRuleSet, HTML_ONLY_RULES } from "./dsruleset.js";
+import { DomainSpecificRuleSet, HTML_ONLY_RULES } from "./dsruleset";
 
-import { RxRewriter } from "./rxrewriter.js";
-import { JSRewriter } from "./jsrewriter.js";
+import { RxRewriter } from "./rxrewriter";
+import { JSRewriter } from "./jsrewriter";
 
-import { HTMLRewriter } from "./html.js";
-import { ArchiveRequest } from "../request.js";
-import { ArchiveResponse } from "../response.js";
+import { HTMLRewriter } from "./html";
+import { ArchiveRequest } from "../request";
+import { ArchiveResponse } from "../response";
 
 // keep for backwards compatibility with RWP and AWP
-export { ArchiveResponse } from "../response.js";
+export { ArchiveResponse } from "../response";
 
 
 // ===========================================================================

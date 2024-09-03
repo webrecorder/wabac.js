@@ -1,6 +1,6 @@
-import { AuthNeededError, AccessDeniedError, RangeError, sleep } from "./utils.js";
+import { AuthNeededError, AccessDeniedError, RangeError, sleep } from "./utils";
 
-import { initAutoIPFS } from "./ipfs.js";
+import { initAutoIPFS } from "./ipfs";
 
 import { concatChunks } from "warcio";
 

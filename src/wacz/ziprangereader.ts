@@ -1,8 +1,8 @@
 import { AsyncIterReader, concatChunks } from "warcio";
 import { createSHA256 } from "hash-wasm";
-import { BaseLoader, getReadableStreamFromIter } from "../blockloaders.js";
+import { BaseLoader, getReadableStreamFromIter } from "../blockloaders";
 import { IHasher } from "hash-wasm/dist/lib/WASMInterface.js";
-import { GetHash } from "../remotearchivedb.js";
+import { GetHash } from "../remotearchivedb";
 
 // ===========================================================================
 const MAX_INT32 = 0xFFFFFFFF;

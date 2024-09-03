@@ -1,5 +1,3 @@
-import { AsyncIterReader } from "warcio";
-
 export async function getAdBlockCSSResponse(fullDomain, adblockUrl) {
   const domainParts = fullDomain.split(".");
   const allDomains : string[] = [];

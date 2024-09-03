@@ -1,11 +1,11 @@
-import { makeHeaders, Canceled, tsToDate } from "./utils.js";
+import { makeHeaders, Canceled, tsToDate } from "./utils";
 
 import { AsyncIterReader, WARCParser, WARCRecord, postToGetUrl } from "warcio";
 
-import { extractText } from "./extract.js";
+import { extractText } from "./extract";
 
-import { BaseParser } from "./baseparser.js";
-import { ResourceEntry } from "./types.js";
+import { BaseParser } from "./baseparser";
+import { ResourceEntry } from "./types";
 
 
 // ===========================================================================

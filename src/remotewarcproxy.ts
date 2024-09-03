@@ -1,9 +1,9 @@
-import { ArchiveResponse } from "./response.js";
-import { fuzzyMatcher } from "./fuzzymatcher.js";
+import { ArchiveResponse } from "./response";
+import { fuzzyMatcher } from "./fuzzymatcher";
 
 import { WARCParser, AsyncIterReader, Source } from "warcio";
-import { DBStore } from "./types.js";
-import { ArchiveRequest } from "./request.js";
+import { DBStore } from "./types";
+import { ArchiveRequest } from "./request";
 
 
 // ===========================================================================

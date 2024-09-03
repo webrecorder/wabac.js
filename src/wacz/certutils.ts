@@ -1,5 +1,5 @@
 import { toByteArray as decodeBase64, fromByteArray as encodeBase64 } from "base64-js";
-import { base16 } from "../utils.js";
+import { base16 } from "../utils";
 
 import * as x509 from "@peculiar/x509";
 import { AsnParser } from "@peculiar/asn1-schema";

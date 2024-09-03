@@ -1,9 +1,9 @@
-import { ArchiveDB } from "./archivedb.js";
-import { SingleRecordWARCLoader } from "./warcloader.js";
+import { ArchiveDB } from "./archivedb";
+import { SingleRecordWARCLoader } from "./warcloader";
 import { BaseAsyncIterReader, AsyncIterReader, LimitReader, concatChunks } from "warcio";
 
-import { BaseLoader, createLoader } from "./blockloaders.js";
-import { ResourceEntry } from "./types.js";
+import { BaseLoader, createLoader } from "./blockloaders";
+import { ResourceEntry } from "./types";
 
 const MAX_CACHE_SIZE = 25_000_000;
 

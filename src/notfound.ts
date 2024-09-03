@@ -1,4 +1,4 @@
-import { getStatusText } from "./utils.js";
+import { getStatusText } from "./utils";
 
 export function notFoundByTypeResponse(request, requestURL, requestTS, liveRedirectOnNotFound = false, status = 404) {
   let content : string;

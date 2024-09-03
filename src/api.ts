@@ -1,5 +1,5 @@
 import { Path } from "path-parser";
-import { getCollData } from "./utils.js";
+import { getCollData } from "./utils";
 
 // ===========================================================================
 class APIRouter {

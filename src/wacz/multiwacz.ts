@@ -1,17 +1,16 @@
-import { GetHash, LoadRecordFromSourceType, OnDemandPayloadArchiveDB, RemoteSourceArchiveDB } from "../remotearchivedb.js";
-import { SingleRecordWARCLoader } from "../warcloader.js";
-import { CDXLoader, CDX_COOKIE } from "../cdxloader.js";
-import { AccessDeniedError, digestMessage, handleAuthNeeded, tsToDate, getTS } from "../utils.js";
+import { LoadRecordFromSourceType, RemoteSourceArchiveDB } from "../remotearchivedb";
+import { SingleRecordWARCLoader } from "../warcloader";
+import { CDXLoader, CDX_COOKIE } from "../cdxloader";
+import { AccessDeniedError, digestMessage, handleAuthNeeded, tsToDate, getTS } from "../utils";
 import { AsyncIterReader, getSurt } from "warcio";
-import { LiveProxy } from "../liveproxy.js";
+import { LiveProxy } from "../liveproxy";
 
-import { INDEX_CDX, INDEX_IDX, INDEX_NOT_LOADED, IndexType, NO_LOAD_WACZ, WACZFile, WACZFileInitOptions, WACZFileOptions, WACZLoadSource, WACZ_LEAF } from "./waczfile.js";
-import { EXTRA_PAGES_JSON, WACZImporter } from "./waczimporter.js";
-import { BaseLoader, createLoader } from "../blockloaders.js";
-import { ArchiveResponse } from "../response.js";
-import { ArchiveRequest } from "../request.js";
-import { LoadWACZEntry } from "./ziprangereader.js";
-import { ResourceEntry } from "../types.js";
+import { INDEX_CDX, INDEX_IDX, INDEX_NOT_LOADED, IndexType, NO_LOAD_WACZ, WACZFile, WACZFileOptions, WACZLoadSource, WACZ_LEAF } from "./waczfile";
+import { EXTRA_PAGES_JSON, WACZImporter } from "./waczimporter";
+import { BaseLoader, createLoader } from "../blockloaders";
+import { ArchiveResponse } from "../response";
+import { ArchiveRequest } from "../request";
+import { LoadWACZEntry } from "./ziprangereader";
 
 const MAX_BLOCKS = 3;
 

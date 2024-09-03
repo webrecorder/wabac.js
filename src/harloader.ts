@@ -1,4 +1,4 @@
-import { BaseParser } from "./baseparser.js";
+import { BaseParser } from "./baseparser";
 
 
 // ===========================================================================

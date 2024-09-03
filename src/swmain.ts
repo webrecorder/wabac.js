@@ -1,17 +1,17 @@
-import { Collection, Prefixes } from "./collection.js";
-import { WorkerLoader } from "./loaders.js";
+import { Collection, Prefixes } from "./collection";
+import { WorkerLoader } from "./loaders";
 
-import { notFound, isAjaxRequest } from "./utils.js";
-import { StatsTracker } from "./statstracker.js";
+import { notFound, isAjaxRequest } from "./utils";
+import { StatsTracker } from "./statstracker";
 
-import { API } from "./api.js";
+import { API } from "./api";
 
-import WOMBAT from "./wombat/wombat.js";
-//import WOMBAT_WORKERS from "./wombat/wombatWorkers.js";
-//import WOMBAT_WORKERS from "@webrecorder/wombat/src/wombatWorkers.js";
-const WOMBAT_WORKERS = "";
+import WOMBAT from "./wombat/wombat.txt";
+import WOMBAT_WORKERS from "./wombat/wombatWorkers.txt";
+//import WOMBAT_WORKERS from "@webrecorder/wombat/src/wombatWorkers.txt";
+//const WOMBAT_WORKERS = "";
 
-import { ArchiveRequest } from "./request.js";
+import { ArchiveRequest } from "./request";
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";

@@ -3,6 +3,7 @@
 const path = require("path");
 const webpack = require("webpack");
 const TerserPlugin = require("terser-webpack-plugin");
+const CopyPlugin = require("copy-webpack-plugin");
 const package_json = require("./package.json");
 const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 
@@ -10,8 +11,8 @@ module.exports = {
   mode: "production",
   target: "web",
   entry: {
-    "wombat": "@webrecorder/wombat/src/wbWombat.js",
-    "wombatWorkers": "@webrecorder/wombat/src/wombatWorkers.js",
+    //"wombat": "@webrecorder/wombat/src/wbWombat.js",
+    //"wombatWorkers": "@webrecorder/wombat/src/wombatWorkers.js",
     "sw": "./src/sw.ts"
   },
   output: {
@@ -76,6 +77,10 @@ module.exports = {
     }),
 
     new webpack.BannerPlugin(`[name].js (wabac.js ${package_json.version}) is part of Webrecorder project. Copyright (C) 2020-${new Date().getFullYear()}, Webrecorder Software. Licensed under the Affero General Public License v3.`),
+
+    //new CopyPlugin({
+    //  patterns: [{ from: "node_modules/@webrecorder/wombat/src/wombatWorkers.js", to: "src/wombat/" }],
+    //}),
   ],
 };
 

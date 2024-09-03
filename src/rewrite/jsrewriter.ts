@@ -1,4 +1,4 @@
-import { Rule, RxRewriter } from "./rxrewriter.js";
+import { Rule, RxRewriter } from "./rxrewriter";
 import * as acorn from "acorn";
 
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;

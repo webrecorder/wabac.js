@@ -1,13 +1,13 @@
-import { Rewriter } from "./rewrite/index.js";
+import { Rewriter } from "./rewrite/index";
 
-import { getTS, getSecondsStr, notFound, parseSetCookie, handleAuthNeeded, REPLAY_TOP_FRAME_NAME } from "./utils.js";
+import { getTS, getSecondsStr, notFound, parseSetCookie, handleAuthNeeded, REPLAY_TOP_FRAME_NAME } from "./utils";
 
-import { ArchiveResponse } from "./response.js";
+import { ArchiveResponse } from "./response";
 
-import { getAdBlockCSSResponse } from "./adblockcss.js";
-import { notFoundByTypeResponse } from "./notfound.js";
-import { ArchiveDB } from "./archivedb.js";
-import { ArchiveRequest } from "./request.js";
+import { getAdBlockCSSResponse } from "./adblockcss";
+import { notFoundByTypeResponse } from "./notfound";
+import { ArchiveDB } from "./archivedb";
+import { ArchiveRequest } from "./request";
 
 const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 

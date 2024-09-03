@@ -1,5 +1,5 @@
 import { BaseAsyncIterReader, AsyncIterReader, LimitReader } from "warcio";
-import { isNullBodyStatus, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, tsToDate } from "./utils.js";
+import { isNullBodyStatus, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, tsToDate } from "./utils";
 import { Buffer } from "buffer";
 
 const encoder = new TextEncoder();

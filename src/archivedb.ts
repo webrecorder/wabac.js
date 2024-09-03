@@ -1,10 +1,10 @@
 import { openDB, deleteDB, IDBPDatabase } from "idb/with-async-ittr";
 import { tsToDate, isNullBodyStatus, makeHeaders, digestMessage,
-  getTS, getStatusText, randomId, PAGE_STATE_SYNCED } from "./utils.js";
-import { fuzzyMatcher } from "./fuzzymatcher.js";
-import { ArchiveResponse } from "./response.js";
-import { DBStore, DigestRefCount, ResAPIResponse, ResourceEntry } from "./types.js";
-import { ArchiveRequest } from "./request.js";
+  getTS, getStatusText, randomId, PAGE_STATE_SYNCED } from "./utils";
+import { fuzzyMatcher } from "./fuzzymatcher";
+import { ArchiveResponse } from "./response";
+import { DBStore, DigestRefCount, ResAPIResponse, ResourceEntry } from "./types";
+import { ArchiveRequest } from "./request";
 
 
 const MAX_FUZZY_MATCH = 128000;

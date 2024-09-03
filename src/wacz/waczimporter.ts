@@ -1,8 +1,8 @@
 import yaml from "js-yaml";
 
-import { verifyWACZSignature } from "./certutils.js";
-import { MultiWACZ } from "./multiwacz.js";
-import { WACZFile } from "./waczfile.js";
+import { verifyWACZSignature } from "./certutils";
+import { MultiWACZ } from "./multiwacz";
+import { WACZFile } from "./waczfile";
 
 export const MAIN_PAGES_JSON = "pages/pages.jsonl";
 export const EXTRA_PAGES_JSON = "pages/extraPages.jsonl";

@@ -1,11 +1,10 @@
-import { BaseLoader } from "../blockloaders.js";
-import { MAX_FULL_DOWNLOAD_SIZE } from "../utils.js";
+import { BaseLoader } from "../blockloaders";
+import { MAX_FULL_DOWNLOAD_SIZE } from "../utils";
 
-import { WARCLoader } from "../warcloader.js";
+import { WARCLoader } from "../warcloader";
 
-import { DEFAULT_WACZ, WACZFile } from "./waczfile.js";
-import { WACZImporter } from "./waczimporter.js";
-import { ZipBlockLoader } from "./ziprangereader.js";
+import { DEFAULT_WACZ, WACZFile } from "./waczfile";
+import { WACZImporter } from "./waczimporter";
 
 
 // ============================================================================

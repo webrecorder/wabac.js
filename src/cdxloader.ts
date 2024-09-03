@@ -1,6 +1,6 @@
-import { ResourceEntry } from "./types.js";
-import { tsToDate } from "./utils.js";
-import { WARCLoader } from "./warcloader.js";
+import { ResourceEntry } from "./types";
+import { tsToDate } from "./utils";
+import { WARCLoader } from "./warcloader";
 
 import { CDXIndexer, AsyncIterReader, appendRequestQuery, WARCRecord, WARCParser } from "warcio";
 

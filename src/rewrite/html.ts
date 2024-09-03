@@ -1,6 +1,6 @@
 import { RewritingStream } from "parse5-html-rewriting-stream";
 
-import { startsWithAny, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, REPLAY_TOP_FRAME_NAME } from "../utils.js";
+import { startsWithAny, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, REPLAY_TOP_FRAME_NAME } from "../utils";
 import { Rewriter } from "./index.js";
 
 const encoder = new TextEncoder();

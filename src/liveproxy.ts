@@ -1,6 +1,6 @@
-import { ArchiveRequest } from "./request.js";
-import { ArchiveResponse } from "./response.js";
-import { DBStore } from "./types.js";
+import { ArchiveRequest } from "./request";
+import { ArchiveResponse } from "./response";
+import { DBStore } from "./types";
 
 
 // ===========================================================================
