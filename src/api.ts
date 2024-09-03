@@ -2,13 +2,12 @@ import { Path } from "path-parser";
 import { getCollData } from "./utils";
 import { SWCollections } from "./swmain";
 
-
 type RouteMatch = Record<string, any>;
 
 // ===========================================================================
 class APIRouter {
-  routes : Record<string, Record<string, Path>> = {};
-  
+  routes: Record<string, Record<string, Path>> = {};
+
   constructor(paths: Record<string, string | [string, string]>) {
     for (const [name, value] of Object.entries(paths)) {
       let route, method;
@@ -26,7 +25,7 @@ class APIRouter {
     }
   }
 
-  match(url: string, method = "GET") : RouteMatch | {_route: null} {
+  match(url: string, method = "GET"): RouteMatch | { _route: null } {
     for (const [name, route] of Object.entries(this.routes[method] || [])) {
       const parts = url.split("?", 2);
       const matchUrl = parts[0];
@@ -38,15 +37,14 @@ class APIRouter {
         return res;
       }
     }
-  
-    return {_route: null};
+
+    return { _route: null };
   }
 }
 
-
 // ===========================================================================
 class API {
-  router : APIRouter;
+  router: APIRouter;
   collections: SWCollections;
 
   constructor(collections: SWCollections) {
@@ -55,20 +53,20 @@ class API {
     this.collections = collections;
   }
 
-  get routes() : Record<string, string | [string, string]> {
+  get routes(): Record<string, string | [string, string]> {
     return {
-      "index": "coll-index",
-      "coll": "c/:coll",
-      "urls": "c/:coll/urls",
-      "urlsTs": "c/:coll/ts/",
-      "createColl": ["c/create", "POST"],
-      "deleteColl": ["c/:coll", "DELETE"],
-      "updateAuth": ["c/:coll/updateAuth", "POST"],
-      "updateMetadata": ["c/:coll/metadata", "POST"],
-      "curated": "c/:coll/curated/:list",
-      "pages": "c/:coll/pages",
-      "textIndex": "c/:coll/textIndex",
-      "deletePage": ["c/:coll/page/:page", "DELETE"],
+      index: "coll-index",
+      coll: "c/:coll",
+      urls: "c/:coll/urls",
+      urlsTs: "c/:coll/ts/",
+      createColl: ["c/create", "POST"],
+      deleteColl: ["c/:coll", "DELETE"],
+      updateAuth: ["c/:coll/updateAuth", "POST"],
+      updateMetadata: ["c/:coll/metadata", "POST"],
+      curated: "c/:coll/curated/:list",
+      pages: "c/:coll/pages",
+      textIndex: "c/:coll/textIndex",
+      deletePage: ["c/:coll/page/:page", "DELETE"],
     };
   }
 
@@ -84,168 +82,196 @@ class API {
 
   async handleApi(request: Request, params: RouteMatch, event: FetchEvent) {
     switch (params._route) {
-    case "index":
-      return await this.listAll(params._query.get("filter"));
+      case "index":
+        return await this.listAll(params._query.get("filter"));
 
-    case "createColl": {
-      const requestJSON = await request.json();
-      const coll = await this.collections.initNewColl(requestJSON.metadata || {}, requestJSON.extraConfig || {});
-      return getCollData(coll);
-    }
-
-    case "coll": {
-      const coll = await this.collections.getColl(params.coll);
-      if (!coll) {
-        return {error: "collection_not_found"};
+      case "createColl": {
+        const requestJSON = await request.json();
+        const coll = await this.collections.initNewColl(
+          requestJSON.metadata || {},
+          requestJSON.extraConfig || {},
+        );
+        return getCollData(coll);
       }
-      const data = getCollData(coll);
 
-      if (params._query.get("all") === "1") {
-        if (coll.store.db) {
-          data.pages = await coll.store.getAllPages();
-          data.lists = await coll.store.db.getAll("pageLists");
-          data.curatedPages = await coll.store.db.getAll("curatedPages");
+      case "coll": {
+        const coll = await this.collections.getColl(params.coll);
+        if (!coll) {
+          return { error: "collection_not_found" };
+        }
+        const data = getCollData(coll);
+
+        if (params._query.get("all") === "1") {
+          if (coll.store.db) {
+            data.pages = await coll.store.getAllPages();
+            data.lists = await coll.store.db.getAll("pageLists");
+            data.curatedPages = await coll.store.db.getAll("curatedPages");
+          } else {
+            data.pages = [];
+            data.lists = [];
+            data.curatedPages = [];
+          }
+
+          data.verify = await coll.store.getVerifyInfo();
+        } else if (coll.store.db) {
+          data.numLists = await coll.store.db.count("pageLists");
+          data.numPages = await coll.store.db.count("pages");
         } else {
-          data.pages = [];
-          data.lists = [];
-          data.curatedPages = [];
+          data.numLists = 0;
+          data.numPages = 0;
         }
 
-        data.verify = await coll.store.getVerifyInfo();
+        if (coll.config.metadata.ipfsPins) {
+          data.ipfsPins = coll.config.metadata.ipfsPins;
+        }
 
-      } else if (coll.store.db) {
-        data.numLists = await coll.store.db.count("pageLists");
-        data.numPages = await coll.store.db.count("pages");
-      } else {
-        data.numLists = 0;
-        data.numPages = 0;
+        return data;
       }
 
-      if (coll.config.metadata.ipfsPins) {
-        data.ipfsPins = coll.config.metadata.ipfsPins;
+      case "deleteColl": {
+        const keepFileHandle = params._query.get("reload") === "1";
+
+        if (!(await this.collections.deleteColl(params.coll, keepFileHandle))) {
+          return { error: "collection_not_found" };
+        }
+        return await this.listAll();
       }
 
-      return data;
-    }
-
-    case "deleteColl": {
-      const keepFileHandle = params._query.get("reload") === "1";
-
-      if (!await this.collections.deleteColl(params.coll, keepFileHandle)) {
-        return {error: "collection_not_found"};
-      }
-      return await this.listAll();
-    }
-
-    case "updateAuth": {
-      const requestJSON = await request.json();
-      return {"success": await this.collections.updateAuth(params.coll, requestJSON.headers)};
-    }
-
-    case "updateMetadata": {
-      const requestJSON = await request.json();
-      const metadata = await this.collections.updateMetadata(params.coll, requestJSON);
-      return {metadata};
-    }
-
-    case "urls": {
-      const coll = await this.collections.getColl(params.coll);
-      if (!coll) {
-        return {error: "collection_not_found"};
-      }
-      const url = params._query.get("url");
-      const count = Number(params._query.get("count") || 100);
-      const mime = params._query.get("mime");
-      const prefix = (params._query.get("prefix") === "1");
-
-      const fromUrl = params._query.get("fromUrl");
-      const fromTs = params._query.get("fromTs");
-      const fromMime = params._query.get("fromMime");
-      const fromStatus = Number(params._query.get("fromStatus") || 0);
-
-      if (!coll.store.resourcesByMime) {
-        return {urls: []};
+      case "updateAuth": {
+        const requestJSON = await request.json();
+        return {
+          success: await this.collections.updateAuth(
+            params.coll,
+            requestJSON.headers,
+          ),
+        };
       }
 
-      let urls;
-
-      if (url) {
-        urls = await coll.store.resourcesByUrlAndMime(url, mime, count, prefix, fromUrl, fromTs);
-      } else {
-        urls = await coll.store.resourcesByMime(mime, count, fromMime, fromUrl, fromStatus);
+      case "updateMetadata": {
+        const requestJSON = await request.json();
+        const metadata = await this.collections.updateMetadata(
+          params.coll,
+          requestJSON,
+        );
+        return { metadata };
       }
 
-      urls = urls || [];
+      case "urls": {
+        const coll = await this.collections.getColl(params.coll);
+        if (!coll) {
+          return { error: "collection_not_found" };
+        }
+        const url = params._query.get("url");
+        const count = Number(params._query.get("count") || 100);
+        const mime = params._query.get("mime");
+        const prefix = params._query.get("prefix") === "1";
 
-      return {urls};
-    }
+        const fromUrl = params._query.get("fromUrl");
+        const fromTs = params._query.get("fromTs");
+        const fromMime = params._query.get("fromMime");
+        const fromStatus = Number(params._query.get("fromStatus") || 0);
 
-    case "urlsTs": {
-      const coll = await this.collections.getColl(params.coll);
-      if (!coll) {
-        return {error: "collection_not_found"};
+        if (!coll.store.resourcesByMime) {
+          return { urls: [] };
+        }
+
+        let urls;
+
+        if (url) {
+          urls = await coll.store.resourcesByUrlAndMime(
+            url,
+            mime,
+            count,
+            prefix,
+            fromUrl,
+            fromTs,
+          );
+        } else {
+          urls = await coll.store.resourcesByMime(
+            mime,
+            count,
+            fromMime,
+            fromUrl,
+            fromStatus,
+          );
+        }
+
+        urls = urls || [];
+
+        return { urls };
       }
-      const url = params._query.get("url");
-      const timestamps = await coll.store.getTimestampsByURL(url);
 
-      return {"timestamps": timestamps};
-    }
+      case "urlsTs": {
+        const coll = await this.collections.getColl(params.coll);
+        if (!coll) {
+          return { error: "collection_not_found" };
+        }
+        const url = params._query.get("url");
+        const timestamps = await coll.store.getTimestampsByURL(url);
 
-    case "pages": {
-      const coll = await this.collections.getColl(params.coll);
-      if (!coll) {
-        return {error: "collection_not_found"};
+        return { timestamps: timestamps };
       }
-      const pages = await coll.store.getAllPages();
-      return {pages};
-    }
 
-    case "textIndex": {
-      const coll = await this.collections.getColl(params.coll);
-      if (!coll) {
-        return {error: "collection_not_found"};
+      case "pages": {
+        const coll = await this.collections.getColl(params.coll);
+        if (!coll) {
+          return { error: "collection_not_found" };
+        }
+        const pages = await coll.store.getAllPages();
+        return { pages };
       }
-      if ((coll.store as any).getTextIndex) {
-        return await (coll.store as any).getTextIndex();
-      } else {
-        return {};
+
+      case "textIndex": {
+        const coll = await this.collections.getColl(params.coll);
+        if (!coll) {
+          return { error: "collection_not_found" };
+        }
+        if ((coll.store as any).getTextIndex) {
+          return await (coll.store as any).getTextIndex();
+        } else {
+          return {};
+        }
       }
-    }
 
-    case "curated": {
-      const coll = await this.collections.getColl(params.coll);
-      if (!coll) {
-        return {error: "collection_not_found"};
+      case "curated": {
+        const coll = await this.collections.getColl(params.coll);
+        if (!coll) {
+          return { error: "collection_not_found" };
+        }
+        const list = Number(params.list);
+        if (!coll.store.db) {
+          return { curated: [] };
+        }
+        const curated = await coll.store.db.getAllFromIndex(
+          "curatedPages",
+          "listPages",
+          IDBKeyRange.bound([list], [list + 1]),
+        );
+        return { curated };
       }
-      const list = Number(params.list);
-      if (!coll.store.db) {
-        return {curated: []};
+
+      case "deletePage": {
+        const coll = await this.collections.getColl(params.coll);
+        if (!coll) {
+          return { error: "collection_not_found" };
+        }
+        const { pageSize, dedupSize } = await coll.store.deletePage(
+          params.page,
+        );
+
+        this.collections.updateSize(params.coll, pageSize, dedupSize);
+
+        return { pageSize, dedupSize };
       }
-      const curated = await coll.store.db.getAllFromIndex("curatedPages", "listPages", 
-        IDBKeyRange.bound([list], [list + 1]));
-      return {curated};
-    }
 
-    case "deletePage": {
-      const coll = await this.collections.getColl(params.coll);
-      if (!coll) {
-        return {error: "collection_not_found"};
-      }
-      const {pageSize, dedupSize} = await coll.store.deletePage(params.page);
-
-      this.collections.updateSize(params.coll, pageSize, dedupSize);
-
-      return {pageSize, dedupSize};
-    }
-
-    default:
-      return {"error": "not_found"};
+      default:
+        return { error: "not_found" };
     }
   }
 
   async listAll(filter?: string | null) {
     const response = await this.collections.listAll();
-    const collections : any[] = [];
+    const collections: any[] = [];
 
     response.forEach((coll) => {
       if (coll.type === "live" || coll.type === "remoteproxy") {
@@ -259,11 +285,14 @@ class API {
       collections.push(getCollData(coll));
     });
 
-    return {"colls": collections};
+    return { colls: collections };
   }
 
   makeResponse(response: Response, status = 200) {
-    return new Response(JSON.stringify(response), {status, headers: {"Content-Type": "application/json"}});
+    return new Response(JSON.stringify(response), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 

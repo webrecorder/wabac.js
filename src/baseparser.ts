@@ -2,11 +2,10 @@ import { ArchiveLoader, DBStore, PageEntry } from "./types";
 
 const DEFAULT_BATCH_SIZE = 1000;
 
-
 export type ResourceEntry = {
   url: string;
   ts: number;
-  
+
   digest?: string | null;
   status?: number;
   mime?: string;
@@ -29,8 +28,7 @@ export type ResourceEntry = {
 };
 
 // ===========================================================================
-abstract class BaseParser implements ArchiveLoader
-{
+abstract class BaseParser implements ArchiveLoader {
   batchSize: number;
   promises: Promise<void>[] = [];
   batch: ResourceEntry[] = [];
@@ -65,7 +63,9 @@ abstract class BaseParser implements ArchiveLoader
 
     if (res.mime === "warc/revisit") {
       if (this.dupeSet.has(key)) {
-        console.warn("Skipping duplicate revisit, prevent overriding non-revisit");
+        console.warn(
+          "Skipping duplicate revisit, prevent overriding non-revisit",
+        );
         return;
       }
     } else {
@@ -79,7 +79,7 @@ abstract class BaseParser implements ArchiveLoader
     if (this.batch.length > 0) {
       this.promises.push(this.db.addResources(this.batch));
     }
-    console.log(`Read ${this.count += this.batch.length} records`);
+    console.log(`Read ${(this.count += this.batch.length)} records`);
     this.batch = [];
   }
 
@@ -97,11 +97,13 @@ abstract class BaseParser implements ArchiveLoader
     this.promises = [];
   }
 
-  _finishLoad() {
+  _finishLoad() {}
 
-  }
-
-  abstract load(db: DBStore, progressUpdateCallback?: any, totalLength?: number) : Promise<void>;
+  abstract load(
+    db: DBStore,
+    progressUpdateCallback?: any,
+    totalLength?: number,
+  ): Promise<void>;
 }
 
 export { BaseParser };

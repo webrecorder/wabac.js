@@ -1,16 +1,21 @@
 import { RewritingStream } from "parse5-html-rewriting-stream";
 
-import { startsWithAny, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, REPLAY_TOP_FRAME_NAME } from "../utils";
+import {
+  startsWithAny,
+  decodeLatin1,
+  encodeLatin1,
+  MAX_STREAM_CHUNK_SIZE,
+  REPLAY_TOP_FRAME_NAME,
+} from "../utils";
 import { ArchiveResponse, Rewriter } from "./index.js";
 import { StartTag } from "parse5-sax-parser";
-import { type Token } from 'parse5';
+import { type Token } from "parse5";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-
 // ===========================================================================
-const META_REFRESH_REGEX = /([\d.]+\s*;\s*url\s*=\s*)(.+)(\s*)/mi;
+const META_REFRESH_REGEX = /([\d.]+\s*;\s*url\s*=\s*)(.+)(\s*)/im;
 
 const DATA_RW_PROTOCOLS = ["http://", "https://", "//"];
 
@@ -18,55 +23,57 @@ const defmod = "mp_";
 
 const MAX_HTML_REWRITE_SIZE = 50000000;
 
-const rewriteTags : Record<string, Record<string, string> > = {
-  "a": { "href": defmod },
-  "applet": {
-    "codebase": "oe_",
-    "archive": "oe_"
+const rewriteTags: Record<string, Record<string, string>> = {
+  a: { href: defmod },
+  applet: {
+    codebase: "oe_",
+    archive: "oe_",
   },
-  "area": { "href": defmod },
-  "audio": { "src": "oe_" },
-  "base": { "href": defmod },
-  "blockquote": { "cite": defmod },
-  "body": { "background": "im_" },
-  "button": { "formaction": defmod },
-  "command": { "icon": "im_" },
-  "del": { "cite": defmod },
-  "embed": { "src": "oe_" },
-  "iframe": { "src": "if_" },
-  "image": { "src": "im_", "xlink:href": "im_", "href": "im_" },
-  "img": {
-    "src": "im_",
-    "srcset": "im_"
+  area: { href: defmod },
+  audio: { src: "oe_" },
+  base: { href: defmod },
+  blockquote: { cite: defmod },
+  body: { background: "im_" },
+  button: { formaction: defmod },
+  command: { icon: "im_" },
+  del: { cite: defmod },
+  embed: { src: "oe_" },
+  iframe: { src: "if_" },
+  image: { src: "im_", "xlink:href": "im_", href: "im_" },
+  img: {
+    src: "im_",
+    srcset: "im_",
   },
-  "ins": { "cite": defmod },
-  "input": {
-    "src": "im_",
-    "formaction": defmod
+  ins: { cite: defmod },
+  input: {
+    src: "im_",
+    formaction: defmod,
   },
-  "form": { "action": defmod },
-  "frame": { "src": "fr_" },
-  "link": { "href": "oe_" },
-  "meta": { "content": defmod },
-  "object": {
-    "codebase": "oe_",
-    "data": "oe_"
+  form: { action: defmod },
+  frame: { src: "fr_" },
+  link: { href: "oe_" },
+  meta: { content: defmod },
+  object: {
+    codebase: "oe_",
+    data: "oe_",
   },
-  "param": { "value": "oe_" },
-  "q": { "cite": defmod },
-  "ref": { "href": "oe_" },
-  "script": { "src": "js_", "xlink:href": "js_" },
-  "source": { "src": "oe_", "srcset": "oe_" },
-  "video": {
-    "src": "oe_",
-    "poster": "im_"
+  param: { value: "oe_" },
+  q: { cite: defmod },
+  ref: { href: "oe_" },
+  script: { src: "js_", "xlink:href": "js_" },
+  source: { src: "oe_", srcset: "oe_" },
+  video: {
+    src: "oe_",
+    poster: "im_",
   },
 };
 
-const OBJECT_FLASH_DATA_RX = [{
-  "match": /youtube.com\/v\/([^&]+)[&]/,
-  "replace": "youtube.com/embed/$1?"
-}];
+const OBJECT_FLASH_DATA_RX = [
+  {
+    match: /youtube.com\/v\/([^&]+)[&]/,
+    replace: "youtube.com/embed/$1?",
+  },
+];
 
 type TextNodeRewriteRule = {
   urlMatch: RegExp;
@@ -74,22 +81,20 @@ type TextNodeRewriteRule = {
   replace: string;
 };
 
-const TEXT_NODE_REWRITE_RULES : TextNodeRewriteRule[] = [
+const TEXT_NODE_REWRITE_RULES: TextNodeRewriteRule[] = [
   {
     urlMatch: /[?&]:loadOrderID=([\d]+)/,
     match: /(loadOrderID&(quot;&)?#x[^;]+?;)([\d]+)/gi,
-    replace: "$1$U1"
-  }
+    replace: "$1$U1",
+  },
 ];
 
-
 // ===========================================================================
-class HTMLRewriter
-{
+class HTMLRewriter {
   rewriter: Rewriter;
   rule: TextNodeRewriteRule | null = null;
   ruleMatch: RegExpMatchArray | null = null;
-  isCharsetUTF8 : boolean;
+  isCharsetUTF8: boolean;
 
   constructor(rewriter: Rewriter, isCharsetUTF8 = false) {
     this.rewriter = rewriter;
@@ -107,7 +112,11 @@ class HTMLRewriter
     this.isCharsetUTF8 = isCharsetUTF8;
   }
 
-  rewriteMetaContent(attrs: Token.Attribute[], attr: Token.Attribute, rewriter: Rewriter) {
+  rewriteMetaContent(
+    attrs: Token.Attribute[],
+    attr: Token.Attribute,
+    rewriter: Rewriter,
+  ) {
     let equiv = this.getAttr(attrs, "http-equiv");
     if (equiv) {
       equiv = equiv.toLowerCase();
@@ -116,7 +125,10 @@ class HTMLRewriter
     if (equiv === "content-security-policy") {
       attr.name = "_" + attr.name;
     } else if (equiv === "refresh") {
-      return attr.value.replace(META_REFRESH_REGEX, (m, p1, p2, p3) => p1 + this.rewriteUrl(rewriter, p2) + p3);
+      return attr.value.replace(
+        META_REFRESH_REGEX,
+        (m, p1, p2, p3) => p1 + this.rewriteUrl(rewriter, p2) + p3,
+      );
     } else if (this.getAttr(attrs, "name") === "referrer") {
       return "no-referrer-when-downgrade";
     } else if (startsWithAny(attr.value, DATA_RW_PROTOCOLS)) {
@@ -129,7 +141,7 @@ class HTMLRewriter
   rewriteSrcSet(value: string, rewriter: Rewriter) {
     const SRCSET_REGEX = /\s*(\S*\s+[\d.]+[wx]),|(?:\s*,(?:\s+|(?=https?:)))/;
 
-    let rv : string[] = [];
+    let rv: string[] = [];
 
     for (let v of value.split(SRCSET_REGEX)) {
       if (v) {
@@ -142,8 +154,14 @@ class HTMLRewriter
     return rv.join(", ");
   }
 
-  rewriteTagAndAttrs(tag: StartTag, attrRules: Record<string, string>, rewriter: Rewriter) {
-    const isUrl = (val: string) => { return startsWithAny(val, DATA_RW_PROTOCOLS); };
+  rewriteTagAndAttrs(
+    tag: StartTag,
+    attrRules: Record<string, string>,
+    rewriter: Rewriter,
+  ) {
+    const isUrl = (val: string) => {
+      return startsWithAny(val, DATA_RW_PROTOCOLS);
+    };
     const tagName = tag.tagName;
 
     // no attribute rewriting for web-component tags, which must contain a '-'
@@ -157,11 +175,15 @@ class HTMLRewriter
 
       // js attrs with javascript:
       if (value.startsWith("javascript:")) {
-        attr.value = "javascript:" + rewriter.rewriteJS(value.slice("javascript:".length), {inline: true});
+        attr.value =
+          "javascript:" +
+          rewriter.rewriteJS(value.slice("javascript:".length), {
+            inline: true,
+          });
       } else if (name.startsWith("on") && name.slice(2, 3) != "-") {
-      // js attrs
-        attr.value = rewriter.rewriteJS(value, {inline: true});
-      // css attrs
+        // js attrs
+        attr.value = rewriter.rewriteJS(value, { inline: true });
+        // css attrs
       } else if (name === "style") {
         attr.value = rewriter.rewriteCSS(attr.value);
       }
@@ -169,46 +191,44 @@ class HTMLRewriter
       // background attr
       else if (name === "background") {
         attr.value = this.rewriteUrl(rewriter, value);
-      }
-
-      else if (name === "srcset" || (name === "imagesrcset" && tagName === "link")) {
+      } else if (
+        name === "srcset" ||
+        (name === "imagesrcset" && tagName === "link")
+      ) {
         attr.value = this.rewriteSrcSet(value, rewriter);
       }
 
       // for now, download attribute doesn't work in Chrome
       // but disabling triggers default behavior which often does
-      else if (name === "crossorigin" || name === "integrity" || name === "download") {
+      else if (
+        name === "crossorigin" ||
+        name === "integrity" ||
+        name === "download"
+      ) {
         attr.name = "_" + attr.name;
-      }
-
-      else if (tagName === "meta" && name === "content") {
+      } else if (tagName === "meta" && name === "content") {
         attr.value = this.rewriteMetaContent(tag.attrs, attr, rewriter);
-      }
-
-      else if (tagName === "param" && isUrl(value)) {
+      } else if (tagName === "param" && isUrl(value)) {
         attr.value = this.rewriteUrl(rewriter, attr.value);
-      }
-
-      else if (name.startsWith("data-") && isUrl(value)) {
+      } else if (name.startsWith("data-") && isUrl(value)) {
         attr.value = this.rewriteUrl(rewriter, attr.value);
-      }
-
-      else if (tagName === "base" && name === "href") {
+      } else if (tagName === "base" && name === "href") {
         try {
           // rewrite url, keeping relativeness intact
           attr.value = this.rewriter.updateBaseUrl(attr.value);
         } catch (e) {
           console.warn("Invalid <base>: " + attr.value);
         }
-      }
-
-      else if (tagName === "script" && name === "src") {
+      } else if (tagName === "script" && name === "src") {
         const rwType = this.getScriptRWType(tag);
-        const mod = (rwType === "module") ? "esm_" : "";
+        const mod = rwType === "module" ? "esm_" : "";
         const newValue = this.rewriteUrl(rewriter, attr.value, false, mod);
         if (newValue === attr.value) {
-          tag.attrs.push({"name": "__wb_orig_src", "value": attr.value});
-          if (attr.value && attr.value.startsWith("data:text/javascript;base64")) {
+          tag.attrs.push({ name: "__wb_orig_src", value: attr.value });
+          if (
+            attr.value &&
+            attr.value.startsWith("data:text/javascript;base64")
+          ) {
             attr.value = this.rewriteJSBase64(attr.value, rewriter);
           } else {
             attr.value = this.rewriteUrl(rewriter, attr.value, true, mod);
@@ -216,9 +236,7 @@ class HTMLRewriter
         } else {
           attr.value = newValue;
         }
-      }
-
-      else if (tagName === "object" && name === "data") {
+      } else if (tagName === "object" && name === "data") {
         const type = this.getAttr(tag.attrs, "type");
 
         // convert object tag to iframe or img
@@ -241,21 +259,20 @@ class HTMLRewriter
             }
           }
         }
-      }
-
-      else if (name === "target") {
+      } else if (name === "target") {
         const target = attr.value;
 
-        if (target === "_blank" || target === "_parent" || target === "_top" || target === "new") {
+        if (
+          target === "_blank" ||
+          target === "_parent" ||
+          target === "_top" ||
+          target === "new"
+        ) {
           attr.value = REPLAY_TOP_FRAME_NAME;
         }
-      }
-
-      else if (name === "href" || name === "src") {
+      } else if (name === "href" || name === "src") {
         attr.value = this.rewriteUrl(rewriter, attr.value);
-      }
-
-      else {
+      } else {
         if (attrRules[attr.name]) {
           attr.value = this.rewriteUrl(rewriter, attr.value);
         }
@@ -280,7 +297,11 @@ class HTMLRewriter
       return "module";
     } else if (scriptType === "application/json") {
       return "json";
-    } else if (!scriptType || (scriptType.indexOf("javascript") >= 0 || scriptType.indexOf("ecmascript") >= 0)) {
+    } else if (
+      !scriptType ||
+      scriptType.indexOf("javascript") >= 0 ||
+      scriptType.indexOf("ecmascript") >= 0
+    ) {
       return "js";
     } else if (scriptType.startsWith("text/")) {
       return "text";
@@ -298,7 +319,9 @@ class HTMLRewriter
     }
 
     if (response.expectedLength() > MAX_HTML_REWRITE_SIZE) {
-      console.warn("Skipping rewriting, HTML file too big: " + response.expectedLength());
+      console.warn(
+        "Skipping rewriting, HTML file too big: " + response.expectedLength(),
+      );
       return response;
     }
 
@@ -325,8 +348,7 @@ class HTMLRewriter
       }
     };
 
-    rwStream.on("startTag", startTag => {
-
+    rwStream.on("startTag", (startTag) => {
       const tagRules = rewriteTags[startTag.tagName];
 
       const original = startTag.tagName;
@@ -340,30 +362,30 @@ class HTMLRewriter
       rwStream.emitStartTag(startTag);
 
       switch (startTag.tagName) {
-      case "script": {
-        if (startTag.selfClosing) {
+        case "script": {
+          if (startTag.selfClosing) {
+            break;
+          }
+
+          context = startTag.tagName;
+          isTextEmpty = true;
+          scriptRw = this.getScriptRWType(startTag);
           break;
         }
 
-        context = startTag.tagName;
-        isTextEmpty = true;
-        scriptRw = this.getScriptRWType(startTag);
-        break;
-      }
+        case "style":
+          if (!startTag.selfClosing) {
+            context = startTag.tagName;
+          }
+          break;
 
-      case "style":
-        if (!startTag.selfClosing) {
-          context = startTag.tagName;
-        }
-        break;
+        case "head":
+          addInsert();
+          break;
 
-      case "head":
-        addInsert();
-        break;
-
-      case "body":
-        headDone = true;
-        break;
+        case "body":
+          headDone = true;
+          break;
       }
 
       if (startTag.tagName !== original) {
@@ -372,22 +394,22 @@ class HTMLRewriter
       }
     });
 
-    rwStream.on("endTag", endTag => {
+    rwStream.on("endTag", (endTag) => {
       if (endTag.tagName === context) {
         if (replaceTag) {
           endTag.tagName = replaceTag;
           replaceTag = "";
         }
         switch (context) {
-        case "head":
-          headDone = true;
-          break;
+          case "head":
+            headDone = true;
+            break;
 
-        case "script":
-          if (headDone && !isTextEmpty && scriptRw === "js") {
-            rwStream.emitRaw(";document.close();");
-          }
-          break;
+          case "script":
+            if (headDone && !isTextEmpty && scriptRw === "js") {
+              rwStream.emitRaw(";document.close();");
+            }
+            break;
         }
         context = "";
       }
@@ -403,9 +425,9 @@ class HTMLRewriter
           isTextEmpty = isTextEmpty && textToken.text.trim().length === 0;
 
           if (scriptRw === "js" || isModule) {
-            return rewriter.rewriteJS(textToken.text, {isModule, prefix});
+            return rewriter.rewriteJS(textToken.text, { isModule, prefix });
           } else if (scriptRw === "json") {
-            return rewriter.rewriteJSON(textToken.text, {prefix});
+            return rewriter.rewriteJSON(textToken.text, { prefix });
           } else if (scriptRw === "importmap") {
             return rewriter.rewriteImportmap(textToken.text);
           } else {
@@ -428,36 +450,45 @@ class HTMLRewriter
 
     const isCharsetUTF8 = this.isCharsetUTF8;
 
-    response.setReader(new ReadableStream({
-      async start(controller) {
-        rwStream.on("data", (text) => {
-          controller.enqueue(isCharsetUTF8 ? encoder.encode(text) : encodeLatin1(text));
-        });
+    response.setReader(
+      new ReadableStream({
+        async start(controller) {
+          rwStream.on("data", (text) => {
+            controller.enqueue(
+              isCharsetUTF8 ? encoder.encode(text) : encodeLatin1(text),
+            );
+          });
 
-        rwStream.on("end", () => {
-          controller.close();
-        });
+          rwStream.on("end", () => {
+            controller.close();
+          });
 
-        for await (const chunk of sourceGen) {
-          if (isCharsetUTF8) {
-            rwStream.write(decoder.decode(chunk), "utf8");
-          } else {
-            rwStream.write(decodeLatin1(chunk), "latin1");
+          for await (const chunk of sourceGen) {
+            if (isCharsetUTF8) {
+              rwStream.write(decoder.decode(chunk), "utf8");
+            } else {
+              rwStream.write(decodeLatin1(chunk), "latin1");
+            }
+            hasData = true;
           }
-          hasData = true;
-        }
-        if (hasData) {
-          addInsert();
-        }
+          if (hasData) {
+            addInsert();
+          }
 
-        rwStream.end();
-      },
-    }));
-    
+          rwStream.end();
+        },
+      }),
+    );
+
     return response;
   }
 
-  rewriteUrl(rewriter: Rewriter, text: string, forceAbs = false, mod : string = "") {
+  rewriteUrl(
+    rewriter: Rewriter,
+    text: string,
+    forceAbs = false,
+    mod: string = "",
+  ) {
     // if html charset not utf-8, just convert the url to utf-8 for rewriting
     if (!this.isCharsetUTF8) {
       text = decoder.decode(encodeLatin1(text));
@@ -481,11 +512,10 @@ class HTMLRewriter
 
   rewriteJSBase64(text: string, rewriter: Rewriter) {
     const parts = text.split(",");
-    const content = rewriter.rewriteJS(atob(parts[1]), {isModule: false});
+    const content = rewriter.rewriteJS(atob(parts[1]), { isModule: false });
     parts[1] = btoa(content);
     return parts.join(",");
   }
 }
 
 export { HTMLRewriter };
-

@@ -1,6 +1,13 @@
 import { Rewriter } from "./rewrite/index";
 
-import { getTS, getSecondsStr, notFound, parseSetCookie, handleAuthNeeded, REPLAY_TOP_FRAME_NAME } from "./utils";
+import {
+  getTS,
+  getSecondsStr,
+  notFound,
+  parseSetCookie,
+  handleAuthNeeded,
+  REPLAY_TOP_FRAME_NAME,
+} from "./utils";
 
 import { ArchiveResponse } from "./response";
 
@@ -9,27 +16,27 @@ import { notFoundByTypeResponse } from "./notfound";
 import { ArchiveDB } from "./archivedb";
 import { ArchiveRequest } from "./request";
 
-const DEFAULT_CSP = "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
-
+const DEFAULT_CSP =
+  "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 export type Prefixes = {
   static: string;
   root: string;
   main: string;
-}
+};
 
 // ===========================================================================
 export class Collection {
   name: string;
   store: ArchiveDB;
-  
+
   config: Record<string, any>;
   metadata: Record<string, any>;
-  
+
   injectScripts: string[];
-  
+
   noRewritePrefixes: string[] | null;
-  
+
   noPostToGet: boolean;
   convertPostToGet: boolean;
 
@@ -52,7 +59,11 @@ export class Collection {
 
   staticPrefix: string;
 
-  constructor(opts: Record<string, any>, prefixes: Prefixes, defaultConfig = {}) {
+  constructor(
+    opts: Record<string, any>,
+    prefixes: Prefixes,
+    defaultConfig = {},
+  ) {
     const { name, store, config } = opts;
 
     this.name = name;
@@ -60,7 +71,7 @@ export class Collection {
     this.config = config;
     this.metadata = this.config.metadata ? this.config.metadata : {};
 
-    const extraConfig = {...defaultConfig, ...this.config.extraConfig};
+    const extraConfig = { ...defaultConfig, ...this.config.extraConfig };
 
     this.injectScripts = extraConfig.injectScripts || [];
     this.noRewritePrefixes = extraConfig.noRewritePrefixes || null;
@@ -115,13 +126,16 @@ export class Collection {
     }
 
     // exact or fuzzy match
-    let response : ArchiveResponse | Response | null = null;
+    let response: ArchiveResponse | Response | null = null;
 
     let baseUrl = requestURL;
-    
+
     try {
       if (requestURL.startsWith("srcdoc:")) {
-        response = this.getSrcDocResponse(requestURL, requestURL.slice("srcdoc:".length));
+        response = this.getSrcDocResponse(
+          requestURL,
+          requestURL.slice("srcdoc:".length),
+        );
       } else if (requestURL.startsWith("blob:")) {
         // the form of this url is now blob:<blob id>/<base url>
         // split on / to separate <blob id> and <base url>
@@ -137,17 +151,28 @@ export class Collection {
       } else if (requestURL === "__wb_module_decl.js") {
         response = await this.getWrappedModuleDecl();
       } else if (this.adblockUrl && requestURL.startsWith("adblock:")) {
-        response = await getAdBlockCSSResponse(requestURL.slice("adblock:".length), this.adblockUrl);
+        response = await getAdBlockCSSResponse(
+          requestURL.slice("adblock:".length),
+          this.adblockUrl,
+        );
       } else {
         response = await this.getReplayResponse(request, event);
         requestURL = request.url;
-        if (response && response instanceof ArchiveResponse && response.updateTS) {
+        if (
+          response &&
+          response instanceof ArchiveResponse &&
+          response.updateTS
+        ) {
           requestTS = response.updateTS;
         }
       }
-    } catch (e) { 
+    } catch (e) {
       if (await handleAuthNeeded(e, this.config)) {
-        return notFound(request.request, "<p style=\"margin: auto\">Please wait, this page will reload after authentication...</p>", 401);
+        return notFound(
+          request.request,
+          '<p style="margin: auto">Please wait, this page will reload after authentication...</p>',
+          401,
+        );
       }
     }
 
@@ -155,34 +180,53 @@ export class Collection {
       try {
         requestURL = decodeURIComponent(requestURL);
         requestURL += request.hash;
-      } catch(e) {
+      } catch (e) {
         // ignore invalid URL
       }
 
-      return notFoundByTypeResponse(request, requestURL, requestTS, this.liveRedirectOnNotFound);
-
+      return notFoundByTypeResponse(
+        request,
+        requestURL,
+        requestTS,
+        this.liveRedirectOnNotFound,
+      );
     } else if (response instanceof Response) {
       // custom Response, not an ArchiveResponse, just return
       return response;
     }
 
     if (!response.noRW) {
-      const basePrefix = this.prefix + (request.pageId ? `:${request.pageId}/` : "");
+      const basePrefix =
+        this.prefix + (request.pageId ? `:${request.pageId}/` : "");
       const basePrefixTS = basePrefix + requestTS;
       const arResponse = response;
 
       const headInsertFunc = (url: string) => {
-        let presetCookie = arResponse.headers.get("x-wabac-preset-cookie") || "";
+        let presetCookie =
+          arResponse.headers.get("x-wabac-preset-cookie") || "";
         const setCookie = arResponse.headers.get("Set-Cookie");
         const topUrl = basePrefixTS + (requestTS ? "/" : "") + url;
-        return this.makeHeadInsert(url, requestTS, arResponse.date, topUrl, basePrefix, presetCookie, setCookie, arResponse.isLive, request.referrer, arResponse.extraOpts);
+        return this.makeHeadInsert(
+          url,
+          requestTS,
+          arResponse.date,
+          topUrl,
+          basePrefix,
+          presetCookie,
+          setCookie,
+          arResponse.isLive,
+          request.referrer,
+          arResponse.extraOpts,
+        );
       };
 
       const workerInsertFunc = (text: string) => {
-        return `
+        return (
+          `
         (function() { self.importScripts('${this.staticPrefix}wombatWorkers.js');\
             new WBWombat({'prefix': '${basePrefixTS}/', 'prefixMod': '${basePrefixTS}wkrf_/', 'originalURL': '${requestURL}'});\
-        })();` + text;
+        })();` + text
+        );
       };
 
       const mod = request.mod;
@@ -199,7 +243,7 @@ export class Collection {
         workerInsertFunc,
         urlRewrite: !noRewrite,
         contentRewrite: !noRewrite,
-        decode: this.config.decode
+        decode: this.config.decode,
       };
 
       const rewriter = new Rewriter(rewriteOpts);
@@ -217,16 +261,18 @@ export class Collection {
       response.setRange(range);
     }
 
-    const deleteDisposition = (request.destination === "iframe" || request.destination === "document");
+    const deleteDisposition =
+      request.destination === "iframe" || request.destination === "document";
     return response.makeResponse(this.coHeaders, deleteDisposition);
   }
 
   getCanonRedirect(query: ArchiveRequest) {
-    let {url, timestamp, mod, referrer} = query;
+    let { url, timestamp, mod, referrer } = query;
     const schemeRel = url.startsWith("//");
 
     if (schemeRel) {
-      let scheme = (referrer && referrer.indexOf("/http://") > 0) ? "http:" : "https:";
+      let scheme =
+        referrer && referrer.indexOf("/http://") > 0 ? "http:" : "https:";
       url = scheme + url;
     }
 
@@ -240,8 +286,8 @@ export class Collection {
           }
           redirectUrl += parsed.href;
           return Response.redirect(redirectUrl, 301);
-        // if different due to canonical URL included, just update the URL
-        } else if (!schemeRel && url.indexOf(":443") || url.indexOf(":80")) {
+          // if different due to canonical URL included, just update the URL
+        } else if ((!schemeRel && url.indexOf(":443")) || url.indexOf(":80")) {
           query.url = parsed.href;
         }
       }
@@ -274,19 +320,28 @@ export class Collection {
 
     const status = 200;
     const statusText = "OK";
-    const headers = new Headers({"Content-Type": "application/javascript"});
-    return new Response(payload, {headers, status, statusText});
+    const headers = new Headers({ "Content-Type": "application/javascript" });
+    return new Response(payload, { headers, status, statusText });
   }
 
   getSrcDocResponse(url: string, base64str?: string) {
-    const string = base64str ? decodeURIComponent(atob(base64str)) : "<html><head></head><body></body></html>";
+    const string = base64str
+      ? decodeURIComponent(atob(base64str))
+      : "<html><head></head><body></body></html>";
     const payload = new TextEncoder().encode(string);
 
     const status = 200;
     const statusText = "OK";
-    const headers = new Headers({"Content-Type": "text/html"});
+    const headers = new Headers({ "Content-Type": "text/html" });
     const date = new Date();
-    return new ArchiveResponse({payload, status, statusText, headers, url, date});
+    return new ArchiveResponse({
+      payload,
+      status,
+      statusText,
+      headers,
+      url,
+      date,
+    });
   }
 
   async getBlobResponse(url: string) {
@@ -301,17 +356,28 @@ export class Collection {
     const date = new Date();
     const payload = new Uint8Array(await resp.arrayBuffer());
 
-    return new ArchiveResponse({payload, status, statusText, headers, url, date});
+    return new ArchiveResponse({
+      payload,
+      status,
+      statusText,
+      headers,
+      url,
+      date,
+    });
   }
 
-  async getReplayResponse(query: ArchiveRequest, event: FetchEvent) : Promise<Response | ArchiveResponse | null> {
-    let response : Response | ArchiveResponse | null = this.getCanonRedirect(query);
+  async getReplayResponse(
+    query: ArchiveRequest,
+    event: FetchEvent,
+  ): Promise<Response | ArchiveResponse | null> {
+    let response: Response | ArchiveResponse | null =
+      this.getCanonRedirect(query);
 
     if (response) {
       return response;
     }
 
-    const opts = {pageId: query.pageId};
+    const opts = { pageId: query.pageId };
 
     response = await this.store.getResource(query, this.prefix, event, opts);
 
@@ -319,7 +385,7 @@ export class Collection {
   }
 
   async makeTopFrame(url: string, requestTS: string) {
-    let baseUrl : string = "";
+    let baseUrl: string = "";
 
     if (this.baseFrameUrl && !this.baseFramePrefix) {
       baseUrl = this.baseFrameUrl;
@@ -332,19 +398,26 @@ export class Collection {
       if (this.baseFrameHashReplay) {
         baseUrl += `#${requestTS}/${url}`;
       } else {
-        const locParams = new URLSearchParams({url, ts: requestTS, view: "replay"});
+        const locParams = new URLSearchParams({
+          url,
+          ts: requestTS,
+          view: "replay",
+        });
         baseUrl += "#" + locParams.toString();
       }
 
       return Response.redirect(baseUrl);
     }
 
-    let content : string = "";
+    let content: string = "";
 
     if (this.config.topTemplateUrl) {
       const resp = await fetch(this.config.topTemplateUrl);
       const topTemplate = await resp.text();
-      content = topTemplate.replace("$URL", url).replace("$TS", requestTS).replace("$PREFIX", this.prefix);
+      content = topTemplate
+        .replace("$URL", url)
+        .replace("$TS", requestTS)
+        .replace("$PREFIX", this.prefix);
     } else {
       content = `
 <!DOCTYPE html>
@@ -389,17 +462,29 @@ window.home = "${this.rootPrefix}";
     }
 
     let responseData = {
-      "status": 200,
-      "statusText": "OK",
-      "headers": { "Content-Type": "text/html", "Content-Security-Policy": this.csp }
+      status: 200,
+      statusText: "OK",
+      headers: {
+        "Content-Type": "text/html",
+        "Content-Security-Policy": this.csp,
+      },
     };
 
     return new Response(content, responseData);
   }
 
-  makeHeadInsert(url: string, requestTS: string, date: Date, topUrl: string, prefix: string, 
-                 presetCookie: string, setCookie: string | null, isLive: boolean, referrer: string, 
-                 extraOpts: Record<string, any> | null) {
+  makeHeadInsert(
+    url: string,
+    requestTS: string,
+    date: Date,
+    topUrl: string,
+    prefix: string,
+    presetCookie: string,
+    setCookie: string | null,
+    isLive: boolean,
+    referrer: string,
+    extraOpts: Record<string, any> | null,
+  ) {
     const coll = this.name;
 
     const seconds = getSecondsStr(date);
@@ -412,7 +497,7 @@ window.home = "${this.rootPrefix}";
 
     // protocol scheme (for relative urls): if not http/https, try to get actual protocol from referrer
     if (urlParsed.protocol !== "https:" && urlParsed.protocol !== "http:") {
-      scheme = (referrer && referrer.indexOf("/http://") > 0) ? "http" : "https";
+      scheme = referrer && referrer.indexOf("/http://") > 0 ? "http" : "https";
     } else {
       scheme = urlParsed.protocol.slice(0, -1);
     }
@@ -421,15 +506,21 @@ window.home = "${this.rootPrefix}";
       presetCookie = parseSetCookie(setCookie, scheme) + ";" + presetCookie;
     }
 
-    const pixelRatio = extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 1;
-    const storage = extraOpts && extraOpts.storage ? btoa(extraOpts.storage) : "";
-    const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : "\"\"";
+    const pixelRatio =
+      extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 1;
+    const storage =
+      extraOpts && extraOpts.storage ? btoa(extraOpts.storage) : "";
+    const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
     return `
 <!-- WB Insert -->
-${this.adblockUrl ? `
+${
+  this.adblockUrl
+    ? `
 <link rel='stylesheet' href="${prefix}mp_/adblock:${urlParsed.hostname}"/>
 <link rel='stylesheet' href="${prefix}mp_/adblock:"/>
-` : ""}
+`
+    : ""
+}
 <style>
 body {
   font-family: inherit;
@@ -475,10 +566,14 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   wbinfo.wombat_scheme = "${scheme}";
   wbinfo.wombat_host = "${urlParsed.host}";
 
-  ${this.noRewritePrefixes ? `
-  wbinfo.wombat_opts = {"no_rewrite_prefixes": ${JSON.stringify(this.noRewritePrefixes)}}` : `
+  ${
+    this.noRewritePrefixes
+      ? `
+  wbinfo.wombat_opts = {"no_rewrite_prefixes": ${JSON.stringify(this.noRewritePrefixes)}}`
+      : `
   wbinfo.wombat_opts = {}
-  `}
+  `
+  }
 
   if (window && window._WBWombatInit) {
     window._WBWombatInit(wbinfo);

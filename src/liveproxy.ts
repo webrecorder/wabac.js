@@ -2,7 +2,6 @@ import { ArchiveRequest } from "./request";
 import { ArchiveResponse } from "./response";
 import { DBStore } from "./types";
 
-
 // ===========================================================================
 export class LiveProxy implements DBStore {
   prefix: string;
@@ -14,7 +13,10 @@ export class LiveProxy implements DBStore {
   hostProxy: Record<string, any>;
   hostProxyOnly: boolean;
 
-  constructor(extraConfig: Record<string, any>, {cloneResponse = false, allowBody = false, hostProxyOnly = false} = {}) {
+  constructor(
+    extraConfig: Record<string, any>,
+    { cloneResponse = false, allowBody = false, hostProxyOnly = false } = {},
+  ) {
     extraConfig = extraConfig || {};
 
     this.prefix = extraConfig.prefix || "";
@@ -27,7 +29,7 @@ export class LiveProxy implements DBStore {
     this.hostProxy = extraConfig.hostProxy;
 
     if (this.hostProxy instanceof Array) {
-      const byHost : Record<string, any> = {};
+      const byHost: Record<string, any> = {};
       for (const entry of this.hostProxy) {
         byHost[entry.host] = entry;
       }
@@ -53,7 +55,10 @@ export class LiveProxy implements DBStore {
         // Given https://example.com/path/somefile.html, and prefix "https://upstream-server/prefix/"
         // with pathOnly, send to https://upstream-server/prefix/path/somefile.html
         // without pathOnly, send to https://upstream-server/prefix/https://example.com/path/somefile.html
-        return hostdata.prefix + (hostdata.pathOnly ? parsedUrl.pathname + parsedUrl.search : url);
+        return (
+          hostdata.prefix +
+          (hostdata.pathOnly ? parsedUrl.pathname + parsedUrl.search : url)
+        );
       }
     }
 
@@ -69,13 +74,17 @@ export class LiveProxy implements DBStore {
     } else if (this.isLive || !request.timestamp) {
       return this.prefix + url;
     } else {
-      return this.prefix + this.archivePrefix + request.timestamp + "id_/" + url;
+      return (
+        this.prefix + this.archivePrefix + request.timestamp + "id_/" + url
+      );
     }
   }
 
-
   async getResource(request: ArchiveRequest, prefix: string) {
-    const { headers, credentials, url} = request.prepareProxyRequest(prefix, true);
+    const { headers, credentials, url } = request.prepareProxyRequest(
+      prefix,
+      true,
+    );
 
     const fetchUrl = this.getFetchUrl(url, request, headers);
 
@@ -83,9 +92,12 @@ export class LiveProxy implements DBStore {
       return null;
     }
 
-    let body : Uint8Array | null = null;
+    let body: Uint8Array | null = null;
 
-    if (this.allowBody && (request.method === "POST" || request.method === "PUT")) {
+    if (
+      this.allowBody &&
+      (request.method === "POST" || request.method === "PUT")
+    ) {
       body = await request.getBody();
     }
 
@@ -95,16 +107,17 @@ export class LiveProxy implements DBStore {
       headers,
       credentials,
       mode: "cors",
-      redirect: "follow"
+      redirect: "follow",
     });
 
-    let clonedResponse : Response | null = null;
+    let clonedResponse: Response | null = null;
 
     if (this.cloneResponse) {
       clonedResponse = response.clone();
     }
 
-    const archiveResponse = ArchiveResponse.fromResponse({url,
+    const archiveResponse = ArchiveResponse.fromResponse({
+      url,
       response,
       date: new Date(),
       noRW: false,

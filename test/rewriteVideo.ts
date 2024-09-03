@@ -2,18 +2,25 @@ import test from "ava";
 
 import { doRewrite } from "./helpers/index.js";
 
-import { promises as fs} from "fs";
+import { promises as fs } from "fs";
 
 import { xmlOpts } from "../src/rewrite/rewriteVideo.js";
 
 xmlOpts.format = true;
 
-
 // ===========================================================================
-test("DASH", async t => {
-  const content = await fs.readFile(new URL("./data/sample_dash.mpd", import.meta.url), "utf-8");
+test("DASH", async (t) => {
+  const content = await fs.readFile(
+    new URL("./data/sample_dash.mpd", import.meta.url),
+    "utf-8",
+  );
 
-  const {text: result} = await doRewrite({content, contentType: "application/dash+xml", url: "http://example.com/path/manifest.mpd", isLive: true});
+  const { text: result } = await doRewrite({
+    content,
+    contentType: "application/dash+xml",
+    url: "http://example.com/path/manifest.mpd",
+    isLive: true,
+  });
 
   const expected = `
 <MPD xmlns="urn:mpeg:dash:schema:mpd:2011" mediaPresentationDuration="PT0H3M1.63S" minBufferTime="PT1.5S" profiles="urn:mpeg:dash:profile:isoff-on-demand:2011" type="static">
@@ -43,13 +50,16 @@ test("DASH", async t => {
   t.is(result, "<?xml version='1.0' encoding='UTF-8'?>" + expected);
 
   // with <?xml line already added, don't add duplicate
-  const {text: result_with_xml} = await doRewrite({content: "<?xml version='1.0' encoding='UTF-8'?>\n" + content, contentType: "application/dash+xml", url: "http://example.com/path/manifest.mpd", isLive: true});
+  const { text: result_with_xml } = await doRewrite({
+    content: "<?xml version='1.0' encoding='UTF-8'?>\n" + content,
+    contentType: "application/dash+xml",
+    url: "http://example.com/path/manifest.mpd",
+    isLive: true,
+  });
 
   // line not re-added, but not with double quotes
-  t.is(result_with_xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + expected);
-
+  t.is(result_with_xml, '<?xml version="1.0" encoding="UTF-8"?>' + expected);
 });
-
 
 // ===========================================================================
 /*
@@ -89,14 +99,21 @@ test('FB DASH 2', async t => {
 });
 */
 
-
-test("HLS DEFAULT MAX", async t => {
-  const content = await fs.readFile(new URL("./data/sample_hls.m3u8", import.meta.url), "utf-8");
+test("HLS DEFAULT MAX", async (t) => {
+  const content = await fs.readFile(
+    new URL("./data/sample_hls.m3u8", import.meta.url),
+    "utf-8",
+  );
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
 
-  const {text: result} = await doRewrite({content, contentType, url, isLive: true, isAjax: true});
-
+  const { text: result } = await doRewrite({
+    content,
+    contentType,
+    url,
+    isLive: true,
+    isAjax: true,
+  });
 
   const expected = `\
 #EXTM3U
@@ -107,14 +124,20 @@ http://example.com/video_1.m3u8`;
   t.is(result, expected, result);
 });
 
-
-test("HLS DEFAULT MAX - NATIVE STREAMING", async t => {
-  const content = await fs.readFile(new URL("./data/sample_hls.m3u8", import.meta.url), "utf-8");
+test("HLS DEFAULT MAX - NATIVE STREAMING", async (t) => {
+  const content = await fs.readFile(
+    new URL("./data/sample_hls.m3u8", import.meta.url),
+    "utf-8",
+  );
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
 
-  const {text: result} = await doRewrite({content, contentType, url, isLive: true});
-
+  const { text: result } = await doRewrite({
+    content,
+    contentType,
+    url,
+    isLive: true,
+  });
 
   const expected = `\
 #EXTM3U
@@ -125,15 +148,21 @@ http://localhost:8080/prefix/20201226101010mp_/http://example.com/video_1.m3u8`;
   t.is(result, expected, result);
 });
 
-
-
-
-test("HLS DEFAULT OLD REPLAY MAX", async t => {
-  const content = await fs.readFile(new URL("./data/sample_hls.m3u8", import.meta.url), "utf-8");
+test("HLS DEFAULT OLD REPLAY MAX", async (t) => {
+  const content = await fs.readFile(
+    new URL("./data/sample_hls.m3u8", import.meta.url),
+    "utf-8",
+  );
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
 
-  const {text: result} = await doRewrite({content, contentType, url, isLive: false, isAjax: true});
+  const { text: result } = await doRewrite({
+    content,
+    contentType,
+    url,
+    isLive: false,
+    isAjax: true,
+  });
 
   const expected = `\
 #EXTM3U
@@ -144,8 +173,7 @@ http://example.com/video_5.m3u8`;
   t.is(result, expected);
 });
 
-
-test("YT rewrite", async t => {
+test("YT rewrite", async (t) => {
   const content = `
 <html>
 <head>
@@ -172,13 +200,15 @@ const test4 = ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""
 </html>
 `;
 
-  const {text: result} = await doRewrite({content, contentType: "text/html", url: "https://youtube.com/example.html"});
+  const { text: result } = await doRewrite({
+    content,
+    contentType: "text/html",
+    url: "https://youtube.com/example.html",
+  });
   t.is(result, expected, result);
 });
 
-
-test("FB rewrite JS", async t => {
-
+test("FB rewrite JS", async (t) => {
   const content = `\
 <script>
 const test1 = {"dash_url": "foo", {"some_dash": "a", "data_dash_foo": 2}};
@@ -191,92 +221,121 @@ const test1 = {"__nodash__url": "foo", {"some__nodash__": "a", "data__nodash__fo
 </script>
 `;
 
-  const {text: result} = await doRewrite({content, contentType: "text/html", url: "https://www.facebook.com/data/example.html"});
+  const { text: result } = await doRewrite({
+    content,
+    contentType: "text/html",
+    url: "https://www.facebook.com/data/example.html",
+  });
   t.is(result, expected);
 });
 
-
-test("Twitter rewrite json", async t => {
-
+test("Twitter rewrite json", async (t) => {
   const content = {
-    "video_info": {
-      "some_data": "other",
-      "variants": [{
-        "content_type": "application/x-mpegURL",
-        "url": "https://example.com/A"
-      }, {
-        "bitrate": 256000,
-        "content_type": "video/mp4",
-        "url": "https://example.com/B"
-      }, {
-        "bitrate": 2176000,
-        "content_type": "video/mp4",
-        "url": "https://example.com/C"
-      }, {
-        "bitrate": 5832000,
-        "content_type": "video/mp4",
-        "url": "https://example.com/D"
-      }]
-    }
+    video_info: {
+      some_data: "other",
+      variants: [
+        {
+          content_type: "application/x-mpegURL",
+          url: "https://example.com/A",
+        },
+        {
+          bitrate: 256000,
+          content_type: "video/mp4",
+          url: "https://example.com/B",
+        },
+        {
+          bitrate: 2176000,
+          content_type: "video/mp4",
+          url: "https://example.com/C",
+        },
+        {
+          bitrate: 5832000,
+          content_type: "video/mp4",
+          url: "https://example.com/D",
+        },
+      ],
+    },
   };
 
   const expected = {
-    "video_info": {
-      "some_data": "other",
-      "variants": [{
-        "bitrate": 2176000,
-        "content_type": "video/mp4",
-        "url": "https://example.com/C"
-      }]
-    }
+    video_info: {
+      some_data: "other",
+      variants: [
+        {
+          bitrate: 2176000,
+          content_type: "video/mp4",
+          url: "https://example.com/C",
+        },
+      ],
+    },
   };
 
-  const extraOpts = {rewritten: true};
+  const extraOpts = { rewritten: true };
 
-  for (const api of ["https://api.twitter.com/2/", "https://twitter.com/i/api/graphql/"]) {
-    const {text: result} = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: api + "some/endpoint", extraOpts});
+  for (const api of [
+    "https://api.twitter.com/2/",
+    "https://twitter.com/i/api/graphql/",
+  ]) {
+    const { text: result } = await doRewrite({
+      content: JSON.stringify(content),
+      contentType: "application/json",
+      url: api + "some/endpoint",
+      extraOpts,
+    });
     t.deepEqual(JSON.parse(result), expected);
   }
 });
 
-
-test("Twitter rewrite embedded json", async t => {
-
+test("Twitter rewrite embedded json", async (t) => {
   const content = {
-    "video": {
-      "some_data": "other",
-      "variants": [{
-        "type": "application/x-mpegURL",
-        "src": "https://example.com/100x100/A"
-      }, {
-        "type": "video/mp4",
-        "src": "https://example.com/100x100/B"
-      }, {
-        "type": "video/mp4",
-        "src": "https://example.com/200x200/B"
-      }, {
-        "type": "video/mp4",
-        "src": "https://example.com/300x300/B"
-      }],
-      "viewCount": 1234
-    }
+    video: {
+      some_data: "other",
+      variants: [
+        {
+          type: "application/x-mpegURL",
+          src: "https://example.com/100x100/A",
+        },
+        {
+          type: "video/mp4",
+          src: "https://example.com/100x100/B",
+        },
+        {
+          type: "video/mp4",
+          src: "https://example.com/200x200/B",
+        },
+        {
+          type: "video/mp4",
+          src: "https://example.com/300x300/B",
+        },
+      ],
+      viewCount: 1234,
+    },
   };
 
   const expected = {
-    "video": {
-      "some_data": "other",
-      "variants": [{
-        "type": "video/mp4",
-        "src": "https://example.com/300x300/B"
-      }],
-      "viewCount": 1234
-    }
+    video: {
+      some_data: "other",
+      variants: [
+        {
+          type: "video/mp4",
+          src: "https://example.com/300x300/B",
+        },
+      ],
+      viewCount: 1234,
+    },
   };
 
-  const extraOpts = {rewritten: true};
+  const extraOpts = { rewritten: true };
 
-  for (const api of ["https://cdn.syndication.twimg.com/tweet-result?some=value"]) {
-    const {text: result} = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: api + "some/endpoint", extraOpts});
+  for (const api of [
+    "https://cdn.syndication.twimg.com/tweet-result?some=value",
+  ]) {
+    const { text: result } = await doRewrite({
+      content: JSON.stringify(content),
+      contentType: "application/json",
+      url: api + "some/endpoint",
+      extraOpts,
+    });
     t.deepEqual(JSON.parse(result), expected);
   }
 });

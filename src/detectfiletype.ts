@@ -1,8 +1,8 @@
 // https://en.wikipedia.org/wiki/List_of_file_signatures
-const zipMagicBytes = [0x50, 0x4B, 0x03, 0x04];
+const zipMagicBytes = [0x50, 0x4b, 0x03, 0x04];
 const isZipFile = hasMagicBytes(zipMagicBytes);
 
-const gzMagicBytes = [0x1F, 0x8B, 0x08];
+const gzMagicBytes = [0x1f, 0x8b, 0x08];
 const isGzFile = hasMagicBytes(gzMagicBytes);
 
 // starts with "WARC""
@@ -45,7 +45,7 @@ export function getKnownFileExtension(name: string) {
     ".har",
     ".json",
     ".wacz",
-    ".zip"
+    ".zip",
   ];
   for (const ext of fileExtensions) {
     if (name.endsWith(ext)) {
@@ -72,7 +72,7 @@ export function checkMagicBytes(fileBytes: Uint8Array) {
 
 export async function detectFileType(response: Response) {
   const reader = response.body!.getReader();
-  let fileType : string | undefined = "";
+  let fileType: string | undefined = "";
   const { value, done } = await reader.read();
   if (!done && value.length >= PEEK_BYTES) {
     fileType = checkMagicBytes(value.slice(0, PEEK_BYTES));

@@ -17,19 +17,19 @@ const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
 
 declare let self: ServiceWorkerGlobalScope;
 
-
-
 // ===========================================================================
-export class SWCollections extends WorkerLoader
-{
+export class SWCollections extends WorkerLoader {
   prefixes: Prefixes;
   colls: Record<string, Collection>;
   inited: Promise<boolean> | null;
   root: string | null;
   defaultConfig: Record<string, any>;
 
-
-  constructor(prefixes: Prefixes, root : string | null = null, defaultConfig = {}) {
+  constructor(
+    prefixes: Prefixes,
+    root: string | null = null,
+    defaultConfig = {},
+  ) {
     super(self);
     this.prefixes = prefixes;
     this.colls = {};
@@ -40,11 +40,11 @@ export class SWCollections extends WorkerLoader
     this._fileHandles = {};
   }
 
-  _createCollection(opts: Record<string, any>) : Collection {
+  _createCollection(opts: Record<string, any>): Collection {
     return new Collection(opts, this.prefixes, this.defaultConfig);
   }
 
-  loadAll(dbColl?: any) : Promise<boolean> {
+  loadAll(dbColl?: any): Promise<boolean> {
     this.colls = {};
     this.inited = super.loadAll(dbColl);
     return this.inited;
@@ -79,13 +79,19 @@ export class SWCollections extends WorkerLoader
         await this.colls[name].store.delete();
       }
 
-      if (this._fileHandles && keepFileHandle && this.colls[name].config && this.colls[name].config.extra &&
-        this.colls[name].config.extra.fileHandle) {
-        this._fileHandles[this.colls[name].config.sourceUrl] = this.colls[name].config.extra.fileHandle;
+      if (
+        this._fileHandles &&
+        keepFileHandle &&
+        this.colls[name].config &&
+        this.colls[name].config.extra &&
+        this.colls[name].config.extra.fileHandle
+      ) {
+        this._fileHandles[this.colls[name].config.sourceUrl] =
+          this.colls[name].config.extra.fileHandle;
       }
     }
 
-    if (!await super.deleteColl(name)) {
+    if (!(await super.deleteColl(name))) {
       return false;
     }
     delete this.colls[name];
@@ -117,8 +123,18 @@ export class SWCollections extends WorkerLoader
     return metadata;
   }
 
-  async updateSize(name: string, fullSize: number, dedupSize: number, updateDecode?: boolean) {
-    const metadata = await super.updateSize(name, fullSize, dedupSize, updateDecode);
+  async updateSize(
+    name: string,
+    fullSize: number,
+    dedupSize: number,
+    updateDecode?: boolean,
+  ) {
+    const metadata = await super.updateSize(
+      name,
+      fullSize,
+      dedupSize,
+      updateDecode,
+    );
     if (this.colls[name] && metadata) {
       this.colls[name].config.metadata = metadata;
       this.colls[name].metadata = metadata;
@@ -135,8 +151,7 @@ type SWReplayInitOpts = {
   ApiClass?: typeof API;
   defaultConfig?: Record<string, any>;
   CollectionsClass?: typeof SWCollections;
-}
-
+};
 
 // ===========================================================================
 export class SWReplay {
@@ -144,11 +159,11 @@ export class SWReplay {
   replayPrefix: string;
   staticPrefix: string;
   distPrefix: string;
-  
+
   staticData: Map<string, any>;
 
   collections: SWCollections;
-  
+
   proxyOriginMode: boolean;
 
   api: API;
@@ -158,8 +173,12 @@ export class SWReplay {
 
   stats: StatsTracker | null;
 
-
-  constructor({staticData = null, ApiClass = API, defaultConfig = {}, CollectionsClass = SWCollections} : SWReplayInitOpts = {}) {
+  constructor({
+    staticData = null,
+    ApiClass = API,
+    defaultConfig = {},
+    CollectionsClass = SWCollections,
+  }: SWReplayInitOpts = {}) {
     this.prefix = self.registration ? self.registration.scope : "";
 
     this.replayPrefix = this.prefix;
@@ -179,37 +198,50 @@ export class SWReplay {
     this.staticPrefix = this.prefix + "static/";
     this.distPrefix = this.prefix + "dist/";
 
-    const prefixes : Prefixes = {
+    const prefixes: Prefixes = {
       static: this.staticPrefix,
       root: this.prefix,
-      main: this.replayPrefix
+      main: this.replayPrefix,
     };
 
     this.staticData = staticData || new Map();
-    this.staticData.set(this.staticPrefix + "wombat.js", {type: "application/javascript", content: WOMBAT});
-    this.staticData.set(this.staticPrefix + "wombatWorkers.js", {type: "application/javascript", content: WOMBAT_WORKERS});
+    this.staticData.set(this.staticPrefix + "wombat.js", {
+      type: "application/javascript",
+      content: WOMBAT,
+    });
+    this.staticData.set(this.staticPrefix + "wombatWorkers.js", {
+      type: "application/javascript",
+      content: WOMBAT_WORKERS,
+    });
 
     if (sp.has("serveIndex")) {
-      const indexData = { type: "text/html", content: this.getIndexHtml(sp)};
+      const indexData = { type: "text/html", content: this.getIndexHtml(sp) };
       this.staticData.set(this.prefix, indexData);
       this.staticData.set(this.prefix + "index.html", indexData);
     }
 
     if (sp.has("injectScripts")) {
       const injectScripts = sp.get("injectScripts")!.split(",");
-      defaultConfig.injectScripts = defaultConfig.injectScripts ?
-        [...injectScripts, ...defaultConfig.injectScripts] : injectScripts;
+      defaultConfig.injectScripts = defaultConfig.injectScripts
+        ? [...injectScripts, ...defaultConfig.injectScripts]
+        : injectScripts;
     }
 
     if (defaultConfig.injectScripts) {
-      defaultConfig.injectScripts = defaultConfig.injectScripts.map((url: string) => this.staticPrefix + "proxy/" + url);
+      defaultConfig.injectScripts = defaultConfig.injectScripts.map(
+        (url: string) => this.staticPrefix + "proxy/" + url,
+      );
     }
 
     if (sp.has("adblockUrl")) {
       defaultConfig.adblockUrl = sp.get("adblockUrl");
     }
 
-    this.collections = new CollectionsClass(prefixes, sp.get("root"), defaultConfig);
+    this.collections = new CollectionsClass(
+      prefixes,
+      sp.get("root"),
+      defaultConfig,
+    );
     this.collections.loadAll(sp.get("dbColl"));
 
     this.proxyOriginMode = !!sp.get("proxyOriginMode");
@@ -253,7 +285,7 @@ export class SWReplay {
     </body></html>`;
   }
 
-  handleFetch(event: FetchEvent) : Promise<Response> | Response {
+  handleFetch(event: FetchEvent): Promise<Response> | Response {
     const url = event.request.url;
 
     if (this.proxyOriginMode) {
@@ -269,7 +301,10 @@ export class SWReplay {
     }
 
     // special handling when root collection set: pass through any root files, eg. /index.html
-    if (this.collections.root && url.slice(this.prefix.length).indexOf("/") < 0) {
+    if (
+      this.collections.root &&
+      url.slice(this.prefix.length).indexOf("/") < 0
+    ) {
       return this.defaultFetch(event.request);
     }
 
@@ -279,7 +314,10 @@ export class SWReplay {
     }
 
     // handle replay / api
-    if (url.startsWith(this.replayPrefix) && !url.startsWith(this.staticPrefix)) {
+    if (
+      url.startsWith(this.replayPrefix) &&
+      !url.startsWith(this.staticPrefix)
+    ) {
       return this.getResponseFor(event.request, event);
     }
 
@@ -291,13 +329,16 @@ export class SWReplay {
 
     for (const staticPath of this.staticData.keys()) {
       if (staticPath === urlOnly) {
-        const { content, type} = this.staticData.get(staticPath);
-        return new Response(content, {headers: {"Content-Type": type}});
+        const { content, type } = this.staticData.get(staticPath);
+        return new Response(content, { headers: { "Content-Type": type } });
       }
     }
 
     // only cache: urls in the root directory (no more slashes)
-    if ((parsedUrl.protocol == "http:" || parsedUrl.protocol == "https:") && (parsedUrl.pathname.indexOf("/", 1) < 0)) {
+    if (
+      (parsedUrl.protocol == "http:" || parsedUrl.protocol == "https:") &&
+      parsedUrl.pathname.indexOf("/", 1) < 0
+    ) {
       return this.handleOffline(event.request);
     } else {
       return this.defaultFetch(event.request);
@@ -312,7 +353,7 @@ export class SWReplay {
   }
 
   defaultFetch(request: Request) {
-    const opts : RequestInit = {};
+    const opts: RequestInit = {};
     if (request.cache === "only-if-cached" && request.mode !== "same-origin") {
       opts.cache = "default";
     }
@@ -324,7 +365,7 @@ export class SWReplay {
 
     for (let url of urls) {
       url = new URL(url, self.location.href).href;
-      let response = await cache.match(url, {ignoreSearch: true});
+      let response = await cache.match(url, { ignoreSearch: true });
       if (response) {
         continue;
       }
@@ -333,24 +374,26 @@ export class SWReplay {
       try {
         response = await this.defaultFetch(new Request(url));
         await cache.put(url, response);
-      } catch(e) {
+      } catch (e) {
         console.warn(`Failed to Auto Cache: ${url}`, e);
       }
     }
   }
 
-  async handleOffline(request: Request) : Promise<Response> {
-    let response : Response | null | undefined = null;
-    
+  async handleOffline(request: Request): Promise<Response> {
+    let response: Response | null | undefined = null;
+
     const cache = await caches.open("wabac-offline");
 
     try {
       response = await this.defaultFetch(request);
-
-    } catch(e) {
-      response = await cache.match(request, {ignoreSearch: true});
+    } catch (e) {
+      response = await cache.match(request, { ignoreSearch: true });
       if (!response) {
-        response = notFound(request, "Sorry, this url was not cached for offline use");
+        response = notFound(
+          request,
+          "Sorry, this url was not cached for offline use",
+        );
       }
       return response;
     }
@@ -376,7 +419,11 @@ export class SWReplay {
       if (this.stats && request.url.startsWith(this.apiPrefix + "stats.json")) {
         return await this.stats.getStats(event);
       }
-      return await this.api.apiResponse(request.url.slice(this.apiPrefix.length), request, event);
+      return await this.api.apiResponse(
+        request.url.slice(this.apiPrefix.length),
+        request,
+        event,
+      );
     }
 
     await this.collections.inited;
@@ -403,14 +450,19 @@ export class SWReplay {
 
     const coll = await this.collections.getColl(collId);
 
-    if (!coll || (!this.proxyOriginMode && !request.url.startsWith(coll.prefix))) {
+    if (
+      !coll ||
+      (!this.proxyOriginMode && !request.url.startsWith(coll.prefix))
+    ) {
       return notFound(request);
     }
 
-    const wbUrlStr = this.proxyOriginMode ? request.url : request.url.substring(coll.prefix.length);
+    const wbUrlStr = this.proxyOriginMode
+      ? request.url
+      : request.url.substring(coll.prefix.length);
 
-    const opts : Record<string, any> = {
-      isRoot: !!this.collections.root
+    const opts: Record<string, any> = {
+      isRoot: !!this.collections.root,
     };
 
     if (this.proxyOriginMode) {
@@ -429,7 +481,12 @@ export class SWReplay {
 
     if (response) {
       if (this.stats) {
-        this.stats.updateStats((response as any).date, response.status, request, event);
+        this.stats.updateStats(
+          (response as any).date,
+          response.status,
+          request,
+          event,
+        );
       }
 
       if (this.allowRewrittenCache && response.status === 200) {
@@ -455,4 +512,3 @@ export class SWReplay {
     return notFound(request);
   }
 }
-

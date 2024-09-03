@@ -1,5 +1,11 @@
 import { BaseAsyncIterReader, AsyncIterReader, LimitReader } from "warcio";
-import { isNullBodyStatus, decodeLatin1, encodeLatin1, MAX_STREAM_CHUNK_SIZE, tsToDate } from "./utils";
+import {
+  isNullBodyStatus,
+  decodeLatin1,
+  encodeLatin1,
+  MAX_STREAM_CHUNK_SIZE,
+  tsToDate,
+} from "./utils";
 import { Buffer } from "buffer";
 
 const encoder = new TextEncoder();
@@ -15,18 +21,34 @@ type ArchiveResponseOpts = {
   extraOpts?: Record<string, any> | null;
   noRW?: boolean;
   isLive?: boolean;
-  updateTS? : string | null;
-}
+  updateTS?: string | null;
+};
 
 // ===========================================================================
-class ArchiveResponse
-{
-
-  static fromResponse({url, response, date, noRW, isLive, archivePrefix} : 
-    {url: string, response: Response, date: Date, noRW?: boolean, isLive?: boolean, archivePrefix?: string}) {
-    const payload = response.body ? new AsyncIterReader(response.body.getReader(), null, false) : null;
-    const status = Number(response.headers.get("x-redirect-status") || response.status);
-    const statusText = response.headers.get("x-redirect-statusText") || response.statusText;
+class ArchiveResponse {
+  static fromResponse({
+    url,
+    response,
+    date,
+    noRW,
+    isLive,
+    archivePrefix,
+  }: {
+    url: string;
+    response: Response;
+    date: Date;
+    noRW?: boolean;
+    isLive?: boolean;
+    archivePrefix?: string;
+  }) {
+    const payload = response.body
+      ? new AsyncIterReader(response.body.getReader(), null, false)
+      : null;
+    const status = Number(
+      response.headers.get("x-redirect-status") || response.status,
+    );
+    const statusText =
+      response.headers.get("x-redirect-statusText") || response.statusText;
 
     let headers = new Headers(response.headers);
 
@@ -47,7 +69,7 @@ class ArchiveResponse
       headers.delete("x-redirect-statusText");
     }
 
-    let updateTS : string | null = null;
+    let updateTS: string | null = null;
 
     const origTs = headers.get("x-orig-ts");
     if (origTs) {
@@ -64,9 +86,9 @@ class ArchiveResponse
       date = new Date(mementoDt);
     }
 
-    const cookie = (headers.get("x-proxy-set-cookie"));
+    const cookie = headers.get("x-proxy-set-cookie");
     if (cookie) {
-      const cookies : string[] = [];
+      const cookies: string[] = [];
       cookie.split(",").forEach((c) => {
         const cval = c.split(";", 1)[0].trim();
         if (cval.indexOf("=") > 0) {
@@ -81,7 +103,17 @@ class ArchiveResponse
       }
     }
 
-    return new ArchiveResponse({payload, status, statusText, headers, url, date, noRW, isLive, updateTS});
+    return new ArchiveResponse({
+      payload,
+      status,
+      statusText,
+      headers,
+      url,
+      date,
+      noRW,
+      isLive,
+      updateTS,
+    });
   }
 
   reader: AsyncIterReader | null;
@@ -99,11 +131,22 @@ class ArchiveResponse
 
   clonedResponse: Response | null = null;
 
-  constructor({payload, status, statusText, headers, url, date, extraOpts = null, noRW = false, isLive = false, updateTS = null} : ArchiveResponseOpts) {
+  constructor({
+    payload,
+    status,
+    statusText,
+    headers,
+    url,
+    date,
+    extraOpts = null,
+    noRW = false,
+    isLive = false,
+    updateTS = null,
+  }: ArchiveResponseOpts) {
     this.reader = null;
     this.buffer = null;
 
-    if (payload && (payload instanceof BaseAsyncIterReader)) {
+    if (payload && payload instanceof BaseAsyncIterReader) {
       this.reader = payload;
     } else {
       this.buffer = payload;
@@ -120,30 +163,39 @@ class ArchiveResponse
     this.updateTS = updateTS;
   }
 
-  async getText(isUTF8 = false) : Promise<{bomFound: boolean, text: string}> {
+  async getText(isUTF8 = false): Promise<{ bomFound: boolean; text: string }> {
     let buff = await this.getBuffer();
-    if (typeof(buff) === "string") {
-      return {bomFound: false, text: buff};
+    if (typeof buff === "string") {
+      return { bomFound: false, text: buff };
     }
     if (!buff) {
-      return {bomFound: false, text: ""};
+      return { bomFound: false, text: "" };
     }
 
     // Check for BOMs -- since we're removing BOM, set 'bomFound'
     // to re-encode as UTF-8 without BOM
     // UTF-8
-    if (buff[0] === 0xEF && buff[1] === 0xBB && buff[2] === 0xBF) {
-      return {bomFound: true, text: decoder.decode(buff.slice(3))};
-    // UTF-16BE -- convert to buffer, swap, and decode LE
-    } else if (buff[0] === 0xFE && buff[1] === 0xFF) {
-      return {bomFound: true, text: Buffer.from(buff.slice(2)).swap16().toString("utf16le")};
-    // UTF-16LE -- convert to buffer, decode LE
-    } else if (buff[0] === 0xFF && buff[1] === 0xFE) {
-      return {bomFound: true, text: Buffer.from(buff.slice(2)).toString("utf16le")};
+    if (buff[0] === 0xef && buff[1] === 0xbb && buff[2] === 0xbf) {
+      return { bomFound: true, text: decoder.decode(buff.slice(3)) };
+      // UTF-16BE -- convert to buffer, swap, and decode LE
+    } else if (buff[0] === 0xfe && buff[1] === 0xff) {
+      return {
+        bomFound: true,
+        text: Buffer.from(buff.slice(2)).swap16().toString("utf16le"),
+      };
+      // UTF-16LE -- convert to buffer, decode LE
+    } else if (buff[0] === 0xff && buff[1] === 0xfe) {
+      return {
+        bomFound: true,
+        text: Buffer.from(buff.slice(2)).toString("utf16le"),
+      };
     }
 
     // if no BOM, go by 'isUTF8' param
-    return {bomFound: false, text: isUTF8 ? decoder.decode(buff) : decodeLatin1(buff)};
+    return {
+      bomFound: false,
+      text: isUTF8 ? decoder.decode(buff) : decodeLatin1(buff),
+    };
   }
 
   setText(text: string, encodeUTF8 = false) {
@@ -194,7 +246,6 @@ class ArchiveResponse
         for (let i = 0; i < buffer.length; i += MAX_STREAM_CHUNK_SIZE) {
           yield buffer.slice(i, i + MAX_STREAM_CHUNK_SIZE);
         }
-
       } else if (reader) {
         yield* reader;
       }
@@ -203,7 +254,7 @@ class ArchiveResponse
     return iter();
   }
 
-  async* [Symbol.asyncIterator]() {
+  async *[Symbol.asyncIterator]() {
     yield* this.createIter();
   }
 
@@ -239,16 +290,15 @@ class ArchiveResponse
     }
 
     const start = Number(bytes[1]);
-    const end = Number(bytes[2]) || (length - 1);
+    const end = Number(bytes[2]) || length - 1;
 
     if (this.buffer) {
       this.buffer = this.buffer.slice(start, end + 1);
-
     } else if (this.reader) {
       if (!(this.reader instanceof LimitReader) || !this.reader.setLimitSkip) {
         return false;
       }
-      if (start !== 0 || end !== (length - 1)) {
+      if (start !== 0 || end !== length - 1) {
         this.reader.setLimitSkip(end - start + 1, start);
       }
       //TODO
@@ -267,14 +317,19 @@ class ArchiveResponse
   }
 
   makeResponse(coHeaders = false, overwriteDisposition = false) {
-    let body : Uint8Array | ReadableStream | null = null;
+    let body: Uint8Array | ReadableStream | null = null;
     if (!isNullBodyStatus(this.status)) {
-      body = this.buffer || !this.reader ? this.buffer : this.reader.getReadableStream();
+      body =
+        this.buffer || !this.reader
+          ? this.buffer
+          : this.reader.getReadableStream();
     }
 
-    const response = new Response(body, {status: this.status,
+    const response = new Response(body, {
+      status: this.status,
       statusText: this.statusText,
-      headers: this.headers});
+      headers: this.headers,
+    });
     // slightly hacky
     (response as any).date = this.date;
     if (coHeaders) {
@@ -288,6 +343,4 @@ class ArchiveResponse
   }
 }
 
-
 export { ArchiveResponse };
-

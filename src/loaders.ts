@@ -1,5 +1,8 @@
 import { ArchiveDB } from "./archivedb";
-import { RemoteSourceArchiveDB, RemotePrefixArchiveDB } from "./remotearchivedb";
+import {
+  RemoteSourceArchiveDB,
+  RemotePrefixArchiveDB,
+} from "./remotearchivedb";
 //import { WACZRemoteArchiveDB } from "./waczarchive";
 
 import { HARLoader } from "./harloader";
@@ -7,7 +10,11 @@ import { HARLoader } from "./harloader";
 import { WARCLoader } from "./warcloader";
 import { CDXLoader, CDXFromWARCLoader } from "./cdxloader";
 
-import { SingleWACZLoader, SingleWACZFullImportLoader, JSONResponseMultiWACZLoader } from "./wacz/waczloader";
+import {
+  SingleWACZLoader,
+  SingleWACZFullImportLoader,
+  JSONResponseMultiWACZLoader,
+} from "./wacz/waczloader";
 import { MultiWACZ } from "./wacz/multiwacz";
 
 import { BaseLoader, createLoader } from "./blockloaders";
@@ -16,7 +23,12 @@ import { RemoteWARCProxy } from "./remotewarcproxy";
 import { LiveProxy } from "./liveproxy";
 
 import { IDBPDatabase, deleteDB, openDB } from "idb/with-async-ittr";
-import { Canceled, MAX_FULL_DOWNLOAD_SIZE, randomId, AuthNeededError } from "./utils";
+import {
+  Canceled,
+  MAX_FULL_DOWNLOAD_SIZE,
+  randomId,
+  AuthNeededError,
+} from "./utils";
 import { detectFileType, getKnownFileExtension } from "./detectfiletype";
 import { ArchiveLoader, DBStore } from "./types";
 
@@ -24,16 +36,15 @@ if (!globalThis.self) {
   (globalThis as any).self = globalThis;
 }
 
-const interruptLoads : Record<string, () => void> = {};
+const interruptLoads: Record<string, () => void> = {};
 (self as any).interruptLoads = interruptLoads;
-
 
 export type LoadColl = {
   name?: string;
   type: string;
   config: Record<string, any>;
   store?: DBStore;
-}
+};
 
 export type CollConfig = {
   root: string;
@@ -46,12 +57,10 @@ export type CollConfig = {
   metadata: Record<string, any>;
 
   type: string;
-}
-
+};
 
 // ===========================================================================
-export class CollectionLoader
-{
+export class CollectionLoader {
   root: string | null = null;
   colldb: IDBPDatabase | null = null;
   checkIpfs = true;
@@ -65,11 +74,11 @@ export class CollectionLoader
 
   async _initDB() {
     this.colldb = await openDB("collDB", 1, {
-      upgrade: (db/*, oldV, newV, tx*/) => {
-        const collstore = db.createObjectStore("colls", {keyPath: "name"});
+      upgrade: (db /*, oldV, newV, tx*/) => {
+        const collstore = db.createObjectStore("colls", { keyPath: "name" });
 
         collstore.createIndex("type", "type");
-      }
+      },
     });
   }
 
@@ -80,8 +89,12 @@ export class CollectionLoader
       for (const extraColl of dbColls.split(",")) {
         const parts = extraColl.split(":");
         if (parts.length === 2) {
-          const config = {dbname: parts[1], sourceName: parts[1], decode: false};
-          const collData = {name: parts[0], type: "archive", config};
+          const config = {
+            dbname: parts[1],
+            sourceName: parts[1],
+            decode: false,
+          };
+          const collData = { name: parts[0], type: "archive", config };
           console.log("Adding Coll: " + JSON.stringify(collData));
           await this.colldb!.put("colls", collData);
         }
@@ -92,7 +105,7 @@ export class CollectionLoader
       const allColls = await this.listAll();
 
       const promises = allColls.map((data) => this._initColl(data));
-  
+
       await Promise.all(promises);
     } catch (e: any) {
       console.warn(e.toString());
@@ -131,10 +144,12 @@ export class CollectionLoader
       try {
         await deleteDB(data.config.dbname, {
           blocked(_, e) {
-            console.log(`Unable to delete ${data.config.dbname}, blocked: ${e}`);
-          }
+            console.log(
+              `Unable to delete ${data.config.dbname}, blocked: ${e}`,
+            );
+          },
         });
-      } catch(e) {
+      } catch (e) {
         console.warn(e);
         return false;
       }
@@ -162,13 +177,18 @@ export class CollectionLoader
     if (!data) {
       return false;
     }
-    data.config.metadata = {...data.config.metadata, ...newMetadata};
+    data.config.metadata = { ...data.config.metadata, ...newMetadata };
 
     await this.colldb!.put("colls", data);
     return data.config.metadata;
   }
 
-  async updateSize(name: string, fullSize: number, dedupSize: number, decodeUpdate?: boolean) {
+  async updateSize(
+    name: string,
+    fullSize: number,
+    dedupSize: number,
+    decodeUpdate?: boolean,
+  ) {
     await this._init_db;
     const data = await this.colldb!.get("colls", name);
     if (!data) {
@@ -188,7 +208,11 @@ export class CollectionLoader
     return metadata;
   }
 
-  async initNewColl(metadata: Record<string, any>, extraConfig = {}, type = "archive") {
+  async initNewColl(
+    metadata: Record<string, any>,
+    extraConfig = {},
+    type = "archive",
+  ) {
     await this._init_db;
     const id = randomId();
     const dbname = "db:" + id;
@@ -206,7 +230,7 @@ export class CollectionLoader
         metadata,
         sourceUrl,
         extraConfig,
-      }
+      },
     };
 
     const coll = await this._initColl(data);
@@ -214,7 +238,7 @@ export class CollectionLoader
     return coll;
   }
 
-  async _initColl(data: LoadColl) : Promise<any> {
+  async _initColl(data: LoadColl): Promise<any> {
     const store = await this._initStore(data.type || "", data.config);
 
     const name = data.name;
@@ -224,50 +248,63 @@ export class CollectionLoader
       this.root = name || null;
     }
 
-    return this._createCollection({name, store, config});
+    return this._createCollection({ name, store, config });
   }
 
   async _initStore(type: string, config: Record<string, any>) {
-    let sourceLoader : BaseLoader;
-    let store : DBStore | null = null;
+    let sourceLoader: BaseLoader;
+    let store: DBStore | null = null;
 
     switch (type) {
-    case "archive":
-      store = new ArchiveDB(config.dbname);
-      break;
+      case "archive":
+        store = new ArchiveDB(config.dbname);
+        break;
 
-    case "remotesource":
-      sourceLoader = await createLoader({
-        url: config.loadUrl,
-        headers: config.headers,
-        size: config.size,
-        extra: config.extra
-      });
-      store = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
-      break;
+      case "remotesource":
+        sourceLoader = await createLoader({
+          url: config.loadUrl,
+          headers: config.headers,
+          size: config.size,
+          extra: config.extra,
+        });
+        store = new RemoteSourceArchiveDB(
+          config.dbname,
+          sourceLoader,
+          config.noCache,
+        );
+        break;
 
-    case "remoteprefix":
-      store = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
-      break;        
+      case "remoteprefix":
+        store = new RemotePrefixArchiveDB(
+          config.dbname,
+          config.remotePrefix,
+          config.headers,
+          config.noCache,
+        );
+        break;
 
-    case "wacz":
-    case "remotezip":
-    case "multiwacz":
-      sourceLoader = await createLoader({
-        url: config.loadUrl || config.sourceUrl,
-        headers: config.headers,
-        extra: config.extra
-      });
-      store = new MultiWACZ(config, sourceLoader, type === "multiwacz" ? "json" : "wacz");
-      break;
+      case "wacz":
+      case "remotezip":
+      case "multiwacz":
+        sourceLoader = await createLoader({
+          url: config.loadUrl || config.sourceUrl,
+          headers: config.headers,
+          extra: config.extra,
+        });
+        store = new MultiWACZ(
+          config,
+          sourceLoader,
+          type === "multiwacz" ? "json" : "wacz",
+        );
+        break;
 
-    case "remotewarcproxy":
-      store = new RemoteWARCProxy(config);
-      break;
+      case "remotewarcproxy":
+        store = new RemoteWARCProxy(config);
+        break;
 
-    case "live":
-      store = new LiveProxy(config.extraConfig);
-      break;
+      case "live":
+        store = new LiveProxy(config.extraConfig);
+        break;
     }
 
     if (!store) {
@@ -288,8 +325,7 @@ export class CollectionLoader
 }
 
 // ===========================================================================
-export class WorkerLoader extends CollectionLoader
-{
+export class WorkerLoader extends CollectionLoader {
   constructor(worker: WorkerGlobalScope) {
     super();
     this.registerListener(worker);
@@ -298,7 +334,7 @@ export class WorkerLoader extends CollectionLoader
   async hasCollection(name: string) {
     await this._init_db;
 
-    return await this.colldb!.getKey("colls", name) != null;
+    return (await this.colldb!.getKey("colls", name)) != null;
   }
 
   registerListener(worker: WorkerGlobalScope) {
@@ -317,139 +353,160 @@ export class WorkerLoader extends CollectionLoader
     const client = event.source || self;
 
     switch (event.data.msg_type) {
-    case "addColl":
-    {
-      const name = event.data.name; 
+      case "addColl": {
+        const name = event.data.name;
 
-      const progressUpdate = (percent?: number, error?: string, currentSize?: number | null, 
-                              totalSize?: number | null, fileHandle = null, extraMsg = null) => {
-        client.postMessage({
-          "msg_type": "collProgress",
-          name,
-          percent,
-          error,
-          currentSize,
-          totalSize,
-          fileHandle,
-          extraMsg
-        });
-      };
+        const progressUpdate = (
+          percent?: number,
+          error?: string,
+          currentSize?: number | null,
+          totalSize?: number | null,
+          fileHandle = null,
+          extraMsg = null,
+        ) => {
+          client.postMessage({
+            msg_type: "collProgress",
+            name,
+            percent,
+            error,
+            currentSize,
+            totalSize,
+            fileHandle,
+            extraMsg,
+          });
+        };
 
-      let res;
+        let res;
 
-      try {
-        res = await this.colldb!.get("colls", name);
-        if (res) {
-          if (!event.data.skipExisting) {
-            await this.deleteColl(name);
+        try {
+          res = await this.colldb!.get("colls", name);
+          if (res) {
+            if (!event.data.skipExisting) {
+              await this.deleteColl(name);
+              res = await this.addCollection(event.data, progressUpdate);
+            }
+          } else {
             res = await this.addCollection(event.data, progressUpdate);
           }
-        } else {
-          res = await this.addCollection(event.data, progressUpdate);
-        }
-  
-        if (!res) {
-          if (event.data.name) {
-            try {
-              await deleteDB("db:" + event.data.name, {
-                blocked(_, e) {
-                  console.log(`Load failed and unable to delete ${event.data.name}: ${e}`);
-                }
-              });
-            } catch (e) {
-              console.warn(e);
+
+          if (!res) {
+            if (event.data.name) {
+              try {
+                await deleteDB("db:" + event.data.name, {
+                  blocked(_, e) {
+                    console.log(
+                      `Load failed and unable to delete ${event.data.name}: ${e}`,
+                    );
+                  },
+                });
+              } catch (e) {
+                console.warn(e);
+              }
             }
+            return;
           }
-          return;
+        } catch (e: any) {
+          if (e instanceof AuthNeededError) {
+            console.warn(e);
+            progressUpdate(
+              0,
+              "permission_needed",
+              null,
+              null,
+              e.info && e.info.fileHandle,
+            );
+            return;
+          } else if (e.name === "ConstraintError") {
+            console.log("already being added, just continue...");
+            res = await this.colldb!.get("colls", name);
+          } else {
+            console.warn(e);
+            progressUpdate(
+              0,
+              "An unexpected error occured: " + e.toString(),
+              null,
+              null,
+            );
+            return;
+          }
         }
 
-      } catch (e: any) {
-        if (e instanceof AuthNeededError) {
-          console.warn(e);
-          progressUpdate(0, "permission_needed", null, null, e.info && e.info.fileHandle);
-          return;
-        } else if (e.name === "ConstraintError") {
-          console.log("already being added, just continue...");
-          res = await this.colldb!.get("colls", name);
-        } else {
-          console.warn(e);
-          progressUpdate(0, "An unexpected error occured: " + e.toString(), null, null);
-          return;
-        }
+        client.postMessage({
+          msg_type: "collAdded",
+          name,
+          sourceUrl: res.config.sourceUrl,
+        });
+
+        //this.doListAll(client);
+        break;
       }
 
-      client.postMessage({
-        msg_type: "collAdded",
-        name,
-        sourceUrl: res.config.sourceUrl
-      });
+      case "cancelLoad": {
+        const name = event.data.name;
 
-      //this.doListAll(client);
-      break;
-    }
+        const p = new Promise<void>(
+          (resolve) => (interruptLoads[name] = resolve),
+        );
 
-    case "cancelLoad":
-    {
-      const name = event.data.name;
+        await p;
 
-      const p = new Promise<void>((resolve) => interruptLoads[name] = resolve);
-
-      await p;
-
-      await this.deleteColl(name);
-
-      delete interruptLoads[name];
-
-      break;
-    }
-
-    case "removeColl":
-    {
-      const name = event.data.name;
-
-      if (await this.hasCollection(name)) {
         await this.deleteColl(name);
-        this.doListAll(client);
+
+        delete interruptLoads[name];
+
+        break;
       }
-      break;
-    }
 
-    case "listAll":
-      this.doListAll(client);
-      break;
+      case "removeColl": {
+        const name = event.data.name;
 
-    case "reload":
-      this.reload(event.data.name);
-      break;
+        if (await this.hasCollection(name)) {
+          await this.deleteColl(name);
+          this.doListAll(client);
+        }
+        break;
+      }
+
+      case "listAll":
+        this.doListAll(client);
+        break;
+
+      case "reload":
+        this.reload(event.data.name);
+        break;
     }
   }
 
-  async doListAll(client: (WorkerGlobalScope & typeof globalThis) | MessageEventSource) {
-    const msgData : Record<string, any>[] = [];
+  async doListAll(
+    client: (WorkerGlobalScope & typeof globalThis) | MessageEventSource,
+  ) {
+    const msgData: Record<string, any>[] = [];
     const allColls = await this.listAll();
 
     for (const coll of allColls) {
-
       //const pageList = await coll.store.getAllPages();
-  
+
       msgData.push({
-        "name": coll.name,
-        "prefix": coll.name,
-        "pageList": [],
-        "sourceName": coll.config.sourceName
+        name: coll.name,
+        prefix: coll.name,
+        pageList: [],
+        sourceName: coll.config.sourceName,
       });
     }
-    client.postMessage({ "msg_type": "listAll", "colls": msgData });
+    client.postMessage({ msg_type: "listAll", colls: msgData });
   }
-  
-  async addCollection(data: Record<string, any>, progressUpdate: any) : Promise<LoadColl | false> {
+
+  async addCollection(
+    data: Record<string, any>,
+    progressUpdate: any,
+  ): Promise<LoadColl | false> {
     let name = data.name;
 
-    let type : string = "";
-    let config : Record<string, any> = {root: data.root || false};
-    let generalDB : DBStore | null = null;
+    let type: string = "";
+    let config: Record<string, any> = { root: data.root || false };
+    let generalDB: DBStore | null = null;
 
-    let updateExistingConfig : Record<string, any> | null = null;
+    let updateExistingConfig: Record<string, any> | null = null;
 
     const file = data.file;
 
@@ -471,10 +528,9 @@ export class WorkerLoader extends CollectionLoader
       type = data.type || config.extraConfig.type || "remotewarcproxy";
 
       generalDB = await this._initStore(type, config);
-
     } else {
-      let loader : ArchiveLoader | null = null;
-      let db : ArchiveDB | null = null;
+      let loader: ArchiveLoader | null = null;
+      let db: ArchiveDB | null = null;
 
       if (file.newFullImport) {
         name = randomId();
@@ -488,7 +544,10 @@ export class WorkerLoader extends CollectionLoader
       if (file.newFullImport && file.importCollId) {
         const existing = await this.colldb!.get("colls", file.importCollId);
         if (!existing || existing.type !== "archive") {
-          progressUpdate(0, "Invalid Existing Collection: " + file.importCollId);
+          progressUpdate(
+            0,
+            "Invalid Existing Collection: " + file.importCollId,
+          );
           return false;
         }
         config.dbname = existing.config.dbname;
@@ -520,14 +579,16 @@ export class WorkerLoader extends CollectionLoader
       } catch (e) {
         // ignore, keep sourceName as is
       }
-      config.sourceName = config.sourceName.slice(config.sourceName.lastIndexOf("/") + 1);
+      config.sourceName = config.sourceName.slice(
+        config.sourceName.lastIndexOf("/") + 1,
+      );
 
-      config.size = typeof(file.size) === "number" ? file.size : null;
+      config.size = typeof file.size === "number" ? file.size : null;
       config.extra = file.extra;
 
       if (config.loadUrl.startsWith("file://") && !file.blob && !config.extra) {
         if (this._fileHandles && this._fileHandles[config.sourceUrl]) {
-          config.extra = {fileHandle: this._fileHandles[config.sourceUrl]};
+          config.extra = { fileHandle: this._fileHandles[config.sourceUrl] };
         } else {
           progressUpdate(0, "missing_local_file");
           return false;
@@ -535,7 +596,8 @@ export class WorkerLoader extends CollectionLoader
       }
 
       config.extraConfig = data.extraConfig;
-      config.headers = file.headers || (config.extraConfig && config.extraConfig.headers);
+      config.headers =
+        file.headers || (config.extraConfig && config.extraConfig.headers);
       config.noCache = file.noCache;
 
       let sourceLoader = await createLoader({
@@ -543,13 +605,13 @@ export class WorkerLoader extends CollectionLoader
         headers: config.headers,
         size: file.size,
         extra: config.extra,
-        blob: file.blob
+        blob: file.blob,
       });
 
       if (file.loadEager) {
         const { response } = await sourceLoader.doInitialFetch(false, true);
         const arrayBuffer = new Uint8Array(await response.arrayBuffer());
-        const extra = {arrayBuffer};
+        const extra = { arrayBuffer };
 
         //config.extra = extra;
         file.newFullImport = true;
@@ -562,9 +624,14 @@ export class WorkerLoader extends CollectionLoader
         });
       }
 
-      let sourceExt : string | undefined = getKnownFileExtension(config.sourceName);
+      let sourceExt: string | undefined = getKnownFileExtension(
+        config.sourceName,
+      );
 
-      let { abort, response } = await sourceLoader.doInitialFetch(sourceExt === ".wacz", false);
+      let { abort, response } = await sourceLoader.doInitialFetch(
+        sourceExt === ".wacz",
+        false,
+      );
 
       if (!sourceExt) {
         sourceExt = await detectFileType(await response.clone());
@@ -575,13 +642,19 @@ export class WorkerLoader extends CollectionLoader
       config.onDemand = sourceLoader.canLoadOnDemand && !file.newFullImport;
 
       if (!sourceLoader.isValid) {
-        const text = (sourceLoader.length && sourceLoader.length <= 1000) ? await response.text() : "";
-        progressUpdate(0, `\
+        const text =
+          sourceLoader.length && sourceLoader.length <= 1000
+            ? await response.text()
+            : "";
+        progressUpdate(
+          0,
+          `\
 Sorry, this URL could not be loaded.
 Make sure this is a valid URL and you have access to this file.
 Status: ${response.status} ${response.statusText}
 Error Details:
-${text}`);
+${text}`,
+        );
         if (abort) {
           abort.abort();
         }
@@ -589,9 +662,12 @@ ${text}`);
       }
 
       if (!sourceLoader.length) {
-        progressUpdate(0, `\
+        progressUpdate(
+          0,
+          `\
 Sorry, this URL could not be loaded because the size of the file is not accessible.
-Make sure this is a valid URL and you have access to this file.`);
+Make sure this is a valid URL and you have access to this file.`,
+        );
         if (abort) {
           abort.abort();
         }
@@ -606,41 +682,56 @@ Make sure this is a valid URL and you have access to this file.`);
           db = new MultiWACZ(config, sourceLoader, "wacz");
           type = "wacz";
 
-        // can load on demand, but want a full import
+          // can load on demand, but want a full import
         } else if (sourceLoader.canLoadOnDemand && file.newFullImport) {
           loader = new SingleWACZFullImportLoader(sourceLoader, config, name);
           //use default db
           db = null;
           delete config.extra;
-
         } else {
-          progressUpdate(0, "Sorry, can't load this WACZ file due to lack of range request support on the server");
+          progressUpdate(
+            0,
+            "Sorry, can't load this WACZ file due to lack of range request support on the server",
+          );
           if (abort) {
             abort.abort();
           }
           return false;
         }
-
-      } else if (stream && (sourceExt === ".warc" || sourceExt === ".warc.gz")) {
-        if (!config.noCache && (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand)) {
+      } else if (
+        stream &&
+        (sourceExt === ".warc" || sourceExt === ".warc.gz")
+      ) {
+        if (
+          !config.noCache &&
+          (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand)
+        ) {
           loader = new WARCLoader(stream, abort, name);
         } else {
           loader = new CDXFromWARCLoader(stream, abort, name);
           type = "remotesource";
-          db = new RemoteSourceArchiveDB(config.dbname, sourceLoader, config.noCache);
+          db = new RemoteSourceArchiveDB(
+            config.dbname,
+            sourceLoader,
+            config.noCache,
+          );
         }
-
       } else if (stream && (sourceExt === ".cdx" || sourceExt === ".cdxj")) {
-        config.remotePrefix = data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
+        config.remotePrefix =
+          data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
         loader = new CDXLoader(stream, abort, name);
         type = "remoteprefix";
-        db = new RemotePrefixArchiveDB(config.dbname, config.remotePrefix, config.headers, config.noCache);
-      
+        db = new RemotePrefixArchiveDB(
+          config.dbname,
+          config.remotePrefix,
+          config.headers,
+          config.noCache,
+        );
+
         // } else if (sourceExt === ".wbn") {
         //   //todo: fix
         //   loader = new WBNLoader(await response.arrayBuffer());
         //   config.decode = false;
-
       } else if (sourceExt === ".har") {
         loader = new HARLoader(await response.json());
         config.decode = false;
@@ -651,7 +742,10 @@ Make sure this is a valid URL and you have access to this file.`);
       }
 
       if (!loader) {
-        progressUpdate(0, `The ${config.sourceName} is not a known archive format that could be loaded.`);
+        progressUpdate(
+          0,
+          `The ${config.sourceName} is not a known archive format that could be loaded.`,
+        );
         if (abort) {
           abort.abort();
         }
@@ -674,8 +768,13 @@ Make sure this is a valid URL and you have access to this file.`);
       }
 
       if (updateExistingConfig) {
-        await this.updateSize(file.importCollId, contentLength, contentLength, updateExistingConfig.decode);
-        return {config: updateExistingConfig, type: ""};
+        await this.updateSize(
+          file.importCollId,
+          contentLength,
+          contentLength,
+          updateExistingConfig.decode,
+        );
+        return { config: updateExistingConfig, type: "" };
       }
 
       if (!config.metadata.size) {
@@ -695,7 +794,7 @@ Make sure this is a valid URL and you have access to this file.`);
       delete this._fileHandles[config.sourceUrl];
     }
 
-    const collData : Record<string, any> = {name, type, config};
+    const collData: Record<string, any> = { name, type, config };
     await this.colldb!.add("colls", collData);
     collData.store = generalDB;
     return collData as LoadColl;

@@ -4,10 +4,11 @@ import * as acorn from "acorn";
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
 const EXPORT_RX = /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/m;
 
-const IMPORT_MATCH_RX =  /^\s*?import(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s])(?:.*?)['"\s]/;
+const IMPORT_MATCH_RX =
+  /^\s*?import(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s])(?:.*?)['"\s]/;
 
-const IMPORT_HTTP_RX = /(import(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s]))((?:https?|[./]).*?)(['"\s])/;
-
+const IMPORT_HTTP_RX =
+  /(import(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s]))((?:https?|[./]).*?)(['"\s])/;
 
 const GLOBAL_OVERRIDES = [
   "window",
@@ -18,30 +19,32 @@ const GLOBAL_OVERRIDES = [
   "top",
   "parent",
   "frames",
-  "opener"
+  "opener",
 ];
 
-const GLOBALS_CONCAT_STR = GLOBAL_OVERRIDES.map((x) => `(?:^|[^$.])\\b${x}\\b(?:$|[^$])`).join("|");
+const GLOBALS_CONCAT_STR = GLOBAL_OVERRIDES.map(
+  (x) => `(?:^|[^$.])\\b${x}\\b(?:$|[^$])`,
+).join("|");
 
 const GLOBALS_RX = new RegExp(`(${GLOBALS_CONCAT_STR})`);
 
-
 // ===========================================================================
-const createJSRules : () => Rule[] = () => {
-
+const createJSRules: () => Rule[] = () => {
   const thisRw = "_____WB$wombat$check$this$function_____(this)";
 
-  const checkLoc = "((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = ";
+  const checkLoc =
+    "((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = ";
 
-  const evalStr = "WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),";
+  const evalStr =
+    "WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),";
 
   function isInString(str: string, offset: number) {
-    // partial detection when inside a string, 
+    // partial detection when inside a string,
     // check if nearest " are actually \"
     // detects a subset of matches inside longer strings
-    let inx = str.lastIndexOf("\"", offset);
+    let inx = str.lastIndexOf('"', offset);
     if (inx < 0) {
-      inx = str.indexOf("\"", offset);
+      inx = str.indexOf('"', offset);
     }
     if (inx > 0 && str[inx - 1] === "\\") {
       // last " was a \", so likely inside string, don't rewrite
@@ -66,7 +69,12 @@ const createJSRules : () => Rule[] = () => {
   }
 
   function addSuffix(suffix: string) {
-    return (x: string, _opts: Record<string, any>, offset: number, str: string) => {
+    return (
+      x: string,
+      _opts: Record<string, any>,
+      offset: number,
+      str: string,
+    ) => {
       if (offset > 0) {
         const prev = str[offset - 1];
         if (prev === "." || prev === "$") {
@@ -91,7 +99,12 @@ const createJSRules : () => Rule[] = () => {
   }
 
   function replaceThisProp() {
-    return (x: string, _opts: Record<string, any>, offset: number, str: string) => {
+    return (
+      x: string,
+      _opts: Record<string, any>,
+      offset: number,
+      str: string,
+    ) => {
       const firstChar = str[offset];
       if (firstChar === "\n") {
         return x.replace("this", ";" + thisRw);
@@ -107,7 +120,7 @@ const createJSRules : () => Rule[] = () => {
     return (x: string, opts: Record<string, any>) => {
       let res = x.replace(src, target);
       // if not module, add empty string, otherwise, import.meta.url
-      res += (opts.isModule ? "import.meta.url, " : "null, ");
+      res += opts.isModule ? "import.meta.url, " : "null, ";
       return res;
     };
   }
@@ -127,14 +140,22 @@ const createJSRules : () => Rule[] = () => {
     [/\.postMessage\b\(/, addPrefix(".__WB_pmw(self)")],
 
     // rewriting 'location = ' to custom expression '(...).href =' assignment
-    [/(?:^|[^$.+*/%^-])\s?\blocation\b\s*[=]\s*(?![\s\d=])/, addSuffix(checkLoc)],
+    [
+      /(?:^|[^$.+*/%^-])\s?\blocation\b\s*[=]\s*(?![\s\d=])/,
+      addSuffix(checkLoc),
+    ],
 
     // rewriting 'return this'
     [/\breturn\s+this\b\s*(?![\s\w.$])/, replaceThis()],
 
     // rewriting 'this.' special properties access on new line, with ; prepended
     // if prev char is '\n', or if prev is not '.' or '$', no semi
-    [new RegExp(`[^$.]\\s?\\bthis\\b(?=(?:\\.(?:${GLOBAL_OVERRIDES.join("|")})\\b))`), replaceThisProp()],
+    [
+      new RegExp(
+        `[^$.]\\s?\\bthis\\b(?=(?:\\.(?:${GLOBAL_OVERRIDES.join("|")})\\b))`,
+      ),
+      replaceThisProp(),
+    ],
 
     // rewrite '= this' or ', this'
     [/[=,]\s*\bthis\b\s*(?![\s\w:.$])/, replaceThis()],
@@ -151,13 +172,12 @@ const createJSRules : () => Rule[] = () => {
     [/[^$.]\bimport\s*\([^)]*\)\s*\{/, (x: string) => x],
 
     // esm dynamic import, if found, mark as module
-    [/[^$.]\bimport\s*\(/, replaceImport("import", "____wb_rewrite_import__")]
+    [/[^$.]\bimport\s*\(/, replaceImport("import", "____wb_rewrite_import__")],
   ];
-}
+};
 
 // ===========================================================================
 const DEFAULT_RULES = createJSRules();
-
 
 // ===========================================================================
 class JSRewriter extends RxRewriter {
@@ -175,7 +195,7 @@ class JSRewriter extends RxRewriter {
 
   initLocalDecl(localDecls: string[]) {
     const assignFunc = "_____WB$wombat$assign$function_____";
-    
+
     let buffer = `\
 var ${assignFunc} = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
 if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
@@ -207,11 +227,11 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
   }
 
   parseGlobals(text: string) {
-    const res = acorn.parse(text, {ecmaVersion: "latest"});
+    const res = acorn.parse(text, { ecmaVersion: "latest" });
 
     let hasDocWrite = false;
 
-    const names : string[] = [];
+    const names: string[] = [];
 
     const excludeOverrides = new Set();
 
@@ -221,7 +241,12 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       if (type === "VariableDeclaration") {
         const { kind, declarations } = expr;
         for (const decl of declarations) {
-          if (decl && decl.type === "VariableDeclarator" && decl.id && decl.id.type === "Identifier") {
+          if (
+            decl &&
+            decl.type === "VariableDeclarator" &&
+            decl.id &&
+            decl.id.type === "Identifier"
+          ) {
             const name = decl.id.name;
 
             if (GLOBAL_OVERRIDES.includes(name)) {
@@ -231,15 +256,19 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
             }
           }
         }
-      // Check for document.write() calls
+        // Check for document.write() calls
       } else if (!hasDocWrite && type === "ExpressionStatement") {
         const { expression } = expr;
         if (expression && expression.type === "CallExpression") {
           const { callee } = expression;
           if (callee && callee.type === "MemberExpression") {
             const { object, property } = callee;
-            if (object.type === "Identifier" && object.name === "document" &&
-                property.type === "Identifier" && property.name === "write") {
+            if (
+              object.type === "Identifier" &&
+              object.name === "document" &&
+              property.type === "Identifier" &&
+              property.name === "write"
+            ) {
               hasDocWrite = true;
             }
           }
@@ -248,7 +277,9 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     }
 
     if (excludeOverrides.size) {
-      const filteredGlobals = GLOBAL_OVERRIDES.filter(x => !excludeOverrides.has(x));
+      const filteredGlobals = GLOBAL_OVERRIDES.filter(
+        (x) => !excludeOverrides.has(x),
+      );
       this.firstBuff = this.initLocalDecl(filteredGlobals);
     }
 
@@ -293,7 +324,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     const wrapGlobals = GLOBALS_RX.exec(text);
 
     if (opts.inline) {
-      newText = newText.replace(/\n/g, " ") ;
+      newText = newText.replace(/\n/g, " ");
     }
 
     if (wrapGlobals) {
@@ -307,14 +338,14 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       }
       newText = this.firstBuff + newText + hoistGlobals + this.lastBuff;
       if (opts.inline) {
-        newText = newText.replace(/\n/g, " ") ;
+        newText = newText.replace(/\n/g, " ");
       }
     }
 
     return newText;
   }
 
-  getESMImportRule() : Rule {
+  getESMImportRule(): Rule {
     // mark as module side-effect + rewrite if http[s] url
     function rewriteImport() {
       return (x: string, opts: Record<string, any>) => {

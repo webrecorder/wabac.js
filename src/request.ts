@@ -1,10 +1,9 @@
 import { postToGetUrl } from "warcio";
 
-const REPLAY_REGEX = /^(?::([\w-]+)\/)?(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
+const REPLAY_REGEX =
+  /^(?::([\w-]+)\/)?(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
-
-export class ArchiveRequest
-{
+export class ArchiveRequest {
   url = "";
   timestamp = "";
   mod = "";
@@ -18,8 +17,17 @@ export class ArchiveRequest
 
   _postToGetConverted = false;
 
-  constructor(wbUrlStr: string, request: Request, {isRoot = false, mod = "", ts = "", proxyOrigin = null, localOrigin = null} = {})
-  {
+  constructor(
+    wbUrlStr: string,
+    request: Request,
+    {
+      isRoot = false,
+      mod = "",
+      ts = "",
+      proxyOrigin = null,
+      localOrigin = null,
+    } = {},
+  ) {
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
 
     this.timestamp = ts;
@@ -29,7 +37,12 @@ export class ArchiveRequest
     this.method = request.method;
     this.mode = request.mode;
 
-    if (!wbUrl && (wbUrlStr.startsWith("https:") || wbUrlStr.startsWith("http:") || wbUrlStr.startsWith("blob:"))) {
+    if (
+      !wbUrl &&
+      (wbUrlStr.startsWith("https:") ||
+        wbUrlStr.startsWith("http:") ||
+        wbUrlStr.startsWith("blob:"))
+    ) {
       this.url = wbUrlStr;
     } else if (!wbUrl && isRoot) {
       this.url = "https://" + wbUrlStr;
@@ -84,24 +97,32 @@ export class ArchiveRequest
       method: request.method,
       postData: await request.text(),
       headers: request.headers,
-      url: this.url
+      url: this.url,
     };
 
     if (postToGetUrl(data)) {
       this.url = data.url;
       this.method = "GET";
-      this.mode = this.request.mode === "navigate" ? "same-origin" : this.request.mode;
+      this.mode =
+        this.request.mode === "navigate" ? "same-origin" : this.request.mode;
       this._postToGetConverted = true;
     }
 
     return this.url;
   }
 
-  prepareProxyRequest(prefix: string, isLive = true) : 
-  {referrer?: string, headers: Headers, credentials: RequestCredentials, url: string} {
+  prepareProxyRequest(
+    prefix: string,
+    isLive = true,
+  ): {
+    referrer?: string;
+    headers: Headers;
+    credentials: RequestCredentials;
+    url: string;
+  } {
     let headers;
     let referrer;
-    let credentials : RequestCredentials;
+    let credentials: RequestCredentials;
 
     if (isLive) {
       headers = new Headers(this.request.headers);
@@ -125,12 +146,12 @@ export class ArchiveRequest
     if (url.startsWith("//") && referrer) {
       try {
         url = new URL(referrer).protocol + url;
-      } catch(e) {
+      } catch (e) {
         url = "https:" + url;
       }
     }
 
-    return {referrer, headers, credentials, url};
+    return { referrer, headers, credentials, url };
   }
 
   async getBody() {

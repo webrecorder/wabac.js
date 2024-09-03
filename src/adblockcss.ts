@@ -1,8 +1,9 @@
-
-
-export async function getAdBlockCSSResponse(fullDomain: string, adblockUrl: string) {
+export async function getAdBlockCSSResponse(
+  fullDomain: string,
+  adblockUrl: string,
+) {
   const domainParts = fullDomain.split(".");
-  const allDomains : string[] = [];
+  const allDomains: string[] = [];
 
   for (let i = 0; i < domainParts.length - 1; i++) {
     if (domainParts[i] !== "www") {
@@ -13,23 +14,27 @@ export async function getAdBlockCSSResponse(fullDomain: string, adblockUrl: stri
   // Note: this may actually be a TLD (eg. co.uk) domains but that shouldn't matter too much
   // unless a list has rules for a TLD, which it generally does not.
   // this may result in checking more lines for exact matches than is necessary
-  const possibleDomain = allDomains.length ? allDomains[allDomains.length - 1] : "";
+  const possibleDomain = allDomains.length
+    ? allDomains[allDomains.length - 1]
+    : "";
 
   const resp = await fetch(adblockUrl);
 
   let body = resp.body;
 
-  const headers = new Headers({"Content-Type": "text/css"});
+  const headers = new Headers({ "Content-Type": "text/css" });
 
   if (!body) {
-    return new Response("", {status: 400, headers, statusText: "Not Found"})
+    return new Response("", { status: 400, headers, statusText: "Not Found" });
   }
 
   if (adblockUrl.endsWith(".gz")) {
     body = body.pipeThrough(new self.DecompressionStream("gzip"));
   }
 
-  const linestream : ReadableStream<string> = body.pipeThrough(new ByLineStream());
+  const linestream: ReadableStream<string> = body.pipeThrough(
+    new ByLineStream(),
+  );
 
   async function* yieldRules(linestream: ReadableStream<string>) {
     try {
@@ -55,7 +60,6 @@ export async function getAdBlockCSSResponse(fullDomain: string, adblockUrl: stri
               break;
             }
           }
-
         } else if (!possibleDomain && line.startsWith("##")) {
           yield line.slice(2);
         }
@@ -94,9 +98,8 @@ export async function getAdBlockCSSResponse(fullDomain: string, adblockUrl: stri
 
   const status = 200;
   const statusText = "OK";
-  return new Response(rs, {status, statusText, headers});
+  return new Response(rs, { status, statusText, headers });
 }
-
 
 // Line TransformStream
 // from: https://github.com/jimmywarting/web-byline
@@ -124,11 +127,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 export class ByLineTransform {
-  _buffer : string[] = [];
+  _buffer: string[] = [];
   _lastChunkEndedWithCR = false;
   decoder = new TextDecoder();
 
-  transform(chunkArray: Uint8Array, controller: TransformStreamDefaultController) {
+  transform(
+    chunkArray: Uint8Array,
+    controller: TransformStreamDefaultController,
+  ) {
     const chunk = this.decoder.decode(chunkArray);
     // see: http://www.unicode.org/reports/tr18/#Line_Boundaries
     const lines = chunk.split(/\r\n|[\n\v\f\r\x85\u2028\u2029]/g);
@@ -174,6 +180,6 @@ export class ByLineTransform {
 
 export class ByLineStream extends TransformStream<Uint8Array, string> {
   constructor() {
-    super(new ByLineTransform);
+    super(new ByLineTransform());
   }
 }

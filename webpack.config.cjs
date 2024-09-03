@@ -13,13 +13,13 @@ module.exports = {
   entry: {
     //"wombat": "@webrecorder/wombat/src/wbWombat.js",
     //"wombatWorkers": "@webrecorder/wombat/src/wombatWorkers.js",
-    "sw": "./src/sw.ts"
+    sw: "./src/sw.ts",
   },
   output: {
     path: path.join(__dirname, "dist"),
     filename: "[name].js",
     globalObject: "self",
-    publicPath: "/dist/"
+    publicPath: "/dist/",
   },
 
   optimization: {
@@ -34,7 +34,7 @@ module.exports = {
   devServer: {
     compress: true,
     port: 9990,
-    headers: {"Service-Worker-Allowed": "/"},
+    headers: { "Service-Worker-Allowed": "/" },
     open: false,
     //publicPath: "/dist/"
   },
@@ -53,34 +53,33 @@ module.exports = {
         options: {
           onlyCompileBundledFiles: false,
         },
-      }, {
+      },
+      {
         test: /(wombat.txt|wombatWorkers.txt)$/i,
         use: "raw-loader",
-      }
-    ]
+      },
+    ],
   },
 
   plugins: [
-    new webpack.NormalModuleReplacementPlugin(
-      /^node:*/,
-      (resource) => {
-        switch (resource.request) {
+    new webpack.NormalModuleReplacementPlugin(/^node:*/, (resource) => {
+      switch (resource.request) {
         case "node:stream":
           resource.request = "stream-browserify";
           break;
-        }
-      },
-    ),
+      }
+    }),
 
     new webpack.ProvidePlugin({
       process: "process/browser",
     }),
 
-    new webpack.BannerPlugin(`[name].js (wabac.js ${package_json.version}) is part of Webrecorder project. Copyright (C) 2020-${new Date().getFullYear()}, Webrecorder Software. Licensed under the Affero General Public License v3.`),
+    new webpack.BannerPlugin(
+      `[name].js (wabac.js ${package_json.version}) is part of Webrecorder project. Copyright (C) 2020-${new Date().getFullYear()}, Webrecorder Software. Licensed under the Affero General Public License v3.`,
+    ),
 
     //new CopyPlugin({
     //  patterns: [{ from: "node_modules/@webrecorder/wombat/src/wombatWorkers.js", to: "src/wombat/" }],
     //}),
   ],
 };
-

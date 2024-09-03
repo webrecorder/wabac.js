@@ -6,3 +6,5 @@
 **/adblock.gz
 **/node_modules
 **/dist
+.tsimp
+coverage

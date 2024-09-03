@@ -17,7 +17,7 @@ export const REPLAY_TOP_FRAME_NAME = "___wb_replay_top_frame";
 
 export const REMOVE_EXPIRES = /Expires=\w{3},\s\d[^;,]+(?:;\s*)?/gi;
 
-export  function startsWithAny(value: string, iter: Iterable<string>) {
+export function startsWithAny(value: string, iter: Iterable<string>) {
   for (const str of iter) {
     if (value.startsWith(str)) {
       return true;
@@ -54,13 +54,21 @@ export function tsToDate(ts: string) {
     ts += "00000101000000000".substring(ts.length);
   }
 
-  const datestr = (ts.substring(0, 4) + "-" +
-    ts.substring(4, 6) + "-" +
-    ts.substring(6, 8) + "T" +
-    ts.substring(8, 10) + ":" +
-    ts.substring(10, 12) + ":" +
-    ts.substring(12, 14) + "." + 
-    ts.substring(14) + "Z");
+  const datestr =
+    ts.substring(0, 4) +
+    "-" +
+    ts.substring(4, 6) +
+    "-" +
+    ts.substring(6, 8) +
+    "T" +
+    ts.substring(8, 10) +
+    ":" +
+    ts.substring(10, 12) +
+    ":" +
+    ts.substring(12, 14) +
+    "." +
+    ts.substring(14) +
+    "Z";
 
   return new Date(datestr);
 }
@@ -83,17 +91,21 @@ export function getSecondsStr(date: Date) {
 
 export function base16(hashBuffer: ArrayBuffer) {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export async function digestMessage(message: string | Uint8Array, hashtype: string, prefix : string | null = null) {
-  const msgUint8 = typeof(message) === "string" ? new TextEncoder().encode(message) : message;
+export async function digestMessage(
+  message: string | Uint8Array,
+  hashtype: string,
+  prefix: string | null = null,
+) {
+  const msgUint8 =
+    typeof message === "string" ? new TextEncoder().encode(message) : message;
   const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);
   if (prefix === "") {
     return base16(hashBuffer);
   }
   return (prefix || hashtype) + ":" + base16(hashBuffer);
-
 }
 
 export function decodeLatin1(buf: Uint8Array) {
@@ -107,23 +119,27 @@ export function decodeLatin1(buf: Uint8Array) {
 export function encodeLatin1(str: string) {
   const buf = new Uint8Array(str.length);
   for (let i = 0; i < str.length; i++) {
-    buf[i] = str.charCodeAt(i) & 0xFF;
+    buf[i] = str.charCodeAt(i) & 0xff;
   }
   return buf;
 }
 
-
 //from http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
 export function randomId() {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  return (
+    Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15)
+  );
 }
 
-export function makeHeaders(headers: Headers | Record<string, string> | Map<string, string>) {
+export function makeHeaders(
+  headers: Headers | Record<string, string> | Map<string, string>,
+) {
   try {
     return new Headers(headers as Headers);
   } catch (e) {
     // try to sanitize the headers, if any errors
-    if (typeof(headers) === "object") {
+    if (typeof headers === "object") {
       const headersObj = headers as Record<string, string>;
       for (const key of Object.keys(headers)) {
         const value = headersObj[key];
@@ -148,7 +164,7 @@ export function makeHeaders(headers: Headers | Record<string, string> | Map<stri
 
 export function parseSetCookie(setCookie: string, scheme: string) {
   setCookie = setCookie.replace(REMOVE_EXPIRES, "");
-  const cookies : string[] = [];
+  const cookies: string[] = [];
 
   for (const cookie of setCookie.split(",")) {
     const cookieCore = cookie.split(";", 1)[0];
@@ -202,7 +218,7 @@ export function isAjaxRequest(request: ArchiveRequest | Request) {
 export async function handleAuthNeeded(e: any, config: any) {
   if (e instanceof AuthNeededError) {
     //const client = await self.clients.get(event.clientId || event.resultingClientId);
-    const clients = await self.clients.matchAll({ "type": "window" });
+    const clients = await self.clients.matchAll({ type: "window" });
     for (const client of clients) {
       const url = new URL(client.url);
       if (url.searchParams.get("source") === config.sourceUrl) {
@@ -220,7 +236,6 @@ export async function handleAuthNeeded(e: any, config: any) {
   return false;
 }
 
-
 export function notFound(request: Request, msg?: string, status = 404) {
   let content;
   let contentType;
@@ -229,7 +244,10 @@ export function notFound(request: Request, msg?: string, status = 404) {
     msg = "Sorry, this url was not found in the archive.";
   }
 
-  if (request.destination === "script" || request.headers.get("x-pywb-requested-with")) {
+  if (
+    request.destination === "script" ||
+    request.headers.get("x-pywb-requested-with")
+  ) {
     content = JSON.stringify(msg);
     contentType = "application/json";
   } else {
@@ -240,30 +258,29 @@ export function notFound(request: Request, msg?: string, status = 404) {
   //console.log(`Not Found ${request.destination} - ${msg}`);
 
   const initOpt = {
-    "status": status,
-    "statusText": getStatusText(status),
-    "headers": { "Content-Type": contentType }
+    status: status,
+    statusText: getStatusText(status),
+    headers: { "Content-Type": contentType },
   };
 
   return new Response(content, initOpt);
 }
-
 
 export function getCollData(coll: any) {
   const metadata = coll.config.metadata ? coll.config.metadata : {};
 
   const res = {
     ...metadata,
-    "title": metadata.title || "",
-    "desc": metadata.desc || "",
-    "size": metadata.size || 0,
-    "filename": coll.config.sourceName,
-    "loadUrl": coll.config.loadUrl,
-    "sourceUrl": coll.config.sourceUrl,
-    "id": coll.name,
-    "ctime": coll.config.ctime,
-    "mtime": metadata.mtime || coll.config.ctime,
-    "onDemand": coll.config.onDemand,
+    title: metadata.title || "",
+    desc: metadata.desc || "",
+    size: metadata.size || 0,
+    filename: coll.config.sourceName,
+    loadUrl: coll.config.loadUrl,
+    sourceUrl: coll.config.sourceUrl,
+    id: coll.name,
+    ctime: coll.config.ctime,
+    mtime: metadata.mtime || coll.config.ctime,
+    onDemand: coll.config.onDemand,
   };
 
   if (metadata.ipfsPins) {
@@ -273,12 +290,10 @@ export function getCollData(coll: any) {
   return res;
 }
 
-
 // ===========================================================================
-export class RangeError
-{
+export class RangeError {
   info: Record<string, any>;
-  
+
   constructor(info = {}) {
     this.info = info;
   }
@@ -288,19 +303,12 @@ export class RangeError
   }
 }
 
-export class AuthNeededError extends RangeError
-{
-}
+export class AuthNeededError extends RangeError {}
 
-export class AccessDeniedError extends RangeError
-{
-}
+export class AccessDeniedError extends RangeError {}
 
-export class Canceled
-{
-}
+export class Canceled {}
 
 export function sleep(millis: number) {
   return new Promise((resolve) => setTimeout(resolve, millis));
 }
-

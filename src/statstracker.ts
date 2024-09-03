@@ -8,11 +8,11 @@ type TimeRangeStat = {
 };
 
 class StatsTracker {
-  timeRanges : Record<string, TimeRangeStat> = {};
+  timeRanges: Record<string, TimeRangeStat> = {};
 
   updateStats(date: Date, status: number, request: Request, event: FetchEvent) {
     const id = event.clientId || event.resultingClientId;
-    
+
     if (!id || !date) {
       return;
     }
@@ -21,17 +21,21 @@ class StatsTracker {
       return;
     }
 
-    if (request.destination === "document" && (status > 300 && status < 400)) {
+    if (request.destination === "document" && status > 300 && status < 400) {
       return;
     }
 
-    let timeRange : TimeRangeStat;
+    let timeRange: TimeRangeStat;
 
     if (this.timeRanges[id] === undefined) {
-      timeRange = {count: 0, children: new Set<string>() };
+      timeRange = { count: 0, children: new Set<string>() };
       this.timeRanges[id] = timeRange;
       if (request.referrer.indexOf("mp_/") > 0) {
-        self.clients.matchAll({ "type": "window" }).then(clients => this.updateStatsParent(id, request.referrer, clients));
+        self.clients
+          .matchAll({ type: "window" })
+          .then((clients) =>
+            this.updateStatsParent(id, request.referrer, clients),
+          );
       }
     } else {
       timeRange = this.timeRanges[id];
@@ -39,23 +43,30 @@ class StatsTracker {
 
     const timestamp = date.getTime();
 
-    if (!timeRange.min || (timestamp < timeRange.min)) {
+    if (!timeRange.min || timestamp < timeRange.min) {
       timeRange.min = timestamp;
     }
 
-    if (!timeRange.max || (timestamp > timeRange.max)) {
+    if (!timeRange.max || timestamp > timeRange.max) {
       timeRange.max = timestamp;
     }
 
     timeRange.count++;
   }
 
-  updateStatsParent(id: string, referrer: string, clients: readonly WindowClient[]) {
+  updateStatsParent(
+    id: string,
+    referrer: string,
+    clients: readonly WindowClient[],
+  ) {
     for (const client of clients) {
       if (client.url === referrer) {
         //self.timeRanges[id].parent = client.id;
         if (!this.timeRanges[client.id]) {
-          this.timeRanges[client.id] = { count: 0, children: new Set<string>() };
+          this.timeRanges[client.id] = {
+            count: 0,
+            children: new Set<string>(),
+          };
         }
         this.timeRanges[client.id].children.add(id);
         break;
@@ -76,9 +87,9 @@ class StatsTracker {
 
     const url = params.get("url");
 
-    const clients = await self.clients.matchAll({ "type": "window" });
+    const clients = await self.clients.matchAll({ type: "window" });
 
-    const validIds : Record<string, number> = {};
+    const validIds: Record<string, number> = {};
 
     for (const client of clients) {
       if (client.url === url) {
@@ -90,9 +101,9 @@ class StatsTracker {
     const srcRange = this.timeRanges[id] || {};
 
     const timeRange = {
-      "count": srcRange.count || 0,
-      "min": srcRange.min,
-      "max": srcRange.max
+      count: srcRange.count || 0,
+      min: srcRange.min,
+      max: srcRange.max,
     };
 
     const children = this.timeRanges[id] && this.timeRanges[id].children;
@@ -104,12 +115,17 @@ class StatsTracker {
         continue;
       }
 
-
-      if (childRange.min && (!timeRange.min || (childRange.min < timeRange.min))) {
+      if (
+        childRange.min &&
+        (!timeRange.min || childRange.min < timeRange.min)
+      ) {
         timeRange.min = childRange.min;
       }
 
-      if (childRange.max && (!timeRange.max || (childRange.max > timeRange.max))) {
+      if (
+        childRange.max &&
+        (!timeRange.max || childRange.max > timeRange.max)
+      ) {
         timeRange.max = childRange.max;
       }
 
@@ -123,7 +139,9 @@ class StatsTracker {
       }
     }
 
-    return new Response(JSON.stringify(timeRange), { "headers": { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(timeRange), {
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
 

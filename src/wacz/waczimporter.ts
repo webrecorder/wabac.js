@@ -15,8 +15,7 @@ const WEBARCHIVE_YAML = "webarchive.yaml";
 const PAGE_BATCH_SIZE = 500;
 
 // ==========================================================================
-export class WACZImporter
-{
+export class WACZImporter {
   store: MultiWACZ;
   file: WACZFile;
   isRoot: boolean;
@@ -52,19 +51,29 @@ export class WACZImporter
     } else if (this.file.containsFile(WEBARCHIVE_YAML)) {
       metadata = await this.loadOldPackageYAML(WEBARCHIVE_YAML);
     }
-    
+
     return metadata || {};
   }
 
-  async loadTextFileFromWACZ(filename: string, expectedHash = "") : Promise<string> {
-    const { reader, hasher } = await this.loadFileFromWACZ(filename, {computeHash: !!expectedHash});
+  async loadTextFileFromWACZ(
+    filename: string,
+    expectedHash = "",
+  ): Promise<string> {
+    const { reader, hasher } = await this.loadFileFromWACZ(filename, {
+      computeHash: !!expectedHash,
+    });
     if (!reader) {
       return "";
     }
-    
+
     const text = new TextDecoder().decode(await reader.readFully());
     if (expectedHash && hasher) {
-      await this.store.addVerifyData(this.waczname, filename, expectedHash, hasher.getHash());
+      await this.store.addVerifyData(
+        this.waczname,
+        filename,
+        expectedHash,
+        hasher.getHash(),
+      );
     }
     return text;
   }
@@ -81,7 +90,10 @@ export class WACZImporter
       const store = this.store;
       const sigPrefix = this.isRoot ? "" : this.waczname + ":";
 
-      if (!digestData.signedData || digestData.signedData.hash !== datapackageHash) {
+      if (
+        !digestData.signedData ||
+        digestData.signedData.hash !== datapackageHash
+      ) {
         await store.addVerifyData(sigPrefix, "signature", "");
         return;
       }
@@ -93,7 +105,6 @@ export class WACZImporter
       await store.addVerifyDataList(sigPrefix, results);
 
       return datapackageHash;
-
     } catch (e) {
       console.warn(e);
     }
@@ -110,17 +121,17 @@ export class WACZImporter
     }
 
     switch (root.profile) {
-    case "data-package":
-    case "wacz-package":
-    case undefined:
-    case null:
-      return await this.loadLeafWACZPackage(root);
+      case "data-package":
+      case "wacz-package":
+      case undefined:
+      case null:
+        return await this.loadLeafWACZPackage(root);
 
-    case "multi-wacz-package":
-      return await this.loadMultiWACZPackage(root);
+      case "multi-wacz-package":
+        return await this.loadMultiWACZPackage(root);
 
-    default:
-      throw new Error(`Unknown package profile: ${root.profile}`);
+      default:
+        throw new Error(`Unknown package profile: ${root.profile}`);
     }
   }
 
@@ -146,7 +157,7 @@ export class WACZImporter
 
     // All Pages
     if (this.file.containsFile(MAIN_PAGES_JSON)) {
-      const pageInfo : any = await this.loadPages(MAIN_PAGES_JSON, pagesHash);
+      const pageInfo: any = await this.loadPages(MAIN_PAGES_JSON, pagesHash);
 
       if (pageInfo.hasText) {
         this.store.textIndex = metadata.textIndex = MAIN_PAGES_JSON;
@@ -164,11 +175,11 @@ export class WACZImporter
   async loadOldPackageYAML(filename: string) {
     const text = await this.loadTextFileFromWACZ(filename);
 
-    const root : Record<string, any> = yaml.load(text) as Record<string, any>;
+    const root: Record<string, any> = yaml.load(text) as Record<string, any>;
 
-    const metadata : Record<string, any> = {
+    const metadata: Record<string, any> = {
       desc: root.desc,
-      title: root.title
+      title: root.title,
     };
 
     if (root.textIndex) {
@@ -204,43 +215,54 @@ export class WACZImporter
     return metadata;
   }
 
-  async loadPages(filename = MAIN_PAGES_JSON, expectedHash = null) : Promise<Record<string, any>[]> {
-    const {reader, hasher} = await this.loadFileFromWACZ(filename, {unzip: true, computeHash: true});
+  async loadPages(
+    filename = MAIN_PAGES_JSON,
+    expectedHash = null,
+  ): Promise<Record<string, any>[]> {
+    const { reader, hasher } = await this.loadFileFromWACZ(filename, {
+      unzip: true,
+      computeHash: true,
+    });
 
     if (!reader) {
       return [];
     }
 
     let pageListInfo = null;
-  
-    let pages : PageEntry[] = [];
-  
+
+    let pages: PageEntry[] = [];
+
     for await (const textLine of reader.iterLines()) {
       const page = JSON.parse(textLine);
-  
+
       if (this.waczname) {
         page.wacz = this.waczname;
       }
-  
+
       if (!pageListInfo) {
         pageListInfo = page;
         continue;
       }
-  
+
       pages.push(page);
-  
+
       if (pages.length === PAGE_BATCH_SIZE) {
         await this.store.addPages(pages);
         pages = [];
       }
     }
-  
+
     if (pages.length) {
       await this.store.addPages(pages);
     }
 
     if (hasher && expectedHash) {
-      await this.store.addVerifyData(this.waczname, filename, expectedHash, hasher.getHash());
+      await this.store.addVerifyData(
+        this.waczname,
+        filename,
+        expectedHash,
+        hasher.getHash(),
+      );
     }
 
     return pageListInfo;

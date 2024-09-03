@@ -1,49 +1,67 @@
 import { ArchiveRequest } from "./request";
 import { getStatusText } from "./utils";
 
-export function notFoundByTypeResponse(request: ArchiveRequest, requestURL: string, requestTS: string, liveRedirectOnNotFound = false, status = 404) {
-  let content : string;
-  let contentType : string;
+export function notFoundByTypeResponse(
+  request: ArchiveRequest,
+  requestURL: string,
+  requestTS: string,
+  liveRedirectOnNotFound = false,
+  status = 404,
+) {
+  let content: string;
+  let contentType: string;
 
   switch (request.destination as string) {
-  case "json":
-  case "":
-    content = getJSONNotFound(requestURL, requestTS);
-    contentType = "application/json; charset=utf-8";
-    break;
+    case "json":
+    case "":
+      content = getJSONNotFound(requestURL, requestTS);
+      contentType = "application/json; charset=utf-8";
+      break;
 
-  case "script":
-    content = getScriptCSSNotFound("Script", requestURL, requestTS);
-    contentType = "text/javascript; charset=utf-8";
-    break;
+    case "script":
+      content = getScriptCSSNotFound("Script", requestURL, requestTS);
+      contentType = "text/javascript; charset=utf-8";
+      break;
 
-  case "style":
-    content = getScriptCSSNotFound("CSS", requestURL, requestTS);
-    contentType = "text/css; charset=utf-8";
-    break;
+    case "style":
+      content = getScriptCSSNotFound("CSS", requestURL, requestTS);
+      contentType = "text/css; charset=utf-8";
+      break;
 
-  case "document":
-  case "embed":
-  case "iframe":
-  case "frame":
-  default:
-    content = getHTMLNotFound(request, requestURL, requestTS, liveRedirectOnNotFound);
-    contentType = "text/html; charset=utf-8";
+    case "document":
+    case "embed":
+    case "iframe":
+    case "frame":
+    default:
+      content = getHTMLNotFound(
+        request,
+        requestURL,
+        requestTS,
+        liveRedirectOnNotFound,
+      );
+      contentType = "text/html; charset=utf-8";
   }
 
   const buff = new TextEncoder().encode(content);
 
   const initOpt = {
-    "status": status,
-    "statusText": getStatusText(status),
-    "headers": { "Content-Type": contentType, "Content-Length": buff.length + "" }
+    status: status,
+    statusText: getStatusText(status),
+    headers: {
+      "Content-Type": contentType,
+      "Content-Length": buff.length + "",
+    },
   };
 
   return new Response(buff, initOpt);
 }
 
-
-function getHTMLNotFound(request: ArchiveRequest, requestURL: string, requestTS: string, liveRedirectOnNotFound: boolean) {
+function getHTMLNotFound(
+  request: ArchiveRequest,
+  requestURL: string,
+  requestTS: string,
+  liveRedirectOnNotFound: boolean,
+) {
   return `
   <!doctype html>
   <html>
@@ -56,13 +74,17 @@ function getHTMLNotFound(request: ArchiveRequest, requestURL: string, requestTS:
   <h2>Archived Page Not Found</h2>
   <p>Sorry, this page was not found in this archive:</p>
   <p><code id="url" style="word-break: break-all; font-size: larger"></code></p>
-  ${liveRedirectOnNotFound && request.mode === "navigate" ? `
+  ${
+    liveRedirectOnNotFound && request.mode === "navigate"
+      ? `
   <p>Redirecting to live page now... (If this URL is a file download, the download should have started).</p>
   <script>
   window.top.location.href = window.requestURL;
   </script>
-  ` : `
-  `}
+  `
+      : `
+  `
+  }
   <p id="goback" style="display: none"><a href="#" onclick="window.history.back()">Go Back</a> to the previous page.</a></p>
   
   <p>
@@ -95,7 +117,11 @@ function getHTMLNotFound(request: ArchiveRequest, requestURL: string, requestTS:
   `;
 }
 
-function getScriptCSSNotFound(type: string, requestURL: string, requestTS: string) {
+function getScriptCSSNotFound(
+  type: string,
+  requestURL: string,
+  requestTS: string,
+) {
   return `\
 /* 
    ${type} Not Found
@@ -106,5 +132,5 @@ function getScriptCSSNotFound(type: string, requestURL: string, requestTS: strin
 }
 
 function getJSONNotFound(URL: string, TS: string, error = "not_found") {
-  return JSON.stringify({error, URL, TS});
+  return JSON.stringify({ error, URL, TS });
 }

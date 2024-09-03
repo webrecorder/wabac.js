@@ -1,7 +1,7 @@
 # wabac.js
 
-*service worker based web archive replay*
-  
+_service worker based web archive replay_
+
 **wabac.js** provides a full web archive replay system, or 'wayback machine', using
 [Service Workers](https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers)
 
@@ -26,12 +26,11 @@ Using the ReplayWeb.page is only one way to use wabac.js. Additional ways to use
 
 The API provides all functionality for loading web archives and getting information about a web archive collections.
 
-*Documentation coming soon!*
+_Documentation coming soon!_
 
 ## Old Version
 
-[wabac.js 1.0](https://github.com/webrecorder/wabac.js-1.0) also included a built-in UI component. This version is still available at [https://wab.ac/](https://wab.ac/)*
-
+[wabac.js 1.0](https://github.com/webrecorder/wabac.js-1.0) also included a built-in UI component. This version is still available at [https://wab.ac/](https://wab.ac/)
 
 ## Contributing
 

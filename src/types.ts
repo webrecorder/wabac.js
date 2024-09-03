@@ -4,7 +4,7 @@ import { ArchiveResponse } from "./response";
 export type ResourceEntry = {
   url: string;
   ts: number;
-  
+
   digest?: string | null;
   status?: number;
   mime?: string;
@@ -35,7 +35,7 @@ export type PageEntry = {
   date?: string | null;
   datetime?: string | null;
   ts?: number | string;
-  
+
   title?: string;
   id?: string;
   state?: number;
@@ -44,13 +44,13 @@ export type PageEntry = {
 
   pos?: number;
   list?: any;
-}
+};
 
 export type DigestRefCount = {
   digest: string;
   count: number;
   size: number;
-}
+};
 
 export type ResAPIResponse = {
   url: string;
@@ -58,14 +58,23 @@ export type ResAPIResponse = {
   ts: string;
   mime: string;
   status: number;
-}
+};
 
 export interface DBStore {
-  getResource(request: ArchiveRequest, prefix: string, event?: FetchEvent, opts? : Record<string, any>) : Promise<ArchiveResponse | Response | null>;
+  getResource(
+    request: ArchiveRequest,
+    prefix: string,
+    event?: FetchEvent,
+    opts?: Record<string, any>,
+  ): Promise<ArchiveResponse | Response | null>;
 
-  getAllPages() : Promise<any[]>;
+  getAllPages(): Promise<any[]>;
 }
 
 export interface ArchiveLoader {
-  load(db: DBStore, progressUpdateCallback?: any, totalLength?: number) : Promise<void>;
-};
+  load(
+    db: DBStore,
+    progressUpdateCallback?: any,
+    totalLength?: number,
+  ): Promise<void>;
+}

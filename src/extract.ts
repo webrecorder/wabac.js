@@ -2,17 +2,27 @@ import { SAXParser } from "parse5-sax-parser";
 
 import { decodeContent } from "./rewrite/decoder";
 
-
-const SKIPPED_TAGS = ["script", "style", "header", "footer", "banner-div", "noscript"];
-
+const SKIPPED_TAGS = [
+  "script",
+  "style",
+  "header",
+  "footer",
+  "banner-div",
+  "noscript",
+];
 
 // ===========================================================================
-async function extractText(url: string, buffer: Uint8Array, ce: string | null, te: string | null) {
+async function extractText(
+  url: string,
+  buffer: Uint8Array,
+  ce: string | null,
+  te: string | null,
+) {
   const parser = new SAXParser();
-  const textChunks : string[] = [];
-  let context : string | null = null;
+  const textChunks: string[] = [];
+  let context: string | null = null;
 
-  parser.on("text", (data/*, raw*/) => {
+  parser.on("text", (data /*, raw*/) => {
     if (context) {
       return;
     }
@@ -22,13 +32,13 @@ async function extractText(url: string, buffer: Uint8Array, ce: string | null, t
     }
   });
 
-  parser.on("startTag", startTag => {
+  parser.on("startTag", (startTag) => {
     if (!startTag.selfClosing && SKIPPED_TAGS.includes(startTag.tagName)) {
       context = startTag.tagName;
     }
   });
 
-  parser.on("endTag", endTag => {
+  parser.on("endTag", (endTag) => {
     if (endTag.tagName === context) {
       context = null;
     }

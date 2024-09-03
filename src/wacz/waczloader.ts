@@ -8,10 +8,8 @@ import { DEFAULT_WACZ, WACZFile } from "./waczfile";
 import { WACZImporter } from "./waczimporter";
 import { ZipRangeReader } from "./ziprangereader";
 
-
 // ============================================================================
-export class SingleWACZLoader implements ArchiveLoader
-{
+export class SingleWACZLoader implements ArchiveLoader {
   loader: BaseLoader;
   loadId: string | null = null;
   loadUrl: string;
@@ -22,11 +20,14 @@ export class SingleWACZLoader implements ArchiveLoader
     this.loadUrl = config.loadUrl;
   }
 
-  async load(db: any, /*progressUpdate, fullTotalSize*/) {
+  async load(db: any /*progressUpdate, fullTotalSize*/) {
     // if size less than MAX_FULL_DOWNLOAD_SIZE
     const loader = this.loader as any;
-    if (db.fullConfig && loader.arrayBuffer &&
-      loader.arrayBuffer.byteLength <= MAX_FULL_DOWNLOAD_SIZE) {
+    if (
+      db.fullConfig &&
+      loader.arrayBuffer &&
+      loader.arrayBuffer.byteLength <= MAX_FULL_DOWNLOAD_SIZE
+    ) {
       if (!db.fullConfig.extra) {
         db.fullConfig.extra = {};
       }
@@ -35,13 +36,12 @@ export class SingleWACZLoader implements ArchiveLoader
 
     const name = DEFAULT_WACZ;
     const path = this.loadUrl;
-    return await db.addNewWACZ({name, path, loader});
+    return await db.addNewWACZ({ name, path, loader });
   }
 }
 
 // ==========================================================================
-export class SingleWACZFullImportLoader implements ArchiveLoader
-{
+export class SingleWACZFullImportLoader implements ArchiveLoader {
   loader: BaseLoader;
   loadId: string | null = null;
   config: Record<string, any>;
@@ -53,11 +53,16 @@ export class SingleWACZFullImportLoader implements ArchiveLoader
     this.loader = loader;
   }
 
-  async load(db: any, progressUpdateCallback : ((prog: number, x: any, offset: number, size: number) => void) | null = null, fullTotalSize = 0) {
-
-    const file = new WACZFile({loader: this.loader});
+  async load(
+    db: any,
+    progressUpdateCallback:
+      | ((prog: number, x: any, offset: number, size: number) => void)
+      | null = null,
+    fullTotalSize = 0,
+  ) {
+    const file = new WACZFile({ loader: this.loader });
     await file.init();
-    
+
     const zipreader = file.zipreader!;
     const importer = new WACZImporter(db, file);
 
@@ -65,10 +70,19 @@ export class SingleWACZFullImportLoader implements ArchiveLoader
 
     let offsetTotal = 0;
 
-    const progressUpdate = (percent: number, error: string, offset: number/*, total*/) => {
+    const progressUpdate = (
+      percent: number,
+      error: string,
+      offset: number /*, total*/,
+    ) => {
       offset += offsetTotal;
       if (progressUpdateCallback && fullTotalSize) {
-        progressUpdateCallback(Math.round(offset * 100.0 / fullTotalSize), null, offset, fullTotalSize);
+        progressUpdateCallback(
+          Math.round((offset * 100.0) / fullTotalSize),
+          null,
+          offset,
+          fullTotalSize,
+        );
       }
     };
 
@@ -76,7 +90,13 @@ export class SingleWACZFullImportLoader implements ArchiveLoader
     for (const filename of file.iterContainedFiles()) {
       const entryTotal = zipreader.getCompressedSize(filename);
       if (filename.endsWith(".warc.gz") || filename.endsWith(".warc")) {
-        await this.loadWARC(db, zipreader, filename, progressUpdate, entryTotal);
+        await this.loadWARC(
+          db,
+          zipreader,
+          filename,
+          progressUpdate,
+          entryTotal,
+        );
       }
 
       offsetTotal += entryTotal;
@@ -85,8 +105,14 @@ export class SingleWACZFullImportLoader implements ArchiveLoader
     return metadata || {};
   }
 
-  async loadWARC(db: any, zipreader: ZipRangeReader, filename: string, progressUpdate: any, total: number) {
-    const {reader} = await zipreader.loadFile(filename, {unzip: true});
+  async loadWARC(
+    db: any,
+    zipreader: ZipRangeReader,
+    filename: string,
+    progressUpdate: any,
+    total: number,
+  ) {
+    const { reader } = await zipreader.loadFile(filename, { unzip: true });
     if (!reader) {
       throw new Error("no WARC found");
     }
@@ -99,15 +125,14 @@ export class SingleWACZFullImportLoader implements ArchiveLoader
 }
 
 // ==========================================================================
-export class JSONResponseMultiWACZLoader implements ArchiveLoader
-{
+export class JSONResponseMultiWACZLoader implements ArchiveLoader {
   response: Response;
-  
+
   constructor(response: Response) {
     this.response = response;
   }
 
-  async load(db: any)  {
+  async load(db: any) {
     return await db.loadFromJSON(this.response);
   }
 }

@@ -5,14 +5,20 @@ import pako from "pako";
 import { AsyncIterReader } from "warcio";
 import { ArchiveResponse } from "../response";
 
-
 // ===========================================================================
-async function decodeResponse(response: ArchiveResponse, contentEncoding: string | null, transferEncoding: string | null, noRW: boolean) {
-
+async function decodeResponse(
+  response: ArchiveResponse,
+  contentEncoding: string | null,
+  transferEncoding: string | null,
+  noRW: boolean,
+) {
   // use the streaming decoder if gzip only and no rewriting
-  if (response.reader && noRW &&
-      ((contentEncoding === "gzip" && !transferEncoding) || 
-      (!contentEncoding && transferEncoding === "gzip"))) {
+  if (
+    response.reader &&
+    noRW &&
+    ((contentEncoding === "gzip" && !transferEncoding) ||
+      (!contentEncoding && transferEncoding === "gzip"))
+  ) {
     response.setReader(new AsyncIterReader(response.reader));
     return response;
   }
@@ -21,7 +27,11 @@ async function decodeResponse(response: ArchiveResponse, contentEncoding: string
 
   const origContent = new Uint8Array(buffer);
 
-  const content = await decodeContent(origContent, contentEncoding, transferEncoding);
+  const content = await decodeContent(
+    origContent,
+    contentEncoding,
+    transferEncoding,
+  );
 
   if (origContent !== content) {
     response.setBuffer(content);
@@ -30,9 +40,12 @@ async function decodeResponse(response: ArchiveResponse, contentEncoding: string
   return response;
 }
 
-
 // ===========================================================================
-async function decodeContent(content: Uint8Array, contentEncoding: string | null, transferEncoding: string | null) {
+async function decodeContent(
+  content: Uint8Array,
+  contentEncoding: string | null,
+  transferEncoding: string | null,
+) {
   const origContent = content;
 
   try {
@@ -51,7 +64,6 @@ async function decodeContent(content: Uint8Array, contentEncoding: string | null
       if (content.length === 0) {
         content = origContent;
       }
-
     } else if (contentEncoding === "gzip" || transferEncoding === "gzip") {
       const inflator = new pako.Inflate();
 
@@ -62,13 +74,12 @@ async function decodeContent(content: Uint8Array, contentEncoding: string | null
         content = inflator.result as Uint8Array;
       }
     }
-  } catch(e) {
+  } catch (e) {
     console.log("Content-Encoding Ignored: " + e);
   }
 
   return content;
 }
-
 
 // ===========================================================================
 function dechunkArrayBuffer(data: Uint8Array) {
@@ -81,9 +92,11 @@ function dechunkArrayBuffer(data: Uint8Array) {
     let i = readOffset;
 
     // check hex digits, 0-9, A-Z, a-z
-    while ((data[i] >= 48 && data[i] <= 57) ||
-           (data[i] >= 65 && data[i] <= 70) ||
-           (data[i] >= 97 && data[i] <= 102)) {
+    while (
+      (data[i] >= 48 && data[i] <= 57) ||
+      (data[i] >= 65 && data[i] <= 70) ||
+      (data[i] >= 97 && data[i] <= 102)
+    ) {
       i++;
     }
 
@@ -99,7 +112,10 @@ function dechunkArrayBuffer(data: Uint8Array) {
 
     i += 2;
 
-    var chunkLength = parseInt(decoder.decode(data.subarray(readOffset, i)), 16);
+    var chunkLength = parseInt(
+      decoder.decode(data.subarray(readOffset, i)),
+      16,
+    );
 
     if (chunkLength == 0) {
       break;
@@ -122,5 +138,3 @@ function dechunkArrayBuffer(data: Uint8Array) {
 }
 
 export { decodeResponse, decodeContent };
-
-

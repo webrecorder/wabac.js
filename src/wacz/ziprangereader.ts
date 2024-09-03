@@ -5,9 +5,8 @@ import { IHasher } from "hash-wasm/dist/lib/WASMInterface.js";
 import { GetHash } from "../remotearchivedb";
 
 // ===========================================================================
-const MAX_INT32 = 0xFFFFFFFF;
-const MAX_INT16 = 0xFFFF;
-
+const MAX_INT32 = 0xffffffff;
+const MAX_INT16 = 0xffff;
 
 // ===========================================================================
 export type ReaderAndHasher = {
@@ -26,10 +25,8 @@ export type ZipEntry = {
   offset?: number;
 };
 
-
 // ===========================================================================
-class LoadMoreException
-{
+class LoadMoreException {
   start: number;
   length: number;
 
@@ -40,8 +37,7 @@ class LoadMoreException
 }
 
 // ===========================================================================
-export class HashingAsyncIterReader extends AsyncIterReader implements GetHash
-{
+export class HashingAsyncIterReader extends AsyncIterReader implements GetHash {
   hasher: IHasher | null = null;
   hashInited = false;
   hash = "";
@@ -60,7 +56,7 @@ export class HashingAsyncIterReader extends AsyncIterReader implements GetHash
     }
   }
 
-  async _loadNext()  {
+  async _loadNext() {
     const value = await super._loadNext();
     if (value) {
       if (!this.hashInited) {
@@ -74,20 +70,22 @@ export class HashingAsyncIterReader extends AsyncIterReader implements GetHash
     return value;
   }
 
-  getHash() : string {
+  getHash(): string {
     return this.hash;
   }
 }
 
 // ===========================================================================
-export class ZipRangeReader
-{
+export class ZipRangeReader {
   loader: BaseLoader;
   entriesUpdated = false;
   enableHashing = false;
   entries: Record<string, ZipEntry> | null = null;
-  
-  constructor(loader: BaseLoader, entries : Record<string, ZipEntry> | null = null) {
+
+  constructor(
+    loader: BaseLoader,
+    entries: Record<string, ZipEntry> | null = null,
+  ) {
     this.loader = loader;
     this.entries = entries;
     this.entriesUpdated = false;
@@ -96,20 +94,31 @@ export class ZipRangeReader
     this.enableHashing = true;
   }
 
-  async load(always = false) : Promise<Record<string, ZipEntry>> {
+  async load(always = false): Promise<Record<string, ZipEntry>> {
     if (!this.entries || always) {
       const totalLength = await this.loader.getLength();
 
       const length = Math.min(MAX_INT16 + 23, totalLength);
       const start = totalLength - length;
-      const endChunk = await this.loader.getRange(start, length, false) as Uint8Array;
+      const endChunk = (await this.loader.getRange(
+        start,
+        length,
+        false,
+      )) as Uint8Array;
 
       try {
         this.entries = this._loadEntries(endChunk, start);
       } catch (e) {
         if (e instanceof LoadMoreException) {
-          const extraChunk = await this.loader.getRange(e.start, e.length, false) as Uint8Array;
-          const combinedChunk = concatChunks([extraChunk, endChunk], e.length + length);
+          const extraChunk = (await this.loader.getRange(
+            e.start,
+            e.length,
+            false,
+          )) as Uint8Array;
+          const combinedChunk = concatChunks(
+            [extraChunk, endChunk],
+            e.length + length,
+          );
           this.entries = this._loadEntries(combinedChunk, e.start);
         }
       }
@@ -119,7 +128,10 @@ export class ZipRangeReader
     return this.entries!;
   }
 
-  _loadEntries(data: Uint8Array, dataStartOffset: number) : Record<string, any> | null {
+  _loadEntries(
+    data: Uint8Array,
+    dataStartOffset: number,
+  ): Record<string, any> | null {
     // Adapted from
     // Copyright (c) 2016 Rob Wu <rob@robwu.nl> (https://robwu.nl)
     //  * Published under a MIT license.
@@ -134,15 +146,19 @@ export class ZipRangeReader
 
     const utf8Decoder = new TextDecoder("utf8");
     const asciiDecoder = new TextDecoder("ascii");
-    const entries : Record<string, ZipEntry> = {};
+    const entries: Record<string, ZipEntry> = {};
 
     let entriesLeft = 0;
     let offset = 0;
     let endoffset = length;
     // Find EOCD (0xFFFF is the maximum size of an optional trailing comment).
     for (let i = length - 22, ii = Math.max(0, i - MAX_INT16); i >= ii; --i) {
-      if (data[i] === 0x50 && data[i + 1] === 0x4b &&
-        data[i + 2] === 0x05 && data[i + 3] === 0x06) {
+      if (
+        data[i] === 0x50 &&
+        data[i + 1] === 0x4b &&
+        data[i + 2] === 0x05 &&
+        data[i + 3] === 0x06
+      ) {
         endoffset = i;
         offset = view.getUint32(i + 16, true);
         entriesLeft = view.getUint16(i + 8, true);
@@ -182,12 +198,16 @@ export class ZipRangeReader
       // most likely going to be incomplete or bogus, but we can try...).
       offset = -1;
       entriesLeft = MAX_INT16;
-      while (++offset < length && data[offset] !== 0x50 &&
-        data[offset + 1] !== 0x4b && data[offset + 2] !== 0x01 &&
-          data[offset + 3] !== 0x02);
+      while (
+        ++offset < length &&
+        data[offset] !== 0x50 &&
+        data[offset + 1] !== 0x4b &&
+        data[offset + 2] !== 0x01 &&
+        data[offset + 3] !== 0x02
+      );
     }
 
-    endoffset -= 46;  // 46 = minimum size of an entry in the central directory.
+    endoffset -= 46; // 46 = minimum size of an entry in the central directory.
 
     while (--entriesLeft >= 0 && offset < endoffset) {
       if (view.getUint32(offset) != 0x504b0102) {
@@ -201,18 +221,21 @@ export class ZipRangeReader
       const extraFieldLength = view.getUint16(offset + 30, true);
       const fileCommentLength = view.getUint16(offset + 32, true);
 
-      const deflate = (view.getUint16(offset + 10, true) === 8);
-          
+      const deflate = view.getUint16(offset + 10, true) === 8;
+
       let localEntryOffset = view.getUint32(offset + 42, true);
 
-      const decoder = (bitFlag & 0x800) ? utf8Decoder : asciiDecoder;
-      const filename = decoder.decode(data.subarray(offset + 46, offset + 46 + fileNameLength));
+      const decoder = bitFlag & 0x800 ? utf8Decoder : asciiDecoder;
+      const filename = decoder.decode(
+        data.subarray(offset + 46, offset + 46 + fileNameLength),
+      );
 
       // ZIP64 support
-      if (compressedSize === MAX_INT32 ||
-          uncompressedSize === MAX_INT32 ||
-          localEntryOffset === MAX_INT32) {
-
+      if (
+        compressedSize === MAX_INT32 ||
+        uncompressedSize === MAX_INT32 ||
+        localEntryOffset === MAX_INT32
+      ) {
         let extraFieldOffset = offset + 46 + fileNameLength;
         const efEnd = extraFieldOffset + extraFieldLength - 3;
         while (extraFieldOffset < efEnd) {
@@ -265,7 +288,7 @@ export class ZipRangeReader
     return entries;
   }
 
-  getCompressedSize(name: string) : number {
+  getCompressedSize(name: string): number {
     if (this.entries === null) {
       return 0;
     }
@@ -279,9 +302,22 @@ export class ZipRangeReader
     return isNaN(entry.compressedSize) ? 0 : entry.compressedSize;
   }
 
-  async loadFile(name: string, {offset = 0, length = -1, signal = null, unzip = false, computeHash = false} : 
-    {offset?: number, length?: number, signal?: AbortSignal | null, unzip?: boolean, computeHash?: boolean} = {}) :
-    Promise<ReaderAndHasher> {
+  async loadFile(
+    name: string,
+    {
+      offset = 0,
+      length = -1,
+      signal = null,
+      unzip = false,
+      computeHash = false,
+    }: {
+      offset?: number;
+      length?: number;
+      signal?: AbortSignal | null;
+      unzip?: boolean;
+      computeHash?: boolean;
+    } = {},
+  ): Promise<ReaderAndHasher> {
     if (this.entries === null) {
       await this.load();
     }
@@ -297,26 +333,43 @@ export class ZipRangeReader
     }
 
     if (entry.offset === undefined) {
-      const header = await this.loader.getRange(entry.localEntryOffset, 30, false) as Uint8Array;
-      const view = new DataView(header.buffer, header.byteOffset, header.byteLength);
+      const header = (await this.loader.getRange(
+        entry.localEntryOffset,
+        30,
+        false,
+      )) as Uint8Array;
+      const view = new DataView(
+        header.buffer,
+        header.byteOffset,
+        header.byteLength,
+      );
 
       const fileNameLength = view.getUint16(26, true);
       const extraFieldLength = view.getUint16(28, true);
 
-      entry.offset = 30 + fileNameLength + extraFieldLength + entry.localEntryOffset;
+      entry.offset =
+        30 + fileNameLength + extraFieldLength + entry.localEntryOffset;
       this.entriesUpdated = true;
     }
 
-    length = length < 0 ? entry.compressedSize : Math.min(length, entry.compressedSize - offset);
+    length =
+      length < 0
+        ? entry.compressedSize
+        : Math.min(length, entry.compressedSize - offset);
 
     offset += entry.offset;
 
-    const body = await this.loader.getRange(offset, length, true, signal) as ReadableStream;
+    const body = (await this.loader.getRange(
+      offset,
+      length,
+      true,
+      signal,
+    )) as ReadableStream;
 
-    let streamReader : ReadableStreamDefaultReader = body.getReader();
-    let hasher : HashingAsyncIterReader | null = null;
+    let streamReader: ReadableStreamDefaultReader = body.getReader();
+    let hasher: HashingAsyncIterReader | null = null;
 
-    const wrapHasher = (reader: AsyncIterReader) : AsyncIterReader => {
+    const wrapHasher = (reader: AsyncIterReader): AsyncIterReader => {
       if (computeHash && this.enableHashing) {
         hasher = new HashingAsyncIterReader(reader);
         return hasher;
@@ -324,32 +377,39 @@ export class ZipRangeReader
       return reader;
     };
 
-    let reader : AsyncIterReader;
+    let reader: AsyncIterReader;
 
     // if not unzip, deflate if needed only
     if (!unzip) {
-      reader = new AsyncIterReader(streamReader, entry.deflate ? "deflate" : null);
-    // if unzip and not deflated, reuse AsyncIterReader for auto unzipping
+      reader = new AsyncIterReader(
+        streamReader,
+        entry.deflate ? "deflate" : null,
+      );
+      // if unzip and not deflated, reuse AsyncIterReader for auto unzipping
     } else if (!entry.deflate) {
       reader = new AsyncIterReader(streamReader);
     } else {
       // need to deflate, than unzip again
-      reader = new AsyncIterReader(new AsyncIterReader(streamReader, "deflate"));
+      reader = new AsyncIterReader(
+        new AsyncIterReader(streamReader, "deflate"),
+      );
     }
 
     reader = wrapHasher(reader);
 
-    return {reader, hasher};
+    return { reader, hasher };
   }
 
   // from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView
   getUint64(dataview: DataView, byteOffset: number, littleEndian: boolean) {
     // split 64-bit number into two 32-bit (4-byte) parts
-    const left =  dataview.getUint32(byteOffset, littleEndian);
-    const right = dataview.getUint32(byteOffset+4, littleEndian);
+    const left = dataview.getUint32(byteOffset, littleEndian);
+    const right = dataview.getUint32(byteOffset + 4, littleEndian);
 
     // combine the two 32-bit values
-    const combined = littleEndian? left + 2**32*right : 2**32*left + right;
+    const combined = littleEndian
+      ? left + 2 ** 32 * right
+      : 2 ** 32 * left + right;
 
     if (!Number.isSafeInteger(combined))
       console.warn(combined, "exceeds MAX_SAFE_INTEGER. Precision may be lost");
@@ -359,11 +419,10 @@ export class ZipRangeReader
 }
 
 // ===========================================================================
-export class ZipBlockLoader extends BaseLoader
-{
+export class ZipBlockLoader extends BaseLoader {
   zipreader: ZipRangeReader;
   filename: string;
-  size: number = 0
+  size: number = 0;
 
   constructor(zipreader: ZipRangeReader, filename: string) {
     super(true);
@@ -380,16 +439,18 @@ export class ZipBlockLoader extends BaseLoader
 
     this.size = this.zipreader.getCompressedSize(this.filename);
 
-    let stream : ReadableStream<Uint8Array> | null = null;
+    let stream: ReadableStream<Uint8Array> | null = null;
 
     if (!tryHead) {
-      const { reader } = await this.zipreader.loadFile(this.filename, {unzip: true});
+      const { reader } = await this.zipreader.loadFile(this.filename, {
+        unzip: true,
+      });
       stream = getReadableStreamFromIter(reader);
     }
 
     const response = new Response(stream);
 
-    return {response, abort: null};
+    return { response, abort: null };
   }
 
   async getLength() {
@@ -400,8 +461,18 @@ export class ZipBlockLoader extends BaseLoader
     return this.size;
   }
 
-  async getRange(offset: number, length: number, streaming = false, signal = null) {
-    const { reader } = await this.zipreader.loadFile(this.filename, {offset, length, signal, unzip: true});
+  async getRange(
+    offset: number,
+    length: number,
+    streaming = false,
+    signal = null,
+  ) {
+    const { reader } = await this.zipreader.loadFile(this.filename, {
+      offset,
+      length,
+      signal,
+      unzip: true,
+    });
 
     if (streaming) {
       return getReadableStreamFromIter(reader);
@@ -410,4 +481,3 @@ export class ZipBlockLoader extends BaseLoader
     }
   }
 }
-

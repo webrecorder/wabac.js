@@ -8,31 +8,30 @@ const OLD_DEFAULT_MAX_RES = 1280 * 720;
 const DEFAULT_MAX_BAND = 1000000;
 const DEFAULT_MAX_RES = 860 * 480;
 
-
 // ===========================================================================
-function getMaxResAndBand(opts : Record<string, any> = {}) {
+function getMaxResAndBand(opts: Record<string, any> = {}) {
   // read opts from warc, if any
   let maxRes, maxBand;
 
-  const extraOpts = (opts && opts.response && opts.response.extraOpts);
+  const extraOpts = opts && opts.response && opts.response.extraOpts;
 
   if (extraOpts) {
     maxRes = extraOpts.adaptive_max_resolution || extraOpts.maxRes;
     maxBand = extraOpts.adaptive_max_bandwidth || extraOpts.maxBand;
     if (maxRes && maxBand) {
-      return {maxRes, maxBand};
+      return { maxRes, maxBand };
     }
   }
 
   const isReplay = opts && opts.response && !opts.response.isLive;
   let res;
-  
+
   // if not replay, or unknown, use new lower setting
   if (!isReplay) {
-    res = {maxRes: DEFAULT_MAX_RES, maxBand: DEFAULT_MAX_BAND};
+    res = { maxRes: DEFAULT_MAX_RES, maxBand: DEFAULT_MAX_BAND };
   } else {
-  // use existing pywb defaults
-    res = {maxRes: OLD_DEFAULT_MAX_RES, maxBand: OLD_DEFAULT_MAX_BAND};
+    // use existing pywb defaults
+    res = { maxRes: OLD_DEFAULT_MAX_RES, maxBand: OLD_DEFAULT_MAX_BAND };
   }
 
   if (opts && opts.save) {
@@ -43,18 +42,17 @@ function getMaxResAndBand(opts : Record<string, any> = {}) {
   return res;
 }
 
-
 // ===========================================================================
 //HLS
 export function rewriteHLS(text: string, opts: Record<string, any>) {
   const EXT_INF = /#EXT-X-STREAM-INF:(?:.*[,])?BANDWIDTH=([\d]+)/;
   const EXT_RESOLUTION = /RESOLUTION=([\d]+)x([\d]+)/;
 
-  const { maxRes, maxBand} = getMaxResAndBand(opts);
+  const { maxRes, maxBand } = getMaxResAndBand(opts);
 
-  let indexes : number[] = [];
+  let indexes: number[] = [];
   let count = 0;
-  let bestIndex : number | null = null;
+  let bestIndex: number | null = null;
 
   let bestBand = 0;
   let bestRes = 0;
@@ -112,11 +110,14 @@ export const xmlOpts = {
   removeNSPrefix: false,
   format: false,
   suppressEmptyNode: true,
-  suppressBooleanAttributes: false
+  suppressBooleanAttributes: false,
 };
 
-
-export function rewriteDASH(text: string, opts: Record<string, any>, bestIds?: string[]) {
+export function rewriteDASH(
+  text: string,
+  opts: Record<string, any>,
+  bestIds?: string[],
+) {
   try {
     return _rewriteDASH(text, opts, bestIds);
   } catch (e) {
@@ -125,18 +126,21 @@ export function rewriteDASH(text: string, opts: Record<string, any>, bestIds?: s
   }
 }
 
-
-function _rewriteDASH(text: string, opts: Record<string, any>, bestIds?: string[]) {
+function _rewriteDASH(
+  text: string,
+  opts: Record<string, any>,
+  bestIds?: string[],
+) {
   const parser = new XMLParser(xmlOpts);
   const root = parser.parse(text);
 
-  const { maxRes, maxBand} = getMaxResAndBand(opts);
+  const { maxRes, maxBand } = getMaxResAndBand(opts);
 
   let best = null;
   let bestRes = 0;
   let bestBand = 0;
 
-  let adaptSets : any[];
+  let adaptSets: any[];
 
   if (!Array.isArray(root.MPD.Period.AdaptationSet)) {
     adaptSets = [root.MPD.Period.AdaptationSet];
@@ -149,7 +153,7 @@ function _rewriteDASH(text: string, opts: Record<string, any>, bestIds?: string[
     bestRes = 0;
     bestBand = 0;
 
-    let reps : any[];
+    let reps: any[];
 
     if (!Array.isArray(adaptset.Representation)) {
       reps = [adaptset.Representation];
@@ -158,7 +162,8 @@ function _rewriteDASH(text: string, opts: Record<string, any>, bestIds?: string[
     }
 
     for (const repres of reps) {
-      const currRes = Number(repres["@_width"] || "0") * Number(repres["@_height"] || "0");
+      const currRes =
+        Number(repres["@_width"] || "0") * Number(repres["@_height"] || "0");
       const currBand = Number(repres["@_bandwidth"] || "0");
 
       if (currRes && maxRes && currRes <= maxRes) {

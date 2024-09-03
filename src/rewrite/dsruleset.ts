@@ -6,90 +6,122 @@ const MAX_BITRATE = 5000000;
 type Rules = {
   contains: string[];
   rxRules: Rule[];
-}
+};
 
 // ===========================================================================
-export const DEFAULT_RULES : Rules[] = [
+export const DEFAULT_RULES: Rules[] = [
   {
     contains: ["youtube.com", "youtube-nocookie.com"],
     rxRules: [
-      [/ytplayer.load\(\);/, ruleReplace("ytplayer.config.args.dash = \"0\"; ytplayer.config.args.dashmpd = \"\"; {0}")],
-      [/yt\.setConfig.*PLAYER_CONFIG.*args":\s*{/, ruleReplace("{0} \"dash\": \"0\", dashmpd: \"\", ")],
-      [/(?:"player":|ytplayer\.config).*"args":\s*{/, ruleReplace("{0}\"dash\":\"0\",\"dashmpd\":\"\",")],
-      [/yt\.setConfig.*PLAYER_VARS.*?{/, ruleReplace("{0}\"dash\":\"0\",\"dashmpd\":\"\",")],
-      [/ytplayer.config={args:\s*{/, ruleReplace("{0}\"dash\":\"0\",\"dashmpd\":\"\",")],
+      [
+        /ytplayer.load\(\);/,
+        ruleReplace(
+          'ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""; {0}',
+        ),
+      ],
+      [
+        /yt\.setConfig.*PLAYER_CONFIG.*args":\s*{/,
+        ruleReplace('{0} "dash": "0", dashmpd: "", '),
+      ],
+      [
+        /(?:"player":|ytplayer\.config).*"args":\s*{/,
+        ruleReplace('{0}"dash":"0","dashmpd":"",'),
+      ],
+      [
+        /yt\.setConfig.*PLAYER_VARS.*?{/,
+        ruleReplace('{0}"dash":"0","dashmpd":"",'),
+      ],
+      [
+        /ytplayer.config={args:\s*{/,
+        ruleReplace('{0}"dash":"0","dashmpd":"",'),
+      ],
       [/"0"\s*?==\s*?\w+\.dash&&/m, ruleReplace("1&&")],
-    ]
+    ],
   },
   {
     contains: ["player.vimeo.com/video/"],
-    rxRules: [
-      [/^\{.+\}$/, ruleRewriteVimeoConfig],
-    ]
+    rxRules: [[/^\{.+\}$/, ruleRewriteVimeoConfig]],
   },
   {
     contains: ["master.json?query_string_ranges=0", "master.json?base64"],
-    rxRules: [
-      [/^\{.+\}$/, ruleRewriteVimeoDashManifest]
-    ]
+    rxRules: [[/^\{.+\}$/, ruleRewriteVimeoDashManifest]],
   },
   {
     contains: ["facebook.com/", "fbsbx.com/"],
     rxRules: [
       //[/"dash_prefetch_experimental.*"playlist".*?(?=["][,]["]dash)/, ruleRewriteFBDash],
-      [/"dash_/, ruleReplace("\"__nodash__")],
-      [/_dash"/, ruleReplace("__nodash__\"")],
+      [/"dash_/, ruleReplace('"__nodash__')],
+      [/_dash"/, ruleReplace('__nodash__"')],
       [/_dash_/, ruleReplace("__nodash__")],
-      [/"playlist/, ruleReplace("\"__playlist__")],
-      [/"debugNoBatching\s?":(?:false|0)/, ruleReplace("\"debugNoBatching\":true")],
-      [/"bulkRouteFetchBatchSize\s?":(?:[^{},]+)/, ruleReplace("\"bulkRouteFetchBatchSize\":1")],
-      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplace("\"maxBatchSize\":1")]
-    ]
+      [/"playlist/, ruleReplace('"__playlist__')],
+      [
+        /"debugNoBatching\s?":(?:false|0)/,
+        ruleReplace('"debugNoBatching":true'),
+      ],
+      [
+        /"bulkRouteFetchBatchSize\s?":(?:[^{},]+)/,
+        ruleReplace('"bulkRouteFetchBatchSize":1'),
+      ],
+      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplace('"maxBatchSize":1')],
+    ],
   },
   {
     contains: ["instagram.com/"],
     rxRules: [
-      [/"is_dash_eligible":(?:true|1)/, ruleReplace("\"is_dash_eligible\":false")],
-      [/"debugNoBatching\s?":(?:false|0)/, ruleReplace("\"debugNoBatching\":true")]
-    ]
+      [
+        /"is_dash_eligible":(?:true|1)/,
+        ruleReplace('"is_dash_eligible":false'),
+      ],
+      [
+        /"debugNoBatching\s?":(?:false|0)/,
+        ruleReplace('"debugNoBatching":true'),
+      ],
+    ],
   },
 
   {
-    contains: ["api.twitter.com/2/", "twitter.com/i/api/2/", "twitter.com/i/api/graphql/",
-      "api.x.com/2/", "x.com/i/api/2/", "x.com/i/api/graphql/"],
+    contains: [
+      "api.twitter.com/2/",
+      "twitter.com/i/api/2/",
+      "twitter.com/i/api/graphql/",
+      "api.x.com/2/",
+      "x.com/i/api/2/",
+      "x.com/i/api/graphql/",
+    ],
     rxRules: [
-      [/"video_info":.*?}]}/, ruleRewriteTwitterVideo("\"video_info\":")]
-    ]
+      [/"video_info":.*?}]}/, ruleRewriteTwitterVideo('"video_info":')],
+    ],
   },
 
   {
     contains: ["cdn.syndication.twimg.com/tweet-result"],
     rxRules: [
-      [/"video":.*?viewCount":\d+}/, ruleRewriteTwitterVideo("\"video\":")]
-    ]
+      [/"video":.*?viewCount":\d+}/, ruleRewriteTwitterVideo('"video":')],
+    ],
   },
 
   {
     contains: ["/vqlweb.js"],
     rxRules: [
-      [/\b\w+\.updatePortSize\(\);this\.updateApplicationSize\(\)(?![*])/img,  ruleReplace("/*{0}*/")]
-    ]
-  }
+      [
+        /\b\w+\.updatePortSize\(\);this\.updateApplicationSize\(\)(?![*])/gim,
+        ruleReplace("/*{0}*/"),
+      ],
+    ],
+  },
 ];
 
-export const HTML_ONLY_RULES : Rules[] = [
+export const HTML_ONLY_RULES: Rules[] = [
   {
     contains: ["youtube.com", "youtube-nocookie.com"],
-    rxRules: [
-      [/[^"]<head.*?>/, ruleDisableMediaSourceTypeSupported()]
-    ]
+    rxRules: [[/[^"]<head.*?>/, ruleDisableMediaSourceTypeSupported()]],
   },
-  ...DEFAULT_RULES
+  ...DEFAULT_RULES,
 ];
 
 // ===========================================================================
 function ruleReplace(str: string) {
-  return (x: string) => str.replace("{0}", x); 
+  return (x: string) => str.replace("{0}", x);
 }
 
 // ===========================================================================
@@ -100,8 +132,7 @@ function ruleDisableMediaSourceTypeSupported() {
 }
 
 // ===========================================================================
-function setMaxBitrate(opts: any)
-{
+function setMaxBitrate(opts: any) {
   let maxBitrate = MAX_BITRATE;
   const extraOpts = opts.response && opts.response.extraOpts;
 
@@ -116,7 +147,6 @@ function setMaxBitrate(opts: any)
 
 // ===========================================================================
 function ruleRewriteTwitterVideo(prefix: string) {
-
   return (str: string, opts: Record<string, any>) => {
     if (!opts) {
       return str;
@@ -137,12 +167,18 @@ function ruleRewriteTwitterVideo(prefix: string) {
       let bestBitrate = 0;
 
       for (const variant of data.variants) {
-        if ((variant.content_type && variant.content_type !== "video/mp4") ||
-            (variant.type && variant.type !== "video/mp4")) {
+        if (
+          (variant.content_type && variant.content_type !== "video/mp4") ||
+          (variant.type && variant.type !== "video/mp4")
+        ) {
           continue;
         }
 
-        if (variant.bitrate && variant.bitrate > bestBitrate && variant.bitrate <= maxBitrate) {
+        if (
+          variant.bitrate &&
+          variant.bitrate > bestBitrate &&
+          variant.bitrate <= maxBitrate
+        ) {
           bestVariant = variant;
           bestBitrate = variant.bitrate;
         } else if (variant.src) {
@@ -162,7 +198,6 @@ function ruleRewriteTwitterVideo(prefix: string) {
       }
 
       return prefix + JSON.stringify(data);
-
     } catch (e) {
       console.warn("rewriter error: ", e);
       return origString;
@@ -181,7 +216,7 @@ function ruleRewriteVimeoConfig(str: string) {
 
   if (config && config.request && config.request.files) {
     const files = config.request.files;
-    if (typeof(files.progressive) === "object" && files.progressive.length) {
+    if (typeof files.progressive === "object" && files.progressive.length) {
       if (files.dash) {
         files.__dash = files.dash;
         delete files.dash;
@@ -203,7 +238,7 @@ function ruleRewriteVimeoDashManifest(str: string, opts: Record<string, any>) {
     return str;
   }
 
-  let vimeoManifest : any = null;
+  let vimeoManifest: any = null;
 
   const maxBitrate = setMaxBitrate(opts);
 
@@ -214,16 +249,24 @@ function ruleRewriteVimeoDashManifest(str: string, opts: Record<string, any>) {
     return str;
   }
 
-  function filterByBitrate(array: {mime_type: string, bitrate: number}[], max: number, mime: string) {
+  function filterByBitrate(
+    array: { mime_type: string; bitrate: number }[],
+    max: number,
+    mime: string,
+  ) {
     if (!array) {
       return null;
     }
 
-    let bestVariant : {mime_type: string, bitrate: number} | null = null;
+    let bestVariant: { mime_type: string; bitrate: number } | null = null;
     let bestBitrate = 0;
 
     for (const variant of array) {
-      if (variant.mime_type == mime && variant.bitrate > bestBitrate && variant.bitrate <= max) {
+      if (
+        variant.mime_type == mime &&
+        variant.bitrate > bestBitrate &&
+        variant.bitrate <= max
+      ) {
         bestBitrate = variant.bitrate;
         bestVariant = variant;
       }
@@ -232,8 +275,16 @@ function ruleRewriteVimeoDashManifest(str: string, opts: Record<string, any>) {
     return bestVariant ? [bestVariant] : array;
   }
 
-  vimeoManifest.video = filterByBitrate(vimeoManifest.video, maxBitrate, "video/mp4");
-  vimeoManifest.audio = filterByBitrate(vimeoManifest.audio, maxBitrate, "audio/mp4");
+  vimeoManifest.video = filterByBitrate(
+    vimeoManifest.video,
+    maxBitrate,
+    "video/mp4",
+  );
+  vimeoManifest.audio = filterByBitrate(
+    vimeoManifest.audio,
+    maxBitrate,
+    "audio/mp4",
+  );
 
   return JSON.stringify(vimeoManifest);
 }
@@ -242,9 +293,7 @@ function ruleRewriteVimeoDashManifest(str: string, opts: Record<string, any>) {
 type T = typeof RxRewriter;
 
 // ===========================================================================
-export class DomainSpecificRuleSet
-{
-
+export class DomainSpecificRuleSet {
   rwRules: Rules[];
   RewriterCls: T;
   rewriters = new Map();

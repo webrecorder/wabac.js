@@ -1,9 +1,10 @@
-export type Rule = [RegExp, (x: string, opts: Record<string, any>, offset: number, str: string) => string];
-
+export type Rule = [
+  RegExp,
+  (x: string, opts: Record<string, any>, offset: number, str: string) => string,
+];
 
 // ===========================================================================
-export class RxRewriter
-{
+export class RxRewriter {
   rules: Rule[] | null;
   rx: RegExp | null = null;
 
@@ -49,7 +50,9 @@ export class RxRewriter
       }
     }
 
-    console.warn(`rx no match found for ${match} - rx rule contains extra matching group?`);
+    console.warn(
+      `rx no match found for ${match} - rx rule contains extra matching group?`,
+    );
     return match;
   }
 
@@ -58,6 +61,8 @@ export class RxRewriter
       return text;
     }
 
-    return text.replace(this.rx, (match, ...params) => this.doReplace(match, params, opts));
+    return text.replace(this.rx, (match, ...params) =>
+      this.doReplace(match, params, opts),
+    );
   }
 }

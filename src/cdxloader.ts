@@ -2,8 +2,14 @@ import { ResourceEntry } from "./types";
 import { tsToDate } from "./utils";
 import { WARCLoader } from "./warcloader";
 
-import { CDXIndexer, AsyncIterReader, appendRequestQuery, WARCRecord, WARCParser, Source } from "warcio";
-
+import {
+  CDXIndexer,
+  AsyncIterReader,
+  appendRequestQuery,
+  WARCRecord,
+  WARCParser,
+  Source,
+} from "warcio";
 
 export const CDX_COOKIE = "req.http:cookie";
 
@@ -11,15 +17,19 @@ type WARCRecordWithPage = WARCRecord & {
   _isPage: boolean;
 };
 
-
 // ===========================================================================
-class CDXFromWARCLoader extends WARCLoader
-{
+class CDXFromWARCLoader extends WARCLoader {
   cdxindexer: CDXIndexer | null = null;
   sourceExtra: any;
   shaPrefix: string;
 
-  constructor(reader: Source, abort: AbortController | null, id: string, sourceExtra = {}, shaPrefix = "sha256:") {
+  constructor(
+    reader: Source,
+    abort: AbortController | null,
+    id: string,
+    sourceExtra = {},
+    shaPrefix = "sha256:",
+  ) {
     super(reader, abort, id);
     this.sourceExtra = sourceExtra;
     this.shaPrefix = shaPrefix;
@@ -27,17 +37,19 @@ class CDXFromWARCLoader extends WARCLoader
 
   filterRecord(record: WARCRecordWithPage) {
     switch (record.warcType) {
-    case "warcinfo":
-    case "revisit":
-    case "request":
-      return null;
+      case "warcinfo":
+      case "revisit":
+      case "request":
+        return null;
 
-    case "metadata":
-      return this.shouldIndexMetadataRecord(record) ? null : "skip";
+      case "metadata":
+        return this.shouldIndexMetadataRecord(record) ? null : "skip";
     }
 
     const url = record.warcTargetURI;
-    const ts = record.warcDate ? new Date(record.warcDate).getTime() : Date.now();
+    const ts = record.warcDate
+      ? new Date(record.warcDate).getTime()
+      : Date.now();
 
     if (this.pageMap[ts + "/" + url]) {
       record._isPage = true;
@@ -55,7 +67,11 @@ class CDXFromWARCLoader extends WARCLoader
     return super.index(record, parser);
   }
 
-  indexReqResponse(record: WARCRecordWithPage, reqRecord: WARCRecord, parser: WARCParser) {
+  indexReqResponse(
+    record: WARCRecordWithPage,
+    reqRecord: WARCRecord,
+    parser: WARCParser,
+  ) {
     if (record._isPage) {
       return super.indexReqResponse(record, reqRecord, parser);
     }
@@ -66,7 +82,7 @@ class CDXFromWARCLoader extends WARCLoader
     }
 
     if (!this.cdxindexer) {
-      this.cdxindexer = new CDXIndexer({noSurt: true});
+      this.cdxindexer = new CDXIndexer({ noSurt: true });
     }
 
     const cdx = this.cdxindexer.indexRecordPair(record, reqRecord, parser, "");
@@ -97,7 +113,7 @@ class CDXFromWARCLoader extends WARCLoader
       ...this.sourceExtra,
       path: cdx.filename,
       start: Number(cdx.offset),
-      length: Number(cdx.length)
+      length: Number(cdx.length),
     };
   }
 
@@ -121,7 +137,16 @@ class CDXFromWARCLoader extends WARCLoader
       digest = this.shaPrefix + digest;
     }
 
-    const entry : ResourceEntry = {url, ts, status, digest, recordDigest, mime, loaded: false, source};
+    const entry: ResourceEntry = {
+      url,
+      ts,
+      status,
+      digest,
+      recordDigest,
+      mime,
+      loaded: false,
+      source,
+    };
 
     if (cdx.method) {
       if (cdx.method === "HEAD" || cdx.method === "OPTIONS") {
@@ -136,7 +161,11 @@ class CDXFromWARCLoader extends WARCLoader
 
     // url with post query appended
     if (cdx.method && cdx.method !== "GET") {
-      entry.url = appendRequestQuery(cdx.url, cdx.requestBody || "", cdx.method);
+      entry.url = appendRequestQuery(
+        cdx.url,
+        cdx.requestBody || "",
+        cdx.method,
+      );
     }
 
     this.addResource(entry);
@@ -144,8 +173,7 @@ class CDXFromWARCLoader extends WARCLoader
 }
 
 // ===========================================================================
-class CDXLoader extends CDXFromWARCLoader
-{
+class CDXLoader extends CDXFromWARCLoader {
   async load(db: any, progressUpdate?: any, totalSize?: number) {
     this.db = db;
 
@@ -186,7 +214,12 @@ class CDXLoader extends CDXFromWARCLoader
         console.warn(`URL missing, using urlkey ${urlkey}`);
       }
       if (progressUpdate && totalSize && this.isBatchFull()) {
-        progressUpdate(Math.round((numRead / totalSize) * 100), null, numRead, totalSize);
+        progressUpdate(
+          Math.round((numRead / totalSize) * 100),
+          null,
+          numRead,
+          totalSize,
+        );
       }
       this.addCdx(cdx);
     }
@@ -199,6 +232,4 @@ class CDXLoader extends CDXFromWARCLoader
   }
 }
 
-
 export { CDXLoader, CDXFromWARCLoader };
-
