@@ -9,7 +9,6 @@ import { API } from "./api";
 import WOMBAT from "./wombat/wombat.txt";
 import WOMBAT_WORKERS from "./wombat/wombatWorkers.txt";
 //import WOMBAT_WORKERS from "@webrecorder/wombat/src/wombatWorkers.txt";
-//const WOMBAT_WORKERS = "";
 
 import { ArchiveRequest } from "./request";
 
