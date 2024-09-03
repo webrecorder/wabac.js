@@ -304,10 +304,10 @@ export class ZipRangeReader
 
     const body = await this.loader.getRange(offset, length, true, signal) as ReadableStream;
 
-    let streamReader = body.getReader();
+    let streamReader : ReadableStreamDefaultReader = body.getReader();
     let hasher : HashingAsyncIterReader | null = null;
 
-    const wrapHasher = (reader) : AsyncIterReader => {
+    const wrapHasher = (reader: AsyncIterReader) : AsyncIterReader => {
       if (computeHash && this.enableHashing) {
         hasher = new HashingAsyncIterReader(reader);
         return hasher;
@@ -320,16 +320,15 @@ export class ZipRangeReader
     // if not unzip, deflate if needed only
     if (!unzip) {
       reader = new AsyncIterReader(streamReader, entry.deflate ? "deflate" : null);
-      reader = wrapHasher(streamReader);
     // if unzip and not deflated, reuse AsyncIterReader for auto unzipping
     } else if (!entry.deflate) {
-      reader = wrapHasher(streamReader);
-      reader = new AsyncIterReader(reader);
+      reader = new AsyncIterReader(streamReader);
     } else {
       // need to deflate, than unzip again
       reader = new AsyncIterReader(new AsyncIterReader(streamReader, "deflate"));
-      reader = wrapHasher(streamReader);
     }
+
+    reader = wrapHasher(reader);
 
     return {reader, hasher};
   }
