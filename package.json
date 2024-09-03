@@ -69,7 +69,8 @@
     "start-dev": "webpack-dev-server --mode development",
     "start-live-proxy": "cp dist/sw.js ./examples/live-proxy/sw.js && cd ./examples/live-proxy && ./fetch-adblock.sh && http-server -p 10001",
     "test": "c8 ava",
-    "lint": "eslint ./src/ ./test/ webpack.config.cjs"
+    "lint": "eslint ./",
+    "format": "prettier --write ./"
   },
   "ava": {
     "concurrency": 1,
