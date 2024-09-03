@@ -600,7 +600,7 @@ export class ArchiveDB implements DBStore {
     return false;
   }
 
-  async lookupUrl(url: string, ts: number, opts : Record<string, any> = {}) : Promise<ResourceEntry | null> {
+  async lookupUrl(url: string, ts?: number, opts : Record<string, any> = {}) : Promise<ResourceEntry | null> {
     const tx = this.db!.transaction("resources", "readonly");
 
     if (ts) {

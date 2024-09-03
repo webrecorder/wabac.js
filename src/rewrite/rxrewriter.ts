@@ -35,7 +35,7 @@ export class RxRewriter
 
   doReplace(match: string, params: any[], opts: Record<string, any>) {
     const offset = params[params.length - 2];
-    const string = params[params.length - 1];
+    const str = params[params.length - 1];
 
     for (let i = 0; i < this.rules!.length; i++) {
       const curr = params[i];
@@ -43,7 +43,7 @@ export class RxRewriter
         continue;
       }
 
-      const result = this.rules![i][1].call(this, curr, opts, offset, string);
+      const result = this.rules![i][1].call(this, curr, opts, offset, str);
       if (result) {
         return result;
       }

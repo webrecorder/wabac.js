@@ -15,7 +15,7 @@ const rewriteCSS = test.macro({
 
     t.is(actual, expected);
 
-    const {headers} = await doRewrite({returnHeaders: true, ...opts});
+    const {headers} = await doRewrite(opts);
 
     t.is(headers.get("content-type"), expectedContentType);
   },

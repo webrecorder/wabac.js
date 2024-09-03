@@ -1,5 +1,3 @@
-"use strict";
-
 import test, {ExecutionContext} from "ava";
 import { FuzzyMatcher } from "../src/fuzzymatcher.js";
 

@@ -8,7 +8,7 @@ const rewriteHeaders = test.macro({
   async exec(t, headerName: string, value: string, expected: string, isAjax : boolean = false) {
     const headersDict : Record<string, string> = {};
     headersDict[headerName] = value;
-    const { headers } = await doRewrite({content: "", headersDict, returnHeaders: true, isAjax, contentType: "text/html"});
+    const { headers } = await doRewrite({content: "", headersDict, isAjax, contentType: "text/html"});
   
     t.is(headers.get(headerName), expected);
   },

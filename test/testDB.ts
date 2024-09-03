@@ -11,7 +11,7 @@ import { ArchiveDB } from "../src/archivedb.js";
 import crypto from "node:crypto";
 
 if (!global.crypto) {
-  global.crypto = crypto;
+  (global as any).crypto = crypto;
 }
 
 //import { createHash } from "crypto";
@@ -60,15 +60,17 @@ const URL_DATA = [
     "payload": new Uint8Array([1, 2, 3]),
     "headers": {"a": "b"},
     "mime": "",
+    "digest": "",
   },
 
   {
     "url": "https://example.com/script.js",
     "ts": ts("202003040507"),
     "pageId": "01",
-    "payload": "text",
+    "payload": new TextEncoder().encode("text"),
     "headers": {"a": "b"},
     "mime": "",
+    "digest": "",
   },
 
   {
@@ -78,6 +80,7 @@ const URL_DATA = [
     "payload": new Uint8Array([0, 1, 0, 1]),
     "headers": {"a": "b"},
     "mime": "",
+    "digest": "",
   },
 
   {
@@ -86,6 +89,7 @@ const URL_DATA = [
     "pageId": "03",
     "payload": new Uint8Array([4, 5, 6]),
     "mime": "",
+    "digest": "",
   },
 
   {
@@ -94,6 +98,7 @@ const URL_DATA = [
     "pageId": "02",
     "payload": new Uint8Array([1, 2, 3]),
     "mime": "",
+    "digest": "",
   },
 
 
@@ -113,7 +118,7 @@ test("init", async t => {
 
 test("Add Pages", async t => {
   for (const page of PAGES) {
-    const pageId = await db.addPage(page);
+    const pageId = await db.addPage(page, null);
 
     t.is(pageId, page.id);
   }
@@ -182,7 +187,7 @@ test("Lookup Url Closest Ts After", async t => {
 
 
 test("Lookup Not Found Url", async t => {
-  t.not(await db.lookupUrl("https://example.com/foo", ts("2015")));
+  t.falsy(await db.lookupUrl("https://example.com/foo", ts("2015")));
 });
 
 
@@ -195,7 +200,7 @@ test("Search by pageId", async t => {
 
 
 test("Delete with ref counts", async t => {
-  const toDict= (results) => {
+  const toDict = (results) => {
     const obj = {};
     for (const res of results) {
       obj[res.digest] = res.count;
@@ -203,7 +208,7 @@ test("Delete with ref counts", async t => {
     return obj;
   };
 
-  const allDict = toDict(await db.db.getAll("digestRef"));
+  const allDict = toDict(await db.db!.getAll("digestRef"));
 
   t.is(allDict[URL_DATA[0].digest], 2);
   t.is(allDict[URL_DATA[1].digest], 1);
@@ -218,7 +223,7 @@ test("Delete with ref counts", async t => {
     []
   );
 
-  const delDict = toDict(await db.db.getAll("digestRef"));
+  const delDict = toDict(await db.db!.getAll("digestRef"));
   t.is(delDict[URL_DATA[0].digest], 1);
   t.is(delDict[URL_DATA[1].digest], undefined);
   t.is(delDict[URL_DATA[2].digest], 1);
@@ -230,7 +235,7 @@ test("Delete with ref counts", async t => {
   await db.deletePageResources("04");
 
   t.deepEqual(
-    toDict(await db.db.getAll("digestRef")),
+    toDict(await db.db!.getAll("digestRef")),
     {}
   );
 

@@ -4,28 +4,36 @@ import { doRewrite } from "./helpers/index.js";
 
 
 // ===========================================================================
-async function rewriteJSONP(t, content, expected, url = "http://example.com/?callback=jQuery_ABC", useBaseRules = true) {
-  const actual = await doRewrite({content, contentType: "application/json", url, useBaseRules});
+const rewriteJSONP = test.macro({
+  async exec(t, content: string, expected: string, url: string = "http://example.com/?callback=jQuery_ABC", useBaseRules: boolean = true) {
+    const {text: actual} = await doRewrite({content, contentType: "application/json", url, useBaseRules});
 
-  if (expected) {
-    t.is(actual, expected);
-  } else {
-    t.is(actual, content);
+    if (expected) {
+      t.is(actual, expected);
+    } else {
+      t.is(actual, content);
+    }
+  },
+
+  title(providedTitle = "JSONP", input, expected) {
+    return `${providedTitle}: ${input} ${expected ? expected : "UNCHANGED"}`.trim();
   }
-}
-
-rewriteJSONP.title = (providedTitle = "JSONP", input, expected) => `${providedTitle}: ${input} => ${expected ? expected : "UNCHANGED"}`.trim();
+});
 
 
 // ===========================================================================
-async function rewriteJSONPMissingCB(t, content, useBaseRules = true) {
-  const url = "http://example.com/";
-  const actual = await doRewrite({content, contentType: "application/json", url, useBaseRules});
+const rewriteJSONPMissingCB = test.macro({
+  async exec(t, content: string, useBaseRules: boolean = true) {
+    const url = "http://example.com/";
+    const {text: actual} = await doRewrite({content, contentType: "application/json", url, useBaseRules});
 
-  t.is(actual, content);
-}
+    t.is(actual, content);
+  },
 
-rewriteJSONPMissingCB.title = (providedTitle = "JSONP Missing Callback", input, expected) => `${providedTitle}: ${input} => ${expected}`.trim();
+  title(providedTitle = "JSONP Missing Callback", input, expected) {
+    return `${providedTitle}: ${input} => ${expected}`.trim();
+  }
+});
 
 
 
@@ -81,24 +89,24 @@ test(rewriteJSONPMissingCB,
 
 // Invalid JSONP Tests, input unchanged
 test(rewriteJSONP,
-  " /* comment jQuery_1234({\"foo\": \"bar\", \"some\": \"data\"})");
+  " /* comment jQuery_1234({\"foo\": \"bar\", \"some\": \"data\"})", "");
 
 
 test(rewriteJSONP,
-  "function jQuery_1234({\"foo\": \"bar\", \"some\": \"data\"})");
+  "function jQuery_1234({\"foo\": \"bar\", \"some\": \"data\"})", "");
 
 
 test(rewriteJSONP,
-  "var foo = ({\"foo\": \"bar\", \"some\": \"data\"})");
+  "var foo = ({\"foo\": \"bar\", \"some\": \"data\"})", "");
 
 
 test(rewriteJSONP,
-  " abc /* some comment */ jQuery_1234({\"foo\": \"bar\", \"some\": \"data\"})");
+  " abc /* some comment */ jQuery_1234({\"foo\": \"bar\", \"some\": \"data\"})", "");
 
 
 test(rewriteJSONP,
   `// some comment
  blah = 4;
- jQuery_1234({"foo": "bar", "some": "data"})`);
+ jQuery_1234({"foo": "bar", "some": "data"})`, "");
 
 

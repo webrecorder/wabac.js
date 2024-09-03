@@ -13,7 +13,7 @@ xmlOpts.format = true;
 test("DASH", async t => {
   const content = await fs.readFile(new URL("./data/sample_dash.mpd", import.meta.url), "utf-8");
 
-  const result = await doRewrite({content, contentType: "application/dash+xml", url: "http://example.com/path/manifest.mpd", isLive: true});
+  const {text: result} = await doRewrite({content, contentType: "application/dash+xml", url: "http://example.com/path/manifest.mpd", isLive: true});
 
   const expected = `
 <MPD xmlns="urn:mpeg:dash:schema:mpd:2011" mediaPresentationDuration="PT0H3M1.63S" minBufferTime="PT1.5S" profiles="urn:mpeg:dash:profile:isoff-on-demand:2011" type="static">
@@ -43,7 +43,7 @@ test("DASH", async t => {
   t.is(result, "<?xml version='1.0' encoding='UTF-8'?>" + expected);
 
   // with <?xml line already added, don't add duplicate
-  const result_with_xml = await doRewrite({content: "<?xml version='1.0' encoding='UTF-8'?>\n" + content, contentType: "application/dash+xml", url: "http://example.com/path/manifest.mpd", isLive: true});
+  const {text: result_with_xml} = await doRewrite({content: "<?xml version='1.0' encoding='UTF-8'?>\n" + content, contentType: "application/dash+xml", url: "http://example.com/path/manifest.mpd", isLive: true});
 
   // line not re-added, but not with double quotes
   t.is(result_with_xml, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + expected);
@@ -95,7 +95,7 @@ test("HLS DEFAULT MAX", async t => {
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
 
-  const result = await doRewrite({content, contentType, url, isLive: true, isAjax: true});
+  const {text: result} = await doRewrite({content, contentType, url, isLive: true, isAjax: true});
 
 
   const expected = `\
@@ -113,7 +113,7 @@ test("HLS DEFAULT MAX - NATIVE STREAMING", async t => {
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
 
-  const result = await doRewrite({content, contentType, url, isLive: true});
+  const {text: result} = await doRewrite({content, contentType, url, isLive: true});
 
 
   const expected = `\
@@ -133,7 +133,7 @@ test("HLS DEFAULT OLD REPLAY MAX", async t => {
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
 
-  const result = await doRewrite({content, contentType, url, isLive: false, isAjax: true});
+  const {text: result} = await doRewrite({content, contentType, url, isLive: false, isAjax: true});
 
   const expected = `\
 #EXTM3U
@@ -172,7 +172,7 @@ const test4 = ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""
 </html>
 `;
 
-  const result = await doRewrite({content, contentType: "text/html", url: "https://youtube.com/example.html"});
+  const {text: result} = await doRewrite({content, contentType: "text/html", url: "https://youtube.com/example.html"});
   t.is(result, expected, result);
 });
 
@@ -191,7 +191,7 @@ const test1 = {"__nodash__url": "foo", {"some__nodash__": "a", "data__nodash__fo
 </script>
 `;
 
-  const result = await doRewrite({content, contentType: "text/html", url: "https://www.facebook.com/data/example.html"});
+  const {text: result} = await doRewrite({content, contentType: "text/html", url: "https://www.facebook.com/data/example.html"});
   t.is(result, expected);
 });
 
@@ -234,7 +234,7 @@ test("Twitter rewrite json", async t => {
   const extraOpts = {rewritten: true};
 
   for (const api of ["https://api.twitter.com/2/", "https://twitter.com/i/api/graphql/"]) {
-    const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: api + "some/endpoint", extraOpts});
+    const {text: result} = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: api + "some/endpoint", extraOpts});
     t.deepEqual(JSON.parse(result), expected);
   }
 });
@@ -276,7 +276,7 @@ test("Twitter rewrite embedded json", async t => {
   const extraOpts = {rewritten: true};
 
   for (const api of ["https://cdn.syndication.twimg.com/tweet-result?some=value"]) {
-    const result = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: api + "some/endpoint", extraOpts});
+    const {text: result} = await doRewrite({content: JSON.stringify(content), contentType: "application/json", url: api + "some/endpoint", extraOpts});
     t.deepEqual(JSON.parse(result), expected);
   }
 });

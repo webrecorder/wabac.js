@@ -4,23 +4,28 @@ import { doRewrite } from "./helpers/index.js";
 
 
 // ===========================================================================
-async function rewriteHtml(t, content, expected, {useBaseRules = false, url = "", contentType="text/html; charset=UTF-8", headInsertText=null, encoding="utf8"} = {}) {
-  const rwArgs = {content, contentType, useBaseRules, encoding};
+const rewriteHtml = test.macro({
+  async exec(t, content: string, expected: string, {useBaseRules = false, url = "", contentType="text/html; charset=UTF-8", headInsertText="", encoding="utf8"} = {}) {
+    const rwArgs : { content: string, contentType: string, useBaseRules: boolean, encoding: string,
+                     url?: string, headInsertFunc?: any} = {content, contentType, useBaseRules, encoding};
 
-  if (url) {
-    rwArgs.url = url;
+    if (url) {
+      rwArgs.url = url;
+    }
+
+    if (headInsertText) {
+      rwArgs.headInsertFunc = () => { return headInsertText; };
+    }
+
+    const {text: actual} = await doRewrite(rwArgs);
+
+    t.is(actual, expected);
+  },
+
+  title(providedTitle = "HTML", input, expected) {
+    return `${providedTitle}: ${input} => ${expected}`.trim();
   }
-
-  if (headInsertText) {
-    rwArgs.headInsertFunc = () => { return headInsertText; };
-  }
-
-  const actual = await doRewrite(rwArgs);
-
-  t.is(actual, expected);
-}
-
-rewriteHtml.title = (providedTitle = "HTML", input, expected) => `${providedTitle}: ${input} => ${expected}`.trim();
+});
 
 
 // ===========================================================================

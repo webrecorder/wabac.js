@@ -4,52 +4,64 @@ import { doRewrite } from "./helpers/index.js";
 
 
 // ===========================================================================
-async function rewriteJS(t, content, expected, useBaseRules = false, url = "https://example.com/some/path/index.html") {
-  const actual = await doRewrite({content, contentType: "application/javascript", useBaseRules, url});
+const rewriteJS = test.macro({
+  async exec(t, content: string, expected: string, useBaseRules: boolean = false, url: string = "https://example.com/some/path/index.html") : Promise<void> {
+    const {text: actual} = await doRewrite({content, contentType: "application/javascript", useBaseRules, url});
 
-  if (!expected) {
-    expected = content;
+    if (!expected) {
+      expected = content;
+    }
+
+    t.is(actual, expected);
+  },
+
+  title(providedTitle = "JS", input: string/*, expected*/) {
+    return `${providedTitle}: ${input.replace(/\n/g, "\\n")}`.trim();
   }
-
-  t.is(actual, expected);
-}
-
-rewriteJS.title = (providedTitle = "JS", input/*, expected*/) => `${providedTitle}: ${input.replace(/\n/g, "\\n")}`.trim();
+});
 
 
 // ===========================================================================
-async function rewriteJSWrapped(t, content, expected, useBaseRules = false) {
-  const actual = await doRewrite({content, contentType: "application/javascript", useBaseRules});
+const rewriteJSWrapped = test.macro({
+  async exec(t, content: string, expected: string, useBaseRules: boolean = false) {
+    const {text: actual} = await doRewrite({content, contentType: "application/javascript", useBaseRules});
 
-  if (!expected) {
-    expected = content;
+    if (!expected) {
+      expected = content;
+    }
+
+    t.is(actual, wrapScript(expected));
+  },
+
+  title(providedTitle = "JS Wrapped Globals", input: string/*, expected*/) {
+    return `${providedTitle}: ${input.replace(/\n/g, "\\n")}`.trim();
   }
-
-  t.is(actual, wrapScript(expected));
-}
-
-rewriteJSWrapped.title = (providedTitle = "JS Wrapped Globals", input/*, expected*/) => `${providedTitle}: ${input.replace(/\n/g, "\\n")}`.trim();
+});
 
 
 
 
 // ===========================================================================
-async function rewriteJSImport(t, content, expected, useBaseRules = false) {
-  const actual = await doRewrite({content, contentType: "application/javascript", useBaseRules});
+const rewriteJSImport = test.macro({
+  async exec(t, content: string, expected: string, useBaseRules: boolean = false) {
+    const {text: actual} = await doRewrite({content, contentType: "application/javascript", useBaseRules});
 
-  if (!expected) {
-    expected = content;
+    if (!expected) {
+      expected = content;
+    }
+
+    t.is(actual, wrapImport(expected));
+  },
+
+  title(providedTitle = "JS Module", input: string/*, expected*/) {
+    return `${providedTitle}: ${input.replace(/\n/g, "\\n")}`.trim();
   }
-
-  t.is(actual, wrapImport(expected));
-}
-
-rewriteJSImport.title = (providedTitle = "JS Module", input/*, expected*/) => `${providedTitle}: ${input.replace(/\n/g, "\\n")}`.trim();
+});
 
 
 
 
-function wrapScript(text) {
+function wrapScript(text: string) {
   return `\
 var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
 if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
@@ -267,83 +279,83 @@ B = await ____wb_rewrite_import__(import.meta.url, somefile);
 // Not Rewritten
 test(rewriteJS, `\
 (function() { return "export class foo"; })
-`);
+`, "");
 
 
-test(rewriteJS, "return this.abc");
+test(rewriteJS, "return this.abc", "");
 
-test(rewriteJS, "return this object");
+test(rewriteJS, "return this object", "");
 
-test(rewriteJS, "a = 'some, this object'");
+test(rewriteJS, "a = 'some, this object'", "");
 
-test(rewriteJS, "{foo: bar, this: other}");
+test(rewriteJS, "{foo: bar, this: other}", "");
 
-test(rewriteJS, "this.$location = http://example.com/");
+test(rewriteJS, "this.$location = http://example.com/", "");
 
-test(rewriteJS, "this.  $location = http://example.com/");
+test(rewriteJS, "this.  $location = http://example.com/", "");
 
-test(rewriteJS, "this. _location = http://example.com/");
+test(rewriteJS, "this. _location = http://example.com/", "");
 
-test(rewriteJS, "this. alocation = http://example.com/");
+test(rewriteJS, "this. alocation = http://example.com/", "");
 
-test(rewriteJS, "this.location = http://example.com/");
+test(rewriteJS, "this.location = http://example.com/", "");
 
-test(rewriteJS, ",eval(a)");
+test(rewriteJS, ",eval(a)", "");
 
-test(rewriteJS, "this.$eval(a)");
+test(rewriteJS, "this.$eval(a)", "");
 
-test(rewriteJS, "x = $eval; x(a);");
+test(rewriteJS, "x = $eval; x(a);", "");
 
-test(rewriteJSWrapped, "window.eval(a)");
+test(rewriteJSWrapped, "window.eval(a)", "");
 
-test(rewriteJSWrapped, "x = window.eval; x(a);");
+test(rewriteJSWrapped, "x = window.eval; x(a);", "");
 
-test(rewriteJSWrapped, "this. location = 'http://example.com/'");
+test(rewriteJSWrapped, "this. location = 'http://example.com/'", "");
 
-test(rewriteJSWrapped, "abc-location = http://example.com/");
+test(rewriteJSWrapped, "abc-location = http://example.com/", "");
 
-test(rewriteJSWrapped, "func(location = 0)");
+test(rewriteJSWrapped, "func(location = 0)", "");
 
-test(rewriteJS, "obj = { eval : 1 }");
+test(rewriteJS, "obj = { eval : 1 }", "");
 
-test(rewriteJS, "x = obj.eval");
+test(rewriteJS, "x = obj.eval", "");
 
-test(rewriteJS, "x = obj.eval(a)");
+test(rewriteJS, "x = obj.eval(a)", "");
 
-test(rewriteJS, "x = obj._eval(a)");
+test(rewriteJS, "x = obj._eval(a)", "");
 
-test(rewriteJS, "x = obj.$eval(a)");
+test(rewriteJS, "x = obj.$eval(a)", "");
 
-test(rewriteJSWrapped, "if (self.foo) { console.log('blah') }");
+test(rewriteJSWrapped, "if (self.foo) { console.log('blah') }", "");
 
-test(rewriteJS, "if (a.self.foo) { console.log('blah') }");
+test(rewriteJS, "if (a.self.foo) { console.log('blah') }", "");
 
-test(rewriteJSWrapped, "window.x = 5");
+test(rewriteJSWrapped, "window.x = 5", "");
 
-test(rewriteJS, "a.window.x = 5");
+test(rewriteJS, "a.window.x = 5", "");
 
-test(rewriteJS,  "  postMessage({'a': 'b'})");
+test(rewriteJS,  "  postMessage({'a': 'b'})", "");
 
-test(rewriteJS, "simport(5);");
+test(rewriteJS, "simport(5);", "");
 
-test(rewriteJS, "a.import(5);");
+test(rewriteJS, "a.import(5);", "");
 
-test(rewriteJS, "$import(5);");
+test(rewriteJS, "$import(5);", "");
 
-test(rewriteJS, " import() {");
+test(rewriteJS, " import() {", "");
 
-test(rewriteJS, " import(a, b, c) {");
+test(rewriteJS, " import(a, b, c) {", "");
 
-test(rewriteJS, "async import(val) { ... }");
+test(rewriteJS, "async import(val) { ... }", "");
 
 test(rewriteJSImport, "\
-import\"import.js\";import{A, B, C} from\"test.js\";(function() => { frames[0].href = \"/abc\"; })");
+import\"import.js\";import{A, B, C} from\"test.js\";(function() => { frames[0].href = \"/abc\"; })", "");
 
 test(rewriteJS, `
 function blah() {
   const text = "text: import a from B.js";
 }
-`);
+`, "");
 
 test(rewriteJS, `
 function blah() {
@@ -352,15 +364,15 @@ import a from "https://example.com/B.js"
 \`;
 }
 
-`);
+`, "");
 
 test(rewriteJSImport, `\
 a = location
 
 export{ a, $ as b };
-`);
+`, "");
 
 // no wrap, no global injection
-test(rewriteJS, "let a = 7; var b = 5; const foo = 4;\n\n");
+test(rewriteJS, "let a = 7; var b = 5; const foo = 4;\n\n", "");
 
 
