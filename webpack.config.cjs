@@ -54,7 +54,7 @@ module.exports = {
           onlyCompileBundledFiles: false,
         },
       }, {
-        test: /(dist\/wombat.js|src\/wombatWorkers.js)$/i,
+        test: /(wombat.txt|wombatWorkers.txt)$/i,
         use: "raw-loader",
       }
     ]
