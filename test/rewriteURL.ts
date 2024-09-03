@@ -1,4 +1,4 @@
-import test, { ExecutionContext } from "ava";
+import test, { type ExecutionContext } from "ava";
 import { Rewriter } from "../src/rewrite/index";
 
 const rewriteUrl = test.macro({

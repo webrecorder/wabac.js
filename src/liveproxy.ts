@@ -1,6 +1,6 @@
-import { ArchiveRequest } from "./request";
+import { type ArchiveRequest } from "./request";
 import { ArchiveResponse } from "./response";
-import { DBStore } from "./types";
+import { type DBStore } from "./types";
 
 // ===========================================================================
 export class LiveProxy implements DBStore {

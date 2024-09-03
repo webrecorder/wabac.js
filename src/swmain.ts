@@ -1,4 +1,4 @@
-import { Collection, Prefixes } from "./collection";
+import { Collection, type Prefixes } from "./collection";
 import { WorkerLoader } from "./loaders";
 
 import { notFound, isAjaxRequest } from "./utils";
@@ -44,7 +44,7 @@ export class SWCollections extends WorkerLoader {
     return new Collection(opts, this.prefixes, this.defaultConfig);
   }
 
-  loadAll(dbColl?: any): Promise<boolean> {
+  async loadAll(dbColl?: any): Promise<boolean> {
     this.colls = {};
     this.inited = super.loadAll(dbColl);
     return this.inited;
@@ -82,9 +82,7 @@ export class SWCollections extends WorkerLoader {
       if (
         this._fileHandles &&
         keepFileHandle &&
-        this.colls[name].config &&
-        this.colls[name].config.extra &&
-        this.colls[name].config.extra.fileHandle
+        this.colls[name].config.extra?.fileHandle
       ) {
         this._fileHandles[this.colls[name].config.sourceUrl] =
           this.colls[name].config.extra.fileHandle;
@@ -345,14 +343,14 @@ export class SWReplay {
     }
   }
 
-  staticPathProxy(url: string, request: Request) {
+  async staticPathProxy(url: string, request: Request) {
     url = url.slice((this.staticPrefix + "proxy/").length);
     url = new URL(url, self.location.href).href;
     request = new Request(url);
     return this.defaultFetch(request);
   }
 
-  defaultFetch(request: Request) {
+  async defaultFetch(request: Request) {
     const opts: RequestInit = {};
     if (request.cache === "only-if-cached" && request.mode !== "same-origin") {
       opts.cache = "default";

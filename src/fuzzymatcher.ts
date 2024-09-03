@@ -2,7 +2,7 @@ import levenshtein from "js-levenshtein";
 import { jsonToQueryParams } from "warcio";
 
 type FuzzyRule = {
-  match: RegExp;
+  match?: RegExp;
   fuzzyCanonReplace?: string;
   replace?: string;
   args?: any[][];
@@ -187,15 +187,14 @@ export class FuzzyMatcher {
 
     let fuzzyCanonUrl = reqUrl;
 
-    if (rule && rule.fuzzyCanonReplace) {
+    if (rule?.fuzzyCanonReplace) {
       fuzzyCanonUrl = reqUrl.replace(rule.match, rule.fuzzyCanonReplace);
     }
 
-    const split = (rule && rule.split) || "?";
-    const inx =
-      rule && rule.splitLast
-        ? reqUrl.lastIndexOf(split)
-        : reqUrl.indexOf(split);
+    const split = rule?.split || "?";
+    const inx = rule?.splitLast
+      ? reqUrl.lastIndexOf(split)
+      : reqUrl.indexOf(split);
     const prefix = inx > 0 ? reqUrl.slice(0, inx + split.length) : reqUrl;
 
     return { prefix, rule, fuzzyCanonUrl };
@@ -210,7 +209,7 @@ export class FuzzyMatcher {
 
     const urls: string[] = [];
 
-    if (rule && rule.args) {
+    if (rule?.args) {
       const fuzzUrl = new URL(fuzzyCanonUrl);
       const origUrl = new URL(reqUrl);
 
@@ -231,16 +230,15 @@ export class FuzzyMatcher {
 
   fuzzyCompareUrls(
     reqUrl: string,
-    results: FuzzyResEntry[],
+    results: FuzzyResEntry[] | undefined,
     matchedRule?: FuzzyRule,
   ) {
-    if (!results || !results.length) {
+    if (!results?.length) {
       return null;
     }
 
     if (
-      matchedRule &&
-      matchedRule.replace !== undefined &&
+      matchedRule?.replace !== undefined &&
       matchedRule.match !== undefined &&
       // if limit exists, only apply if < limit results
       (!matchedRule.maxResults || results.length <= matchedRule.maxResults)
@@ -287,9 +285,7 @@ export class FuzzyMatcher {
     }
 
     const reqArgs: Set<string> | null =
-      rule && rule.args && !rule.fuzzyArgs
-        ? new Set<string>(rule.args[0])
-        : null;
+      rule?.args && !rule.fuzzyArgs ? new Set<string>(rule.args[0]) : null;
 
     let bestTotal = 0;
     let bestResult = null;
@@ -311,12 +307,7 @@ export class FuzzyMatcher {
       }
 
       const foundQuery = new URLSearchParams(url.search);
-      let total = this.getMatch(
-        reqQuery,
-        foundQuery,
-        reqArgs,
-        rule && rule.fuzzySet,
-      );
+      let total = this.getMatch(reqQuery, foundQuery, reqArgs, rule?.fuzzySet);
       total += this.getMatch(foundQuery, reqQuery, reqArgs);
       total /= 2.0;
 
@@ -360,7 +351,7 @@ export class FuzzyMatcher {
 
       let weight;
 
-      if (key[0] === "_") {
+      if (key.startsWith("_")) {
         weight = 0.1;
       } else {
         weight = 10.0;
@@ -424,7 +415,12 @@ export class FuzzyMatcher {
     value: string,
     foundValue: string,
   ) {
-    if (!value || !foundValue || value[0] !== "/" || foundValue[0] !== "/") {
+    if (
+      !value ||
+      !foundValue ||
+      !value.startsWith("/") ||
+      !foundValue.startsWith("/")
+    ) {
       return;
     }
 

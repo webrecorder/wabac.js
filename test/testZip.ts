@@ -1,6 +1,6 @@
 //import { fetch } from "node:fetch";
 
-import anyTest, { TestFn, ExecutionContext } from "ava";
+import anyTest, { type TestFn, ExecutionContext } from "ava";
 import http from "http";
 
 import listen from "test-listen";

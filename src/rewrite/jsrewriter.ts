@@ -1,4 +1,4 @@
-import { Rule, RxRewriter } from "./rxrewriter";
+import { type Rule, RxRewriter } from "./rxrewriter";
 import * as acorn from "acorn";
 
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
@@ -202,7 +202,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 {
 `;
 
-    for (let decl of localDecls) {
+    for (const decl of localDecls) {
       buffer += `let ${decl} = ${assignFunc}("${decl}");\n`;
     }
     buffer += "let arguments;\n";

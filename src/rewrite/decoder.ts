@@ -3,7 +3,7 @@ import brotliDecode from "brotli/decompress.js";
 import pako from "pako";
 
 import { AsyncIterReader } from "warcio";
-import { ArchiveResponse } from "../response";
+import { type ArchiveResponse } from "../response";
 
 // ===========================================================================
 async function decodeResponse(
@@ -112,7 +112,7 @@ function dechunkArrayBuffer(data: Uint8Array) {
 
     i += 2;
 
-    var chunkLength = parseInt(
+    const chunkLength = parseInt(
       decoder.decode(data.subarray(readOffset, i)),
       16,
     );

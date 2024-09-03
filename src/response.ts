@@ -50,7 +50,7 @@ class ArchiveResponse {
     const statusText =
       response.headers.get("x-redirect-statusText") || response.statusText;
 
-    let headers = new Headers(response.headers);
+    const headers = new Headers(response.headers);
 
     let origLoc = headers.get("x-orig-location");
     if (origLoc) {
@@ -164,7 +164,7 @@ class ArchiveResponse {
   }
 
   async getText(isUTF8 = false): Promise<{ bomFound: boolean; text: string }> {
-    let buff = await this.getBuffer();
+    const buff = await this.getBuffer();
     if (typeof buff === "string") {
       return { bomFound: false, text: buff };
     }

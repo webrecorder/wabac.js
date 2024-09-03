@@ -253,7 +253,7 @@ function tsToDate(ts) {
   return new Date(datestr);
 }
 
-function initSW(relUrl, path) {
+async function initSW(relUrl, path) {
   const loc = window.location;
 
   if (!navigator.serviceWorker) {

@@ -1,6 +1,6 @@
-import { BaseLoader } from "../blockloaders";
+import { type BaseLoader } from "../blockloaders";
 import {
-  LoadWACZEntry,
+  type LoadWACZEntry,
   ZipBlockLoader,
   ZipRangeReader,
 } from "./ziprangereader";
@@ -19,11 +19,11 @@ export const MULTI_WACZ = "multi-wacz";
 
 // ==========================================================================
 export interface WACZLoadSource {
-  getLoadPath(path: string): string;
+  getLoadPath: (path: string) => string;
 
-  getName(name: string): string;
+  getName: (name: string) => string;
 
-  createLoader(opts: any): Promise<BaseLoader>;
+  createLoader: (opts: any) => Promise<BaseLoader>;
 }
 
 // ==========================================================================

@@ -1,5 +1,5 @@
-import { ArchiveRequest } from "./request";
-import { ArchiveResponse } from "./response";
+import { type ArchiveRequest } from "./request";
+import { type ArchiveResponse } from "./response";
 
 export type ResourceEntry = {
   url: string;
@@ -61,20 +61,20 @@ export type ResAPIResponse = {
 };
 
 export interface DBStore {
-  getResource(
+  getResource: (
     request: ArchiveRequest,
     prefix: string,
     event?: FetchEvent,
     opts?: Record<string, any>,
-  ): Promise<ArchiveResponse | Response | null>;
+  ) => Promise<ArchiveResponse | Response | null>;
 
-  getAllPages(): Promise<any[]>;
+  getAllPages: () => Promise<any[]>;
 }
 
 export interface ArchiveLoader {
-  load(
+  load: (
     db: DBStore,
     progressUpdateCallback?: any,
     totalLength?: number,
-  ): Promise<void>;
+  ) => Promise<void>;
 }

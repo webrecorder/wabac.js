@@ -1,8 +1,8 @@
 import { AsyncIterReader, concatChunks } from "warcio";
 import { createSHA256 } from "hash-wasm";
 import { BaseLoader, getReadableStreamFromIter } from "../blockloaders";
-import { IHasher } from "hash-wasm/dist/lib/WASMInterface.js";
-import { GetHash } from "../remotearchivedb";
+import { type IHasher } from "hash-wasm/dist/lib/WASMInterface.js";
+import { type GetHash } from "../remotearchivedb";
 
 // ===========================================================================
 const MAX_INT32 = 0xffffffff;
@@ -366,7 +366,7 @@ export class ZipRangeReader {
       signal,
     )) as ReadableStream;
 
-    let streamReader: ReadableStreamDefaultReader = body.getReader();
+    const streamReader: ReadableStreamDefaultReader = body.getReader();
     let hasher: HashingAsyncIterReader | null = null;
 
     const wrapHasher = (reader: AsyncIterReader): AsyncIterReader => {
@@ -422,7 +422,7 @@ export class ZipRangeReader {
 export class ZipBlockLoader extends BaseLoader {
   zipreader: ZipRangeReader;
   filename: string;
-  size: number = 0;
+  size = 0;
 
   constructor(zipreader: ZipRangeReader, filename: string) {
     super(true);

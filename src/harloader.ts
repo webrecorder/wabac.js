@@ -28,7 +28,7 @@ class HARLoader extends BaseParser {
 
   parsePages(har: HAR) {
     for (const page of har.log.pages) {
-      if (!page.pageTimings || !page.pageTimings.onLoad) {
+      if (!page.pageTimings?.onLoad) {
         continue;
       }
 
@@ -65,7 +65,7 @@ class HARLoader extends BaseParser {
 
       const encoder = new TextEncoder();
 
-      if (entry.response.content && entry.response.content.text) {
+      if (entry.response.content?.text) {
         try {
           payload = Uint8Array.from(atob(entry.response.content.text), (c) =>
             c.charCodeAt(0),

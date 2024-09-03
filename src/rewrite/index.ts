@@ -12,8 +12,8 @@ import { RxRewriter } from "./rxrewriter";
 import { JSRewriter } from "./jsrewriter";
 
 import { HTMLRewriter } from "./html";
-import { ArchiveRequest } from "../request";
-import { ArchiveResponse } from "../response";
+import { type ArchiveRequest } from "../request";
+import { type ArchiveResponse } from "../response";
 
 // keep for backwards compatibility with RWP and AWP
 export { ArchiveResponse } from "../response";
@@ -72,8 +72,8 @@ export class Rewriter {
   decode: boolean;
 
   prefix: string;
-  relPrefix: string = "";
-  schemeRelPrefix: string = "";
+  relPrefix = "";
+  schemeRelPrefix = "";
   scheme: string;
   url: string;
   responseUrl: string;
@@ -129,7 +129,7 @@ export class Rewriter {
     request: ArchiveRequest,
     response: ArchiveResponse,
     url = "",
-    mime: string = "",
+    mime = "",
   ) {
     if (!mime && response) {
       mime = response.headers.get("Content-Type") || "";
@@ -187,7 +187,7 @@ export class Rewriter {
     }
   }
 
-  getScriptRewriteMode(mime: string, url: string, defaultType: string = "") {
+  getScriptRewriteMode(mime: string, url: string, defaultType = "") {
     switch (mime) {
       case "text/javascript":
       case "application/javascript":
@@ -344,7 +344,7 @@ export class Rewriter {
       "{",
     ];
 
-    for (let prefix of NO_REWRITE_URI_PREFIX) {
+    for (const prefix of NO_REWRITE_URI_PREFIX) {
       if (url.startsWith(prefix)) {
         return false;
       }
@@ -358,7 +358,7 @@ export class Rewriter {
       return url;
     }
 
-    var origUrl = url;
+    const origUrl = url;
 
     url = url.trim();
 
@@ -395,7 +395,7 @@ export class Rewriter {
   }
 
   // HTML
-  rewriteHtml(response: ArchiveResponse) {
+  async rewriteHtml(response: ArchiveResponse) {
     const htmlRW = new HTMLRewriter(this, this.isCharsetUTF8);
     return htmlRW.rewrite(response);
   }
@@ -597,7 +597,7 @@ export class Rewriter {
 
     const headerPrefix = "X-Archive-Orig-";
 
-    let new_headers = new Headers();
+    const new_headers = new Headers();
 
     for (let [key, value] of headers.entries()) {
       const rule = headerRules[key];

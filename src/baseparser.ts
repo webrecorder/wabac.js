@@ -1,4 +1,4 @@
-import { ArchiveLoader, DBStore, PageEntry } from "./types";
+import { type ArchiveLoader, type DBStore, type PageEntry } from "./types";
 
 const DEFAULT_BATCH_SIZE = 1000;
 

@@ -9,7 +9,7 @@ const rewriteHeaders = test.macro({
     headerName: string,
     value: string,
     expected: string,
-    isAjax: boolean = false,
+    isAjax = false,
   ) {
     const headersDict: Record<string, string> = {};
     headersDict[headerName] = value;

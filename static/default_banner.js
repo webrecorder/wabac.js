@@ -231,12 +231,12 @@
   DefaultBanner.prototype.updateStats = function (is_live) {
     var iframe = document.querySelector("iframe");
 
-    fetch(
+    void fetch(
       window.home +
         "stats.json?url=" +
         encodeURIComponent(iframe.contentWindow.location.href),
     )
-      .then((resp) => resp.json())
+      .then(async (resp) => resp.json())
       .then((json) => {
         if (!json.min) {
           return;

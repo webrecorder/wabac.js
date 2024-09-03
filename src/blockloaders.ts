@@ -24,7 +24,7 @@ export type BlockLoaderOpts = {
 export async function createLoader(opts: BlockLoaderOpts): Promise<BaseLoader> {
   const { url } = opts;
 
-  if (opts.extra && opts.extra.arrayBuffer) {
+  if (opts.extra?.arrayBuffer) {
     return new ArrayBufferLoader(opts.extra.arrayBuffer);
   }
 
@@ -73,7 +73,7 @@ export async function createLoader(opts: BlockLoaderOpts): Promise<BaseLoader> {
 
 // ===========================================================================
 export abstract class BaseLoader {
-  canLoadOnDemand: boolean = true;
+  canLoadOnDemand = true;
   headers: Record<string, string> | Headers = {};
   length: number | null = null;
 
@@ -179,7 +179,7 @@ class FetchRangeLoader extends BaseLoader {
     if (this.length === null && response) {
       this.length = Number(response.headers.get("Content-Length"));
       if (!this.length && response.status === 206) {
-        let range = response.headers.get("Content-Range");
+        const range = response.headers.get("Content-Range");
         if (range) {
           const rangeParts = range.split("/");
           if (rangeParts.length === 2) {
@@ -298,7 +298,7 @@ class GoogleDriveLoader extends BaseLoader {
     this.apiUrl = `https://www.googleapis.com/drive/v3/files/${this.fileId}?alt=media`;
 
     this.headers = headers || {};
-    if (extra && extra.publicUrl) {
+    if (extra?.publicUrl) {
       this.publicUrl = extra.publicUrl;
     }
     this.length = size || 0;
@@ -346,7 +346,7 @@ class GoogleDriveLoader extends BaseLoader {
       }
     }
 
-    if (!loader || !loader.isValid) {
+    if (!loader?.isValid) {
       this.publicUrl = null;
       loader = new FetchRangeLoader({
         url: this.apiUrl,
@@ -411,14 +411,13 @@ class GoogleDriveLoader extends BaseLoader {
       } catch (e) {
         if (
           e instanceof AccessDeniedError &&
-          e.info &&
-          e.info.resp &&
-          e.info.resp.headers.get("content-type").startsWith("application/json")
+          e.info.resp?.headers
+            .get("content-type")
+            .startsWith("application/json")
         ) {
           const err = await e.info.resp.json();
           if (
-            err.error &&
-            err.error.errors &&
+            err.error?.errors &&
             err.error.errors[0].reason === "userRateLimitExceeded"
           ) {
             console.log(`Exponential backoff, waiting for: ${backoff}`);
@@ -520,8 +519,8 @@ class BlobCacheLoader extends BaseLoader {
   }
 
   override async getLength() {
-    if (!this.blob || !this.blob.size) {
-      let response = await fetch(this.url);
+    if (!this.blob?.size) {
+      const response = await fetch(this.url);
       this.blob = await response.blob();
       this.size = this.blob.size;
       this.length = this.size;
@@ -570,7 +569,7 @@ class BlobCacheLoader extends BaseLoader {
     return streaming ? getReadableStreamFromArray(range) : range;
   }
 
-  _getArrayBuffer(): Promise<ArrayBuffer> {
+  async _getArrayBuffer(): Promise<ArrayBuffer> {
     return new Promise<ArrayBuffer>((resolve, reject) => {
       const fr = new FileReader();
       fr.onloadend = () => {

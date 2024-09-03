@@ -7,8 +7,8 @@ import {
   concatChunks,
 } from "warcio";
 
-import { BaseLoader, createLoader } from "./blockloaders";
-import { ResourceEntry } from "./types";
+import { type BaseLoader, createLoader } from "./blockloaders";
+import { type ResourceEntry } from "./types";
 
 const MAX_CACHE_SIZE = 25_000_000;
 
@@ -139,7 +139,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
         return null;
       }
 
-      const depth = (opts && opts.depth) || 0;
+      const depth = opts.depth || 0;
 
       if (!payload) {
         if (depth < 2) {
@@ -557,7 +557,6 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
   }
 
   async _consumeIter(iter: AsyncIterable<any>) {
-    // eslint-disable-next-line no-unused-vars
     for await (const chunk of iter);
   }
 
@@ -590,7 +589,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
     }
   }
 
-  getFixedSizeReader(reader: ReadableStreamDefaultReader<any>, size: number) {
+  getFixedSizeReader(reader: ReadableStreamDefaultReader, size: number) {
     return new ReadableStream({
       async start(controller) {
         const { value, done } = await reader.read();
@@ -603,7 +602,9 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
     });
   }
 
-  readlineRaw(maxLength?: number | undefined): Promise<Uint8Array | null> {
+  async readlineRaw(
+    maxLength?: number | undefined,
+  ): Promise<Uint8Array | null> {
     throw new Error("Method not implemented.");
   }
 }

@@ -13,8 +13,8 @@ import { ArchiveResponse } from "./response";
 
 import { getAdBlockCSSResponse } from "./adblockcss";
 import { notFoundByTypeResponse } from "./notfound";
-import { ArchiveDB } from "./archivedb";
-import { ArchiveRequest } from "./request";
+import { type ArchiveDB } from "./archivedb";
+import { type ArchiveRequest } from "./request";
 
 const DEFAULT_CSP =
   "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
@@ -202,7 +202,7 @@ export class Collection {
       const arResponse = response;
 
       const headInsertFunc = (url: string) => {
-        let presetCookie =
+        const presetCookie =
           arResponse.headers.get("x-wabac-preset-cookie") || "";
         const setCookie = arResponse.headers.get("Set-Cookie");
         const topUrl = basePrefixTS + (requestTS ? "/" : "") + url;
@@ -271,7 +271,7 @@ export class Collection {
     const schemeRel = url.startsWith("//");
 
     if (schemeRel) {
-      let scheme =
+      const scheme =
         referrer && referrer.indexOf("/http://") > 0 ? "http:" : "https:";
       url = scheme + url;
     }
@@ -385,7 +385,7 @@ export class Collection {
   }
 
   async makeTopFrame(url: string, requestTS: string) {
-    let baseUrl: string = "";
+    let baseUrl = "";
 
     if (this.baseFrameUrl && !this.baseFramePrefix) {
       baseUrl = this.baseFrameUrl;
@@ -409,7 +409,7 @@ export class Collection {
       return Response.redirect(baseUrl);
     }
 
-    let content: string = "";
+    let content = "";
 
     if (this.config.topTemplateUrl) {
       const resp = await fetch(this.config.topTemplateUrl);
@@ -461,7 +461,7 @@ window.home = "${this.rootPrefix}";
 `;
     }
 
-    let responseData = {
+    const responseData = {
       status: 200,
       statusText: "OK",
       headers: {
@@ -508,8 +508,7 @@ window.home = "${this.rootPrefix}";
 
     const pixelRatio =
       extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 1;
-    const storage =
-      extraOpts && extraOpts.storage ? btoa(extraOpts.storage) : "";
+    const storage = extraOpts?.storage ? btoa(extraOpts.storage) : "";
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
     return `
 <!-- WB Insert -->

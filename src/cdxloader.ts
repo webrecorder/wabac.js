@@ -1,4 +1,4 @@
-import { ResourceEntry } from "./types";
+import { type ResourceEntry } from "./types";
 import { tsToDate } from "./utils";
 import { WARCLoader } from "./warcloader";
 
@@ -6,9 +6,9 @@ import {
   CDXIndexer,
   AsyncIterReader,
   appendRequestQuery,
-  WARCRecord,
-  WARCParser,
-  Source,
+  type WARCRecord,
+  type WARCParser,
+  type Source,
 } from "warcio";
 
 export const CDX_COOKIE = "req.http:cookie";
@@ -99,7 +99,7 @@ class CDXFromWARCLoader extends WARCLoader {
     }
 
     if (reqRecord && reqRecord.httpHeaders) {
-      let cookie = reqRecord.httpHeaders.headers.get("cookie");
+      const cookie = reqRecord.httpHeaders.headers.get("cookie");
       if (cookie) {
         cdx[CDX_COOKIE] = cookie;
       }

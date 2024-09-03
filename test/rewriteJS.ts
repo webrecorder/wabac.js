@@ -8,8 +8,8 @@ const rewriteJS = test.macro({
     t,
     content: string,
     expected: string,
-    useBaseRules: boolean = false,
-    url: string = "https://example.com/some/path/index.html",
+    useBaseRules = false,
+    url = "https://example.com/some/path/index.html",
   ): Promise<void> {
     const { text: actual } = await doRewrite({
       content,
@@ -32,12 +32,7 @@ const rewriteJS = test.macro({
 
 // ===========================================================================
 const rewriteJSWrapped = test.macro({
-  async exec(
-    t,
-    content: string,
-    expected: string,
-    useBaseRules: boolean = false,
-  ) {
+  async exec(t, content: string, expected: string, useBaseRules = false) {
     const { text: actual } = await doRewrite({
       content,
       contentType: "application/javascript",
@@ -58,12 +53,7 @@ const rewriteJSWrapped = test.macro({
 
 // ===========================================================================
 const rewriteJSImport = test.macro({
-  async exec(
-    t,
-    content: string,
-    expected: string,
-    useBaseRules: boolean = false,
-  ) {
+  async exec(t, content: string, expected: string, useBaseRules = false) {
     const { text: actual } = await doRewrite({
       content,
       contentType: "application/javascript",

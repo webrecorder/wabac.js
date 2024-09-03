@@ -22,7 +22,7 @@ export class RxRewriter {
       return;
     }
 
-    for (let rule of this.rules) {
+    for (const rule of this.rules) {
       if (rxBuff) {
         rxBuff += "|";
       }

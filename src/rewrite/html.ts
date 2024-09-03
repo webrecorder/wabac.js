@@ -7,8 +7,8 @@ import {
   MAX_STREAM_CHUNK_SIZE,
   REPLAY_TOP_FRAME_NAME,
 } from "../utils";
-import { ArchiveResponse, Rewriter } from "./index.js";
-import { StartTag } from "parse5-sax-parser";
+import { type ArchiveResponse, type Rewriter } from "./index.js";
+import { type StartTag } from "parse5-sax-parser";
 import { type Token } from "parse5";
 
 const encoder = new TextEncoder();
@@ -141,9 +141,9 @@ class HTMLRewriter {
   rewriteSrcSet(value: string, rewriter: Rewriter) {
     const SRCSET_REGEX = /\s*(\S*\s+[\d.]+[wx]),|(?:\s*,(?:\s+|(?=https?:)))/;
 
-    let rv: string[] = [];
+    const rv: string[] = [];
 
-    for (let v of value.split(SRCSET_REGEX)) {
+    for (const v of value.split(SRCSET_REGEX)) {
       if (v) {
         const parts = v.trim().split(" ");
         parts[0] = this.rewriteUrl(rewriter, parts[0]);
@@ -169,7 +169,7 @@ class HTMLRewriter {
       return;
     }
 
-    for (let attr of tag.attrs) {
+    for (const attr of tag.attrs) {
       const name = attr.name || "";
       const value = attr.value || "";
 
@@ -281,7 +281,7 @@ class HTMLRewriter {
   }
 
   getAttr(attrs: Token.Attribute[], name: string) {
-    for (let attr of attrs) {
+    for (const attr of attrs) {
       if (attr.name === name) {
         return attr.value;
       }
@@ -483,12 +483,7 @@ class HTMLRewriter {
     return response;
   }
 
-  rewriteUrl(
-    rewriter: Rewriter,
-    text: string,
-    forceAbs = false,
-    mod: string = "",
-  ) {
+  rewriteUrl(rewriter: Rewriter, text: string, forceAbs = false, mod = "") {
     // if html charset not utf-8, just convert the url to utf-8 for rewriting
     if (!this.isCharsetUTF8) {
       text = decoder.decode(encodeLatin1(text));

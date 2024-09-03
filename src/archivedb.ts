@@ -1,4 +1,4 @@
-import { openDB, deleteDB, IDBPDatabase } from "idb/with-async-ittr";
+import { openDB, deleteDB, type IDBPDatabase } from "idb/with-async-ittr";
 import {
   tsToDate,
   isNullBodyStatus,
@@ -12,13 +12,13 @@ import {
 import { fuzzyMatcher } from "./fuzzymatcher";
 import { ArchiveResponse } from "./response";
 import {
-  DBStore,
-  DigestRefCount,
-  PageEntry,
-  ResAPIResponse,
-  ResourceEntry,
+  type DBStore,
+  type DigestRefCount,
+  type PageEntry,
+  type ResAPIResponse,
+  type ResourceEntry,
 } from "./types";
-import { ArchiveRequest } from "./request";
+import { type ArchiveRequest } from "./request";
 
 const MAX_FUZZY_MATCH = 128000;
 const MAX_RESULTS = 16;
@@ -229,7 +229,7 @@ export class ArchiveDB implements DBStore {
   async convertCuratedPagesToV2(db: any) {
     const curatedPages = await db.getAll("curatedPages");
 
-    if (!curatedPages || !curatedPages.length) {
+    if (!curatedPages?.length) {
       return;
     }
 
@@ -590,7 +590,7 @@ export class ArchiveDB implements DBStore {
     }
 
     // check if redirect
-    if (result && result.origURL) {
+    if (result?.origURL) {
       const origResult = await this.lookupUrl(
         result.origURL,
         result.origTS || result.ts,
@@ -662,11 +662,10 @@ export class ArchiveDB implements DBStore {
     return result.payload;
   }
 
-  isSelfRedirect(url: string, result: ResourceEntry) {
+  isSelfRedirect(url: string, result: ResourceEntry | undefined) {
     try {
       if (
-        result &&
-        result.respHeaders &&
+        result?.respHeaders &&
         result.status &&
         result.status >= 300 &&
         result.status < 400
@@ -883,7 +882,7 @@ export class ArchiveDB implements DBStore {
 
     for (const res of fullResults) {
       for (const mime of mimesArray) {
-        if (!mime || (res.mime && res.mime.startsWith(mime))) {
+        if (!mime || res.mime?.startsWith(mime)) {
           results.push(this.resJson(res));
           if (results.length === count) {
             return results;
@@ -908,7 +907,7 @@ export class ArchiveDB implements DBStore {
 
     mimes.sort();
 
-    let startKey: [string, number, string][] = [];
+    const startKey: [string, number, string][] = [];
 
     if (fromMime) {
       startKey.push([fromMime, fromStatus, fromUrl]);

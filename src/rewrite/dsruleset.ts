@@ -1,4 +1,4 @@
-import { RxRewriter, type Rule } from "./rxrewriter";
+import { type RxRewriter, type Rule } from "./rxrewriter";
 
 //import unescapeJs from "unescape-js";
 const MAX_BITRATE = 5000000;
@@ -134,11 +134,11 @@ function ruleDisableMediaSourceTypeSupported() {
 // ===========================================================================
 function setMaxBitrate(opts: any) {
   let maxBitrate = MAX_BITRATE;
-  const extraOpts = opts.response && opts.response.extraOpts;
+  const extraOpts = opts.response?.extraOpts;
 
   if (opts.save) {
     opts.save.maxBitrate = maxBitrate;
-  } else if (extraOpts && extraOpts.maxBitrate) {
+  } else if (extraOpts?.maxBitrate) {
     maxBitrate = extraOpts.maxBitrate;
   }
 
@@ -214,7 +214,7 @@ function ruleRewriteVimeoConfig(str: string) {
     return str;
   }
 
-  if (config && config.request && config.request.files) {
+  if (config?.request?.files) {
     const files = config.request.files;
     if (typeof files.progressive === "object" && files.progressive.length) {
       if (files.dash) {

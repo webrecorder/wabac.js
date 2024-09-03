@@ -1,4 +1,4 @@
-import test, { ExecutionContext } from "ava";
+import test, { type ExecutionContext } from "ava";
 import { FuzzyMatcher } from "../src/fuzzymatcher.js";
 
 const fuzzy = new FuzzyMatcher();

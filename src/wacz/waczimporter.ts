@@ -1,9 +1,9 @@
 import yaml from "js-yaml";
 
 import { verifyWACZSignature } from "./certutils";
-import { MultiWACZ } from "./multiwacz";
-import { WACZFile } from "./waczfile";
-import { PageEntry } from "../types";
+import { type MultiWACZ } from "./multiwacz";
+import { type WACZFile } from "./waczfile";
+import { type PageEntry } from "../types";
 
 export const MAIN_PAGES_JSON = "pages/pages.jsonl";
 export const EXTRA_PAGES_JSON = "pages/extraPages.jsonl";
@@ -201,14 +201,14 @@ export class WACZImporter {
     // All pages
     const pages = root.pages || [];
 
-    if (pages && pages.length) {
+    if (pages?.length) {
       await this.store.addPages(pages);
     }
 
     // Curated Pages
     const pageLists = root.pageLists || [];
 
-    if (pageLists && pageLists.length) {
+    if (pageLists?.length) {
       await this.store.addCuratedPageLists(pageLists, "pages", "show");
     }
 

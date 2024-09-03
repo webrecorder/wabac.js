@@ -1,6 +1,6 @@
 import { Path } from "path-parser";
 import { getCollData } from "./utils";
-import { SWCollections } from "./swmain";
+import { type SWCollections } from "./swmain";
 
 type RouteMatch = Record<string, any>;
 

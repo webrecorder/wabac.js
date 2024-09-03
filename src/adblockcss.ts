@@ -84,7 +84,7 @@ export async function getAdBlockCSSResponse(
   const streamIter = yieldSelectors();
 
   const rs = new ReadableStream({
-    pull(controller) {
+    async pull(controller) {
       return streamIter.next().then((result) => {
         // all done;
         if (result.done || !result.value) {
@@ -141,7 +141,7 @@ export class ByLineTransform {
     const buffer = this._buffer;
 
     // don't split CRLF which spans chunks
-    if (this._lastChunkEndedWithCR && chunk[0] == "\n") {
+    if (this._lastChunkEndedWithCR && chunk.startsWith("\n")) {
       lines.shift();
     }
 
@@ -150,20 +150,20 @@ export class ByLineTransform {
       lines.shift();
     }
 
-    this._lastChunkEndedWithCR = chunk[chunk.length - 1] == "\r";
+    this._lastChunkEndedWithCR = chunk.endsWith("\r");
     //buffer.push(...lines);
 
     // always buffer the last (possibly partial) line
     while (buffer.length > 1) {
       const line = buffer.shift();
       // skip empty lines
-      if (line && line.length) controller.enqueue(line);
+      if (line?.length) controller.enqueue(line);
     }
 
     while (lines.length > 1) {
       const line = lines.shift();
       // skip empty lines
-      if (line && line.length) controller.enqueue(line);
+      if (line?.length) controller.enqueue(line);
     }
   }
 
@@ -173,7 +173,7 @@ export class ByLineTransform {
     while (buffer.length) {
       const line = buffer.shift();
       // skip empty lines
-      if (line && line.length) controller.enqueue(line);
+      if (line?.length) controller.enqueue(line);
     }
   }
 }

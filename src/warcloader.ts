@@ -2,16 +2,16 @@ import { makeHeaders, Canceled, tsToDate } from "./utils";
 
 import {
   AsyncIterReader,
-  Source,
+  type Source,
   WARCParser,
-  WARCRecord,
+  type WARCRecord,
   postToGetUrl,
 } from "warcio";
 
 import { extractText } from "./extract";
 
 import { BaseParser } from "./baseparser";
-import { ResourceEntry } from "./types";
+import { type ResourceEntry } from "./types";
 
 // ===========================================================================
 class WARCLoader extends BaseParser {
@@ -56,7 +56,7 @@ class WARCLoader extends BaseParser {
     if (!record.payload) {
       return;
     }
-    var dec = new TextDecoder("utf-8");
+    const dec = new TextDecoder("utf-8");
     const text = dec.decode(record.payload);
 
     // Webrecorder-style metadata
@@ -73,7 +73,7 @@ class WARCLoader extends BaseParser {
           this.metadata.title = json.title;
         }
 
-        if (json.pages && json.pages.length) {
+        if (json.pages?.length) {
           this.pages = this.pages.concat(json.pages);
 
           for (const page of json.pages) {
@@ -84,7 +84,7 @@ class WARCLoader extends BaseParser {
           this.anyPages = true;
         }
 
-        if (json.lists && json.lists.length) {
+        if (json.lists?.length) {
           this.lists = this.lists.concat(json.lists);
           //  this.promises.push(this.db.addCuratedPageLists(lists, "bookmarks", "public"));
         }
@@ -140,7 +140,7 @@ class WARCLoader extends BaseParser {
 
   shouldIndexMetadataRecord(record: WARCRecord) {
     const targetURI = record.warcTargetURI;
-    if (targetURI && targetURI.startsWith("metadata://")) {
+    if (targetURI?.startsWith("metadata://")) {
       return true;
     }
 
@@ -198,7 +198,7 @@ class WARCLoader extends BaseParser {
     let headers: Headers | null = null;
     let mime = "";
 
-    const method = reqRecord && reqRecord.httpHeaders?.method;
+    const method = reqRecord?.httpHeaders?.method;
 
     if (record.httpHeaders) {
       status = Number(record.httpHeaders.statusCode) || 200;
@@ -235,7 +235,7 @@ class WARCLoader extends BaseParser {
     } else {
       headers = new Headers();
       headers.set("content-type", record.warcContentType!);
-      headers.set("content-length", String(record.warcContentLength!));
+      headers.set("content-length", String(record.warcContentLength));
       mime = record.warcContentType || "";
 
       //cl = record.warcContentLength;
@@ -297,10 +297,10 @@ class WARCLoader extends BaseParser {
     let requestUrl;
     let reqHeaders;
 
-    if (reqRecord && reqRecord.httpHeaders?.headers) {
+    if (reqRecord?.httpHeaders?.headers) {
       let requestHeaders: Headers | null = null;
       try {
-        requestHeaders = new Headers(reqRecord.httpHeaders?.headers as Headers);
+        requestHeaders = new Headers(reqRecord.httpHeaders.headers as Headers);
         const cookie = requestHeaders.get("cookie");
         if (cookie) {
           headers.set("x-wabac-preset-cookie", cookie);

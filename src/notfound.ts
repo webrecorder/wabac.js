@@ -1,4 +1,4 @@
-import { ArchiveRequest } from "./request";
+import { type ArchiveRequest } from "./request";
 import { getStatusText } from "./utils";
 
 export function notFoundByTypeResponse(

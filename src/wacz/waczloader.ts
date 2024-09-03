@@ -1,12 +1,12 @@
-import { BaseLoader } from "../blockloaders";
-import { ArchiveLoader } from "../types";
+import { type BaseLoader } from "../blockloaders";
+import { type ArchiveLoader } from "../types";
 import { MAX_FULL_DOWNLOAD_SIZE } from "../utils";
 
 import { WARCLoader } from "../warcloader";
 
 import { DEFAULT_WACZ, WACZFile } from "./waczfile";
 import { WACZImporter } from "./waczimporter";
-import { ZipRangeReader } from "./ziprangereader";
+import { type ZipRangeReader } from "./ziprangereader";
 
 // ============================================================================
 export class SingleWACZLoader implements ArchiveLoader {

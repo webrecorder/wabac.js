@@ -8,8 +8,8 @@ const rewriteCSS = test.macro({
     t,
     content: string,
     expected: string,
-    encoding: string = "utf8",
-    expectedContentType: string = "text/css",
+    encoding = "utf8",
+    expectedContentType = "text/css",
   ) {
     const opts = {
       content,

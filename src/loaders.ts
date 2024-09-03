@@ -17,12 +17,12 @@ import {
 } from "./wacz/waczloader";
 import { MultiWACZ } from "./wacz/multiwacz";
 
-import { BaseLoader, createLoader } from "./blockloaders";
+import { type BaseLoader, createLoader } from "./blockloaders";
 
 import { RemoteWARCProxy } from "./remotewarcproxy";
 import { LiveProxy } from "./liveproxy";
 
-import { IDBPDatabase, deleteDB, openDB } from "idb/with-async-ittr";
+import { type IDBPDatabase, deleteDB, openDB } from "idb/with-async-ittr";
 import {
   Canceled,
   MAX_FULL_DOWNLOAD_SIZE,
@@ -30,7 +30,7 @@ import {
   AuthNeededError,
 } from "./utils";
 import { detectFileType, getKnownFileExtension } from "./detectfiletype";
-import { ArchiveLoader, DBStore } from "./types";
+import { type ArchiveLoader, type DBStore } from "./types";
 
 if (!globalThis.self) {
   (globalThis as any).self = globalThis;
@@ -104,7 +104,7 @@ export class CollectionLoader {
     try {
       const allColls = await this.listAll();
 
-      const promises = allColls.map((data) => this._initColl(data));
+      const promises = allColls.map(async (data) => this._initColl(data));
 
       await Promise.all(promises);
     } catch (e: any) {
@@ -339,8 +339,8 @@ export class WorkerLoader extends CollectionLoader {
 
   registerListener(worker: WorkerGlobalScope) {
     worker.addEventListener("message", (event: any) => {
-      if ((event as any).waitUntil) {
-        (event as any).waitUntil(this._handleMessage(event as MessageEvent));
+      if (event.waitUntil) {
+        event.waitUntil(this._handleMessage(event as MessageEvent));
       } else {
         this._handleMessage(event);
       }
@@ -413,7 +413,8 @@ export class WorkerLoader extends CollectionLoader {
               "permission_needed",
               null,
               null,
-              e.info && e.info.fileHandle,
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              e.info?.fileHandle,
             );
             return;
           } else if (e.name === "ConstraintError") {
@@ -502,15 +503,15 @@ export class WorkerLoader extends CollectionLoader {
   ): Promise<LoadColl | false> {
     let name = data.name;
 
-    let type: string = "";
-    let config: Record<string, any> = { root: data.root || false };
+    let type = "";
+    const config: Record<string, any> = { root: data.root || false };
     let generalDB: DBStore | null = null;
 
     let updateExistingConfig: Record<string, any> | null = null;
 
     const file = data.file;
 
-    if (!file || !file.sourceUrl) {
+    if (!file?.sourceUrl) {
       progressUpdate(0, "Invalid Load Request");
       return false;
     }
@@ -596,8 +597,7 @@ export class WorkerLoader extends CollectionLoader {
       }
 
       config.extraConfig = data.extraConfig;
-      config.headers =
-        file.headers || (config.extraConfig && config.extraConfig.headers);
+      config.headers = file.headers || config.extraConfig?.headers;
       config.noCache = file.noCache;
 
       let sourceLoader = await createLoader({
@@ -628,7 +628,7 @@ export class WorkerLoader extends CollectionLoader {
         config.sourceName,
       );
 
-      let { abort, response } = await sourceLoader.doInitialFetch(
+      const { abort, response } = await sourceLoader.doInitialFetch(
         sourceExt === ".wacz",
         false,
       );
@@ -790,7 +790,7 @@ Make sure this is a valid URL and you have access to this file.`,
 
     config.ctime = new Date().getTime();
 
-    if (this._fileHandles && config.extra && config.extra.fileHandle) {
+    if (this._fileHandles && config.extra?.fileHandle) {
       delete this._fileHandles[config.sourceUrl];
     }
 

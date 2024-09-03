@@ -1,9 +1,9 @@
 import { ArchiveResponse } from "./response";
 import { fuzzyMatcher } from "./fuzzymatcher";
 
-import { WARCParser, AsyncIterReader, Source } from "warcio";
-import { DBStore } from "./types";
-import { ArchiveRequest } from "./request";
+import { WARCParser, AsyncIterReader, type Source } from "warcio";
+import { type DBStore } from "./types";
+import { type ArchiveRequest } from "./request";
 
 // ===========================================================================
 export class RemoteWARCProxy implements DBStore {
@@ -143,7 +143,7 @@ export class RemoteWARCProxy implements DBStore {
     let encodedUrl = encodeURI(urlNoScheme);
     encodedUrl = encodeURIComponent(urlNoScheme);
 
-    let headersResp = await fetch(this.sourceUrl + "H/" + encodedUrl);
+    const headersResp = await fetch(this.sourceUrl + "H/" + encodedUrl);
 
     if (headersResp.status !== 200) {
       return null;
@@ -151,8 +151,8 @@ export class RemoteWARCProxy implements DBStore {
 
     let headers: Headers | null = null;
     let date: Date | null = null;
-    let status: number = 200;
-    let statusText: string = "OK";
+    let status = 200;
+    let statusText = "OK";
     let hasPayload = false;
 
     try {

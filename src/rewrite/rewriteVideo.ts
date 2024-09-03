@@ -13,7 +13,7 @@ function getMaxResAndBand(opts: Record<string, any> = {}) {
   // read opts from warc, if any
   let maxRes, maxBand;
 
-  const extraOpts = opts && opts.response && opts.response.extraOpts;
+  const extraOpts = opts.response?.extraOpts;
 
   if (extraOpts) {
     maxRes = extraOpts.adaptive_max_resolution || extraOpts.maxRes;
@@ -23,7 +23,7 @@ function getMaxResAndBand(opts: Record<string, any> = {}) {
     }
   }
 
-  const isReplay = opts && opts.response && !opts.response.isLive;
+  const isReplay = opts.response && !opts.response.isLive;
   let res;
 
   // if not replay, or unknown, use new lower setting
@@ -34,7 +34,7 @@ function getMaxResAndBand(opts: Record<string, any> = {}) {
     res = { maxRes: OLD_DEFAULT_MAX_RES, maxBand: OLD_DEFAULT_MAX_BAND };
   }
 
-  if (opts && opts.save) {
+  if (opts.save) {
     opts.save.maxRes = res.maxRes;
     opts.save.maxBand = res.maxBand;
   }
@@ -50,20 +50,20 @@ export function rewriteHLS(text: string, opts: Record<string, any>) {
 
   const { maxRes, maxBand } = getMaxResAndBand(opts);
 
-  let indexes: number[] = [];
+  const indexes: number[] = [];
   let count = 0;
   let bestIndex: number | null = null;
 
   let bestBand = 0;
   let bestRes = 0;
 
-  let lines = text.trimEnd().split("\n");
+  const lines = text.trimEnd().split("\n");
 
   for (const line of lines) {
     const m = line.match(EXT_INF);
     if (!m) {
       // if has rewriteUrl (not-ajax), then rewrite HLS urls
-      if (opts && opts.rewriteUrl && !line.startsWith("#")) {
+      if (opts.rewriteUrl && !line.startsWith("#")) {
         lines[count] = opts.rewriteUrl(line);
       }
       count += 1;

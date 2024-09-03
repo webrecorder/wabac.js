@@ -1,7 +1,7 @@
 declare let self: ServiceWorkerGlobalScope;
 
 import { getReasonPhrase } from "http-status-codes";
-import { ArchiveRequest } from "./request";
+import { type ArchiveRequest } from "./request";
 
 // Threshold size for switching to range requests
 export const MAX_FULL_DOWNLOAD_SIZE = 25000000;
@@ -226,7 +226,7 @@ export async function handleAuthNeeded(e: any, config: any) {
           source: config.sourceUrl,
           coll: config.dbname.slice(3),
           type: "authneeded",
-          fileHandle: e.info && e.info.fileHandle,
+          fileHandle: e.info.fileHandle,
         });
       }
     }
@@ -309,6 +309,6 @@ export class AccessDeniedError extends RangeError {}
 
 export class Canceled {}
 
-export function sleep(millis: number) {
+export async function sleep(millis: number) {
   return new Promise((resolve) => setTimeout(resolve, millis));
 }

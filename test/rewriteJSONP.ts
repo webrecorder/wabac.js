@@ -8,8 +8,8 @@ const rewriteJSONP = test.macro({
     t,
     content: string,
     expected: string,
-    url: string = "http://example.com/?callback=jQuery_ABC",
-    useBaseRules: boolean = true,
+    url = "http://example.com/?callback=jQuery_ABC",
+    useBaseRules = true,
   ) {
     const { text: actual } = await doRewrite({
       content,
@@ -32,7 +32,7 @@ const rewriteJSONP = test.macro({
 
 // ===========================================================================
 const rewriteJSONPMissingCB = test.macro({
-  async exec(t, content: string, useBaseRules: boolean = true) {
+  async exec(t, content: string, useBaseRules = true) {
     const url = "http://example.com/";
     const { text: actual } = await doRewrite({
       content,

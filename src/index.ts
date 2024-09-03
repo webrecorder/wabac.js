@@ -6,7 +6,13 @@ export { ArchiveDB } from "./archivedb";
 
 export { LiveProxy } from "./liveproxy";
 
-export { getTSMillis, getStatusText, digestMessage, tsToDate, randomId } from "./utils";
+export {
+  getTSMillis,
+  getStatusText,
+  digestMessage,
+  tsToDate,
+  randomId,
+} from "./utils";
 
 export { createLoader } from "./blockloaders";
 
