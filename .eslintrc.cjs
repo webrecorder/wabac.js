@@ -65,6 +65,7 @@ module.exports = {
         argsIgnorePattern: "^_",
         varsIgnorePattern: "^_",
         destructuredArrayIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
       },
     ],
     "no-implied-eval": "off",

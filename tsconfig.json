@@ -19,5 +19,5 @@
     "incremental": true,
     "lib": ["webworker", "esnext"]
   },
-  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.d.ts"]
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.d.ts", "test/**/*.ts"]
 }
