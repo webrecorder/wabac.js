@@ -1,6 +1,12 @@
 import { type ArchiveRequest } from "./request";
 import { type ArchiveResponse } from "./response";
 
+export type Source = {
+  start: number;
+  length: number;
+  path: string;
+};
+
 export type ResourceEntry = {
   url: string;
   ts: number;
@@ -19,7 +25,7 @@ export type ResourceEntry = {
   pageId?: string | null;
   origURL?: string | null;
   origTS?: number | null;
-  source?: object;
+  source?: Source;
   requestUrl?: string | null;
   method?: string | null;
   requestBody?: Uint8Array;

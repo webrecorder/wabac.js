@@ -12,7 +12,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 type ArchiveResponseOpts = {
-  payload: AsyncIterReader | Uint8Array | null;
+  payload: AsyncIterable<Uint8Array> | Uint8Array | null;
   status: number;
   statusText: string;
   headers: Headers;

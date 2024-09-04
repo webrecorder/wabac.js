@@ -1,4 +1,4 @@
-import { ArchiveDB } from "./archivedb";
+import { ArchiveDB, type Opts as ADBOpts } from "./archivedb";
 import { SingleRecordWARCLoader } from "./warcloader";
 import {
   BaseAsyncIterReader,
@@ -8,7 +8,7 @@ import {
 } from "warcio";
 
 import { type BaseLoader, createLoader } from "./blockloaders";
-import { type ResourceEntry } from "./types";
+import { type Source, type ResourceEntry } from "./types";
 
 const MAX_CACHE_SIZE = 25_000_000;
 
@@ -20,6 +20,10 @@ export type LoadRecordFromSourceType = Promise<{
   remote: ResourceEntry | null;
   hasher?: GetHash | null;
 }>;
+
+export type Opts = ADBOpts & {
+  depth?: number;
+};
 
 // ===========================================================================
 export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
@@ -35,13 +39,11 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
     this.streamMap = new Map<string, ChunkStore>();
   }
 
-  abstract loadSource(
-    source: Record<string, number>,
-  ): Promise<ReadableStream<Uint8Array>>;
+  abstract loadSource(source: Source): Promise<ReadableStream<Uint8Array>>;
 
-  async loadRecordFromSource(
-    cdx: Record<string, any>,
-  ): LoadRecordFromSourceType {
+  async loadRecordFromSource(cdx: {
+    source: Source;
+  }): LoadRecordFromSourceType {
     const responseStream = await this.loadSource(cdx.source);
 
     const loader = new SingleRecordWARCLoader(responseStream);
@@ -50,12 +52,18 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
     return { remote };
   }
 
-  async loadPayload(cdx: Record<string, any>, opts: Record<string, any>) {
+  override async loadPayload(
+    cdx: ResourceEntry,
+    opts: Opts,
+  ): Promise<
+    AsyncIterable<Uint8Array> | Iterable<Uint8Array> | Uint8Array | null
+  > {
     let payload = await super.loadPayload(cdx, opts);
     if (payload) {
       if (
         cdx.respHeaders &&
-        (cdx.mime !== "warc/revisit" || (cdx.status >= 300 && cdx.status < 400))
+        (cdx.mime !== "warc/revisit" ||
+          (cdx.status! >= 300 && cdx.status! < 400))
       ) {
         return payload;
       }
@@ -64,9 +72,13 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
     const chunkstore = this.streamMap.get(cdx.url);
     if (chunkstore) {
       console.log(`Reuse stream for ${cdx.url}`);
+      // TODO @ikreymer in this class, this method can return a `PartialStreamReader`, where it can't (and doesn't make sense to) in ArchiveDB — is there a shared set of elements that would make more sense?
+      // @ts-expect-error
       return new PartialStreamReader(chunkstore);
     }
 
+    // TODO @ikreymer `source` doens't exist on ResourceEntry, should it?
+    // @ts-expect-error
     const { remote, hasher } = await this.loadRecordFromSource(cdx);
 
     if (!remote) {
@@ -115,8 +127,8 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
       // optimize: if revisit of redirect, just set the respHeaders and return empty payload
       if (
         !payload &&
-        cdx.status >= 300 &&
-        cdx.status < 400 &&
+        cdx.status! >= 300 &&
+        cdx.status! < 400 &&
         remote.respHeaders
       ) {
         cdx.respHeaders = remote.respHeaders;
@@ -192,6 +204,8 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
         // cache here only if somehow the digests don't match (wrong digest from previous versions?)
         if (
           origResult.digest !== remote.digest &&
+          // TODO @ikreymer when will payload be an async iterator?
+          // @ts-expect-error
           !payload[Symbol.asyncIterator] &&
           remote.digest
         ) {
@@ -204,7 +218,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
 
     const digest = remote.digest;
 
-    const tooBigForCache = cdx.source.length >= MAX_CACHE_SIZE;
+    const tooBigForCache = cdx.source!["length"] >= MAX_CACHE_SIZE;
 
     if (!this.noCache && !tooBigForCache && remote.reader && digest) {
       remote.reader = new PayloadBufferingReader(
@@ -214,7 +228,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
         cdx.url,
         this.streamMap,
         hasher || null,
-        cdx.recordDigest,
+        cdx.recordDigest!,
         cdx.source,
       );
     }
@@ -302,7 +316,7 @@ export class RemoteSourceArchiveDB extends OnDemandPayloadArchiveDB {
   }
 
   override async loadSource(
-    source: Record<string, any>,
+    source: Source,
   ): Promise<ReadableStream<Uint8Array>> {
     const { start, length } = source;
 
@@ -336,7 +350,7 @@ export class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB {
   }
 
   override async loadSource(
-    source: Record<string, any>,
+    source: Source,
   ): Promise<ReadableStream<Uint8Array>> {
     const { start, length } = source;
 
@@ -437,7 +451,7 @@ class ChunkStore {
       }
 
       for (i; i < this.chunks.length; i++) {
-        yield this.chunks[i];
+        yield this.chunks[i]!;
       }
     }
   }
@@ -455,7 +469,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
   fullbuff: Uint8Array | null = null;
   hasher: GetHash | null;
   expectedHash: string;
-  source: Record<string, string>;
+  source: Source | undefined;
 
   isRange = false;
   totalLength = -1;
@@ -471,7 +485,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
     streamMap: Map<string, ChunkStore>,
     hasher: GetHash | null,
     expectedHash: string,
-    source: Record<string, string>,
+    source: Source | undefined,
   ) {
     super();
     this.db = db;
@@ -541,7 +555,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
         const hash = this.hasher.getHash();
         const { path, start, length } = this.source;
         const id = `${path}:${start}-${length}`;
-        this.db.addVerifyData(id, this.expectedHash, hash);
+        void this.db.addVerifyData(id, this.expectedHash, hash);
       }
 
       if (this.commit) {
@@ -556,11 +570,11 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
     }
   }
 
-  async _consumeIter(iter: AsyncIterable<any>) {
-    for await (const chunk of iter);
+  async _consumeIter(iter: AsyncIterable<unknown>) {
+    for await (const _chunk of iter);
   }
 
-  async readFully() {
+  override async readFully() {
     if (!this.fullbuff) {
       // should not set if already false
       //this.commit = true;
@@ -569,7 +583,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
     return this.fullbuff!;
   }
 
-  getReadableStream() {
+  override getReadableStream() {
     const stream = super.getReadableStream();
 
     if (!this.commit) {
@@ -579,7 +593,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
     // if committing, need to consume entire stream, so tee reader and consume async
     const tees = stream.tee();
 
-    this._consumeIter(AsyncIterReader.fromReadable(tees[1].getReader()));
+    void this._consumeIter(AsyncIterReader.fromReadable(tees[1].getReader()));
 
     // load a single, fixed chunk (only used for 0-1 safari range)
     if (this.fixedSize) {
@@ -603,7 +617,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
   }
 
   async readlineRaw(
-    maxLength?: number | undefined,
+    _maxLength?: number | undefined,
   ): Promise<Uint8Array | null> {
     throw new Error("Method not implemented.");
   }

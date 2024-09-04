@@ -39,7 +39,7 @@ const EMPTY_PAYLOAD_SHA1 = "sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ";
 
 const DB_VERSION = 4;
 
-type Opts = {
+export type Opts = {
   minDedupSize?: number | undefined;
   noRefCounts?: unknown;
   noFuzzyCheck?: boolean;
