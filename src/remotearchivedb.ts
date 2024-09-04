@@ -56,7 +56,11 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
     cdx: ResourceEntry,
     opts: Opts,
   ): Promise<
-    AsyncIterable<Uint8Array> | Iterable<Uint8Array> | Uint8Array | null
+    | AsyncIterable<Uint8Array>
+    | Iterable<Uint8Array>
+    | Uint8Array
+    | null
+    | undefined
   > {
     let payload = await super.loadPayload(cdx, opts);
     if (payload) {
@@ -209,7 +213,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
           !payload[Symbol.asyncIterator] &&
           remote.digest
         ) {
-          await this.commitPayload(payload, remote.digest);
+          await this.commitPayload(payload as Uint8Array, remote.digest);
         }
       }
 
@@ -274,7 +278,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
     return payload ? payload : remote.reader;
   }
 
-  async commitPayload(payload: Uint8Array, digest: string) {
+  async commitPayload(payload: Uint8Array | null | undefined, digest: string) {
     if (!payload || payload.length === 0) {
       return;
     }
@@ -284,13 +288,13 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
     try {
       //const payloadEntry = await tx.objectStore("payload").get(digest);
       //payloadEntry.payload = payload;
-      tx.objectStore("payload").put({ payload, digest });
+      void tx.objectStore("payload").put({ payload, digest });
 
       if (this.useRefCounts) {
         const ref = await tx.objectStore("digestRef").get(digest);
         if (ref) {
           ref.size = payload.length;
-          tx.objectStore("digestRef").put(ref);
+          void tx.objectStore("digestRef").put(ref);
         }
       }
 

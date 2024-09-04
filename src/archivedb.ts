@@ -728,7 +728,7 @@ export class ArchiveDB implements DBStore {
 
     return new ArchiveResponse({
       url,
-      payload,
+      payload: payload as Uint8Array | null,
       status,
       statusText,
       headers,
@@ -737,7 +737,16 @@ export class ArchiveDB implements DBStore {
     });
   }
 
-  async loadPayload(result: ResourceEntry, _opts: Opts) {
+  async loadPayload(
+    result: ResourceEntry,
+    _opts: Opts,
+  ): Promise<
+    | AsyncIterable<Uint8Array>
+    | Iterable<Uint8Array>
+    | Uint8Array
+    | null
+    | undefined
+  > {
     if (result.digest && !result.payload) {
       if (
         result.digest === EMPTY_PAYLOAD_SHA256 ||
