@@ -48,7 +48,7 @@ export type PageEntry = {
 
 export type DigestRefCount = {
   digest: string;
-  count: number;
+  count: number | undefined;
   size: number;
 };
 
@@ -64,7 +64,7 @@ export interface DBStore {
   getResource: (
     request: ArchiveRequest,
     prefix: string,
-    event?: FetchEvent,
+    event: FetchEvent,
     opts?: Record<string, any>,
   ) => Promise<ArchiveResponse | Response | null>;
 
@@ -75,6 +75,6 @@ export interface ArchiveLoader {
   load: (
     db: DBStore,
     progressUpdateCallback?: any,
-    totalLength?: number,
+    totalLength?: number | undefined,
   ) => Promise<void>;
 }

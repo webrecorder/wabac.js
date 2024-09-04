@@ -9,7 +9,9 @@ import { tsToDate } from "../src/utils.js";
 import { ArchiveDB } from "../src/archivedb.js";
 
 import crypto from "node:crypto";
+import { type DigestRefCount } from "../src/types.js";
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 if (!global.crypto) {
   (global as any).crypto = crypto;
 }
@@ -24,7 +26,7 @@ if (!global.crypto) {
 
 const db = new ArchiveDB("db", { minDedupSize: 0 });
 
-function ts(timestamp) {
+function ts(timestamp: string) {
   return tsToDate(timestamp).getTime();
 }
 
@@ -175,10 +177,10 @@ test("Search by pageId", async (t) => {
 });
 
 test("Delete with ref counts", async (t) => {
-  const toDict = (results) => {
-    const obj = {};
+  const toDict = (results: (DigestRefCount | null)[]) => {
+    const obj: Record<string, number | undefined> = {};
     for (const res of results) {
-      obj[res.digest] = res.count;
+      obj[res!.digest] = res!.count;
     }
     return obj;
   };

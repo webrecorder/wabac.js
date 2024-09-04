@@ -1,4 +1,9 @@
-import { openDB, deleteDB, type IDBPDatabase } from "idb/with-async-ittr";
+import {
+  openDB,
+  deleteDB,
+  type IDBPDatabase,
+  type IDBPTransaction,
+} from "idb/with-async-ittr";
 import {
   tsToDate,
   isNullBodyStatus,
@@ -34,6 +39,49 @@ const EMPTY_PAYLOAD_SHA1 = "sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ";
 
 const DB_VERSION = 4;
 
+type Opts = {
+  minDedupSize?: number | undefined;
+  noRefCounts?: unknown;
+  noFuzzyCheck?: boolean;
+  noRevisits?: boolean;
+  pageId?: string;
+};
+
+type DBType = {
+  pages: {
+    key: string;
+    value: PageEntry & { size?: number };
+    indexes: { url: string; ts: string; state: number };
+  };
+  pageLists: {
+    key: string;
+    value: {
+      pages?: unknown[];
+      show?: boolean;
+      title?: string | undefined;
+      desc?: string | undefined;
+      slug?: string | undefined;
+    };
+  };
+  curatedPages: {
+    key: string;
+    value: PageEntry;
+    indexes: { listPages: [string, string] };
+  };
+  resources: {
+    key: [string, string];
+    value: ResourceEntry;
+    indexes: { pageId: string; mimeStatusUrl: [string, string, string] };
+  };
+  payload: {
+    key: string;
+    value: { digest: string; payload: Uint8Array | null };
+  };
+  digestRef: {
+    key: string;
+    value: DigestRefCount | null;
+  };
+};
 // ===========================================================================
 export class ArchiveDB implements DBStore {
   name: string;
@@ -45,14 +93,14 @@ export class ArchiveDB implements DBStore {
   repeatTracker: RepeatTracker | null = null;
   fuzzyPrefixSearch = true;
   initing: Promise<void>;
-  db: IDBPDatabase | null = null;
+  db: IDBPDatabase<DBType> | null = null;
 
-  constructor(name: string, opts: any = {}) {
+  constructor(name: string, opts: Opts | undefined = {}) {
     this.name = name;
     this.db = null;
 
     const { minDedupSize, noRefCounts } = opts;
-    this.minDedupSize = Number.isInteger(minDedupSize) ? minDedupSize : 1024;
+    this.minDedupSize = Number.isInteger(minDedupSize) ? minDedupSize! : 1024;
 
     this.version = DB_VERSION;
 
@@ -60,6 +108,8 @@ export class ArchiveDB implements DBStore {
     this.useRefCounts = !noRefCounts;
 
     this.allowRepeats = true;
+    // TODO @ikreymer there's no case where `allowRepeats` could be false, why is this checked?
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     this.repeatTracker = this.allowRepeats ? new RepeatTracker() : null;
     this.fuzzyPrefixSearch = true;
 
@@ -86,7 +136,16 @@ export class ArchiveDB implements DBStore {
     }
   }
 
-  _initDB(db: any, oldV: number, newV: number | null, tx: any) {
+  _initDB(
+    db: IDBPDatabase<DBType>,
+    oldV: number,
+    _newV: number | null,
+    _tx?: IDBPTransaction<
+      DBType,
+      (keyof DBType)[],
+      "readwrite" | "versionchange"
+    >,
+  ) {
     if (!oldV) {
       const pageStore = db.createObjectStore("pages", { keyPath: "id" });
       pageStore.createIndex("url", "url");
@@ -109,13 +168,16 @@ export class ArchiveDB implements DBStore {
       //urlStore.createIndex("ts", "ts");
       urlStore.createIndex("mimeStatusUrl", ["mime", "status", "url"]);
 
+      // TODO @ikreymer `unique` isn't an option for `IDBDatabase#createObjectStore`, is `db` actually an `IDBPDatabase`?
+      // @ts-expect-error
       db.createObjectStore("payload", { keyPath: "digest", unique: true });
+      // @ts-expect-error -- same as above
       db.createObjectStore("digestRef", { keyPath: "digest", unique: true });
     }
   }
 
   async clearAll() {
-    const stores = ["pages", "resources", "payload", "digestRef"];
+    const stores = ["pages", "resources", "payload", "digestRef"] as const;
 
     if (!this.db) {
       return;
@@ -137,12 +199,16 @@ export class ArchiveDB implements DBStore {
     this.close();
     await deleteDB(this.name, {
       blocked(_, e) {
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         console.log("Unable to delete: " + e);
       },
     });
   }
 
-  async addPage(page: PageEntry, tx: any) {
+  async addPage(
+    page: PageEntry,
+    tx?: IDBPTransaction<DBType, [keyof DBType], "readwrite">,
+  ) {
     const url = page.url;
     const title = page.title || page.url;
     const id = page.id || this.newPageId();
@@ -163,41 +229,54 @@ export class ArchiveDB implements DBStore {
     const p = { ...page, url, ts, title, id, state };
 
     if (tx) {
-      tx.store.put(p);
+      void tx.store.put(p);
       return p.id;
     } else {
       return await this.db!.put("pages", p);
     }
   }
 
-  async addPages(pages: PageEntry[], pagesTable = "pages", update = false) {
+  async addPages(
+    pages: PageEntry[],
+    pagesTable: keyof DBType = "pages",
+    update = false,
+  ) {
     const tx = this.db!.transaction(pagesTable, "readwrite");
 
     for (const page of pages) {
       if (update) {
-        tx.store.put(page);
+        void tx.store.put(page);
       } else {
-        this.addPage(page, tx);
+        void this.addPage(page, tx);
       }
     }
 
     try {
       await tx.done;
-    } catch (e: any) {
-      console.warn("addPages tx", e.toString());
+    } catch (e) {
+      console.warn("addPages tx", String(e));
     }
   }
 
-  async createPageList(data: Record<string, any>) {
-    const listData: any = {};
-    listData.title = data.title;
-    listData.desc = data.desc || data.description;
-    listData.slug = data.id || data.slug;
-
+  async createPageList(data: {
+    title?: string;
+    desc?: string;
+    description?: string;
+    id?: string;
+    slug?: string;
+  }) {
+    const listData = {
+      title: data.title,
+      desc: data.desc || data.description,
+      slug: data.id || data.slug,
+    };
     return await this.db!.put("pageLists", listData);
   }
 
-  async addCuratedPageList(listInfo: Record<string, any>, pages: PageEntry[]) {
+  async addCuratedPageList(
+    listInfo: Record<string, unknown>,
+    pages: PageEntry[],
+  ) {
     const listId = await this.createPageList(listInfo);
 
     let pos = 0;
@@ -211,7 +290,7 @@ export class ArchiveDB implements DBStore {
   }
 
   async addCuratedPageLists(
-    pageLists: any[],
+    pageLists: { [k: string]: PageEntry[] | undefined }[],
     pageKey = "pages",
     filter = "public",
   ) {
@@ -226,7 +305,14 @@ export class ArchiveDB implements DBStore {
     }
   }
 
-  async convertCuratedPagesToV2(db: any) {
+  async convertCuratedPagesToV2(
+    db: IDBPDatabase<
+      DBType & {
+        pages: { key: string; value: { page?: PageEntry } & PageEntry };
+        curatedPages: { key: string; value: { page?: PageEntry } & PageEntry };
+      }
+    >,
+  ) {
     const curatedPages = await db.getAll("curatedPages");
 
     if (!curatedPages?.length) {
@@ -260,7 +346,7 @@ export class ArchiveDB implements DBStore {
     const tx = db.transaction("curatedPages", "readwrite");
 
     for (const cpage of curatedPages) {
-      tx.store.put(cpage);
+      void tx.store.put(cpage);
     }
 
     try {
@@ -276,7 +362,9 @@ export class ArchiveDB implements DBStore {
     const tx = this.db!.transaction("curatedPages", "readonly");
 
     for await (const cursor of tx.store.index("listPages").iterate()) {
-      const list = allLists[cursor.value.list - 1];
+      const list = allLists[cursor.value.list - 1] as
+        | (typeof allLists)[number]
+        | undefined;
       if (!list) {
         continue;
       }
@@ -299,9 +387,11 @@ export class ArchiveDB implements DBStore {
   }
 
   async getPages(pages: PageEntry[]) {
-    const results: string[] = [];
+    const results: PageEntry[] = [];
     pages.sort();
 
+    // TODO @ikreymer `matchAny` takes a `string[]`, but here we're passing it `PageEntry[]` — not sure what's happening here
+    // @ts-expect-error
     for await (const result of this.matchAny("pages", null, pages)) {
       results.push(result);
     }
@@ -328,23 +418,23 @@ export class ArchiveDB implements DBStore {
   }
 
   async addVerifyData(
-    prefix = "",
-    id: string,
-    expected: string,
-    actual: string | null = null,
-    log = false,
+    _prefix = "",
+    _id: string,
+    _expected: string,
+    _actual: string | null = null,
+    _log = false,
   ) {
     return;
   }
 
-  async addVerifyDataList(prefix: string, datalist: any[]) {
+  async addVerifyDataList(_prefix: string, _datalist: unknown[]) {
     return;
   }
 
   async dedupResource(
     digest: string,
     payload: Uint8Array | null | undefined,
-    tx: any,
+    tx: IDBPTransaction<DBType, (keyof DBType)[], "readwrite">,
     count = 1,
   ): Promise<DigestRefCount | null> {
     const digestRefStore = tx.objectStore("digestRef");
@@ -357,7 +447,7 @@ export class ArchiveDB implements DBStore {
       //return ref.count;
     } else if (payload) {
       try {
-        tx.objectStore("payload").put({ digest, payload });
+        void tx.objectStore("payload").put({ digest, payload });
         const size = payload.length;
         //digestRefStore.put({digest, count, size});
         return { digest, count, size };
@@ -421,7 +511,7 @@ export class ArchiveDB implements DBStore {
       const digestRefStore = dtx.objectStore("digestRef");
 
       for (const digest of changedDigests) {
-        digestRefStore.put(digestRefCount[digest]);
+        void digestRefStore.put(digestRefCount[digest]);
       }
     }
 
@@ -436,17 +526,17 @@ export class ArchiveDB implements DBStore {
 
     // First, add revisits
     for (const data of revisits) {
-      tx.store.put(data);
+      void tx.store.put(data);
     }
 
     // Then, add non-revisit errors and redirects, overriding any revisits
     for (const data of redirectsAndErrors) {
-      tx.store.put(data);
+      void tx.store.put(data);
     }
 
     // Then, add non-revisits success entries, overriding any previous entries
     for (const data of regulars) {
-      tx.store.put(data);
+      void tx.store.put(data);
     }
 
     try {
@@ -513,23 +603,23 @@ export class ArchiveDB implements DBStore {
     }
 
     if (data.mime !== REVISIT) {
-      tx.objectStore("resources").put(data);
+      void tx.objectStore("resources").put(data);
 
       const fuzzyUrlData = this.getFuzzyUrl(data);
 
       if (fuzzyUrlData) {
-        tx.objectStore("resources").put(fuzzyUrlData);
+        void tx.objectStore("resources").put(fuzzyUrlData);
         if (digestRefCount) {
           digestRefCount.count++;
         }
       }
     } else {
       // using add() to allow failing if non-revisit already exists
-      tx.objectStore("resources").add(data);
+      void tx.objectStore("resources").add(data);
     }
 
     if (digestRefCount) {
-      tx.objectStore("digestRef").put(digestRefCount);
+      void tx.objectStore("digestRef").put(digestRefCount);
     }
 
     try {
@@ -548,9 +638,9 @@ export class ArchiveDB implements DBStore {
 
   async getResource(
     request: ArchiveRequest,
-    prefix: string,
+    _prefix: string,
     event: FetchEvent,
-    opts: Record<string, any> = {},
+    opts: Opts = {},
   ): Promise<ArchiveResponse | Response | null> {
     const ts = tsToDate(request.timestamp).getTime();
     let url: string = request.url;
@@ -643,7 +733,7 @@ export class ArchiveDB implements DBStore {
     });
   }
 
-  async loadPayload(result: Record<string, any>, opts: Record<string, any>) {
+  async loadPayload(result: ResourceEntry, _opts: Opts) {
     if (result.digest && !result.payload) {
       if (
         result.digest === EMPTY_PAYLOAD_SHA256 ||
@@ -670,12 +760,14 @@ export class ArchiveDB implements DBStore {
         result.status >= 300 &&
         result.status < 400
       ) {
+        // TODO @ikreymer is `location` needed at all? It doesn't get used anywhere
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const location = new Headers(result.respHeaders).get("location");
         if (new URL(self.location.href, url).href === url) {
           return true;
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // just in case, ignore errors here, assume not self-redirect
     }
 
@@ -685,7 +777,7 @@ export class ArchiveDB implements DBStore {
   async lookupUrl(
     url: string,
     ts?: number,
-    opts: Record<string, any> = {},
+    opts: Opts = {},
   ): Promise<ResourceEntry | null> {
     const tx = this.db!.transaction("resources", "readonly");
 
@@ -703,7 +795,9 @@ export class ArchiveDB implements DBStore {
           return result;
         }
       } else {
-        let results = await tx.store.getAll(range, MAX_RESULTS);
+        let results = (await tx.store.getAll(range, MAX_RESULTS)) as
+          | ResourceEntry[]
+          | undefined;
         results = results || [];
 
         for (const result of results) {
@@ -750,7 +844,7 @@ export class ArchiveDB implements DBStore {
 
   async lookupQueryPrefix(
     url: string,
-    opts: Record<string, any>,
+    opts: Opts,
   ): Promise<ResourceEntry | null> {
     const { rule, prefix, fuzzyCanonUrl /*, fuzzyPrefix*/ } =
       fuzzyMatcher.getRuleFor(url);
@@ -810,19 +904,21 @@ export class ArchiveDB implements DBStore {
     const tx = this.db!.transaction("resources", "readonly");
 
     for await (const cursor of tx.store.iterate()) {
-      if (pageIds.includes(cursor.value.pageId)) {
+      if (pageIds.includes(cursor.value.pageId!)) {
         yield cursor.value;
       }
     }
   }
 
-  async *matchAny(
-    storeName: string,
-    indexName: string | null,
-    sortedKeys: any[],
+  async *matchAny<S extends keyof DBType>(
+    storeName: S,
+    indexName: DBType[S] extends { indexes: {} }
+      ? keyof DBType[S]["indexes"] | null
+      : null,
+    sortedKeys: string[],
     subKey?: number,
     openBound = false,
-  ): AsyncGenerator<any> {
+  ) {
     const tx = this.db!.transaction(storeName, "readonly");
 
     const range = IDBKeyRange.lowerBound(sortedKeys[0], openBound);
@@ -855,6 +951,8 @@ export class ArchiveDB implements DBStore {
         yield cursor.value;
         cursor = await cursor.continue();
       } else {
+        // TODO @emma-sg figure this out later
+        // @ts-expect-error
         cursor = await cursor.continue(sortedKeys[i]);
       }
     }
@@ -871,7 +969,7 @@ export class ArchiveDB implements DBStore {
     // if doing local mime filtering, need to remove count
     const queryCount = mimes ? 0 : count;
 
-    const fullResults: ResourceEntry[] = await this.db!.getAll(
+    const fullResults = await this.db!.getAll(
       "resources",
       this.getLookupRange(url, prefix ? "prefix" : "exact", fromUrl, fromTs),
       queryCount,
@@ -922,7 +1020,7 @@ export class ArchiveDB implements DBStore {
     for await (const result of this.matchAny(
       "resources",
       "mimeStatusUrl",
-      startKey,
+      startKey as unknown as string[],
       0,
       true,
     )) {
@@ -986,7 +1084,7 @@ export class ArchiveDB implements DBStore {
         size += cursor.value.payload.length;
       }
 
-      tx.store.delete(cursor.primaryKey);
+      void tx.store.delete(cursor.primaryKey);
 
       cursor = await cursor.continue();
     }
@@ -1005,11 +1103,11 @@ export class ArchiveDB implements DBStore {
       }
 
       if (ref && ref.count >= 1) {
-        digestRefStore.put(ref);
+        void digestRefStore.put(ref);
       } else {
         size += ref ? ref.size : 0;
-        digestRefStore.delete(digest);
-        tx2.objectStore("payload").delete(digest);
+        void digestRefStore.delete(digest);
+        void tx2.objectStore("payload").delete(digest);
       }
     }
 
@@ -1069,7 +1167,7 @@ export class ArchiveDB implements DBStore {
 class RepeatTracker {
   repeats: Record<string, Record<string, number>> = {};
 
-  getSkipCount(event: any, url: string, method: string) {
+  getSkipCount(event: FetchEvent, url: string, method: string) {
     if (method !== "POST" && !url.endsWith(".m3u8")) {
       return 0;
     }
@@ -1083,10 +1181,12 @@ class RepeatTracker {
       return 0;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (this.repeats[id] === undefined) {
       this.repeats[id] = {};
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (this.repeats[id][url] === undefined) {
       this.repeats[id][url] = 0;
     } else {

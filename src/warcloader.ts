@@ -421,7 +421,11 @@ class WARCLoader extends BaseParser {
     return null;
   }
 
-  async load(db: any, progressUpdate: any, totalSize: number) {
+  async load(db: any, progressUpdate: any, totalSize?: number | undefined) {
+    // TODO @ikreymer is this reasonable? unsure how this is used
+    if (totalSize == null) {
+      throw new Error("totalSize is required");
+    }
     this.db = db;
 
     const parser = new WARCParser(this.reader);

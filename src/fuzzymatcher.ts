@@ -15,7 +15,7 @@ type FuzzyRule = {
 
 type FuzzyResEntry = {
   url: string;
-  status: number;
+  status?: number | undefined;
   fuzzyMatchUrl?: string;
 };
 
@@ -179,7 +179,10 @@ export class FuzzyMatcher {
 
     for (const testRule of this.rules) {
       // very large URLs likely do not match any of our existing rules, so just skip
-      if (matchUrl.length < MAX_ARG_LEN * 4 && matchUrl.match(testRule.match)) {
+      if (
+        matchUrl.length < MAX_ARG_LEN * 4 &&
+        matchUrl.match(testRule.match!)
+      ) {
         rule = testRule;
         break;
       }
@@ -188,7 +191,7 @@ export class FuzzyMatcher {
     let fuzzyCanonUrl = reqUrl;
 
     if (rule?.fuzzyCanonReplace) {
-      fuzzyCanonUrl = reqUrl.replace(rule.match, rule.fuzzyCanonReplace);
+      fuzzyCanonUrl = reqUrl.replace(rule.match!, rule.fuzzyCanonReplace);
     }
 
     const split = rule?.split || "?";
@@ -201,6 +204,7 @@ export class FuzzyMatcher {
   }
 
   getFuzzyCanonsWithArgs(reqUrl: string) {
+    // eslint-disable-next-line prefer-const
     let { fuzzyCanonUrl, prefix, rule } = this.getRuleFor(reqUrl);
 
     if (fuzzyCanonUrl === reqUrl) {
@@ -280,7 +284,7 @@ export class FuzzyMatcher {
 
     try {
       reqUrl = new URL(reqUrlStr);
-    } catch (e) {
+    } catch (_e) {
       return null;
     }
 
@@ -302,7 +306,7 @@ export class FuzzyMatcher {
 
       try {
         url = new URL(result.fuzzyMatchUrl || result.url);
-      } catch (e) {
+      } catch (_e) {
         continue;
       }
 
@@ -312,8 +316,8 @@ export class FuzzyMatcher {
       total /= 2.0;
 
       // lower total score for status >200
-      if (result.status > 200) {
-        total *= 10 ** ((200 - result.status) * 0.0001);
+      if (result.status! > 200) {
+        total *= 10 ** ((200 - result.status!) * 0.0001);
       }
 
       //console.log('total: ' + total + ' ' + url.href + ' <=> ' + reqUrl);
@@ -341,6 +345,7 @@ export class FuzzyMatcher {
 
     const keySets: KeySets = {};
 
+    // eslint-disable-next-line prefer-const
     for (let [key, value] of reqQuery) {
       let foundValue = foundQuery.get(key);
 
@@ -380,6 +385,7 @@ export class FuzzyMatcher {
 
       if (foundValue === value) {
         score += weight * value.length;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       } else if (foundValue === null || value === null) {
         score += 0.0;
       } else if (!isNaN(numValue) && !isNaN(numFoundValue)) {
@@ -390,7 +396,7 @@ export class FuzzyMatcher {
           const fQ = jsonToQueryParams(foundValue);
 
           score += this.getMatch(rQ, fQ) * weight * 2;
-        } catch (e) {
+        } catch (_e) {
           score += 0.5 * weight * this.levScore(value, foundValue);
         }
       } else {
@@ -439,6 +445,7 @@ export class FuzzyMatcher {
     const valueNoQ = valueQ > 0 ? value.slice(0, valueQ) : value;
     const foundNoQ = foundQ > 0 ? foundValue.slice(0, foundQ) : foundValue;
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!keySets[keyBase]) {
       keySets[keyBase] = { value: [], found: new Set() };
     }
