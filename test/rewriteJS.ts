@@ -8,8 +8,8 @@ const rewriteJS = test.macro({
     t,
     content: string,
     expected: string,
-    useBaseRules = false,
-    url = "https://example.com/some/path/index.html",
+    useBaseRules: boolean | undefined = false,
+    url: string | undefined = "https://example.com/some/path/index.html",
   ): Promise<void> {
     const { text: actual } = await doRewrite({
       content,
@@ -32,7 +32,12 @@ const rewriteJS = test.macro({
 
 // ===========================================================================
 const rewriteJSWrapped = test.macro({
-  async exec(t, content: string, expected: string, useBaseRules = false) {
+  async exec(
+    t,
+    content: string,
+    expected: string,
+    useBaseRules: boolean | undefined = false,
+  ) {
     const { text: actual } = await doRewrite({
       content,
       contentType: "application/javascript",
@@ -53,7 +58,12 @@ const rewriteJSWrapped = test.macro({
 
 // ===========================================================================
 const rewriteJSImport = test.macro({
-  async exec(t, content: string, expected: string, useBaseRules = false) {
+  async exec(
+    t,
+    content: string,
+    expected: string,
+    useBaseRules: boolean | undefined = false,
+  ) {
     const { text: actual } = await doRewrite({
       content,
       contentType: "application/javascript",
@@ -94,7 +104,7 @@ let arguments;
   );
 }
 
-function wrapImport(text) {
+function wrapImport(text: string) {
   return `\
 import { window, globalThis, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010mp_/__wb_module_decl.js";
 ${text}`;

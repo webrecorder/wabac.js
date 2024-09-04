@@ -207,7 +207,7 @@ export class ArchiveDB implements DBStore {
 
   async addPage(
     page: PageEntry,
-    tx?: IDBPTransaction<DBType, [keyof DBType], "readwrite">,
+    tx?: IDBPTransaction<DBType, [keyof DBType], "readwrite"> | null,
   ) {
     const url = page.url;
     const title = page.title || page.url;
@@ -313,7 +313,11 @@ export class ArchiveDB implements DBStore {
       }
     >,
   ) {
-    const curatedPages = await db.getAll("curatedPages");
+    const curatedPages = (await db.getAll("curatedPages")) as
+      | (PageEntry & {
+          page?: PageEntry;
+        })[]
+      | null;
 
     if (!curatedPages?.length) {
       return;
@@ -404,7 +408,7 @@ export class ArchiveDB implements DBStore {
     const range = IDBKeyRange.bound([url], [url, MAX_DATE_TS]);
     const results: string[] = [];
     for await (const cursor of tx.store.iterate(range)) {
-      results.push((cursor.key as string[])[1]);
+      results.push((cursor.key as string[])[1]!);
     }
     return results;
   }
@@ -441,7 +445,7 @@ export class ArchiveDB implements DBStore {
     const ref = await digestRefStore.get(digest);
 
     if (ref) {
-      ++ref.count;
+      ++ref.count!;
       return ref;
       //digestRefStore.put(ref);
       //return ref.count;
@@ -500,7 +504,7 @@ export class ArchiveDB implements DBStore {
             refCount,
           );
         } else {
-          currDigest.count += refCount;
+          currDigest.count! += refCount;
           changedDigests.add(data.digest);
         }
         delete data.payload;
@@ -511,7 +515,7 @@ export class ArchiveDB implements DBStore {
       const digestRefStore = dtx.objectStore("digestRef");
 
       for (const digest of changedDigests) {
-        void digestRefStore.put(digestRefCount[digest]);
+        void digestRefStore.put(digestRefCount[digest]!);
       }
     }
 
@@ -610,7 +614,7 @@ export class ArchiveDB implements DBStore {
       if (fuzzyUrlData) {
         void tx.objectStore("resources").put(fuzzyUrlData);
         if (digestRefCount) {
-          digestRefCount.count++;
+          digestRefCount.count!++;
         }
       }
     } else {
@@ -933,12 +937,12 @@ export class ArchiveDB implements DBStore {
       let currKey, matchKey, matches;
 
       if (subKey !== undefined) {
-        currKey = (cursor.key as string[])[subKey];
-        matchKey = sortedKeys[i][subKey];
+        currKey = (cursor.key as string[])[subKey]!;
+        matchKey = sortedKeys[i]![subKey]!;
         matches = currKey.startsWith(matchKey);
       } else {
         currKey = cursor.key;
-        matchKey = sortedKeys[i];
+        matchKey = sortedKeys[i]!;
         matches = currKey === matchKey;
       }
 
@@ -1099,10 +1103,10 @@ export class ArchiveDB implements DBStore {
       const ref = await digestRefStore.get(digest);
 
       if (ref) {
-        ref.count -= digestSet[digest];
+        ref.count! -= digestSet[digest]!;
       }
 
-      if (ref && ref.count >= 1) {
+      if (ref && ref.count! >= 1) {
         void digestRefStore.put(ref);
       } else {
         size += ref ? ref.size : 0;
@@ -1181,12 +1185,10 @@ class RepeatTracker {
       return 0;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (this.repeats[id] === undefined) {
       this.repeats[id] = {};
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (this.repeats[id][url] === undefined) {
       this.repeats[id][url] = 0;
     } else {
