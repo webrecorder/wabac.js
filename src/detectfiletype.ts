@@ -83,6 +83,8 @@ export async function detectFileType(response: Response) {
     }
   }
   if (!done) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     reader.cancel();
   }
   return fileType;

@@ -16,7 +16,7 @@ async function extractText(
   url: string,
   buffer: Uint8Array,
   ce: string | null,
-  te: string | null
+  te: string | null,
 ) {
   const parser = new SAXParser();
   const textChunks: string[] = [];

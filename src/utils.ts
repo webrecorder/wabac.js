@@ -78,12 +78,16 @@ export function tsToSec(ts: string) {
 }
 
 export function getSecondsStr(date: Date) {
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!date) {
     return "";
   }
 
   try {
     return "" + date.getTime() / 1000;
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     return "";
   }
@@ -97,7 +101,7 @@ export function base16(hashBuffer: ArrayBuffer) {
 export async function digestMessage(
   message: string | Uint8Array,
   hashtype: string,
-  prefix: string | null = null
+  prefix: string | null = null,
 ) {
   const msgUint8 =
     typeof message === "string" ? new TextEncoder().encode(message) : message;
@@ -110,6 +114,8 @@ export async function digestMessage(
 
 export function decodeLatin1(buf: Uint8Array) {
   let str = "";
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/prefer-for-of
   for (let i = 0; i < buf.length; i++) {
     // @ts-expect-error [TODO] - TS2345 - Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
     str += String.fromCharCode(buf[i]);
@@ -134,10 +140,12 @@ export function randomId() {
 }
 
 export function makeHeaders(
-  headers: Headers | Record<string, string> | Map<string, string>
+  headers: Headers | Record<string, string> | Map<string, string>,
 ) {
   try {
     return new Headers(headers as Headers);
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     // try to sanitize the headers, if any errors
     if (typeof headers === "object") {
@@ -198,6 +206,8 @@ export function isNullBodyStatus(status: number) {
 export function getStatusText(status: number) {
   try {
     return getReasonPhrase(status);
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     return "Unknown Status";
   }
@@ -210,6 +220,8 @@ export function isAjaxRequest(request: ArchiveRequest | Request) {
 
   if (request.mode === "cors") {
     // if 'mod' is esm_, then likely a module import
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (request.destination === "script" && (request as any).mod === "esm_") {
       return false;
     }
@@ -219,6 +231,8 @@ export function isAjaxRequest(request: ArchiveRequest | Request) {
   return false;
 }
 
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function handleAuthNeeded(e: any, config: any) {
   if (e instanceof AuthNeededError) {
     //const client = await self.clients.get(event.clientId || event.resultingClientId);
@@ -271,6 +285,8 @@ export function notFound(request: Request, msg?: string, status = 404) {
   return new Response(content, initOpt);
 }
 
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getCollData(coll: any) {
   const metadata = coll.config.metadata ? coll.config.metadata : {};
 
@@ -292,11 +308,15 @@ export function getCollData(coll: any) {
     res.ipfsPins = metadata.ipfsPins;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return res;
 }
 
 // ===========================================================================
 export class RangeError {
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   info: Record<string, any>;
 
   constructor(info = {}) {

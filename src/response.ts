@@ -18,6 +18,8 @@ type ArchiveResponseOpts = {
   headers: Headers;
   url: string;
   date: Date;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extraOpts?: Record<string, any> | null;
   noRW?: boolean;
   isLive?: boolean;
@@ -45,7 +47,7 @@ class ArchiveResponse {
       ? new AsyncIterReader(response.body.getReader(), null, false)
       : null;
     const status = Number(
-      response.headers.get("x-redirect-status") || response.status
+      response.headers.get("x-redirect-status") || response.status,
     );
     const statusText =
       response.headers.get("x-redirect-statusText") || response.statusText;
@@ -124,6 +126,8 @@ class ArchiveResponse {
   statusText: string;
   url: string;
   date: Date;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extraOpts: Record<string, any> | null;
   headers: Headers;
   noRW: boolean;
@@ -223,6 +227,8 @@ class ArchiveResponse {
     if (reader instanceof BaseAsyncIterReader) {
       this.reader = reader;
       this.buffer = null;
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     } else if (reader.getReader) {
       this.reader = new AsyncIterReader(reader.getReader());
       this.buffer = null;
@@ -298,6 +304,8 @@ class ArchiveResponse {
     if (this.buffer) {
       this.buffer = this.buffer.slice(start, end + 1);
     } else if (this.reader) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!(this.reader instanceof LimitReader) || !this.reader.setLimitSkip) {
         return false;
       }
@@ -334,6 +342,8 @@ class ArchiveResponse {
       headers: this.headers,
     });
     // slightly hacky
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (response as any).date = this.date;
     if (coHeaders) {
       response.headers.set("Cross-Origin-Opener-Policy", "same-origin");

@@ -23,7 +23,7 @@ const GLOBAL_OVERRIDES = [
 ];
 
 const GLOBALS_CONCAT_STR = GLOBAL_OVERRIDES.map(
-  (x) => `(?:^|[^$.])\\b${x}\\b(?:$|[^$])`
+  (x) => `(?:^|[^$.])\\b${x}\\b(?:$|[^$])`,
 ).join("|");
 
 const GLOBALS_RX = new RegExp(`(${GLOBALS_CONCAT_STR})`);
@@ -71,9 +71,11 @@ const createJSRules: () => Rule[] = () => {
   function addSuffix(suffix: string) {
     return (
       x: string,
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       _opts: Record<string, any>,
       offset: number,
-      str: string
+      str: string,
     ) => {
       if (offset > 0) {
         const prev = str[offset - 1];
@@ -86,6 +88,8 @@ const createJSRules: () => Rule[] = () => {
   }
 
   function replaceThis() {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
     return (x: string, _opts: any, offset: number, fullString: string) => {
       if (isInString(x, offset)) {
         return x;
@@ -101,9 +105,11 @@ const createJSRules: () => Rule[] = () => {
   function replaceThisProp() {
     return (
       x: string,
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       _opts: Record<string, any>,
       offset: number,
-      str: string
+      str: string,
     ) => {
       const firstChar = str[offset];
       if (firstChar === "\n") {
@@ -117,6 +123,8 @@ const createJSRules: () => Rule[] = () => {
   }
 
   function replaceImport(src: string, target: string) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (x: string, opts: Record<string, any>) => {
       let res = x.replace(src, target);
       // if not module, add empty string, otherwise, import.meta.url
@@ -153,7 +161,7 @@ const createJSRules: () => Rule[] = () => {
     // if prev char is '\n', or if prev is not '.' or '$', no semi
     [
       new RegExp(
-        `[^$.]\\s?\\bthis\\b(?=(?:\\.(?:${GLOBAL_OVERRIDES.join("|")})\\b))`
+        `[^$.]\\s?\\bthis\\b(?=(?:\\.(?:${GLOBAL_OVERRIDES.join("|")})\\b))`,
       ),
       replaceThisProp(),
     ],
@@ -236,6 +244,8 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     const excludeOverrides = new Set();
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const expr of (res as any).body) {
       const { type } = expr;
       // Check global variable declarations
@@ -250,6 +260,8 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
           ) {
             const name = decl.id.name;
 
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             if (GLOBAL_OVERRIDES.includes(name)) {
               excludeOverrides.add(name);
             } else if (kind === "const" || kind === "let") {
@@ -279,7 +291,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     if (excludeOverrides.size) {
       const filteredGlobals = GLOBAL_OVERRIDES.filter(
-        (x) => !excludeOverrides.has(x)
+        (x) => !excludeOverrides.has(x),
       );
       this.firstBuff = this.initLocalDecl(filteredGlobals);
     }
@@ -297,7 +309,11 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
   }
 
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'RxRewriter'.
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rewrite(text: string, opts: Record<string, any>) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     opts = opts || {};
     // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule']. | TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
     if (opts.isModule === undefined || opts.isModule === null) {
@@ -312,6 +328,8 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       rules = [...rules, this.getESMImportRule()];
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
     if (this.extraRules && this.extraRules.length) {
       this.rules = [...rules, ...this.extraRules];
     } else {
@@ -325,6 +343,8 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
     if (opts.isModule) {
       // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) + newText;
     }
 
@@ -340,6 +360,8 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       if (newText) {
         try {
           hoistGlobals = this.parseGlobals(newText);
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           console.warn(`acorn parsing failed, script len ${newText.length}`);
         }
@@ -357,6 +379,8 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
   getESMImportRule(): Rule {
     // mark as module side-effect + rewrite if http[s] url
     function rewriteImport() {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (x: string, opts: Record<string, any>) => {
         // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
         const prefix = opts.prefix.replace("mp_/", "esm_/");
@@ -364,11 +388,17 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
         return x.replace(IMPORT_HTTP_RX, (_, g1, g2, g3) => {
           try {
             // @ts-expect-error [TODO] - TS4111 - Property 'baseUrl' comes from an index signature, so it must be accessed with ['baseUrl'].
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             g2 = new URL(g2, opts.baseUrl).href;
             g2 = prefix + g2;
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (e) {
             // ignore, keep same url
           }
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
           return g1 + g2 + g3;
         });
       };

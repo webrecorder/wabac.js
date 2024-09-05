@@ -13,6 +13,8 @@ import { type DigestRefCount } from "../src/types.js";
 
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 if (!global.crypto) {
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (global as any).crypto = crypto;
 }
 
@@ -136,35 +138,35 @@ test("Lookup Url Exact Ts", async (t) => {
   // exact
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("202003040506")),
-    URL_DATA[0]
+    URL_DATA[0],
   );
 
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("202103040506")),
-    URL_DATA[3]
+    URL_DATA[3],
   );
 });
 
 test("Lookup Url Closest Ts After", async (t) => {
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("2015")),
-    URL_DATA[0]
+    URL_DATA[0],
   );
 
   // matches next timestamp after
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("202003040507")),
-    URL_DATA[3]
+    URL_DATA[3],
   );
 
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("20210101")),
-    URL_DATA[3]
+    URL_DATA[3],
   );
 
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("2030")),
-    URL_DATA[3]
+    URL_DATA[3],
   );
 });
 

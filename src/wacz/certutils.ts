@@ -25,7 +25,11 @@ type VerifySigData = {
 
 type VerifyResult = {
   id: string;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   expected: any;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-redundant-type-constituents
   matched: any | null;
 };
 
@@ -50,11 +54,11 @@ export async function verifyWACZSignature({
 
     const certBuffer = decodeBase64(
       // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
-      certs[0].replace(SPLIT_PEM, "").replace(/\s/gm, "")
+      certs[0].replace(SPLIT_PEM, "").replace(/\s/gm, ""),
     );
 
     const fingerprint = base16(
-      await crypto.subtle.digest("SHA-256", certBuffer)
+      await crypto.subtle.digest("SHA-256", certBuffer),
     );
     results.push({
       id: "certFingerprint",
@@ -67,7 +71,7 @@ export async function verifyWACZSignature({
     publicKeyCrypto = await cert.publicKey.export();
 
     const publicKeyEncoded = encodeBase64(
-      new Uint8Array(cert.publicKey.rawData)
+      new Uint8Array(cert.publicKey.rawData),
     );
     results.push({
       id: "publicKey",
@@ -75,6 +79,8 @@ export async function verifyWACZSignature({
       matched: null,
     });
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     if (cert.subject && cert.subject.startsWith("CN=")) {
       domainActual = cert.subject.substring(3);
     }
@@ -93,7 +99,7 @@ export async function verifyWACZSignature({
       decodeBase64(publicKey),
       ecdsaImportParams,
       true,
-      ["verify"]
+      ["verify"],
     );
   }
 
@@ -108,7 +114,7 @@ export async function verifyWACZSignature({
     ecdsaSignParams,
     publicKeyCrypto,
     signatureBuff,
-    encoder.encode(hash)
+    encoder.encode(hash),
   );
 
   results.push({ id: "signature", expected: true, matched: sigValid });
@@ -128,6 +134,8 @@ export async function verifyWACZSignature({
   return results;
 }
 
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function parseASN1Signature(signature: Uint8Array) {
   // extract r|s values from asn1
   try {

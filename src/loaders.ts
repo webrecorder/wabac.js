@@ -32,16 +32,24 @@ import {
 import { detectFileType, getKnownFileExtension } from "./detectfiletype";
 import { type ArchiveLoader, type DBStore } from "./types";
 
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 if (!globalThis.self) {
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (globalThis as any).self = globalThis;
 }
 
 const interruptLoads: Record<string, () => void> = {};
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).interruptLoads = interruptLoads;
 
 export type LoadColl = {
   name?: string;
   type: string;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: Record<string, any>;
   store?: DBStore;
 };
@@ -51,9 +59,13 @@ export type CollConfig = {
   dbname?: string;
 
   sourceUrl: string;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extraConfig?: Record<string, any>;
 
   topTemplateUrl?: string;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata: Record<string, any>;
 
   type: string;
@@ -104,9 +116,13 @@ export class CollectionLoader {
     try {
       const allColls = await this.listAll();
 
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
       const promises = allColls.map(async (data) => this._initColl(data));
 
       await Promise.all(promises);
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       console.warn(e.toString());
     }
@@ -116,6 +132,8 @@ export class CollectionLoader {
 
   async listAll() {
     await this._init_db;
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return await this.colldb!.getAll("colls");
   }
 
@@ -126,10 +144,14 @@ export class CollectionLoader {
       return null;
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
     return await this._initColl(data);
   }
 
   async reload(name: string) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.loadColl(name);
   }
 
@@ -142,10 +164,14 @@ export class CollectionLoader {
 
     if (data.config.dbname) {
       try {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         await deleteDB(data.config.dbname, {
           blocked(_, e) {
             console.log(
-              `Unable to delete ${data.config.dbname}, blocked: ${e}`
+              // [TODO]
+              // eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
+              `Unable to delete ${data.config.dbname}, blocked: ${e}`,
             );
           },
         });
@@ -180,6 +206,8 @@ export class CollectionLoader {
     data.config.metadata = { ...data.config.metadata, ...newMetadata };
 
     await this.colldb!.put("colls", data);
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return data.config.metadata;
   }
 
@@ -187,7 +215,7 @@ export class CollectionLoader {
     name: string,
     fullSize: number,
     dedupSize: number,
-    decodeUpdate?: boolean
+    decodeUpdate?: boolean,
   ) {
     await this._init_db;
     const data = await this.colldb!.get("colls", name);
@@ -205,13 +233,17 @@ export class CollectionLoader {
       data.config.decode = decodeUpdate;
     }
     await this.colldb!.put("colls", data);
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return metadata;
   }
 
   async initNewColl(
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     metadata: Record<string, any>,
     extraConfig = {},
-    type = "archive"
+    type = "archive",
   ) {
     await this._init_db;
     const id = randomId();
@@ -235,9 +267,13 @@ export class CollectionLoader {
 
     const coll = await this._initColl(data);
     await this.colldb!.put("colls", data);
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return coll;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async _initColl(data: LoadColl): Promise<any> {
     const store = await this._initStore(data.type || "", data.config);
 
@@ -252,6 +288,8 @@ export class CollectionLoader {
     return this._createCollection({ name, store, config });
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async _initStore(type: string, config: Record<string, any>) {
     let sourceLoader: BaseLoader;
     let store: DBStore | null = null;
@@ -259,6 +297,8 @@ export class CollectionLoader {
     switch (type) {
       case "archive":
         // @ts-expect-error [TODO] - TS4111 - Property 'dbname' comes from an index signature, so it must be accessed with ['dbname'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         store = new ArchiveDB(config.dbname);
         break;
 
@@ -275,23 +315,35 @@ export class CollectionLoader {
         });
         store = new RemoteSourceArchiveDB(
           // @ts-expect-error [TODO] - TS4111 - Property 'dbname' comes from an index signature, so it must be accessed with ['dbname'].
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           config.dbname,
           sourceLoader,
           // @ts-expect-error [TODO] - TS4111 - Property 'noCache' comes from an index signature, so it must be accessed with ['noCache'].
-          config.noCache
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          config.noCache,
         );
         break;
 
       case "remoteprefix":
         store = new RemotePrefixArchiveDB(
           // @ts-expect-error [TODO] - TS4111 - Property 'dbname' comes from an index signature, so it must be accessed with ['dbname'].
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           config.dbname,
           // @ts-expect-error [TODO] - TS4111 - Property 'remotePrefix' comes from an index signature, so it must be accessed with ['remotePrefix'].
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           config.remotePrefix,
           // @ts-expect-error [TODO] - TS4111 - Property 'headers' comes from an index signature, so it must be accessed with ['headers'].
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           config.headers,
           // @ts-expect-error [TODO] - TS4111 - Property 'noCache' comes from an index signature, so it must be accessed with ['noCache'].
-          config.noCache
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          config.noCache,
         );
         break;
 
@@ -310,7 +362,7 @@ export class CollectionLoader {
           // @ts-expect-error [TODO] - TS2345 - Argument of type 'Record<string, any>' is not assignable to parameter of type 'Config'.
           config,
           sourceLoader,
-          type === "multiwacz" ? "json" : "wacz"
+          type === "multiwacz" ? "json" : "wacz",
         );
         break;
 
@@ -320,6 +372,8 @@ export class CollectionLoader {
 
       case "live":
         // @ts-expect-error [TODO] - TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         store = new LiveProxy(config.extraConfig);
         break;
     }
@@ -329,6 +383,8 @@ export class CollectionLoader {
       return null;
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises, @typescript-eslint/no-unnecessary-condition
     if ((store as ArchiveDB).initing) {
       await (store as ArchiveDB).initing;
     }
@@ -336,6 +392,8 @@ export class CollectionLoader {
     return store;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _createCollection(opts: Record<string, any>) {
     return opts;
   }
@@ -355,10 +413,14 @@ export class WorkerLoader extends CollectionLoader {
   }
 
   registerListener(worker: WorkerGlobalScope) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     worker.addEventListener("message", (event: any) => {
       if (event.waitUntil) {
         event.waitUntil(this._handleMessage(event as MessageEvent));
       } else {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises, @typescript-eslint/no-unsafe-argument
         this._handleMessage(event);
       }
     });
@@ -379,7 +441,7 @@ export class WorkerLoader extends CollectionLoader {
           currentSize?: number | null,
           totalSize?: number | null,
           fileHandle = null,
-          extraMsg = null
+          extraMsg = null,
         ) => {
           client.postMessage({
             msg_type: "collProgress",
@@ -396,13 +458,21 @@ export class WorkerLoader extends CollectionLoader {
         let res;
 
         try {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           res = await this.colldb!.get("colls", name);
           if (res) {
             if (!event.data.skipExisting) {
+              // [TODO]
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
               await this.deleteColl(name);
+              // [TODO]
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
               res = await this.addCollection(event.data, progressUpdate);
             }
           } else {
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             res = await this.addCollection(event.data, progressUpdate);
           }
 
@@ -412,7 +482,9 @@ export class WorkerLoader extends CollectionLoader {
                 await deleteDB("db:" + event.data.name, {
                   blocked(_, e) {
                     console.log(
-                      `Load failed and unable to delete ${event.data.name}: ${e}`
+                      // [TODO]
+                      // eslint-disable-next-line @typescript-eslint/no-base-to-string, @typescript-eslint/restrict-template-expressions
+                      `Load failed and unable to delete ${event.data.name}: ${e}`,
                     );
                   },
                 });
@@ -422,6 +494,8 @@ export class WorkerLoader extends CollectionLoader {
             }
             return;
           }
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {
           if (e instanceof AuthNeededError) {
             console.warn(e);
@@ -430,13 +504,16 @@ export class WorkerLoader extends CollectionLoader {
               "permission_needed",
               null,
               null,
-              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
               // @ts-expect-error [TODO] - TS4111 - Property 'fileHandle' comes from an index signature, so it must be accessed with ['fileHandle'].
-              e.info?.fileHandle
+              // [TODO]
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-condition
+              e.info?.fileHandle,
             );
             return;
           } else if (e.name === "ConstraintError") {
             console.log("already being added, just continue...");
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             res = await this.colldb!.get("colls", name);
           } else {
             console.warn(e);
@@ -444,7 +521,7 @@ export class WorkerLoader extends CollectionLoader {
               0,
               "An unexpected error occured: " + e.toString(),
               null,
-              null
+              null,
             );
             return;
           }
@@ -464,11 +541,13 @@ export class WorkerLoader extends CollectionLoader {
         const name = event.data.name;
 
         const p = new Promise<void>(
-          (resolve) => (interruptLoads[name] = resolve)
+          (resolve) => (interruptLoads[name] = resolve),
         );
 
         await p;
 
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         await this.deleteColl(name);
 
         delete interruptLoads[name];
@@ -479,26 +558,38 @@ export class WorkerLoader extends CollectionLoader {
       case "removeColl": {
         const name = event.data.name;
 
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         if (await this.hasCollection(name)) {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           await this.deleteColl(name);
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
           this.doListAll(client);
         }
         break;
       }
 
       case "listAll":
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
         this.doListAll(client);
         break;
 
       case "reload":
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises, @typescript-eslint/no-unsafe-argument
         this.reload(event.data.name);
         break;
     }
   }
 
   async doListAll(
-    client: (WorkerGlobalScope & typeof globalThis) | MessageEventSource
+    client: (WorkerGlobalScope & typeof globalThis) | MessageEventSource,
   ) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const msgData: Record<string, any>[] = [];
     const allColls = await this.listAll();
 
@@ -516,17 +607,25 @@ export class WorkerLoader extends CollectionLoader {
   }
 
   async addCollection(
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: Record<string, any>,
-    progressUpdate: any
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    progressUpdate: any,
   ): Promise<LoadColl | false> {
     // @ts-expect-error [TODO] - TS4111 - Property 'name' comes from an index signature, so it must be accessed with ['name'].
     let name = data.name;
 
     let type = "";
     // @ts-expect-error [TODO] - TS4111 - Property 'root' comes from an index signature, so it must be accessed with ['root'].
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: Record<string, any> = { root: data.root || false };
     let generalDB: DBStore | null = null;
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let updateExistingConfig: Record<string, any> | null = null;
 
     // @ts-expect-error [TODO] - TS4111 - Property 'file' comes from an index signature, so it must be accessed with ['file'].
@@ -572,11 +671,13 @@ export class WorkerLoader extends CollectionLoader {
       type = "archive";
 
       if (file.newFullImport && file.importCollId) {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const existing = await this.colldb!.get("colls", file.importCollId);
         if (!existing || existing.type !== "archive") {
           progressUpdate(
             0,
-            "Invalid Existing Collection: " + file.importCollId
+            "Invalid Existing Collection: " + file.importCollId,
           );
           return false;
         }
@@ -592,6 +693,8 @@ export class WorkerLoader extends CollectionLoader {
       let loadUrl = file.loadUrl || file.sourceUrl;
 
       if (!loadUrl.match(/[\w]+:\/\//)) {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         loadUrl = new URL(loadUrl, self.location.href).href;
       }
 
@@ -612,17 +715,21 @@ export class WorkerLoader extends CollectionLoader {
         // @ts-expect-error [TODO] - TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName'].
         if (config.sourceName.match(/https?:\/\//)) {
           // @ts-expect-error [TODO] - TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName'].
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           const sourceUrl = new URL(config.sourceName);
           // @ts-expect-error [TODO] - TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName'].
           config.sourceName = sourceUrl.pathname + sourceUrl.hash;
         }
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         // ignore, keep sourceName as is
       }
       // @ts-expect-error [TODO] - TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName']. | TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName'].
       config.sourceName = config.sourceName.slice(
         // @ts-expect-error [TODO] - TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName'].
-        config.sourceName.lastIndexOf("/") + 1
+        config.sourceName.lastIndexOf("/") + 1,
       );
 
       // @ts-expect-error [TODO] - TS4111 - Property 'size' comes from an index signature, so it must be accessed with ['size'].
@@ -633,6 +740,8 @@ export class WorkerLoader extends CollectionLoader {
       // @ts-expect-error [TODO] - TS4111 - Property 'loadUrl' comes from an index signature, so it must be accessed with ['loadUrl']. | TS4111 - Property 'extra' comes from an index signature, so it must be accessed with ['extra'].
       if (config.loadUrl.startsWith("file://") && !file.blob && !config.extra) {
         // @ts-expect-error [TODO] - TS4111 - Property 'sourceUrl' comes from an index signature, so it must be accessed with ['sourceUrl'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
         if (this._fileHandles && this._fileHandles[config.sourceUrl]) {
           // @ts-expect-error [TODO] - TS4111 - Property 'extra' comes from an index signature, so it must be accessed with ['extra']. | TS4111 - Property 'sourceUrl' comes from an index signature, so it must be accessed with ['sourceUrl'].
           config.extra = { fileHandle: this._fileHandles[config.sourceUrl] };
@@ -678,12 +787,14 @@ export class WorkerLoader extends CollectionLoader {
 
       let sourceExt: string | undefined = getKnownFileExtension(
         // @ts-expect-error [TODO] - TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName'].
-        config.sourceName
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        config.sourceName,
       );
 
       const { abort, response } = await sourceLoader.doInitialFetch(
         sourceExt === ".wacz",
-        false
+        false,
       );
 
       if (!sourceExt) {
@@ -707,7 +818,7 @@ Sorry, this URL could not be loaded.
 Make sure this is a valid URL and you have access to this file.
 Status: ${response.status} ${response.statusText}
 Error Details:
-${text}`
+${text}`,
         );
         if (abort) {
           abort.abort();
@@ -720,7 +831,7 @@ ${text}`
           0,
           `\
 Sorry, this URL could not be loaded because the size of the file is not accessible.
-Make sure this is a valid URL and you have access to this file.`
+Make sure this is a valid URL and you have access to this file.`,
         );
         if (abort) {
           abort.abort();
@@ -733,6 +844,8 @@ Make sure this is a valid URL and you have access to this file.`
       if (sourceExt === ".wacz") {
         // @ts-expect-error [TODO] - TS4111 - Property 'onDemand' comes from an index signature, so it must be accessed with ['onDemand'].
         if (config.onDemand) {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           loader = new SingleWACZLoader(sourceLoader, config, name);
           // @ts-expect-error [TODO] - TS2345 - Argument of type 'Record<string, any>' is not assignable to parameter of type 'Config'.
           db = new MultiWACZ(config, sourceLoader, "wacz");
@@ -740,6 +853,8 @@ Make sure this is a valid URL and you have access to this file.`
 
           // can load on demand, but want a full import
         } else if (sourceLoader.canLoadOnDemand && file.newFullImport) {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           loader = new SingleWACZFullImportLoader(sourceLoader, config, name);
           //use default db
           db = null;
@@ -748,7 +863,7 @@ Make sure this is a valid URL and you have access to this file.`
         } else {
           progressUpdate(
             0,
-            "Sorry, can't load this WACZ file due to lack of range request support on the server"
+            "Sorry, can't load this WACZ file due to lack of range request support on the server",
           );
           if (abort) {
             abort.abort();
@@ -765,16 +880,24 @@ Make sure this is a valid URL and you have access to this file.`
           // @ts-expect-error [TODO] - TS4111 - Property 'onDemand' comes from an index signature, so it must be accessed with ['onDemand'].
           (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand)
         ) {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           loader = new WARCLoader(stream, abort, name);
         } else {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           loader = new CDXFromWARCLoader(stream, abort, name);
           type = "remotesource";
           db = new RemoteSourceArchiveDB(
             // @ts-expect-error [TODO] - TS4111 - Property 'dbname' comes from an index signature, so it must be accessed with ['dbname'].
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             config.dbname,
             sourceLoader,
             // @ts-expect-error [TODO] - TS4111 - Property 'noCache' comes from an index signature, so it must be accessed with ['noCache'].
-            config.noCache
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            config.noCache,
           );
         }
       } else if (stream && (sourceExt === ".cdx" || sourceExt === ".cdxj")) {
@@ -782,17 +905,27 @@ Make sure this is a valid URL and you have access to this file.`
         config.remotePrefix =
           // @ts-expect-error [TODO] - TS4111 - Property 'remotePrefix' comes from an index signature, so it must be accessed with ['remotePrefix'].
           data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         loader = new CDXLoader(stream, abort, name);
         type = "remoteprefix";
         db = new RemotePrefixArchiveDB(
           // @ts-expect-error [TODO] - TS4111 - Property 'dbname' comes from an index signature, so it must be accessed with ['dbname'].
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           config.dbname,
           // @ts-expect-error [TODO] - TS4111 - Property 'remotePrefix' comes from an index signature, so it must be accessed with ['remotePrefix'].
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           config.remotePrefix,
           // @ts-expect-error [TODO] - TS4111 - Property 'headers' comes from an index signature, so it must be accessed with ['headers'].
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           config.headers,
           // @ts-expect-error [TODO] - TS4111 - Property 'noCache' comes from an index signature, so it must be accessed with ['noCache'].
-          config.noCache
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          config.noCache,
         );
 
         // } else if (sourceExt === ".wbn") {
@@ -800,6 +933,8 @@ Make sure this is a valid URL and you have access to this file.`
         //   loader = new WBNLoader(await response.arrayBuffer());
         //   config.decode = false;
       } else if (sourceExt === ".har") {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         loader = new HARLoader(await response.json());
         // @ts-expect-error [TODO] - TS4111 - Property 'decode' comes from an index signature, so it must be accessed with ['decode'].
         config.decode = false;
@@ -814,7 +949,7 @@ Make sure this is a valid URL and you have access to this file.`
         progressUpdate(
           0,
           // @ts-expect-error [TODO] - TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName'].
-          `The ${config.sourceName} is not a known archive format that could be loaded.`
+          `The ${config.sourceName} is not a known archive format that could be loaded.`,
         );
         if (abort) {
           abort.abort();
@@ -824,6 +959,8 @@ Make sure this is a valid URL and you have access to this file.`
 
       if (!db) {
         // @ts-expect-error [TODO] - TS4111 - Property 'dbname' comes from an index signature, so it must be accessed with ['dbname'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         db = new ArchiveDB(config.dbname);
       }
       await db.initing;
@@ -831,6 +968,8 @@ Make sure this is a valid URL and you have access to this file.`
       try {
         // @ts-expect-error [TODO] - TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
         config.metadata = await loader.load(db, progressUpdate, contentLength);
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         if (!(e instanceof Canceled)) {
           progressUpdate(0, `Unexpected Loading Error: ${e.toString()}`);
@@ -841,11 +980,15 @@ Make sure this is a valid URL and you have access to this file.`
 
       if (updateExistingConfig) {
         await this.updateSize(
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           file.importCollId,
           contentLength,
           contentLength,
           // @ts-expect-error [TODO] - TS4111 - Property 'decode' comes from an index signature, so it must be accessed with ['decode'].
-          updateExistingConfig.decode
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          updateExistingConfig.decode,
         );
         return { config: updateExistingConfig, type: "" };
       }
@@ -874,6 +1017,8 @@ Make sure this is a valid URL and you have access to this file.`
       delete this._fileHandles[config.sourceUrl];
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const collData: Record<string, any> = { name, type, config };
     await this.colldb!.add("colls", collData);
     // @ts-expect-error [TODO] - TS4111 - Property 'store' comes from an index signature, so it must be accessed with ['store'].

@@ -19,7 +19,9 @@ const decoder = new TextDecoder("utf-8");
 
 function createServer() {
   return http.createServer((req, res) =>
-    serveStatic("test/data")(req, res, () => {})
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    serveStatic("test/data")(req, res, () => {}),
   );
 }
 
@@ -50,7 +52,7 @@ test("test range", async (t) => {
 
 test("load test.zip entries", async (t) => {
   const zipreader = new ZipRangeReader(
-    await createLoader({ url: t.context.baseUrl + "/example.zip" })
+    await createLoader({ url: t.context.baseUrl + "/example.zip" }),
   );
 
   const entries = await zipreader.load();
@@ -103,7 +105,7 @@ test("load test.zip entries", async (t) => {
 
 test("load test.zip file fully", async (t) => {
   const zipreader = new ZipRangeReader(
-    await createLoader({ url: t.context.baseUrl + "/example.zip" })
+    await createLoader({ url: t.context.baseUrl + "/example.zip" }),
   );
 
   const { reader } = await zipreader.loadFile("indexes/index.cdxj");
@@ -118,13 +120,13 @@ com,example)/ 20170306040206 {"url":"http://example.com/","mime":"text/html","st
 com,example)/ 20170306040348 {"url":"http://example.com/","mime":"warc/revisit","status":200,"digest":"G7HRM7BGOKSKMSXZAHMUQTTV53QOFSMK","length":586,"offset":2621,"filename":"example.warc.gz"}
 org,httpbin)/anything/resource.json 20171130220904 {"url":"http://httpbin.org/anything/resource.json","mime":"application/json","digest":"UQ3W6RIQVJO6ZEL55355BJODG2DMWBPH","length":465,"offset":0,"filename":"httpbin-resource.warc.gz"}
 org,iana,www)/ 20140126200624 {"url":"http://www.iana.org/","mime":"text/html","status":200,"digest":"OSSAPWJ23L56IYVRW3GFEAR4MCJMGPTB","length":2258,"offset":334,"filename":"iana.warc.gz"}
-`
+`,
   );
 });
 
 test("load test.zip WARC.GZ record", async (t) => {
   const zipreader = new ZipRangeReader(
-    await createLoader({ url: t.context.baseUrl + "/example.zip" })
+    await createLoader({ url: t.context.baseUrl + "/example.zip" }),
   );
 
   const { reader } = await zipreader.loadFile("warcs/example.warc.gz", {
@@ -151,12 +153,12 @@ test("load test.zip WARC.GZ record", async (t) => {
 
 test("load test.zip WARC record", async (t) => {
   const zipreader = new ZipRangeReader(
-    await createLoader({ url: t.context.baseUrl + "/example.zip" })
+    await createLoader({ url: t.context.baseUrl + "/example.zip" }),
   );
 
   const { reader } = await zipreader.loadFile(
     "warcs/example-iana.org-chunked.warc",
-    { offset: 405, length: 7970, unzip: true }
+    { offset: 405, length: 7970, unzip: true },
   );
 
   const parser = new WARCParser(reader);
@@ -169,12 +171,12 @@ test("load test.zip WARC record", async (t) => {
   t.is(record.warcTargetURI, "http://www.iana.org/");
   t.is(
     record.warcPayloadDigest,
-    "sha1:b1f949b4920c773fd9c863479ae9a788b948c7ad"
+    "sha1:b1f949b4920c773fd9c863479ae9a788b948c7ad",
   );
 
   t.is(
     record.httpHeaders?.headers.get("Content-Type"),
-    "text/html; charset=UTF-8"
+    "text/html; charset=UTF-8",
   );
 
   let text = "";
@@ -190,6 +192,6 @@ test("load test.zip WARC record", async (t) => {
 <html>
 <head>
 <title>Internet Assigned Numbers Authority</title>
-`
+`,
   );
 });

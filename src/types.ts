@@ -21,6 +21,8 @@ export type ResourceEntry = {
   payload?: Uint8Array | null;
   reader?: AsyncIterable<Uint8Array> | Iterable<Uint8Array> | null;
   referrer?: string | null;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extraOpts?: Record<string, any> | null;
   pageId?: string | null;
   origURL?: string | null;
@@ -49,6 +51,8 @@ export type PageEntry = {
   timestamp?: string;
 
   pos?: number;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   list?: any;
 };
 
@@ -71,15 +75,21 @@ export interface DBStore {
     request: ArchiveRequest,
     prefix: string,
     event: FetchEvent,
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     opts?: Record<string, any>,
   ) => Promise<ArchiveResponse | Response | null>;
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getAllPages: () => Promise<any[]>;
 }
 
 export interface ArchiveLoader {
   load: (
     db: DBStore,
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     progressUpdateCallback?: any,
     totalLength?: number | undefined,
   ) => Promise<void>;

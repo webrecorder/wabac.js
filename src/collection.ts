@@ -30,7 +30,11 @@ export class Collection {
   name: string;
   store: ArchiveDB;
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: Record<string, any>;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata: Record<string, any>;
 
   injectScripts: string[];
@@ -60,6 +64,8 @@ export class Collection {
   staticPrefix: string;
 
   constructor(
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     opts: Record<string, any>,
     prefixes: Prefixes,
     defaultConfig = {},
@@ -183,6 +189,8 @@ export class Collection {
       try {
         requestURL = decodeURIComponent(requestURL);
         requestURL += request.hash;
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         // ignore invalid URL
       }
@@ -271,6 +279,8 @@ export class Collection {
   }
 
   getCanonRedirect(query: ArchiveRequest) {
+    // [TODO]
+    // eslint-disable-next-line prefer-const
     let { url, timestamp, mod, referrer } = query;
     const schemeRel = url.startsWith("//");
 
@@ -295,6 +305,8 @@ export class Collection {
           query.url = parsed.href;
         }
       }
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       // ignore invalid URLs, no redirect
     }
@@ -420,6 +432,8 @@ export class Collection {
     // @ts-expect-error [TODO] - TS4111 - Property 'topTemplateUrl' comes from an index signature, so it must be accessed with ['topTemplateUrl'].
     if (this.config.topTemplateUrl) {
       // @ts-expect-error [TODO] - TS4111 - Property 'topTemplateUrl' comes from an index signature, so it must be accessed with ['topTemplateUrl'].
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const resp = await fetch(this.config.topTemplateUrl);
       const topTemplate = await resp.text();
       content = topTemplate
@@ -491,6 +505,8 @@ window.home = "${this.rootPrefix}";
     setCookie: string | null,
     isLive: boolean,
     referrer: string,
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     extraOpts: Record<string, any> | null,
   ) {
     const coll = this.name;
@@ -518,6 +534,8 @@ window.home = "${this.rootPrefix}";
       // @ts-expect-error [TODO] - TS4111 - Property 'pixelRatio' comes from an index signature, so it must be accessed with ['pixelRatio']. | TS4111 - Property 'pixelRatio' comes from an index signature, so it must be accessed with ['pixelRatio'].
       extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 1;
     // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const storage = extraOpts?.storage ? btoa(extraOpts.storage) : "";
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
     return `

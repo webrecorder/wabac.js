@@ -7,12 +7,14 @@ const rewriteUrl = test.macro({
     url: string,
     baseUrl: string,
     prefix: string,
-    expected: string
+    expected: string,
   ): void {
     t.is(new Rewriter({ baseUrl, prefix }).rewriteUrl(url), expected);
   },
 
   title(providedTitle = "URL", url, baseUrl, prefix, expected) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     return `${providedTitle}: Rewriter(${prefix}${baseUrl}).RW(${url}) => ${expected}`.trim();
   },
 });
@@ -22,7 +24,7 @@ test(
   "other.html",
   "http://example.com/path/page.html",
   "https://web.archive.org/web/",
-  "other.html"
+  "other.html",
 );
 
 test(
@@ -30,7 +32,7 @@ test(
   "/path/file.js",
   "http://example.com/path/page.html",
   "https://web.archive.org/web/20131010/",
-  "/web/20131010/http://example.com/path/file.js"
+  "/web/20131010/http://example.com/path/file.js",
 );
 
 test(
@@ -38,7 +40,7 @@ test(
   "/file.js",
   "http://example.com/",
   "https://localhost/coll/20131010/",
-  "/coll/20131010/http://example.com/file.js"
+  "/coll/20131010/http://example.com/file.js",
 );
 
 test(
@@ -46,7 +48,7 @@ test(
   "file.js",
   "http://example.com",
   "https://localhost/coll/20131010/",
-  "file.js"
+  "file.js",
 );
 
 test(
@@ -54,7 +56,7 @@ test(
   "/other.html",
   "http://example.com/path/page.html",
   "http://somehost/coll/20130907*/",
-  "/coll/20130907*/http://example.com/other.html"
+  "/coll/20130907*/http://example.com/other.html",
 );
 
 test(
@@ -62,7 +64,7 @@ test(
   "../other.html",
   "http://example.com/path/page.html",
   "http://localhost:80/coll/20131112/",
-  "http://localhost:80/coll/20131112/http://example.com/other.html"
+  "http://localhost:80/coll/20131112/http://example.com/other.html",
 );
 
 test(
@@ -70,7 +72,7 @@ test(
   "../../other.html",
   "http://example.com/index.html",
   "localhost:8080/*/",
-  "localhost:8080/*/http://example.com/other.html"
+  "localhost:8080/*/http://example.com/other.html",
 );
 
 test(
@@ -78,7 +80,7 @@ test(
   "path/../../other.html",
   "http://example.com/index.html",
   "http://localhost:8080/*/",
-  "http://localhost:8080/*/http://example.com/other.html"
+  "http://localhost:8080/*/http://example.com/other.html",
 );
 
 test(
@@ -86,7 +88,7 @@ test(
   "http://some-other-site.com",
   "http://example.com/index.html",
   "localhost:8080/20101226101112/",
-  "localhost:8080/20101226101112/http://some-other-site.com"
+  "localhost:8080/20101226101112/http://some-other-site.com",
 );
 
 test(
@@ -94,7 +96,7 @@ test(
   "http://localhost:8080/web/2014/http://some-other-site.com",
   "http://example.com/index.html",
   "http://localhost:8080/web/",
-  "http://localhost:8080/web/2014/http://some-other-site.com"
+  "http://localhost:8080/web/2014/http://some-other-site.com",
 );
 
 test(
@@ -102,7 +104,7 @@ test(
   "/web/http://some-other-site.com",
   "http://example.com/index.html",
   "http://localhost:8080/web/",
-  "/web/http://some-other-site.com"
+  "/web/http://some-other-site.com",
 );
 
 test(
@@ -110,7 +112,7 @@ test(
   "http://some-other-site.com",
   "http://example.com/index.html",
   "https://localhost:8080/20101226101112/",
-  "https://localhost:8080/20101226101112/http://some-other-site.com"
+  "https://localhost:8080/20101226101112/http://some-other-site.com",
 );
 
 test(
@@ -118,7 +120,7 @@ test(
   "http:\\/\\/some-other-site.com",
   "http://example.com/index.html",
   "https://localhost:8080/20101226101112/",
-  "https://localhost:8080/20101226101112/http:\\/\\/some-other-site.com"
+  "https://localhost:8080/20101226101112/http:\\/\\/some-other-site.com",
 );
 
 test(
@@ -126,7 +128,7 @@ test(
   "//some-other-site.com",
   "http://example.com/index.html",
   "http://localhost:8080/20101226101112/",
-  "//localhost:8080/20101226101112///some-other-site.com"
+  "//localhost:8080/20101226101112///some-other-site.com",
 );
 
 test(
@@ -134,7 +136,7 @@ test(
   "//some-other-site.com",
   "http://example.com/index.html",
   "https://localhost:8080/20101226101112/",
-  "//localhost:8080/20101226101112///some-other-site.com"
+  "//localhost:8080/20101226101112///some-other-site.com",
 );
 
 test(
@@ -142,7 +144,7 @@ test(
   "\\/\\/some-other-site.com",
   "http://example.com/index.html",
   "https://localhost:8080/20101226101112/",
-  "//localhost:8080/20101226101112/\\/\\/some-other-site.com"
+  "//localhost:8080/20101226101112/\\/\\/some-other-site.com",
 );
 
 test(
@@ -150,7 +152,7 @@ test(
   "../../other.html",
   "http://example.com/index.html",
   "https://localhost/2020/",
-  "https://localhost/2020/http://example.com/other.html"
+  "https://localhost/2020/http://example.com/other.html",
 );
 
 test(
@@ -158,7 +160,7 @@ test(
   "/../../other.html",
   "https://example.com/index.html",
   "http://localhost/2020/",
-  "/2020/https://example.com/other.html"
+  "/2020/https://example.com/other.html",
 );
 
 test(
@@ -166,7 +168,7 @@ test(
   "",
   "http://example.com/file.html",
   "https://example.com/2020/",
-  ""
+  "",
 );
 
 test(
@@ -174,7 +176,7 @@ test(
   "#anchor",
   "http://example.com/path/page.html",
   "https://web.archive.org/web/20131010/",
-  "#anchor"
+  "#anchor",
 );
 
 test(
@@ -182,7 +184,7 @@ test(
   "mailto:example@example.com",
   "http://example.com/path/page.html",
   "https://web.archive.org/web/2013/",
-  "mailto:example@example.com"
+  "mailto:example@example.com",
 );
 
 test(
@@ -190,7 +192,7 @@ test(
   "file:///some/path/",
   "http://example.com/path/page.html",
   "https://web.archive.org/web/",
-  "file:///some/path/"
+  "file:///some/path/",
 );
 
 //>>> UrlRewriter('19960708im_/http://domain.example.com/path.txt', '/abc/').get_new_url(url='')

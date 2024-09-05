@@ -10,13 +10,19 @@ export class LiveProxy implements DBStore {
   archivePrefix: string;
   cloneResponse: boolean;
   allowBody: boolean;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   hostProxy: Record<string, any>;
   hostProxyOnly: boolean;
 
   constructor(
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     extraConfig: Record<string, any>,
     { cloneResponse = false, allowBody = false, hostProxyOnly = false } = {},
   ) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     extraConfig = extraConfig || {};
 
     // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
@@ -34,6 +40,8 @@ export class LiveProxy implements DBStore {
     this.hostProxy = extraConfig.hostProxy;
 
     if (this.hostProxy instanceof Array) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const byHost: Record<string, any> = {};
       for (const entry of this.hostProxy) {
         byHost[entry.host] = entry;
@@ -51,6 +59,8 @@ export class LiveProxy implements DBStore {
   getFetchUrl(url: string, request: ArchiveRequest, headers: Headers) {
     let parsedUrl;
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (this.hostProxy) {
       parsedUrl = new URL(url);
       const hostdata = this.hostProxy[parsedUrl.host];

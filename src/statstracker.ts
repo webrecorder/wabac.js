@@ -13,6 +13,8 @@ class StatsTracker {
   updateStats(date: Date, status: number, request: Request, event: FetchEvent) {
     const id = event.clientId || event.resultingClientId;
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!id || !date) {
       return;
     }
@@ -31,10 +33,12 @@ class StatsTracker {
       timeRange = { count: 0, children: new Set<string>() };
       this.timeRanges[id] = timeRange;
       if (request.referrer.indexOf("mp_/") > 0) {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
         self.clients
           .matchAll({ type: "window" })
           .then((clients) =>
-            this.updateStatsParent(id, request.referrer, clients)
+            this.updateStatsParent(id, request.referrer, clients),
           );
       }
     } else {
@@ -57,7 +61,7 @@ class StatsTracker {
   updateStatsParent(
     id: string,
     referrer: string,
-    clients: readonly WindowClient[]
+    clients: readonly WindowClient[],
   ) {
     for (const client of clients) {
       if (client.url === referrer) {
@@ -111,6 +115,8 @@ class StatsTracker {
     };
 
     // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     const children = this.timeRanges[id] && this.timeRanges[id].children;
 
     // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.

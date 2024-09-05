@@ -9,6 +9,8 @@ const DEFAULT_MAX_BAND = 1000000;
 const DEFAULT_MAX_RES = 860 * 480;
 
 // ===========================================================================
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getMaxResAndBand(opts: Record<string, any> = {}) {
   // read opts from warc, if any
   let maxRes, maxBand;
@@ -49,6 +51,8 @@ function getMaxResAndBand(opts: Record<string, any> = {}) {
 
 // ===========================================================================
 //HLS
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function rewriteHLS(text: string, opts: Record<string, any>) {
   const EXT_INF = /#EXT-X-STREAM-INF:(?:.*[,])?BANDWIDTH=([\d]+)/;
   const EXT_RESOLUTION = /RESOLUTION=([\d]+)x([\d]+)/;
@@ -122,10 +126,14 @@ export const xmlOpts = {
 
 export function rewriteDASH(
   text: string,
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   opts: Record<string, any>,
-  bestIds?: string[]
+  bestIds?: string[],
 ) {
   try {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return _rewriteDASH(text, opts, bestIds);
   } catch (e) {
     console.log(e);
@@ -135,8 +143,10 @@ export function rewriteDASH(
 
 function _rewriteDASH(
   text: string,
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   opts: Record<string, any>,
-  bestIds?: string[]
+  bestIds?: string[],
 ) {
   const parser = new XMLParser(xmlOpts);
   const root = parser.parse(text);
@@ -147,6 +157,8 @@ function _rewriteDASH(
   let bestRes = 0;
   let bestBand = 0;
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let adaptSets: any[];
 
   if (!Array.isArray(root.MPD.Period.AdaptationSet)) {
@@ -160,6 +172,8 @@ function _rewriteDASH(
     bestRes = 0;
     bestBand = 0;
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let reps: any[];
 
     if (!Array.isArray(adaptset.Representation)) {
@@ -187,6 +201,8 @@ function _rewriteDASH(
     }
 
     if (best && Array.isArray(bestIds)) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       bestIds.push(best["@_id"]);
     }
 
@@ -202,6 +218,8 @@ function _rewriteDASH(
   if (!xmlOutput.slice(0, 5).toLowerCase().startsWith("<?xml")) {
     return "<?xml version='1.0' encoding='UTF-8'?>\n" + xmlOutput;
   } else {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return xmlOutput;
   }
 }

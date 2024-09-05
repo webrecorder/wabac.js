@@ -14,6 +14,8 @@ export class SingleWACZLoader implements ArchiveLoader {
   loadId: string | null = null;
   loadUrl: string;
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(loader: BaseLoader, config: Record<string, any>, loadId = null) {
     this.loader = loader;
     this.loadId = loadId;
@@ -21,8 +23,12 @@ export class SingleWACZLoader implements ArchiveLoader {
     this.loadUrl = config.loadUrl;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async load(db: any /*progressUpdate, fullTotalSize*/) {
     // if size less than MAX_FULL_DOWNLOAD_SIZE
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const loader = this.loader as any;
     if (
       db.fullConfig &&
@@ -37,6 +43,8 @@ export class SingleWACZLoader implements ArchiveLoader {
 
     const name = DEFAULT_WACZ;
     const path = this.loadUrl;
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return await db.addNewWACZ({ name, path, loader });
   }
 }
@@ -45,8 +53,12 @@ export class SingleWACZLoader implements ArchiveLoader {
 export class SingleWACZFullImportLoader implements ArchiveLoader {
   loader: BaseLoader;
   loadId: string | null = null;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   config: Record<string, any>;
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(loader: BaseLoader, config: Record<string, any>, loadId = null) {
     this.config = config;
     this.loadId = loadId;
@@ -55,9 +67,12 @@ export class SingleWACZFullImportLoader implements ArchiveLoader {
   }
 
   async load(
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     db: any,
-    progressUpdateCallback:
-      | ((prog: number, x: any, offset: number, size: number) => void)
+    progressUpdateCallback: // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    | ((prog: number, x: any, offset: number, size: number) => void)
       | null = null,
     fullTotalSize = 0,
   ) {
@@ -65,6 +80,8 @@ export class SingleWACZFullImportLoader implements ArchiveLoader {
     await file.init();
 
     const zipreader = file.zipreader!;
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const importer = new WACZImporter(db, file);
 
     const metadata = await importer.load();
@@ -103,17 +120,25 @@ export class SingleWACZFullImportLoader implements ArchiveLoader {
       offsetTotal += entryTotal;
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return metadata || {};
   }
 
   async loadWARC(
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     db: any,
     zipreader: ZipRangeReader,
     filename: string,
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     progressUpdate: any,
     total: number,
   ) {
     const { reader } = await zipreader.loadFile(filename, { unzip: true });
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!reader) {
       throw new Error("no WARC found");
     }
@@ -121,6 +146,8 @@ export class SingleWACZFullImportLoader implements ArchiveLoader {
     const loader = new WARCLoader(reader, null, filename);
     loader.detectPages = false;
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return await loader.load(db, progressUpdate, total);
   }
 }
@@ -133,7 +160,11 @@ export class JSONResponseMultiWACZLoader implements ArchiveLoader {
     this.response = response;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async load(db: any) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return await db.loadFromJSON(this.response);
   }
 }

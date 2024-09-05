@@ -1,5 +1,7 @@
 export type Rule = [
   RegExp,
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (x: string, opts: Record<string, any>, offset: number, str: string) => string,
 ];
 
@@ -34,6 +36,8 @@ export class RxRewriter {
     this.rx = new RegExp(rxString, "gm");
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   doReplace(match: string, params: any[], opts: Record<string, any>) {
     const offset = params[params.length - 2];
     const str = params[params.length - 1];
@@ -45,6 +49,8 @@ export class RxRewriter {
       }
 
       // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const result = this.rules![i][1].call(this, curr, opts, offset, str);
       if (result) {
         return result;
@@ -57,6 +63,8 @@ export class RxRewriter {
     return match;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rewrite(text: string, opts: Record<string, any>) {
     if (!this.rx) {
       return text;

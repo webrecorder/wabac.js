@@ -132,6 +132,8 @@ function ruleDisableMediaSourceTypeSupported() {
 }
 
 // ===========================================================================
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setMaxBitrate(opts: any) {
   let maxBitrate = MAX_BITRATE;
   const extraOpts = opts.response?.extraOpts;
@@ -147,7 +149,11 @@ function setMaxBitrate(opts: any) {
 
 // ===========================================================================
 function ruleRewriteTwitterVideo(prefix: string) {
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (str: string, opts: Record<string, any>) => {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!opts) {
       return str;
     }
@@ -182,6 +188,8 @@ function ruleRewriteTwitterVideo(prefix: string) {
           bestVariant = variant;
           bestBitrate = variant.bitrate;
         } else if (variant.src) {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           const matched = W_X_H.exec(variant.src);
           if (matched) {
             const bitrate = Number(matched[1]) * Number(matched[2]);
@@ -210,6 +218,8 @@ function ruleRewriteVimeoConfig(str: string) {
   let config;
   try {
     config = JSON.parse(str);
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     return str;
   }
@@ -233,11 +243,17 @@ function ruleRewriteVimeoConfig(str: string) {
 }
 
 // ===========================================================================
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ruleRewriteVimeoDashManifest(str: string, opts: Record<string, any>) {
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!opts) {
     return str;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let vimeoManifest: any = null;
 
   const maxBitrate = setMaxBitrate(opts);
@@ -245,6 +261,8 @@ function ruleRewriteVimeoDashManifest(str: string, opts: Record<string, any>) {
   try {
     vimeoManifest = JSON.parse(str);
     console.log("manifest", vimeoManifest);
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     return str;
   }
@@ -254,6 +272,8 @@ function ruleRewriteVimeoDashManifest(str: string, opts: Record<string, any>) {
     max: number,
     mime: string,
   ) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!array) {
       return null;
     }
@@ -276,11 +296,15 @@ function ruleRewriteVimeoDashManifest(str: string, opts: Record<string, any>) {
   }
 
   vimeoManifest.video = filterByBitrate(
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     vimeoManifest.video,
     maxBitrate,
     "video/mp4",
   );
   vimeoManifest.audio = filterByBitrate(
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     vimeoManifest.audio,
     maxBitrate,
     "audio/mp4",
@@ -310,6 +334,8 @@ export class DomainSpecificRuleSet {
     this.rewriters = new Map();
 
     for (const rule of this.rwRules) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (rule.rxRules) {
         this.rewriters.set(rule, new this.RewriterCls(rule.rxRules));
       }
@@ -319,6 +345,8 @@ export class DomainSpecificRuleSet {
 
   getCustomRewriter(url: string) {
     for (const rule of this.rwRules) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!rule.contains) {
         continue;
       }
@@ -327,6 +355,8 @@ export class DomainSpecificRuleSet {
         if (url.indexOf(containsStr) >= 0) {
           const rewriter = this.rewriters.get(rule);
           if (rewriter) {
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return rewriter;
           }
         }
@@ -337,6 +367,8 @@ export class DomainSpecificRuleSet {
   }
 
   getRewriter(url: string) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.getCustomRewriter(url) || this.defaultRewriter;
   }
 }

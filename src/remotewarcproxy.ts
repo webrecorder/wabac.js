@@ -11,6 +11,8 @@ export class RemoteWARCProxy implements DBStore {
   type: string;
   notFoundPageUrl: string;
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(rootConfig: Record<string, any>) {
     // @ts-expect-error [TODO] - TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig'].
     const config = rootConfig.extraConfig || {};
@@ -26,7 +28,7 @@ export class RemoteWARCProxy implements DBStore {
 
   async getResource(
     request: ArchiveRequest,
-    prefix: string
+    prefix: string,
   ): Promise<ArchiveResponse | Response | null> {
     const { url, headers } = request.prepareProxyRequest(prefix);
     let reqHeaders: HeadersInit = headers;
@@ -63,6 +65,8 @@ export class RemoteWARCProxy implements DBStore {
         return null;
       }
 
+      // [TODO]
+      // eslint-disable-next-line prefer-const
       let { headers, encodedUrl, date, status, statusText, hasPayload } =
         headersData;
 
@@ -165,7 +169,7 @@ export class RemoteWARCProxy implements DBStore {
 
       if (record.warcType === "revisit") {
         const warcRevisitTarget = record.warcHeaders.headers.get(
-          "WARC-Refers-To-Target-URI"
+          "WARC-Refers-To-Target-URI",
         );
         if (warcRevisitTarget && warcRevisitTarget !== url) {
           return await this.resolveHeaders(warcRevisitTarget);
@@ -194,7 +198,7 @@ export class RemoteWARCProxy implements DBStore {
     } catch (e) {
       console.warn(e);
       console.warn(
-        "Ignoring headers, error parsing headers response for: " + url
+        "Ignoring headers, error parsing headers response for: " + url,
       );
     }
 

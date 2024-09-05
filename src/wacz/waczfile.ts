@@ -23,6 +23,8 @@ export interface WACZLoadSource {
 
   getName: (name: string) => string;
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createLoader: (opts: any) => Promise<BaseLoader>;
 }
 
@@ -34,6 +36,8 @@ export type WACZFileInitOptions = {
   parent?: WACZLoadSource | null;
   fileType?: WACZType;
   indexType?: IndexType;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   entries?: Record<string, any> | null;
   nonSurt?: boolean;
   loader?: BaseLoader | null;
@@ -53,6 +57,8 @@ export class WACZFile implements WACZLoadSource {
   parent: WACZLoadSource | null;
   fileType: WACZType;
   indexType: IndexType;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   entries: Record<string, any> | null;
   nonSurt: boolean;
   loader: BaseLoader | null;
@@ -85,6 +91,8 @@ export class WACZFile implements WACZLoadSource {
     this.fileType = MULTI_WACZ;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async init(path?: string): Promise<Record<string, any>> {
     if (path) {
       this.path = path;
@@ -104,12 +112,16 @@ export class WACZFile implements WACZLoadSource {
     this.zipreader = new ZipRangeReader(loader, this.entries);
 
     if (!this.entries) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       this.entries = (await this.zipreader.load()) || {};
     }
 
     return this.entries;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async loadFile(filename: string, opts: Record<string, any>): LoadWACZEntry {
     if (!this.zipreader) {
       await this.init();
@@ -137,8 +149,12 @@ export class WACZFile implements WACZLoadSource {
     };
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async save(db: any, always = false) {
     const zipreader = this.zipreader;
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
     if (always || (zipreader && zipreader.entriesUpdated)) {
       await db.put("waczfiles", this.serialize());
       if (zipreader) {
@@ -159,6 +175,8 @@ export class WACZFile implements WACZLoadSource {
     return this.waczname + "#!/" + name;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async createLoader(opts: any): Promise<BaseLoader> {
     const { url } = opts;
     const inx = url.lastIndexOf("#!/");
@@ -168,6 +186,8 @@ export class WACZFile implements WACZLoadSource {
     }
 
     if (inx >= 0) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return new ZipBlockLoader(this.zipreader!, url.slice(inx + 3));
     } else {
       throw new Error("invalid wacz url: " + url);

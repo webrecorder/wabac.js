@@ -264,6 +264,8 @@ ContentFrame.prototype.inner_hash_changed = function (state) {
  * @desc Updates the hash of the replay iframe on a hash change in this frame
  * @param event
  */
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 ContentFrame.prototype.outer_hash_changed = function (event) {
   if (
     this.app_hash_prefix &&
@@ -280,6 +282,8 @@ ContentFrame.prototype.outer_hash_changed = function (event) {
 
     var replay_url =
       this.content_prefix +
+      // [TODO]
+      // eslint-disable-next-line no-useless-escape
       url.replace(/(?:([\d]+)[^\/|]*[\/|])?(.*)/, "$1mp_/$2");
 
     if (replay_url != this.iframe.src) {

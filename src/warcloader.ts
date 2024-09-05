@@ -1,6 +1,8 @@
 import { makeHeaders, Canceled, tsToDate } from "./utils";
 
 import {
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   AsyncIterReader,
   type Source,
   WARCParser,
@@ -24,16 +26,20 @@ class WARCLoader extends BaseParser {
   detectPages = false;
 
   _lastRecord: WARCRecord | null = null;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata: any = {};
   pages: string[] = [];
   lists: string[] = [];
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pageMap: Record<string, any> = {};
 
   constructor(
     reader: Source,
     abort: AbortController | null = null,
     loadId: string | null = null,
-    sourceExtra = null
+    sourceExtra = null,
   ) {
     super();
 
@@ -74,9 +80,13 @@ class WARCLoader extends BaseParser {
         }
 
         if (json.pages?.length) {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           this.pages = this.pages.concat(json.pages);
 
           for (const page of json.pages) {
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             page.ts = tsToDate(page.timestamp).getTime();
             this.pageMap[page.ts + "/" + page.url] = { page };
           }
@@ -85,9 +95,13 @@ class WARCLoader extends BaseParser {
         }
 
         if (json.lists?.length) {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           this.lists = this.lists.concat(json.lists);
           //  this.promises.push(this.db.addCuratedPageLists(lists, "bookmarks", "public"));
         }
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         console.log("Page Add Error", e.toString());
       }
@@ -149,7 +163,7 @@ class WARCLoader extends BaseParser {
 
   parseRevisitRecord(
     record: WARCRecord,
-    reqRecord: WARCRecord | null
+    reqRecord: WARCRecord | null,
   ): ResourceEntry | null {
     const url = record.warcTargetURI!.split("#")[0];
     const date = record.warcDate;
@@ -194,7 +208,7 @@ class WARCLoader extends BaseParser {
   parseResponseHttpHeaders(
     record: WARCRecord,
     url: string,
-    reqRecord: WARCRecord | null
+    reqRecord: WARCRecord | null,
   ) {
     let status = 200;
     let headers: Headers | null = null;
@@ -250,7 +264,9 @@ class WARCLoader extends BaseParser {
   indexReqResponse(
     record: WARCRecord,
     reqRecord: WARCRecord | null,
-    parser: WARCParser
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    parser: WARCParser,
   ) {
     const entry = this.parseRecords(record, reqRecord);
 
@@ -261,7 +277,7 @@ class WARCLoader extends BaseParser {
 
   parseRecords(
     record: WARCRecord,
-    reqRecord: WARCRecord | null
+    reqRecord: WARCRecord | null,
   ): ResourceEntry | null {
     switch (record.warcType) {
       case "revisit":
@@ -340,6 +356,8 @@ class WARCLoader extends BaseParser {
     }
 
     // if no pages found, start detection if hasn't started already
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (this.detectPages === undefined) {
       this.detectPages = !this.anyPages;
     }
@@ -382,7 +400,7 @@ class WARCLoader extends BaseParser {
         url,
         payload,
         headers.get("content-encoding"),
-        headers.get("transfer-encoding")
+        headers.get("transfer-encoding"),
       );
     }
 
@@ -391,6 +409,8 @@ class WARCLoader extends BaseParser {
     if (extraMetadata) {
       try {
         entry.extraOpts = JSON.parse(extraMetadata);
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         // ignore error on extraOpts
       }
@@ -427,10 +447,14 @@ class WARCLoader extends BaseParser {
     return range && range === fullRange;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   filterRecord(record: WARCRecord): string | null {
     return null;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async load(db: any, progressUpdate: any, totalSize?: number | undefined) {
     // TODO @ikreymer is this reasonable? unsure how this is used
     if (totalSize == null) {
@@ -453,17 +477,23 @@ class WARCLoader extends BaseParser {
           continue;
         }
 
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const interruptLoads = (self as any).interruptLoads as Record<
           string,
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           any
         >;
 
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (interruptLoads && this.loadId && interruptLoads[this.loadId]) {
           progressUpdate(
             Math.round((parser.offset / totalSize) * 95.0),
             "Loading Canceled",
             parser.offset,
-            totalSize
+            totalSize,
           );
           interruptLoads[this.loadId]();
           if (this.abort) {
@@ -481,7 +511,7 @@ class WARCLoader extends BaseParser {
             parser.offset,
             totalSize,
             null,
-            extraMsg
+            extraMsg,
           );
           lastUpdate = updateTime;
         }
@@ -509,6 +539,8 @@ class WARCLoader extends BaseParser {
         if (this.promises.length > 0) {
           try {
             await Promise.all(this.promises);
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } catch (e: any) {
             console.warn(e.toString());
           }
@@ -522,9 +554,11 @@ class WARCLoader extends BaseParser {
 
       progressUpdate(
         Math.round((parser.offset / totalSize) * 95.0),
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `Sorry there was an error downloading. Please try again (${e})`,
         parser.offset,
-        totalSize
+        totalSize,
       );
 
       console.warn(e);
@@ -538,6 +572,8 @@ class WARCLoader extends BaseParser {
 
     progressUpdate(100, null, totalSize, totalSize);
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.metadata;
   }
 
@@ -548,17 +584,23 @@ class WARCLoader extends BaseParser {
         if (textPromise) {
           try {
             page.text = await textPromise;
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } catch (e: any) {
             console.warn("Error adding text: " + e.toString());
           }
         }
       }
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       this.promises.push(this.db.addPages(this.pages));
     }
 
     if (this.lists.length) {
       this.promises.push(
-        this.db.addCuratedPageLists(this.lists, "bookmarks", "public")
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        this.db.addCuratedPageLists(this.lists, "bookmarks", "public"),
       );
     }
   }

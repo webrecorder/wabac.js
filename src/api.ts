@@ -2,6 +2,8 @@ import { Path } from "path-parser";
 import { getCollData } from "./utils";
 import { type SWCollections } from "./swmain";
 
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RouteMatch = Record<string, any>;
 
 // ===========================================================================
@@ -79,27 +81,39 @@ class API {
       return response;
     }
     const status = response.error ? 404 : 200;
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return this.makeResponse(response, status);
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async handleApi(request: Request, params: RouteMatch, event: FetchEvent) {
     // @ts-expect-error [TODO] - TS4111 - Property '_route' comes from an index signature, so it must be accessed with ['_route'].
     switch (params._route) {
       case "index":
         // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         return await this.listAll(params._query.get("filter"));
 
       case "createColl": {
         const requestJSON = await request.json();
         const coll = await this.collections.initNewColl(
           requestJSON.metadata || {},
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           requestJSON.extraConfig || {},
         );
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return getCollData(coll);
       }
 
       case "coll": {
         // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
@@ -133,6 +147,8 @@ class API {
           data.ipfsPins = coll.config.metadata.ipfsPins;
         }
 
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return data;
       }
 
@@ -141,6 +157,8 @@ class API {
         const keepFileHandle = params._query.get("reload") === "1";
 
         // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         if (!(await this.collections.deleteColl(params.coll, keepFileHandle))) {
           return { error: "collection_not_found" };
         }
@@ -152,7 +170,11 @@ class API {
         return {
           success: await this.collections.updateAuth(
             // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             params.coll,
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             requestJSON.headers,
           ),
         };
@@ -162,7 +184,11 @@ class API {
         const requestJSON = await request.json();
         const metadata = await this.collections.updateMetadata(
           // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           params.coll,
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           requestJSON,
         );
         return { metadata };
@@ -170,6 +196,8 @@ class API {
 
       case "urls": {
         // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
@@ -192,6 +220,8 @@ class API {
         // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const fromStatus = Number(params._query.get("fromStatus") || 0);
 
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (!coll.store.resourcesByMime) {
           return { urls: [] };
         }
@@ -200,23 +230,39 @@ class API {
 
         if (url) {
           urls = await coll.store.resourcesByUrlAndMime(
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             url,
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             mime,
             count,
             prefix,
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             fromUrl,
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             fromTs,
           );
         } else {
           urls = await coll.store.resourcesByMime(
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             mime,
             count,
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             fromMime,
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             fromUrl,
             fromStatus,
           );
         }
 
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         urls = urls || [];
 
         return { urls };
@@ -224,12 +270,16 @@ class API {
 
       case "urlsTs": {
         // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
         }
         // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const url = params._query.get("url");
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const timestamps = await coll.store.getTimestampsByURL(url);
 
         return { timestamps: timestamps };
@@ -237,6 +287,8 @@ class API {
 
       case "pages": {
         // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
@@ -247,11 +299,17 @@ class API {
 
       case "textIndex": {
         // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
         }
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((coll.store as any).getTextIndex) {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
           return await (coll.store as any).getTextIndex();
         } else {
           return {};
@@ -260,6 +318,8 @@ class API {
 
       case "curated": {
         // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
@@ -279,16 +339,22 @@ class API {
 
       case "deletePage": {
         // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
         }
         const { pageSize, dedupSize } = await coll.store.deletePage(
           // @ts-expect-error [TODO] - TS4111 - Property 'page' comes from an index signature, so it must be accessed with ['page'].
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           params.page,
         );
 
         // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises, @typescript-eslint/no-unsafe-argument
         this.collections.updateSize(params.coll, pageSize, dedupSize);
 
         return { pageSize, dedupSize };
@@ -301,6 +367,8 @@ class API {
 
   async listAll(filter?: string | null) {
     const response = await this.collections.listAll();
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const collections: any[] = [];
 
     response.forEach((coll) => {

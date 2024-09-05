@@ -10,6 +10,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     await initSW("sw.js?replayPrefix=" + replayPrefix, "/");
   } catch (e) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     console.log("no sw");
     swAvail = false;
   }
@@ -73,6 +75,8 @@ async function initTemplates() {
     const width = template.getAttribute("data-width") || "auto";
     const height = template.getAttribute("data-height") || "auto";
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const text = template.innerHTML.trim();
 
     let dataUrl = null;
@@ -84,6 +88,8 @@ async function initTemplates() {
       name = "em-" + (digest && digest.slice(0, 10));
     } else {
       dataUrl = template.getAttribute("data-url");
+      // [TODO]
+      // eslint-disable-next-line no-undef
       digest = await digestMessage(dataUrl, "SHA-256");
       name = template.getAttribute("data-archive-name");
     }
@@ -301,6 +307,8 @@ async function initSW(relUrl, path) {
         return resp.url;
       })
       .then((swUrl) => {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         navigator.serviceWorker.addEventListener("error", (e) => reject(null));
 
         setTimeout(() => {
@@ -317,6 +325,8 @@ async function initSW(relUrl, path) {
           done = true;
           resolve(null);
         }
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         navigator.serviceWorker.addEventListener("controllerchange", (e) => {
           done = true;
           resolve(null);

@@ -21,6 +21,8 @@ type WARCRecordWithPage = WARCRecord & {
 class CDXFromWARCLoader extends WARCLoader {
   cdxindexer: CDXIndexer | null = null;
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WARCLoader'.
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sourceExtra: any;
   shaPrefix: string;
 
@@ -63,6 +65,8 @@ class CDXFromWARCLoader extends WARCLoader {
 
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WARCLoader'.
   index(record: WARCRecord, parser: WARCParser) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (record) {
       record._offset = parser.offset;
       record._length = parser.recordLength;
@@ -102,6 +106,8 @@ class CDXFromWARCLoader extends WARCLoader {
       }
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
     if (reqRecord && reqRecord.httpHeaders) {
       const cookie = reqRecord.httpHeaders.headers.get("cookie");
       if (cookie) {
@@ -112,7 +118,11 @@ class CDXFromWARCLoader extends WARCLoader {
     this.addCdx(cdx);
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getSource(cdx: Record<string, any>) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return {
       ...this.sourceExtra,
       // @ts-expect-error [TODO] - TS4111 - Property 'filename' comes from an index signature, so it must be accessed with ['filename'].
@@ -124,6 +134,8 @@ class CDXFromWARCLoader extends WARCLoader {
     };
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addCdx(cdx: Record<string, any>) {
     const { url, mime } = cdx;
 
@@ -131,6 +143,8 @@ class CDXFromWARCLoader extends WARCLoader {
     const status = Number(cdx.status) || 200;
 
     // @ts-expect-error [TODO] - TS4111 - Property 'timestamp' comes from an index signature, so it must be accessed with ['timestamp'].
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const date = tsToDate(cdx.timestamp);
     const ts = date.getTime();
 
@@ -141,6 +155,8 @@ class CDXFromWARCLoader extends WARCLoader {
 
     const source = this.getSource(cdx);
 
+    // [TODO]
+    // eslint-disable-next-line prefer-const
     let { digest, recordDigest } = cdx;
     if (digest && digest.indexOf(":") === -1) {
       digest = this.shaPrefix + digest;
@@ -176,10 +192,16 @@ class CDXFromWARCLoader extends WARCLoader {
     if (cdx.method && cdx.method !== "GET") {
       entry.url = appendRequestQuery(
         // @ts-expect-error [TODO] - TS4111 - Property 'url' comes from an index signature, so it must be accessed with ['url'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         cdx.url,
         // @ts-expect-error [TODO] - TS4111 - Property 'requestBody' comes from an index signature, so it must be accessed with ['requestBody'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         cdx.requestBody || "",
         // @ts-expect-error [TODO] - TS4111 - Property 'method' comes from an index signature, so it must be accessed with ['method'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         cdx.method,
       );
     }
@@ -191,9 +213,13 @@ class CDXFromWARCLoader extends WARCLoader {
 // ===========================================================================
 class CDXLoader extends CDXFromWARCLoader {
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'CDXFromWARCLoader'.
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async load(db: any, progressUpdate?: any, totalSize?: number) {
     this.db = db;
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let reader = this.reader as any;
 
     if (!reader.iterLines) {
@@ -219,7 +245,11 @@ class CDXLoader extends CDXFromWARCLoader {
       }
 
       try {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         cdx = JSON.parse(line);
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         console.log("JSON Parser error on: " + line);
         continue;
@@ -238,6 +268,8 @@ class CDXLoader extends CDXFromWARCLoader {
           totalSize,
         );
       }
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       this.addCdx(cdx);
     }
 

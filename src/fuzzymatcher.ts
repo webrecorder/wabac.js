@@ -5,6 +5,8 @@ type FuzzyRule = {
   match?: RegExp;
   fuzzyCanonReplace?: string;
   replace?: string;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   args?: any[][];
   split?: string;
   splitLast?: boolean;
@@ -29,7 +31,7 @@ type KeySets = Record<string, KeySet>;
 function joinRx(rxStr: string[]) {
   return new RegExp(
     "[?&]" + rxStr.map((x: string) => "(" + x + ")").join("|"),
-    "gi"
+    "gi",
   );
 }
 
@@ -221,6 +223,8 @@ export class FuzzyMatcher {
         const query = new URLSearchParams();
 
         for (const arg of args) {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           query.set(arg, origUrl.searchParams.get(arg) || "");
         }
         fuzzUrl.search = query.toString();
@@ -235,7 +239,7 @@ export class FuzzyMatcher {
   fuzzyCompareUrls(
     reqUrl: string,
     results: FuzzyResEntry[] | undefined,
-    matchedRule?: FuzzyRule
+    matchedRule?: FuzzyRule,
   ) {
     if (!results?.length) {
       return null;
@@ -278,7 +282,7 @@ export class FuzzyMatcher {
   fuzzyBestMatchQuery(
     reqUrlStr: string,
     results: FuzzyResEntry[],
-    rule?: FuzzyRule
+    rule?: FuzzyRule,
   ): FuzzyResEntry | null {
     let reqUrl: URL;
 
@@ -338,7 +342,7 @@ export class FuzzyMatcher {
     reqQuery: URLSearchParams,
     foundQuery: URLSearchParams,
     reqArgs: Set<string> | null = null,
-    fuzzySet = false
+    fuzzySet = false,
   ) {
     let score = 1.0;
     let total = 1.0;
@@ -419,7 +423,7 @@ export class FuzzyMatcher {
     keySets: KeySets,
     key: string,
     value: string,
-    foundValue: string
+    foundValue: string,
   ) {
     if (
       !value ||
@@ -445,7 +449,6 @@ export class FuzzyMatcher {
     const valueNoQ = valueQ > 0 ? value.slice(0, valueQ) : value;
     const foundNoQ = foundQ > 0 ? foundValue.slice(0, foundQ) : foundValue;
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     // @ts-expect-error [TODO] - TS2538 - Type 'undefined' cannot be used as an index type.
     if (!keySets[keyBase]) {
       // @ts-expect-error [TODO] - TS2538 - Type 'undefined' cannot be used as an index type.

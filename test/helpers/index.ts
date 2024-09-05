@@ -32,8 +32,12 @@ export async function doRewrite({
   const date = new Date("2019-01-02T03:00:00Z");
   const payload =
     encoding !== "latin1"
-      ? new TextEncoder().encode(content)
-      : encodeLatin1(content);
+      ? // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        new TextEncoder().encode(content)
+      : // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        encodeLatin1(content);
 
   const headers = new Headers({ ...headersDict, "Content-Type": contentType });
 

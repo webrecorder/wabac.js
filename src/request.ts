@@ -26,7 +26,7 @@ export class ArchiveRequest {
       ts = "",
       proxyOrigin = null,
       localOrigin = null,
-    } = {}
+    } = {},
   ) {
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
 
@@ -59,6 +59,8 @@ export class ArchiveRequest {
       this.url = wbUrl[4];
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (proxyOrigin && localOrigin) {
       const url = new URL(this.url);
       if (url.origin === localOrigin) {
@@ -116,7 +118,7 @@ export class ArchiveRequest {
 
   prepareProxyRequest(
     prefix: string,
-    isLive = true
+    isLive = true,
   ): {
     referrer?: string;
     headers: Headers;
@@ -149,6 +151,8 @@ export class ArchiveRequest {
     if (url.startsWith("//") && referrer) {
       try {
         url = new URL(referrer).protocol + url;
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         url = "https:" + url;
       }

@@ -16,6 +16,8 @@ export type ResourceEntry = {
   payload?: Uint8Array | null;
   reader?: AsyncIterable<Uint8Array> | Iterable<Uint8Array> | null;
   referrer?: string | null;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   extraOpts?: Record<string, any> | null;
   pageId?: string | null;
   origURL?: string | null;
@@ -35,6 +37,8 @@ abstract class BaseParser implements ArchiveLoader {
   count = 0;
   dupeSet = new Set<string>();
   //TODO
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any;
 
   constructor(batchSize = DEFAULT_BATCH_SIZE) {
@@ -42,6 +46,8 @@ abstract class BaseParser implements ArchiveLoader {
   }
 
   addPage(page: PageEntry) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.promises.push(this.db.addPage(page));
   }
 
@@ -77,6 +83,8 @@ abstract class BaseParser implements ArchiveLoader {
 
   flush() {
     if (this.batch.length > 0) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       this.promises.push(this.db.addResources(this.batch));
     }
     console.log(`Read ${(this.count += this.batch.length)} records`);
@@ -101,6 +109,8 @@ abstract class BaseParser implements ArchiveLoader {
 
   abstract load(
     db: DBStore,
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     progressUpdateCallback?: any,
     totalLength?: number,
   ): Promise<void>;

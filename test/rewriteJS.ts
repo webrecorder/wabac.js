@@ -9,7 +9,7 @@ const rewriteJS = test.macro({
     content: string,
     expected: string,
     useBaseRules: boolean | undefined = false,
-    url: string | undefined = "https://example.com/some/path/index.html"
+    url: string | undefined = "https://example.com/some/path/index.html",
   ): Promise<void> {
     const { text: actual } = await doRewrite({
       content,
@@ -36,7 +36,7 @@ const rewriteJSWrapped = test.macro({
     t,
     content: string,
     expected: string,
-    useBaseRules: boolean | undefined = false
+    useBaseRules: boolean | undefined = false,
   ) {
     const { text: actual } = await doRewrite({
       content,
@@ -62,7 +62,7 @@ const rewriteJSImport = test.macro({
     t,
     content: string,
     expected: string,
-    useBaseRules: boolean | undefined = false
+    useBaseRules: boolean | undefined = false,
   ) {
     const { text: actual } = await doRewrite({
       content,
@@ -114,7 +114,7 @@ ${text}`;
 test(
   rewriteJS,
   "a = this;",
-  "a = _____WB$wombat$check$this$function_____(this);"
+  "a = _____WB$wombat$check$this$function_____(this);",
 );
 
 // rewrite on ds-specific path that's not json
@@ -123,7 +123,7 @@ test(
   "b = this;",
   "b = _____WB$wombat$check$this$function_____(this);",
   false,
-  "https://player.vimeo.com/video/some/path.html"
+  "https://player.vimeo.com/video/some/path.html",
 );
 
 test(
@@ -133,7 +133,7 @@ test(
 this.location = x;`,
   `a = 5
 
-;_____WB$wombat$check$this$function_____(this).location = x;`
+;_____WB$wombat$check$this$function_____(this).location = x;`,
 );
 
 test(
@@ -143,50 +143,50 @@ test(
 (this.location = x);`,
   `a = 5
 
-(_____WB$wombat$check$this$function_____(this).location = x);`
+(_____WB$wombat$check$this$function_____(this).location = x);`,
 );
 
 test(
   rewriteJS,
   "return this.location",
-  "return _____WB$wombat$check$this$function_____(this).location"
+  "return _____WB$wombat$check$this$function_____(this).location",
 );
 
 test(
   rewriteJS,
   'func(Function("return this"));',
-  'func(Function("return _____WB$wombat$check$this$function_____(this)"));'
+  'func(Function("return _____WB$wombat$check$this$function_____(this)"));',
 );
 
 test(
   rewriteJS,
   "'a||this||that",
-  "'a||_____WB$wombat$check$this$function_____(this)||that"
+  "'a||_____WB$wombat$check$this$function_____(this)||that",
 );
 
 test(
   rewriteJS,
   "(a,b,Q.contains(i[t], this))",
-  "(a,b,Q.contains(i[t], _____WB$wombat$check$this$function_____(this)))"
+  "(a,b,Q.contains(i[t], _____WB$wombat$check$this$function_____(this)))",
 );
 
 test(
   rewriteJSWrapped,
   "location = http://example.com/",
-  "location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/"
+  "location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/",
 );
 
 // acorn fails here, but is ignorable
 test(
   rewriteJSWrapped,
   " location = http://example.com/2",
-  " location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/2"
+  " location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/2",
 );
 
 test(
   rewriteJS,
   " eval(a)",
-  " WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),a)"
+  " WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),a)",
 );
 
 test(rewriteJS, "x = eval; x(a);", "x = self.eval; x(a);");
@@ -194,7 +194,7 @@ test(rewriteJS, "x = eval; x(a);", "x = self.eval; x(a);");
 test(
   rewriteJS,
   "a = this.location.href; exports.Foo = Foo; /* export className */",
-  "a = _____WB$wombat$check$this$function_____(this).location.href; exports.Foo = Foo; /* export className */"
+  "a = _____WB$wombat$check$this$function_____(this).location.href; exports.Foo = Foo; /* export className */",
 );
 
 test(rewriteJS, "$eval = eval; $eval(a);", "$eval = self.eval; $eval(a);");
@@ -202,26 +202,26 @@ test(rewriteJS, "$eval = eval; $eval(a);", "$eval = self.eval; $eval(a);");
 test(
   rewriteJS,
   "foo(a, eval(data));",
-  "foo(a, WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),data));"
+  "foo(a, WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),data));",
 );
 
 test(
   rewriteJS,
   "return(1, eval)(data);",
-  "return WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),data);"
+  "return WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),data);",
 );
 
 test(
   rewriteJS,
   "somewindow.postMessage({'a': 'b'})",
-  "somewindow.__WB_pmw(self).postMessage({'a': 'b'})"
+  "somewindow.__WB_pmw(self).postMessage({'a': 'b'})",
 );
 
 // add global injection
 test(
   rewriteJSWrapped,
   "let a = document.location.href; var b = 5; const foo = 4;",
-  "let a = document.location.href; var b = 5; const foo = 4;\nself.a = a;\nself.foo = foo;"
+  "let a = document.location.href; var b = 5; const foo = 4;\nself.a = a;\nself.foo = foo;",
 );
 
 // import rewrite
@@ -238,14 +238,14 @@ a = this.location`,
 import "foo";
 
 a = _____WB$wombat$check$this$function_____(this).location\
-`
+`,
 );
 
 // dynamic import rewrite (non-module)
 test(
   rewriteJS,
   "await import (somefile);",
-  "await ____wb_rewrite_import__ (null, somefile);"
+  "await ____wb_rewrite_import__ (null, somefile);",
 );
 
 // dynamic import rewrite (non-module)
@@ -262,7 +262,7 @@ class X {
   import(a, b, c) {
     await ____wb_rewrite_import__ (null, somefile);
   }
-}`
+}`,
 );
 
 // import/export module rewrite
@@ -278,14 +278,14 @@ export { a };
 a = _____WB$wombat$check$this$function_____(this).location
 
 export { a };
-`
+`,
 );
 
 // rewrite ESM module import
 test(
   rewriteJSImport,
   'import "https://example.com/file.js"',
-  'import "http://localhost:8080/prefix/20201226101010esm_/https://example.com/file.js"'
+  'import "http://localhost:8080/prefix/20201226101010esm_/https://example.com/file.js"',
 );
 
 test(
@@ -297,7 +297,7 @@ import {A, B}
   `
 import {A, B}
  from
- "http://localhost:8080/prefix/20201226101010esm_/https://example.com/file.js"`
+ "http://localhost:8080/prefix/20201226101010esm_/https://example.com/file.js"`,
 );
 
 test(
@@ -323,7 +323,7 @@ import {E, F, G} from "http://localhost:8080/prefix/20201226101010esm_/https://e
 import { Z } from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/path.js";
 
 B = await ____wb_rewrite_import__(import.meta.url, somefile);
-`
+`,
 );
 
 // Not Rewritten
@@ -332,7 +332,7 @@ test(
   `\
 (function() { return "export class foo"; })
 `,
-  ""
+  "",
 );
 
 test(rewriteJS, "return this.abc", "");
@@ -405,7 +405,7 @@ test(
   rewriteJSImport,
   '\
 import"import.js";import{A, B, C} from"test.js";(function() => { frames[0].href = "/abc"; })',
-  ""
+  "",
 );
 
 test(
@@ -415,7 +415,7 @@ function blah() {
   const text = "text: import a from B.js";
 }
 `,
-  ""
+  "",
 );
 
 test(
@@ -428,7 +428,7 @@ import a from "https://example.com/B.js"
 }
 
 `,
-  ""
+  "",
 );
 
 test(
@@ -438,7 +438,7 @@ a = location
 
 export{ a, $ as b };
 `,
-  ""
+  "",
 );
 
 // no wrap, no global injection

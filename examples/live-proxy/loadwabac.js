@@ -1,5 +1,7 @@
 const proxyPrefix = "https://wabac-cors-proxy.webrecorder.workers.dev/proxy/";
 
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class WabacLiveProxy {
   constructor({ collName = "liveproxy", adblockUrl = undefined } = {}) {
     this.url = "";
@@ -68,6 +70,8 @@ class WabacLiveProxy {
       navigator.serviceWorker.controller.postMessage(msg);
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises, @typescript-eslint/no-unnecessary-condition
     if (inited) {
       await inited;
     }
@@ -86,8 +90,8 @@ class WabacLiveProxy {
   onHashChange() {
     const m = window.location.hash.slice(1).match(/\/?(?:([\d]+)\/)?(.*)/);
 
-    const url = (m && m[2]) || "https://example.com/";
-    const ts = (m && m[1]) || "";
+    const url = m?.[2] || "https://example.com/";
+    const ts = m?.[1] || "";
 
     // don't change if same url
     if (url === this.url && ts === this.ts) {

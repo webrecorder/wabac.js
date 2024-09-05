@@ -90,17 +90,21 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
   waczfiles: Record<string, WACZFile>;
   waczNameForHash: Record<string, string>;
   ziploadercache: Record<string, Promise<void>>;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-redundant-type-constituents
   updating: any | null;
   rootSourceType: "wacz" | "json";
   sourceLoader: BaseLoader | undefined;
   externalSource: LiveProxy | null;
   textIndex: string;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fuzzyUrlRules: { match: RegExp; replace: any }[];
 
   constructor(
     config: Config,
     sourceLoader: BaseLoader,
-    rootSourceType: "wacz" | "json" = "wacz"
+    rootSourceType: "wacz" | "json" = "wacz",
   ) {
     // TODO @ikreymer it looks like we're passing `noCache` into what the `loader` param and not the `noCache` param, is there a loader that should be present here?
     // @ts-expect-error
@@ -161,7 +165,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
       MDBType,
       (keyof MDBType)[],
       "readwrite" | "versionchange"
-    >
+    >,
   ) {
     // @ts-expect-error [TODO @emma-sg] - TS2345 - Argument of type 'IDBPDatabase<MDBType>' is not assignable to parameter of type 'IDBPDatabase<DBType>'.
     super._initDB(db, oldV, newV, tx);
@@ -175,6 +179,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     }
 
     if (oldV === 2) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this.convertV2WACZDB(db, tx);
     }
 
@@ -183,6 +189,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     }
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async convertV2WACZDB(db: any, tx: any) {
     try {
       const ziplines = await tx.objectStore("ziplines").getAll();
@@ -207,6 +215,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
       }
 
       const indexType = ziplines.length > 0 ? INDEX_IDX : INDEX_CDX;
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const hash = await this.computeFileHash(waczname, "");
       const filedata = new WACZFile({
         waczname,
@@ -234,6 +244,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     await super.init();
 
     // @ts-expect-error [TODO] - TS2345 - Argument of type '"waczfiles"' is not assignable to parameter of type 'StoreNames<DBType>'.
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const fileDatas = (await this.db!.getAll("waczfiles")) || [];
 
     for (const file of fileDatas) {
@@ -262,6 +274,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
 
   override async close() {
     super.close();
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     caches.delete("cache:" + this.name.slice("db:".length));
   }
 
@@ -279,7 +293,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     id: string,
     expected: string,
     actual: string | null = null,
-    log = false
+    log = false,
   ) {
     let matched = false;
 
@@ -297,6 +311,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     await this.db!.put("verification", { id, expected, matched });
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   override async addVerifyDataList(prefix: string, datalist: any[]) {
     // @ts-expect-error [TODO] - TS2769 - No overload matches this call.
     const tx = this.db!.transaction("verification", "readwrite");
@@ -305,6 +321,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
       if (prefix) {
         data.id = prefix + data.id;
       }
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises, @typescript-eslint/no-unsafe-argument
       tx.store.put(data);
     }
 
@@ -322,6 +340,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     let numValid = 0;
     let numInvalid = 0;
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const info: Record<string, any> = {};
 
     const includeProps = [
@@ -335,6 +355,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
 
     for (const res of results) {
       // @ts-expect-error [TODO] - TS2531 - Object is possibly 'null'. | TS2339 - Property 'id' does not exist on type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; }'.
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       if (includeProps.includes(res.id)) {
         // @ts-expect-error [TODO] - TS2531 - Object is possibly 'null'. | TS2339 - Property 'id' does not exist on type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; }'. | TS2531 - Object is possibly 'null'. | TS2339 - Property 'expected' does not exist on type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; }'.
         info[res.id] = res.expected;
@@ -362,6 +384,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     // @ts-expect-error [TODO] - TS2345 - Argument of type '"verification"' is not assignable to parameter of type 'StoreNames<DBType>'.
     const res = await this.db!.get("verification", id);
     // @ts-expect-error [TODO] - TS2339 - Property 'expected' does not exist on type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; }'.
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return res?.expected;
   }
 
@@ -372,7 +396,9 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
   }
 
   override async loadRecordFromSource(
-    cdx: Record<string, any>
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cdx: Record<string, any>,
   ): LoadRecordFromSourceType {
     // @ts-expect-error [TODO] - TS4111 - Property 'source' comes from an index signature, so it must be accessed with ['source'].
     const { start, length, path, wacz } = cdx.source;
@@ -380,9 +406,11 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     const waczname = wacz;
 
     const { reader, hasher } = await this.loadFileFromNamedWACZ(
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       waczname,
       "archive/" + path,
-      params
+      params,
     );
 
     const loader = new SingleRecordWARCLoader(reader);
@@ -439,13 +467,15 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
   async loadCDX(
     filename: string,
     waczname: string,
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     progressUpdate?: any,
-    total?: number
+    total?: number,
   ) {
     const { reader, hasher } = await this.loadFileFromNamedWACZ(
       waczname,
       filename,
-      { computeHash: true }
+      { computeHash: true },
     );
 
     const loader = new CDXLoader(reader, null, waczname, { wacz: waczname });
@@ -455,6 +485,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     if (hasher) {
       const expected = await this.getVerifyExpected(filename);
       if (expected) {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises, @typescript-eslint/no-unsafe-argument
         this.addVerifyData(waczname, filename, expected, hasher.getHash());
       }
     }
@@ -465,13 +497,15 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
   async loadIDX(
     filename: string,
     waczname: string,
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     progressUpdate?: any,
-    total?: number
+    total?: number,
   ): Promise<void> {
     const { reader, hasher } = await this.loadFileFromNamedWACZ(
       waczname,
       filename,
-      { computeHash: true }
+      { computeHash: true },
     );
 
     const batch: IDXLine[] = [];
@@ -501,7 +535,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
           }
           if (indexMetadata.format !== "cdxj-gzip-1.0") {
             console.log(
-              `Unknown CDXJ format "${indexMetadata.format}", archive may not parse correctly`
+              `Unknown CDXJ format "${indexMetadata.format}", archive may not parse correctly`,
             );
           }
           continue;
@@ -527,6 +561,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
         }
 
         const prefix = line.slice(0, inx);
+        // [TODO]
+        // eslint-disable-next-line prefer-const
         let { offset, length, filename, digest } = JSON.parse(line.slice(inx));
 
         nonSurt = nonSurt && !IS_SURT.test(prefix);
@@ -554,6 +590,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     if (hasher) {
       const expected = await this.getVerifyExpected(filename);
       if (expected) {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises, @typescript-eslint/no-unsafe-argument
         this.addVerifyData(waczname, filename, expected, hasher.getHash());
       }
     }
@@ -563,6 +601,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
 
     for (const entry of batch) {
       // @ts-expect-error [TODO] - TS2345 - Argument of type 'IDXLine' is not assignable to parameter of type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; } | null'.
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       tx.store.put(entry);
     }
 
@@ -586,7 +626,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     waczname: string,
     url: string,
     datetime = 0,
-    isPrefix = false
+    isPrefix = false,
   ) {
     //const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
 
@@ -674,7 +714,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
   async doCDXLoad(
     cacheKey: string,
     zipblock: IDXLine,
-    waczname: string
+    waczname: string,
   ): Promise<void> {
     try {
       const filename = "indexes/" + zipblock.filename;
@@ -687,7 +727,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
       const { reader, hasher } = await this.loadFileFromNamedWACZ(
         waczname,
         filename,
-        params
+        params,
       );
 
       const loader = new CDXLoader(reader, null, "", { wacz: waczname });
@@ -734,7 +774,9 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
   override async lookupUrl(
     url: string,
     datetime: number,
-    opts: Record<string, any> = {}
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    opts: Record<string, any> = {},
   ) {
     try {
       const { waczname } = opts;
@@ -742,6 +784,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
       let result;
 
       if (waczname && waczname !== NO_LOAD_WACZ) {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         result = await this.lookupUrlForWACZ(waczname, url, datetime, opts);
       }
 
@@ -763,7 +807,9 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     waczname: string,
     url: string,
     datetime: number,
-    opts: Record<string, any>
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    opts: Record<string, any>,
   ) {
     const { indexType, isNew } = await this.loadIndex(waczname);
 
@@ -821,6 +867,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
         }
 
         const newRes = await super.resourcesByUrlAndMime(url, ...args);
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
         if (newRes && newRes.length) {
           results = results.concat(newRes);
         }
@@ -833,7 +881,9 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
   async loadFileFromWACZ(
     waczfile: WACZFile,
     filename: string,
-    opts: Record<string, any>
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    opts: Record<string, any>,
   ): LoadWACZEntry {
     try {
       return await waczfile.loadFile(filename, opts);
@@ -849,7 +899,9 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
   async loadFileFromNamedWACZ(
     waczname: string,
     filename: string,
-    opts: Record<string, any>
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    opts: Record<string, any>,
   ): LoadWACZEntry {
     const waczfile = this.waczfiles[waczname];
 
@@ -892,12 +944,16 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     // @ts-expect-error [TODO] - TS2345 - Argument of type 'WACZFile | undefined' is not assignable to parameter of type 'WACZFile'.
     const importer = new WACZImporter(this, file, !parent);
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return await importer.load();
   }
 
   async loadWACZFiles(
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     json: Record<string, any>,
-    parent: WACZLoadSource = this
+    parent: WACZLoadSource = this,
   ) {
     const promises: Promise<void>[] = [];
 
@@ -915,13 +971,17 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
         const name = parent.getName(res.name);
         const hash = res.hash;
         return { name, hash, path };
-      }
+      },
     );
 
     for (const { name, hash, path } of files) {
       if (!this.waczfiles[name]) {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         promises.push(this.addNewWACZ({ name, hash, path, parent }));
       } else if (this.waczfiles[name].path !== path) {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         promises.push(update(name, path));
       }
     }
@@ -952,6 +1012,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
         result = await this.loadFileFromNamedWACZ(waczname, this.textIndex, {
           unzip: true,
         });
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         return new Response("", { headers });
       }
@@ -974,11 +1036,15 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
           const { reader } = await this.loadFileFromNamedWACZ(
             waczname,
             this.textIndex,
-            { unzip: true }
+            { unzip: true },
           );
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (reader) {
             readers.push(reader);
           }
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           continue;
         }
@@ -1003,7 +1069,9 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     request: ArchiveRequest,
     prefix: string,
     event: FetchEvent,
-    { pageId }: Record<string, any> = {}
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    { pageId }: Record<string, any> = {},
   ): Promise<ArchiveResponse | Response | null> {
     await this.initing;
 
@@ -1067,18 +1135,22 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
           const { name, hash } = foundMap.get(date);
           waczname = name;
           foundHash = hash;
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           ts = getTS(date.toISOString());
           min = dist;
         }
       }
 
       return Response.redirect(
-        `${prefix}:${foundHash}/${ts}mp_/${request.url}`
+        `${prefix}:${foundHash}/${ts}mp_/${request.url}`,
       );
     }
 
     if (this.fuzzyUrlRules.length) {
       for (const { match, replace } of this.fuzzyUrlRules) {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         const newUrl = decodeURIComponent(request.url.replace(match, replace));
         if (newUrl && newUrl !== request.url) {
           request.url = newUrl;
@@ -1092,6 +1164,8 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
 
     return null;
   }
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async retryLoad(e: any) {
     if (this.rootSourceType !== "json") {
       return false;
@@ -1119,9 +1193,13 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     if (!response) {
       // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       const result = await this.sourceLoader.doInitialFetch(false, false);
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
       response = result && result.response;
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!response || (response.status !== 206 && response.status !== 200)) {
       // @ts-expect-error [TODO] - TS2339 - Property 'loadUrl' does not exist on type 'Config'.
       console.warn("WACZ update failed from: " + this.config.loadUrl);
@@ -1135,14 +1213,20 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
       case "wacz-package":
       //eslint: disable=no-fallthrough
       default:
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         await this.loadWACZFiles(data);
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return data;
   }
 
   getLoadPath(path: string) {
     // @ts-expect-error [TODO] - TS2339 - Property 'loadUrl' does not exist on type 'Config'.
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return new URL(path, this.config.loadUrl).href;
   }
 

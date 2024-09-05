@@ -57,6 +57,8 @@ type RewriterOpts = {
 
 export function getCustomRewriter(url: string, isHTML: boolean) {
   const rules = isHTML ? htmlRules : baseRules;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return rules.getCustomRewriter(url);
 }
 
@@ -131,6 +133,8 @@ export class Rewriter {
     url = "",
     mime = "",
   ) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!mime && response) {
       mime = response.headers.get("Content-Type") || "";
       const parts = mime.split(";");
@@ -151,6 +155,8 @@ export class Rewriter {
       this.isCharsetUTF8 = true;
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (request) {
       switch (request.destination) {
         case "style":
@@ -242,12 +248,16 @@ export class Rewriter {
       );
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const opts: any = {
       response,
       prefix: this.prefix,
       baseUrl: this.baseUrl,
     };
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let rwFunc: ((x: string, opts: any) => string) | null = null;
 
     switch (rewriteMode) {
@@ -296,6 +306,8 @@ export class Rewriter {
     }
 
     if (rwFunc) {
+      // [TODO]
+      // eslint-disable-next-line prefer-const
       let { bomFound, text } = await response.getText(this.isCharsetUTF8);
       text = rwFunc.call(this, text, opts);
       // if BOM found and not already UTF-8, add charset explicitly
@@ -323,6 +335,8 @@ export class Rewriter {
     if (url && this.baseUrl != url) {
       try {
         url = new URL(url).href;
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         if (url.startsWith("//")) {
           url = new URL("https:" + url).href;
@@ -405,8 +419,12 @@ export class Rewriter {
 
   // CSS
   rewriteCSS(text: string) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const rewriter = this;
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function cssStyleReplacer(match: any, n1: string, n2: string, n3: string) {
       n2 = n2.trim();
       return n1 + rewriter.rewriteUrl(n2) + n3;
@@ -419,9 +437,13 @@ export class Rewriter {
   }
 
   // JS
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rewriteJS(text: string, opts: Record<string, any>) {
     const noUrlProxyRewrite =
       // @ts-expect-error [TODO] - TS4111 - Property 'rewriteUrl' comes from an index signature, so it must be accessed with ['rewriteUrl']. | TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule']. | TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       opts && !opts.rewriteUrl && opts.isModule === undefined && !opts.inline;
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
@@ -431,16 +453,22 @@ export class Rewriter {
       return text;
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return dsRewriter.rewrite(text, opts);
   }
 
   // JSON
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   rewriteJSON(text: string, opts: Record<string, any>) {
     text = this.rewriteJSONP(text);
 
     const dsRewriter = baseRules.getRewriter(this.baseUrl);
 
     if (dsRewriter !== baseRules.defaultRewriter) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return dsRewriter.rewrite(text, opts);
     }
 
@@ -452,20 +480,32 @@ export class Rewriter {
     try {
       const root = JSON.parse(text);
 
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const imports: Record<string, any> = {};
       const output = { imports };
 
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       for (const [key, value] of Object.entries(root.imports || {})) {
         imports[this.rewriteUrl(key).replace("mp_/", "esm_/")] = value;
       }
 
       if (root.scopes) {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const scopes: Record<string, any> = {};
         for (const [scopeKey, scopeValue] of Object.entries(
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           root.scopes || {},
         )) {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const newScope: Record<string, any> = {};
           for (const [key, value] of Object.entries(
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             scopeValue as Record<string, any>,
           )) {
             newScope[this.rewriteUrl(key).replace("mp_/", "esm_/")] = value;
@@ -473,6 +513,8 @@ export class Rewriter {
           scopes[this.rewriteUrl(scopeKey).replace("mp_/", "esm_/")] = newScope;
         }
         // @ts-expect-error [TODO] - TS4111 - Property 'scopes' comes from an index signature, so it must be accessed with ['scopes'].
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (output as Record<string, any>).scopes = scopes;
       }
 
@@ -606,6 +648,8 @@ export class Rewriter {
 
     const new_headers = new Headers();
 
+    // [TODO]
+    // eslint-disable-next-line prefer-const
     for (let [key, value] of headers.entries()) {
       const rule = headerRules[key];
       switch (rule) {
@@ -659,6 +703,8 @@ export class Rewriter {
                 new_headers.append(key, value);
                 continue;
               }
+              // [TODO]
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (e) {
               // ignore if content-length is not parsable as number
             }
@@ -707,7 +753,11 @@ export class Rewriter {
         }
       }
 
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       return parsed.toString();
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       console.warn("Error parsing link header: " + value);
       return value;

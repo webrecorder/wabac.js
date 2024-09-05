@@ -1,5 +1,7 @@
 import { BaseParser } from "./baseparser";
 
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type HAR = Record<string, any>;
 
 // ===========================================================================
@@ -16,7 +18,9 @@ class HARLoader extends BaseParser {
     this.pageRefs = {};
   }
 
-  override async load(db: any): Promise<void> {
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async load(db: any): Promise<void> {
     this.db = db;
 
     this.parseEntries(this.har);
@@ -55,6 +59,8 @@ class HARLoader extends BaseParser {
   parseEntries(har: HAR) {
     // @ts-expect-error [TODO] - TS4111 - Property 'log' comes from an index signature, so it must be accessed with ['log'].
     for (const entry of har.log.entries) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const ts = new Date(entry.startedDateTime).getTime();
 
       const respHeaders: Record<string, string> = {};
@@ -69,9 +75,13 @@ class HARLoader extends BaseParser {
 
       if (entry.response.content?.text) {
         try {
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           payload = Uint8Array.from(atob(entry.response.content.text), (c) =>
             c.charCodeAt(0),
           );
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           payload = entry.response.content.text;
         }

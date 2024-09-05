@@ -28,7 +28,11 @@ export class WACZImporter {
     this.isRoot = isRoot;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async loadFileFromWACZ(filename: string, opts: Record<string, any>) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (this.store.loadFileFromWACZ) {
       return await this.store.loadFileFromWACZ(this.file, filename, opts);
     } else {
@@ -47,11 +51,15 @@ export class WACZImporter {
     }
 
     if (this.file.containsFile(DATAPACKAGE_JSON)) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       metadata = await this.loadPackage(DATAPACKAGE_JSON, datapackageDigest);
     } else if (this.file.containsFile(WEBARCHIVE_YAML)) {
       metadata = await this.loadOldPackageYAML(WEBARCHIVE_YAML);
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return metadata || {};
   }
 
@@ -62,6 +70,8 @@ export class WACZImporter {
     const { reader, hasher } = await this.loadFileFromWACZ(filename, {
       computeHash: !!expectedHash,
     });
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!reader) {
       return "";
     }
@@ -98,12 +108,18 @@ export class WACZImporter {
         return;
       }
 
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await store.addVerifyData(sigPrefix, "datapackageHash", datapackageHash);
 
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const results = await verifyWACZSignature(digestData.signedData);
 
       await store.addVerifyDataList(sigPrefix, results);
 
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return datapackageHash;
     } catch (e) {
       console.warn(e);
@@ -117,6 +133,8 @@ export class WACZImporter {
 
     //todo: check
     if (this.isRoot && root.config !== undefined) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       this.store.initConfig(root.config);
     }
 
@@ -125,9 +143,13 @@ export class WACZImporter {
       case "wacz-package":
       case undefined:
       case null:
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
         return await this.loadLeafWACZPackage(root);
 
       case "multi-wacz-package":
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         return await this.loadMultiWACZPackage(root);
 
       default:
@@ -135,12 +157,16 @@ export class WACZImporter {
     }
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async loadMultiWACZPackage(root: Record<string, any>) {
     this.file.markAsMultiWACZ();
     await this.store.loadWACZFiles(root, this.file);
     return root;
   }
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async loadLeafWACZPackage(datapackage: Record<string, any>) {
     // @ts-expect-error [TODO] - TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
     const metadata = datapackage.metadata || {};
@@ -151,14 +177,20 @@ export class WACZImporter {
     for (const res of datapackage.resources) {
       if (res.path === MAIN_PAGES_JSON) {
         pagesHash = res.hash;
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         await this.store.addVerifyData(this.waczname, res.path, res.hash);
       } else if (res.path.endsWith(".idx") || res.path.endsWith(".cdx")) {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         await this.store.addVerifyData(this.waczname, res.path, res.hash);
       }
     }
 
     // All Pages
     if (this.file.containsFile(MAIN_PAGES_JSON)) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
       const pageInfo: any = await this.loadPages(MAIN_PAGES_JSON, pagesHash);
 
       if (pageInfo.hasText) {
@@ -170,6 +202,8 @@ export class WACZImporter {
       this.store.textIndex = metadata.textIndex = EXTRA_PAGES_JSON;
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return metadata;
   }
 
@@ -177,8 +211,12 @@ export class WACZImporter {
   async loadOldPackageYAML(filename: string) {
     const text = await this.loadTextFileFromWACZ(filename);
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const root: Record<string, any> = yaml.load(text) as Record<string, any>;
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metadata: Record<string, any> = {
       // @ts-expect-error [TODO] - TS4111 - Property 'desc' comes from an index signature, so it must be accessed with ['desc'].
       desc: root.desc,
@@ -202,6 +240,8 @@ export class WACZImporter {
     // @ts-expect-error [TODO] - TS4111 - Property 'config' comes from an index signature, so it must be accessed with ['config'].
     if (this.isRoot && root.config !== undefined) {
       // @ts-expect-error [TODO] - TS4111 - Property 'config' comes from an index signature, so it must be accessed with ['config'].
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       this.store.initConfig(root.config);
     }
 
@@ -216,6 +256,8 @@ export class WACZImporter {
     const pages = root.pages || [];
 
     if (pages?.length) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await this.store.addPages(pages);
     }
 
@@ -224,6 +266,8 @@ export class WACZImporter {
     const pageLists = root.pageLists || [];
 
     if (pageLists?.length) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await this.store.addCuratedPageLists(pageLists, "pages", "show");
     }
 
@@ -232,13 +276,16 @@ export class WACZImporter {
 
   async loadPages(
     filename = MAIN_PAGES_JSON,
-    expectedHash = null,
+    expectedHash = null, // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<Record<string, any>[]> {
     const { reader, hasher } = await this.loadFileFromWACZ(filename, {
       unzip: true,
       computeHash: true,
     });
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!reader) {
       return [];
     }
@@ -259,6 +306,8 @@ export class WACZImporter {
         continue;
       }
 
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       pages.push(page);
 
       if (pages.length === PAGE_BATCH_SIZE) {
@@ -271,6 +320,8 @@ export class WACZImporter {
       await this.store.addPages(pages);
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (hasher && expectedHash) {
       await this.store.addVerifyData(
         this.waczname,
@@ -280,6 +331,8 @@ export class WACZImporter {
       );
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return pageListInfo;
   }
 }

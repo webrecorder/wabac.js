@@ -115,7 +115,7 @@ class HTMLRewriter {
   rewriteMetaContent(
     attrs: Token.Attribute[],
     attr: Token.Attribute,
-    rewriter: Rewriter
+    rewriter: Rewriter,
   ) {
     let equiv = this.getAttr(attrs, "http-equiv");
     if (equiv) {
@@ -127,7 +127,9 @@ class HTMLRewriter {
     } else if (equiv === "refresh") {
       return attr.value.replace(
         META_REFRESH_REGEX,
-        (m, p1, p2, p3) => p1 + this.rewriteUrl(rewriter, p2) + p3
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        (m, p1, p2, p3) => p1 + this.rewriteUrl(rewriter, p2) + p3,
       );
     } else if (this.getAttr(attrs, "name") === "referrer") {
       return "no-referrer-when-downgrade";
@@ -158,7 +160,7 @@ class HTMLRewriter {
   rewriteTagAndAttrs(
     tag: StartTag,
     attrRules: Record<string, string>,
-    rewriter: Rewriter
+    rewriter: Rewriter,
   ) {
     const isUrl = (val: string) => {
       return startsWithAny(val, DATA_RW_PROTOCOLS);
@@ -217,6 +219,8 @@ class HTMLRewriter {
         try {
           // rewrite url, keeping relativeness intact
           attr.value = this.rewriter.updateBaseUrl(attr.value);
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           console.warn("Invalid <base>: " + attr.value);
         }
@@ -227,6 +231,8 @@ class HTMLRewriter {
         if (newValue === attr.value) {
           tag.attrs.push({ name: "__wb_orig_src", value: attr.value });
           if (
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
             attr.value &&
             attr.value.startsWith("data:text/javascript;base64")
           ) {
@@ -321,7 +327,7 @@ class HTMLRewriter {
 
     if (response.expectedLength() > MAX_HTML_REWRITE_SIZE) {
       console.warn(
-        "Skipping rewriting, HTML file too big: " + response.expectedLength()
+        "Skipping rewriting, HTML file too big: " + response.expectedLength(),
       );
       return response;
     }
@@ -329,6 +335,8 @@ class HTMLRewriter {
     const rewriter = this.rewriter;
 
     const rwStream = new RewritingStream();
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (rwStream as any).tokenizer.preprocessor.bufferWaterline = Infinity;
 
     let insertAdded = false;
@@ -426,8 +434,12 @@ class HTMLRewriter {
           isTextEmpty = isTextEmpty && textToken.text.trim().length === 0;
 
           if (scriptRw === "js" || isModule) {
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return rewriter.rewriteJS(textToken.text, { isModule, prefix });
           } else if (scriptRw === "json") {
+            // [TODO]
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return rewriter.rewriteJSON(textToken.text, { prefix });
           } else if (scriptRw === "importmap") {
             return rewriter.rewriteImportmap(textToken.text);
@@ -442,6 +454,8 @@ class HTMLRewriter {
       })();
 
       for (let i = 0; i < text.length; i += MAX_STREAM_CHUNK_SIZE) {
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         rwStream.emitRaw(text.slice(i, i + MAX_STREAM_CHUNK_SIZE));
       }
     });
@@ -456,7 +470,9 @@ class HTMLRewriter {
         async start(controller) {
           rwStream.on("data", (text) => {
             controller.enqueue(
-              isCharsetUTF8 ? encoder.encode(text) : encodeLatin1(text)
+              // [TODO]
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+              isCharsetUTF8 ? encoder.encode(text) : encodeLatin1(text),
             );
           });
 
@@ -478,7 +494,7 @@ class HTMLRewriter {
 
           rwStream.end();
         },
-      })
+      }),
     );
 
     return response;
@@ -511,6 +527,8 @@ class HTMLRewriter {
     const parts = text.split(",");
     // @ts-expect-error [TODO] - TS2769 - No overload matches this call.
     const content = rewriter.rewriteJS(atob(parts[1]), { isModule: false });
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     parts[1] = btoa(content);
     return parts.join(",");
   }

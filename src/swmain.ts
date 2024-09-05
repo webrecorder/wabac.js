@@ -24,12 +24,14 @@ export class SWCollections extends WorkerLoader {
   inited: Promise<boolean> | null;
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   root: string | null;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultConfig: Record<string, any>;
 
   constructor(
     prefixes: Prefixes,
     root: string | null = null,
-    defaultConfig = {}
+    defaultConfig = {},
   ) {
     super(self);
     this.prefixes = prefixes;
@@ -42,13 +44,19 @@ export class SWCollections extends WorkerLoader {
   }
 
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _createCollection(opts: Record<string, any>): Collection {
     return new Collection(opts, this.prefixes, this.defaultConfig);
   }
 
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async loadAll(dbColl?: any): Promise<boolean> {
     this.colls = {};
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     this.inited = super.loadAll(dbColl);
     return this.inited;
   }
@@ -68,7 +76,11 @@ export class SWCollections extends WorkerLoader {
   }
 
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async addCollection(data: any, progressUpdate: any) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const opts = await super.addCollection(data, progressUpdate);
 
     if (opts && opts.name) {
@@ -81,6 +93,8 @@ export class SWCollections extends WorkerLoader {
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   async deleteColl(name: string, keepFileHandle = false) {
     if (this.colls[name]) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (this.colls[name].store) {
         await this.colls[name].store.delete();
       }
@@ -106,17 +120,27 @@ export class SWCollections extends WorkerLoader {
   }
 
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async initNewColl(metadata: any, extraConfig = {}, type = "archive") {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const coll = await super.initNewColl(metadata, extraConfig, type);
     if (coll) {
       this.colls[coll.name] = coll;
     }
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return coll;
   }
 
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   async updateAuth(name: string, headers: Record<string, string>) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (this.colls[name] && (this.colls[name].store as any).updateHeaders) {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (this.colls[name].store as any).updateHeaders(headers);
     }
 
@@ -131,6 +155,8 @@ export class SWCollections extends WorkerLoader {
       this.colls[name].config.metadata = metadata;
       this.colls[name].metadata = metadata;
     }
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return metadata;
   }
 
@@ -139,13 +165,13 @@ export class SWCollections extends WorkerLoader {
     name: string,
     fullSize: number,
     dedupSize: number,
-    updateDecode?: boolean
+    updateDecode?: boolean,
   ) {
     const metadata = await super.updateSize(
       name,
       fullSize,
       dedupSize,
-      updateDecode
+      updateDecode,
     );
     if (this.colls[name] && metadata) {
       // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
@@ -156,13 +182,19 @@ export class SWCollections extends WorkerLoader {
       // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'decode' comes from an index signature, so it must be accessed with ['decode'].
       this.colls[name].config.decode = updateDecode;
     }
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return metadata;
   }
 }
 
 type SWReplayInitOpts = {
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   staticData?: Map<string, any> | null;
   ApiClass?: typeof API;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultConfig?: Record<string, any>;
   CollectionsClass?: typeof SWCollections;
 };
@@ -174,6 +206,8 @@ export class SWReplay {
   staticPrefix: string;
   distPrefix: string;
 
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   staticData: Map<string, any>;
 
   collections: SWCollections;
@@ -193,6 +227,8 @@ export class SWReplay {
     defaultConfig = {},
     CollectionsClass = SWCollections,
   }: SWReplayInitOpts = {}) {
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     this.prefix = self.registration ? self.registration.scope : "";
 
     this.replayPrefix = this.prefix;
@@ -247,7 +283,7 @@ export class SWReplay {
     if (defaultConfig.injectScripts) {
       // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts']. | TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
       defaultConfig.injectScripts = defaultConfig.injectScripts.map(
-        (url: string) => this.staticPrefix + "proxy/" + url
+        (url: string) => this.staticPrefix + "proxy/" + url,
       );
     }
 
@@ -259,8 +295,10 @@ export class SWReplay {
     this.collections = new CollectionsClass(
       prefixes,
       sp.get("root"),
-      defaultConfig
+      defaultConfig,
     );
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this.collections.loadAll(sp.get("dbColl"));
 
     this.proxyOriginMode = !!sp.get("proxyOriginMode");
@@ -273,6 +311,8 @@ export class SWReplay {
     this.stats = sp.get("stats") ? new StatsTracker() : null;
 
     self.addEventListener("install", () => {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       self.skipWaiting();
     });
 
@@ -349,6 +389,8 @@ export class SWReplay {
     for (const staticPath of this.staticData.keys()) {
       if (staticPath === urlOnly) {
         const { content, type } = this.staticData.get(staticPath);
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         return new Response(content, { headers: { "Content-Type": type } });
       }
     }
@@ -406,12 +448,14 @@ export class SWReplay {
 
     try {
       response = await this.defaultFetch(request);
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       response = await cache.match(request, { ignoreSearch: true });
       if (!response) {
         response = notFound(
           request,
-          "Sorry, this url was not cached for offline use"
+          "Sorry, this url was not cached for offline use",
         );
       }
       return response;
@@ -441,7 +485,7 @@ export class SWReplay {
       return await this.api.apiResponse(
         request.url.slice(this.apiPrefix.length),
         request,
-        event
+        event,
       );
     }
 
@@ -457,6 +501,8 @@ export class SWReplay {
           return response;
         }
       }
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       // ignore, not cached
     }
@@ -482,6 +528,8 @@ export class SWReplay {
       ? request.url
       : request.url.substring(coll.prefix.length);
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const opts: Record<string, any> = {
       isRoot: !!this.collections.root,
     };
@@ -503,13 +551,17 @@ export class SWReplay {
 
     const response = await coll.handleRequest(archiveRequest, event);
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (response) {
       if (this.stats) {
         this.stats.updateStats(
-          (response as any).date,
+          // [TODO]
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+          response as any,
           response.status,
           request,
-          event
+          event,
         );
       }
 

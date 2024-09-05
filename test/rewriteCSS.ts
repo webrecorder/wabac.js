@@ -9,7 +9,7 @@ const rewriteCSS = test.macro({
     content: string,
     expected: string,
     encoding: string | undefined = "utf8",
-    expectedContentType: string | undefined = "text/css"
+    expectedContentType: string | undefined = "text/css",
   ) {
     const opts = {
       content,
@@ -38,19 +38,19 @@ const rewriteCSS = test.macro({
 test(
   rewriteCSS,
   "background-image: url('https://example.com/')",
-  "background-image: url('http://localhost:8080/prefix/20201226101010mp_/https://example.com/')"
+  "background-image: url('http://localhost:8080/prefix/20201226101010mp_/https://example.com/')",
 );
 
 test(
   rewriteCSS,
   "background:url( https://example.com )",
-  "background:url( http://localhost:8080/prefix/20201226101010mp_/https://example.com)"
+  "background:url( http://localhost:8080/prefix/20201226101010mp_/https://example.com)",
 );
 
 test(
   rewriteCSS,
   '@import "https://example.com/path/filename.html"',
-  '@import "http://localhost:8080/prefix/20201226101010mp_/https://example.com/path/filename.html"'
+  '@import "http://localhost:8080/prefix/20201226101010mp_/https://example.com/path/filename.html"',
 );
 
 test(
@@ -59,5 +59,5 @@ test(
   '\xEF\xBB\xBF.test{content:"\xEE\x80\xA2"}',
   '.test{content:"\xEE\x80\xA2"}',
   "latin1",
-  "text/css; charset=utf-8"
+  "text/css; charset=utf-8",
 );

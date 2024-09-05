@@ -54,7 +54,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
 
   override async loadPayload(
     cdx: ResourceEntry,
-    opts: Opts
+    opts: Opts,
   ): Promise<
     | AsyncIterable<Uint8Array>
     | Iterable<Uint8Array>
@@ -120,7 +120,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
         cdx.digest = remoteDigestParts[0] + ":" + cdxDigestParts[1];
       } else {
         console.log(
-          `Wrong digest: expected ${cdx.digest}, got ${remote.digest}`
+          `Wrong digest: expected ${cdx.digest}, got ${remote.digest}`,
         );
       }
       //return null;
@@ -149,7 +149,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
       const origResult = await this.lookupUrl(
         remote.origURL,
         remote.origTS || 0,
-        { ...opts, noRevisits: true }
+        { ...opts, noRevisits: true },
       );
       if (!origResult) {
         return null;
@@ -165,7 +165,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
           });
         } else {
           console.warn(
-            "Avoiding revisit lookup loop for: " + JSON.stringify(remote)
+            "Avoiding revisit lookup loop for: " + JSON.stringify(remote),
           );
         }
         if (!payload) {
@@ -233,7 +233,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
         this.streamMap,
         hasher || null,
         cdx.recordDigest!,
-        cdx.source
+        cdx.source,
       );
     }
 
@@ -320,14 +320,14 @@ export class RemoteSourceArchiveDB extends OnDemandPayloadArchiveDB {
   }
 
   override async loadSource(
-    source: Source
+    source: Source,
   ): Promise<ReadableStream<Uint8Array>> {
     const { start, length } = source;
 
     return (await this.loader.getRange(
       start,
       length,
-      true
+      true,
     )) as ReadableStream<Uint8Array>;
   }
 }
@@ -341,7 +341,7 @@ export class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB {
     name: string,
     remoteUrlPrefix: string,
     headers: Record<string, string>,
-    noCache = false
+    noCache = false,
   ) {
     super(name, noCache);
 
@@ -354,7 +354,7 @@ export class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB {
   }
 
   override async loadSource(
-    source: Source
+    source: Source,
   ): Promise<ReadableStream<Uint8Array>> {
     const { start, length } = source;
 
@@ -366,7 +366,7 @@ export class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB {
     return (await loader.getRange(
       start,
       length,
-      true
+      true,
     )) as ReadableStream<Uint8Array>;
   }
 }
@@ -403,7 +403,7 @@ class PartialStreamReader {
     const limitreader = new LimitReader(
       reader as unknown as AsyncIterReader,
       this.size,
-      this.offset
+      this.offset,
     );
     return limitreader.getReadableStream();
   }
@@ -489,7 +489,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
     streamMap: Map<string, ChunkStore>,
     hasher: GetHash | null,
     expectedHash: string,
-    source: Source | undefined
+    source: Source | undefined,
   ) {
     super();
     this.db = db;
@@ -552,7 +552,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
 
     if (this.reader.limit !== 0) {
       console.warn(
-        `Expected payload not consumed, ${this.reader.limit} bytes left`
+        `Expected payload not consumed, ${this.reader.limit} bytes left`,
       );
     } else {
       if (!this.isRange && this.hasher && this.expectedHash && this.source) {
@@ -621,7 +621,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
   }
 
   async readlineRaw(
-    _maxLength?: number | undefined
+    _maxLength?: number | undefined,
   ): Promise<Uint8Array | null> {
     throw new Error("Method not implemented.");
   }
