@@ -99,7 +99,7 @@ module.exports = {
     "@typescript-eslint/method-signature-style": "error",
   },
   reportUnusedDisableDirectives: true,
-  ignorePatterns: ["__generated__", "__mocks__", "dist"],
+  ignorePatterns: ["__generated__", "__mocks__", "dist", "static"],
   overrides: [
     {
       extends: ["plugin:@typescript-eslint/disable-type-checked"],
