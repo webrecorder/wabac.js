@@ -1,5 +1,4 @@
 import levenshtein from "js-levenshtein";
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { jsonToQueryParams } from "warcio";
 
 type FuzzyRule = {
@@ -30,7 +29,7 @@ type KeySets = Record<string, KeySet>;
 function joinRx(rxStr: string[]) {
   return new RegExp(
     "[?&]" + rxStr.map((x: string) => "(" + x + ")").join("|"),
-    "gi",
+    "gi"
   );
 }
 
@@ -236,7 +235,7 @@ export class FuzzyMatcher {
   fuzzyCompareUrls(
     reqUrl: string,
     results: FuzzyResEntry[] | undefined,
-    matchedRule?: FuzzyRule,
+    matchedRule?: FuzzyRule
   ) {
     if (!results?.length) {
       return null;
@@ -279,7 +278,7 @@ export class FuzzyMatcher {
   fuzzyBestMatchQuery(
     reqUrlStr: string,
     results: FuzzyResEntry[],
-    rule?: FuzzyRule,
+    rule?: FuzzyRule
   ): FuzzyResEntry | null {
     let reqUrl: URL;
 
@@ -339,7 +338,7 @@ export class FuzzyMatcher {
     reqQuery: URLSearchParams,
     foundQuery: URLSearchParams,
     reqArgs: Set<string> | null = null,
-    fuzzySet = false,
+    fuzzySet = false
   ) {
     let score = 1.0;
     let total = 1.0;
@@ -420,7 +419,7 @@ export class FuzzyMatcher {
     keySets: KeySets,
     key: string,
     value: string,
-    foundValue: string,
+    foundValue: string
   ) {
     if (
       !value ||

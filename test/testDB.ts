@@ -1,6 +1,5 @@
 /*eslint-env node */
 
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'ava'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import test from "ava";
 
 import "fake-indexeddb/auto";
@@ -104,13 +103,11 @@ const URL_DATA = [
   },
 ];
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("init", async (t) => {
   await db.init();
   t.pass();
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("Add Pages", async (t) => {
   for (const page of PAGES) {
     const pageId = await db.addPage(page, null);
@@ -119,7 +116,6 @@ test("Add Pages", async (t) => {
   }
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("Add Url", async (t) => {
   for (const data of URL_DATA) {
     //const length = data.payload.length;
@@ -132,60 +128,54 @@ test("Add Url", async (t) => {
   }
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("Lookup Url Only (Latest)", async (t) => {
   t.deepEqual(await db.lookupUrl("https://example.com/"), URL_DATA[3]);
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("Lookup Url Exact Ts", async (t) => {
   // exact
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("202003040506")),
-    URL_DATA[0],
+    URL_DATA[0]
   );
 
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("202103040506")),
-    URL_DATA[3],
+    URL_DATA[3]
   );
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("Lookup Url Closest Ts After", async (t) => {
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("2015")),
-    URL_DATA[0],
+    URL_DATA[0]
   );
 
   // matches next timestamp after
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("202003040507")),
-    URL_DATA[3],
+    URL_DATA[3]
   );
 
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("20210101")),
-    URL_DATA[3],
+    URL_DATA[3]
   );
 
   t.deepEqual(
     await db.lookupUrl("https://example.com/", ts("2030")),
-    URL_DATA[3],
+    URL_DATA[3]
   );
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("Lookup Not Found Url", async (t) => {
   t.falsy(await db.lookupUrl("https://example.com/foo", ts("2015")));
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("Search by pageId", async (t) => {
   t.deepEqual(await db.resourcesByPage("01"), [URL_DATA[0], URL_DATA[1]]);
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("Delete with ref counts", async (t) => {
   const toDict = (results: (DigestRefCount | null)[]) => {
     const obj: Record<string, number | undefined> = {};

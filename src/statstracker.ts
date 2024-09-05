@@ -34,11 +34,10 @@ class StatsTracker {
         self.clients
           .matchAll({ type: "window" })
           .then((clients) =>
-            this.updateStatsParent(id, request.referrer, clients),
+            this.updateStatsParent(id, request.referrer, clients)
           );
       }
     } else {
-      // @ts-expect-error [TODO] - TS2322 - Type 'TimeRangeStat | undefined' is not assignable to type 'TimeRangeStat'.
       timeRange = this.timeRanges[id];
     }
 
@@ -58,7 +57,7 @@ class StatsTracker {
   updateStatsParent(
     id: string,
     referrer: string,
-    clients: readonly WindowClient[],
+    clients: readonly WindowClient[]
   ) {
     for (const client of clients) {
       if (client.url === referrer) {

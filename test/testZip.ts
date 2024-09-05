@@ -1,6 +1,5 @@
 //import { fetch } from "node:fetch";
 
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'ava'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import anyTest, { type TestFn } from "ava";
 import http from "http";
 
@@ -12,7 +11,6 @@ import { ZipRangeReader } from "../src/wacz/ziprangereader";
 
 import { createLoader } from "../src/blockloaders";
 
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { WARCParser } from "warcio";
 
 const test = anyTest as TestFn<{ baseUrl: string; server: http.Server }>;
@@ -21,22 +19,19 @@ const decoder = new TextDecoder("utf-8");
 
 function createServer() {
   return http.createServer((req, res) =>
-    serveStatic("test/data")(req, res, () => {}),
+    serveStatic("test/data")(req, res, () => {})
   );
 }
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test.before(async (t) => {
   t.context.server = createServer();
   t.context.baseUrl = await listen(t.context.server);
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test.after.always((t) => {
   t.context.server.close();
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("test head", async (t) => {
   const res = await fetch(t.context.baseUrl + "/sample_dash.mpd", {
     method: "HEAD",
@@ -45,7 +40,6 @@ test("test head", async (t) => {
   t.is(res.headers.get("Content-Length"), "3229");
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("test range", async (t) => {
   const res = await fetch(t.context.baseUrl + "/sample_dash.mpd", {
     headers: { Range: "bytes=12-24" },
@@ -54,10 +48,9 @@ test("test range", async (t) => {
   t.is(await res.text(), "urn:mpeg:dash");
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("load test.zip entries", async (t) => {
   const zipreader = new ZipRangeReader(
-    await createLoader({ url: t.context.baseUrl + "/example.zip" }),
+    await createLoader({ url: t.context.baseUrl + "/example.zip" })
   );
 
   const entries = await zipreader.load();
@@ -108,10 +101,9 @@ test("load test.zip entries", async (t) => {
   });
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("load test.zip file fully", async (t) => {
   const zipreader = new ZipRangeReader(
-    await createLoader({ url: t.context.baseUrl + "/example.zip" }),
+    await createLoader({ url: t.context.baseUrl + "/example.zip" })
   );
 
   const { reader } = await zipreader.loadFile("indexes/index.cdxj");
@@ -126,14 +118,13 @@ com,example)/ 20170306040206 {"url":"http://example.com/","mime":"text/html","st
 com,example)/ 20170306040348 {"url":"http://example.com/","mime":"warc/revisit","status":200,"digest":"G7HRM7BGOKSKMSXZAHMUQTTV53QOFSMK","length":586,"offset":2621,"filename":"example.warc.gz"}
 org,httpbin)/anything/resource.json 20171130220904 {"url":"http://httpbin.org/anything/resource.json","mime":"application/json","digest":"UQ3W6RIQVJO6ZEL55355BJODG2DMWBPH","length":465,"offset":0,"filename":"httpbin-resource.warc.gz"}
 org,iana,www)/ 20140126200624 {"url":"http://www.iana.org/","mime":"text/html","status":200,"digest":"OSSAPWJ23L56IYVRW3GFEAR4MCJMGPTB","length":2258,"offset":334,"filename":"iana.warc.gz"}
-`,
+`
   );
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("load test.zip WARC.GZ record", async (t) => {
   const zipreader = new ZipRangeReader(
-    await createLoader({ url: t.context.baseUrl + "/example.zip" }),
+    await createLoader({ url: t.context.baseUrl + "/example.zip" })
   );
 
   const { reader } = await zipreader.loadFile("warcs/example.warc.gz", {
@@ -158,15 +149,14 @@ test("load test.zip WARC.GZ record", async (t) => {
   t.is(line, "<!doctype html>\n");
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("load test.zip WARC record", async (t) => {
   const zipreader = new ZipRangeReader(
-    await createLoader({ url: t.context.baseUrl + "/example.zip" }),
+    await createLoader({ url: t.context.baseUrl + "/example.zip" })
   );
 
   const { reader } = await zipreader.loadFile(
     "warcs/example-iana.org-chunked.warc",
-    { offset: 405, length: 7970, unzip: true },
+    { offset: 405, length: 7970, unzip: true }
   );
 
   const parser = new WARCParser(reader);
@@ -179,12 +169,12 @@ test("load test.zip WARC record", async (t) => {
   t.is(record.warcTargetURI, "http://www.iana.org/");
   t.is(
     record.warcPayloadDigest,
-    "sha1:b1f949b4920c773fd9c863479ae9a788b948c7ad",
+    "sha1:b1f949b4920c773fd9c863479ae9a788b948c7ad"
   );
 
   t.is(
     record.httpHeaders?.headers.get("Content-Type"),
-    "text/html; charset=UTF-8",
+    "text/html; charset=UTF-8"
   );
 
   let text = "";
@@ -200,6 +190,6 @@ test("load test.zip WARC record", async (t) => {
 <html>
 <head>
 <title>Internet Assigned Numbers Authority</title>
-`,
+`
   );
 });

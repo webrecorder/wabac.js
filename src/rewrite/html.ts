@@ -1,4 +1,3 @@
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'parse5-html-rewriting-stream'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { RewritingStream } from "parse5-html-rewriting-stream";
 
 import {
@@ -9,9 +8,7 @@ import {
   REPLAY_TOP_FRAME_NAME,
 } from "../utils";
 import { type ArchiveResponse, type Rewriter } from "./index.js";
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'parse5-sax-parser'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { type StartTag } from "parse5-sax-parser";
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'parse5'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { type Token } from "parse5";
 
 const encoder = new TextEncoder();
@@ -118,7 +115,7 @@ class HTMLRewriter {
   rewriteMetaContent(
     attrs: Token.Attribute[],
     attr: Token.Attribute,
-    rewriter: Rewriter,
+    rewriter: Rewriter
   ) {
     let equiv = this.getAttr(attrs, "http-equiv");
     if (equiv) {
@@ -130,8 +127,7 @@ class HTMLRewriter {
     } else if (equiv === "refresh") {
       return attr.value.replace(
         META_REFRESH_REGEX,
-        // @ts-expect-error [TODO] - TS7006 - Parameter 'm' implicitly has an 'any' type. | TS7006 - Parameter 'p1' implicitly has an 'any' type. | TS7006 - Parameter 'p2' implicitly has an 'any' type. | TS7006 - Parameter 'p3' implicitly has an 'any' type.
-        (m, p1, p2, p3) => p1 + this.rewriteUrl(rewriter, p2) + p3,
+        (m, p1, p2, p3) => p1 + this.rewriteUrl(rewriter, p2) + p3
       );
     } else if (this.getAttr(attrs, "name") === "referrer") {
       return "no-referrer-when-downgrade";
@@ -162,7 +158,7 @@ class HTMLRewriter {
   rewriteTagAndAttrs(
     tag: StartTag,
     attrRules: Record<string, string>,
-    rewriter: Rewriter,
+    rewriter: Rewriter
   ) {
     const isUrl = (val: string) => {
       return startsWithAny(val, DATA_RW_PROTOCOLS);
@@ -325,7 +321,7 @@ class HTMLRewriter {
 
     if (response.expectedLength() > MAX_HTML_REWRITE_SIZE) {
       console.warn(
-        "Skipping rewriting, HTML file too big: " + response.expectedLength(),
+        "Skipping rewriting, HTML file too big: " + response.expectedLength()
       );
       return response;
     }
@@ -353,7 +349,6 @@ class HTMLRewriter {
       }
     };
 
-    // @ts-expect-error [TODO] - TS7006 - Parameter 'startTag' implicitly has an 'any' type.
     rwStream.on("startTag", (startTag) => {
       const tagRules = rewriteTags[startTag.tagName];
 
@@ -400,7 +395,6 @@ class HTMLRewriter {
       }
     });
 
-    // @ts-expect-error [TODO] - TS7006 - Parameter 'endTag' implicitly has an 'any' type.
     rwStream.on("endTag", (endTag) => {
       if (endTag.tagName === context) {
         if (replaceTag) {
@@ -423,7 +417,6 @@ class HTMLRewriter {
       rwStream.emitEndTag(endTag);
     });
 
-    // @ts-expect-error [TODO] - TS7006 - Parameter 'textToken' implicitly has an 'any' type. | TS7006 - Parameter 'raw' implicitly has an 'any' type.
     rwStream.on("text", (textToken, raw) => {
       const text = (() => {
         if (context === "script") {
@@ -461,10 +454,9 @@ class HTMLRewriter {
     response.setReader(
       new ReadableStream({
         async start(controller) {
-          // @ts-expect-error [TODO] - TS7006 - Parameter 'text' implicitly has an 'any' type.
           rwStream.on("data", (text) => {
             controller.enqueue(
-              isCharsetUTF8 ? encoder.encode(text) : encodeLatin1(text),
+              isCharsetUTF8 ? encoder.encode(text) : encodeLatin1(text)
             );
           });
 
@@ -486,7 +478,7 @@ class HTMLRewriter {
 
           rwStream.end();
         },
-      }),
+      })
     );
 
     return response;

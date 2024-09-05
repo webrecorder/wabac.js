@@ -1,4 +1,3 @@
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'ava'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import test from "ava";
 
 import { doRewrite } from "./helpers/index.js";
@@ -10,11 +9,10 @@ import { xmlOpts } from "../src/rewrite/rewriteVideo.js";
 xmlOpts.format = true;
 
 // ===========================================================================
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("DASH", async (t) => {
   const content = await fs.readFile(
     new URL("./data/sample_dash.mpd", import.meta.url),
-    "utf-8",
+    "utf-8"
   );
 
   const { text: result } = await doRewrite({
@@ -71,7 +69,7 @@ test('FB DASH', async t => {
   const content = JSON.stringify({"dash_manifest": text + '\n', "dash_prefetched_representation_ids":["4","5"], "other": "data"});
 
   const result = await doRewrite({content,
-      contentType: "text/javascript", 
+      contentType: "text/javascript",
       url: "http://facebook.com/example/dash/manifest.js",
       isLive: true});
 
@@ -89,7 +87,7 @@ test('FB DASH 2', async t => {
   const content = JSON.stringify({"dash_manifest": text + '\n', "dash_prefetched_representation_ids": null, "other": "data"});
 
   const result = await doRewrite({content,
-      contentType: "text/javascript", 
+      contentType: "text/javascript",
       url: "http://facebook.com/example/dash/manifest.js"});
 
   const res = JSON.parse(result);
@@ -101,11 +99,10 @@ test('FB DASH 2', async t => {
 });
 */
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("HLS DEFAULT MAX", async (t) => {
   const content = await fs.readFile(
     new URL("./data/sample_hls.m3u8", import.meta.url),
-    "utf-8",
+    "utf-8"
   );
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
@@ -127,11 +124,10 @@ http://example.com/video_1.m3u8`;
   t.is(result, expected, result);
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("HLS DEFAULT MAX - NATIVE STREAMING", async (t) => {
   const content = await fs.readFile(
     new URL("./data/sample_hls.m3u8", import.meta.url),
-    "utf-8",
+    "utf-8"
   );
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
@@ -152,11 +148,10 @@ http://localhost:8080/prefix/20201226101010mp_/http://example.com/video_1.m3u8`;
   t.is(result, expected, result);
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("HLS DEFAULT OLD REPLAY MAX", async (t) => {
   const content = await fs.readFile(
     new URL("./data/sample_hls.m3u8", import.meta.url),
-    "utf-8",
+    "utf-8"
   );
   const contentType = "application/vnd.apple.mpegurl";
   const url = "http://example.com/path/master.m3u8";
@@ -178,7 +173,6 @@ http://example.com/video_5.m3u8`;
   t.is(result, expected);
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("YT rewrite", async (t) => {
   const content = `
 <html>
@@ -187,7 +181,7 @@ test("YT rewrite", async (t) => {
 const test1 = {"player": {"args": {"some": "data"}}};
 const test2 = yt.setConfig(PLAYER_CONFIG: {"args": {"other":"data"}});
 const test3 = ytplayer.config = {"args": {"some": "data"}};
-const test4 = ytplayer.load(); 
+const test4 = ytplayer.load();
 </script>
 </head>
 </html>
@@ -200,7 +194,7 @@ const test4 = ytplayer.load();
 const test1 = {"player": {"args": {"dash":"0","dashmpd":"","some": "data"}}};
 const test2 = yt.setConfig(PLAYER_CONFIG: {"args": { "dash": "0", dashmpd: "", "other":"data"}});
 const test3 = ytplayer.config = {"args": {"dash":"0","dashmpd":"","some": "data"}};
-const test4 = ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""; ytplayer.load(); 
+const test4 = ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""; ytplayer.load();
 </script>
 </head>
 </html>
@@ -214,7 +208,6 @@ const test4 = ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""
   t.is(result, expected, result);
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("FB rewrite JS", async (t) => {
   const content = `\
 <script>
@@ -236,7 +229,6 @@ const test1 = {"__nodash__url": "foo", {"some__nodash__": "a", "data__nodash__fo
   t.is(result, expected);
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("Twitter rewrite json", async (t) => {
   const content = {
     video_info: {
@@ -294,7 +286,6 @@ test("Twitter rewrite json", async (t) => {
   }
 });
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("Twitter rewrite embedded json", async (t) => {
   const content = {
     video: {

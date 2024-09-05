@@ -62,7 +62,6 @@ export type CollConfig = {
 // ===========================================================================
 export class CollectionLoader {
   root: string | null = null;
-  // @ts-expect-error [TODO] - TS2314 - Generic type 'IDBPDatabase<DBTypes>' requires 1 type argument(s).
   colldb: IDBPDatabase | null = null;
   checkIpfs = true;
   _init_db: Promise<void>;
@@ -78,7 +77,6 @@ export class CollectionLoader {
       upgrade: (db /*, oldV, newV, tx*/) => {
         const collstore = db.createObjectStore("colls", { keyPath: "name" });
 
-        // @ts-expect-error [TODO] - TS2345 - Argument of type 'string' is not assignable to parameter of type 'never'.
         collstore.createIndex("type", "type");
       },
     });
@@ -106,7 +104,6 @@ export class CollectionLoader {
     try {
       const allColls = await this.listAll();
 
-      // @ts-expect-error [TODO] - TS7006 - Parameter 'data' implicitly has an 'any' type.
       const promises = allColls.map(async (data) => this._initColl(data));
 
       await Promise.all(promises);
@@ -148,7 +145,7 @@ export class CollectionLoader {
         await deleteDB(data.config.dbname, {
           blocked(_, e) {
             console.log(
-              `Unable to delete ${data.config.dbname}, blocked: ${e}`,
+              `Unable to delete ${data.config.dbname}, blocked: ${e}`
             );
           },
         });
@@ -190,7 +187,7 @@ export class CollectionLoader {
     name: string,
     fullSize: number,
     dedupSize: number,
-    decodeUpdate?: boolean,
+    decodeUpdate?: boolean
   ) {
     await this._init_db;
     const data = await this.colldb!.get("colls", name);
@@ -214,7 +211,7 @@ export class CollectionLoader {
   async initNewColl(
     metadata: Record<string, any>,
     extraConfig = {},
-    type = "archive",
+    type = "archive"
   ) {
     await this._init_db;
     const id = randomId();
@@ -281,7 +278,7 @@ export class CollectionLoader {
           config.dbname,
           sourceLoader,
           // @ts-expect-error [TODO] - TS4111 - Property 'noCache' comes from an index signature, so it must be accessed with ['noCache'].
-          config.noCache,
+          config.noCache
         );
         break;
 
@@ -294,7 +291,7 @@ export class CollectionLoader {
           // @ts-expect-error [TODO] - TS4111 - Property 'headers' comes from an index signature, so it must be accessed with ['headers'].
           config.headers,
           // @ts-expect-error [TODO] - TS4111 - Property 'noCache' comes from an index signature, so it must be accessed with ['noCache'].
-          config.noCache,
+          config.noCache
         );
         break;
 
@@ -313,7 +310,7 @@ export class CollectionLoader {
           // @ts-expect-error [TODO] - TS2345 - Argument of type 'Record<string, any>' is not assignable to parameter of type 'Config'.
           config,
           sourceLoader,
-          type === "multiwacz" ? "json" : "wacz",
+          type === "multiwacz" ? "json" : "wacz"
         );
         break;
 
@@ -382,7 +379,7 @@ export class WorkerLoader extends CollectionLoader {
           currentSize?: number | null,
           totalSize?: number | null,
           fileHandle = null,
-          extraMsg = null,
+          extraMsg = null
         ) => {
           client.postMessage({
             msg_type: "collProgress",
@@ -415,7 +412,7 @@ export class WorkerLoader extends CollectionLoader {
                 await deleteDB("db:" + event.data.name, {
                   blocked(_, e) {
                     console.log(
-                      `Load failed and unable to delete ${event.data.name}: ${e}`,
+                      `Load failed and unable to delete ${event.data.name}: ${e}`
                     );
                   },
                 });
@@ -435,7 +432,7 @@ export class WorkerLoader extends CollectionLoader {
               null,
               // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
               // @ts-expect-error [TODO] - TS4111 - Property 'fileHandle' comes from an index signature, so it must be accessed with ['fileHandle'].
-              e.info?.fileHandle,
+              e.info?.fileHandle
             );
             return;
           } else if (e.name === "ConstraintError") {
@@ -447,7 +444,7 @@ export class WorkerLoader extends CollectionLoader {
               0,
               "An unexpected error occured: " + e.toString(),
               null,
-              null,
+              null
             );
             return;
           }
@@ -467,7 +464,7 @@ export class WorkerLoader extends CollectionLoader {
         const name = event.data.name;
 
         const p = new Promise<void>(
-          (resolve) => (interruptLoads[name] = resolve),
+          (resolve) => (interruptLoads[name] = resolve)
         );
 
         await p;
@@ -500,7 +497,7 @@ export class WorkerLoader extends CollectionLoader {
   }
 
   async doListAll(
-    client: (WorkerGlobalScope & typeof globalThis) | MessageEventSource,
+    client: (WorkerGlobalScope & typeof globalThis) | MessageEventSource
   ) {
     const msgData: Record<string, any>[] = [];
     const allColls = await this.listAll();
@@ -520,7 +517,7 @@ export class WorkerLoader extends CollectionLoader {
 
   async addCollection(
     data: Record<string, any>,
-    progressUpdate: any,
+    progressUpdate: any
   ): Promise<LoadColl | false> {
     // @ts-expect-error [TODO] - TS4111 - Property 'name' comes from an index signature, so it must be accessed with ['name'].
     let name = data.name;
@@ -579,7 +576,7 @@ export class WorkerLoader extends CollectionLoader {
         if (!existing || existing.type !== "archive") {
           progressUpdate(
             0,
-            "Invalid Existing Collection: " + file.importCollId,
+            "Invalid Existing Collection: " + file.importCollId
           );
           return false;
         }
@@ -625,7 +622,7 @@ export class WorkerLoader extends CollectionLoader {
       // @ts-expect-error [TODO] - TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName']. | TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName'].
       config.sourceName = config.sourceName.slice(
         // @ts-expect-error [TODO] - TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName'].
-        config.sourceName.lastIndexOf("/") + 1,
+        config.sourceName.lastIndexOf("/") + 1
       );
 
       // @ts-expect-error [TODO] - TS4111 - Property 'size' comes from an index signature, so it must be accessed with ['size'].
@@ -681,12 +678,12 @@ export class WorkerLoader extends CollectionLoader {
 
       let sourceExt: string | undefined = getKnownFileExtension(
         // @ts-expect-error [TODO] - TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName'].
-        config.sourceName,
+        config.sourceName
       );
 
       const { abort, response } = await sourceLoader.doInitialFetch(
         sourceExt === ".wacz",
-        false,
+        false
       );
 
       if (!sourceExt) {
@@ -710,7 +707,7 @@ Sorry, this URL could not be loaded.
 Make sure this is a valid URL and you have access to this file.
 Status: ${response.status} ${response.statusText}
 Error Details:
-${text}`,
+${text}`
         );
         if (abort) {
           abort.abort();
@@ -723,7 +720,7 @@ ${text}`,
           0,
           `\
 Sorry, this URL could not be loaded because the size of the file is not accessible.
-Make sure this is a valid URL and you have access to this file.`,
+Make sure this is a valid URL and you have access to this file.`
         );
         if (abort) {
           abort.abort();
@@ -751,7 +748,7 @@ Make sure this is a valid URL and you have access to this file.`,
         } else {
           progressUpdate(
             0,
-            "Sorry, can't load this WACZ file due to lack of range request support on the server",
+            "Sorry, can't load this WACZ file due to lack of range request support on the server"
           );
           if (abort) {
             abort.abort();
@@ -777,7 +774,7 @@ Make sure this is a valid URL and you have access to this file.`,
             config.dbname,
             sourceLoader,
             // @ts-expect-error [TODO] - TS4111 - Property 'noCache' comes from an index signature, so it must be accessed with ['noCache'].
-            config.noCache,
+            config.noCache
           );
         }
       } else if (stream && (sourceExt === ".cdx" || sourceExt === ".cdxj")) {
@@ -795,7 +792,7 @@ Make sure this is a valid URL and you have access to this file.`,
           // @ts-expect-error [TODO] - TS4111 - Property 'headers' comes from an index signature, so it must be accessed with ['headers'].
           config.headers,
           // @ts-expect-error [TODO] - TS4111 - Property 'noCache' comes from an index signature, so it must be accessed with ['noCache'].
-          config.noCache,
+          config.noCache
         );
 
         // } else if (sourceExt === ".wbn") {
@@ -817,7 +814,7 @@ Make sure this is a valid URL and you have access to this file.`,
         progressUpdate(
           0,
           // @ts-expect-error [TODO] - TS4111 - Property 'sourceName' comes from an index signature, so it must be accessed with ['sourceName'].
-          `The ${config.sourceName} is not a known archive format that could be loaded.`,
+          `The ${config.sourceName} is not a known archive format that could be loaded.`
         );
         if (abort) {
           abort.abort();
@@ -848,7 +845,7 @@ Make sure this is a valid URL and you have access to this file.`,
           contentLength,
           contentLength,
           // @ts-expect-error [TODO] - TS4111 - Property 'decode' comes from an index signature, so it must be accessed with ['decode'].
-          updateExistingConfig.decode,
+          updateExistingConfig.decode
         );
         return { config: updateExistingConfig, type: "" };
       }

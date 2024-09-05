@@ -1,6 +1,5 @@
 declare let self: ServiceWorkerGlobalScope;
 
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'http-status-codes'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { getReasonPhrase } from "http-status-codes";
 import { type ArchiveRequest } from "./request";
 
@@ -98,7 +97,7 @@ export function base16(hashBuffer: ArrayBuffer) {
 export async function digestMessage(
   message: string | Uint8Array,
   hashtype: string,
-  prefix: string | null = null,
+  prefix: string | null = null
 ) {
   const msgUint8 =
     typeof message === "string" ? new TextEncoder().encode(message) : message;
@@ -135,7 +134,7 @@ export function randomId() {
 }
 
 export function makeHeaders(
-  headers: Headers | Record<string, string> | Map<string, string>,
+  headers: Headers | Record<string, string> | Map<string, string>
 ) {
   try {
     return new Headers(headers as Headers);

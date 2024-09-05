@@ -2,7 +2,6 @@ import brotliDecode from "brotli/decompress.js";
 
 import pako from "pako";
 
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { AsyncIterReader } from "warcio";
 import { type ArchiveResponse } from "../response";
 
@@ -11,7 +10,7 @@ async function decodeResponse(
   response: ArchiveResponse,
   contentEncoding: string | null,
   transferEncoding: string | null,
-  noRW: boolean,
+  noRW: boolean
 ) {
   // use the streaming decoder if gzip only and no rewriting
   if (
@@ -31,7 +30,7 @@ async function decodeResponse(
   const content = await decodeContent(
     origContent,
     contentEncoding,
-    transferEncoding,
+    transferEncoding
   );
 
   if (origContent !== content) {
@@ -45,7 +44,7 @@ async function decodeResponse(
 async function decodeContent(
   content: Uint8Array,
   contentEncoding: string | null,
-  transferEncoding: string | null,
+  transferEncoding: string | null
 ) {
   const origContent = content;
 
@@ -118,7 +117,7 @@ function dechunkArrayBuffer(data: Uint8Array) {
 
     const chunkLength = parseInt(
       decoder.decode(data.subarray(readOffset, i)),
-      16,
+      16
     );
 
     if (chunkLength == 0) {

@@ -29,7 +29,7 @@ export class SWCollections extends WorkerLoader {
   constructor(
     prefixes: Prefixes,
     root: string | null = null,
-    defaultConfig = {},
+    defaultConfig = {}
   ) {
     super(self);
     this.prefixes = prefixes;
@@ -81,9 +81,7 @@ export class SWCollections extends WorkerLoader {
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   async deleteColl(name: string, keepFileHandle = false) {
     if (this.colls[name]) {
-      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       if (this.colls[name].store) {
-        // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
         await this.colls[name].store.delete();
       }
 
@@ -118,9 +116,7 @@ export class SWCollections extends WorkerLoader {
 
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   async updateAuth(name: string, headers: Record<string, string>) {
-    // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
     if (this.colls[name] && (this.colls[name].store as any).updateHeaders) {
-      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       (this.colls[name].store as any).updateHeaders(headers);
     }
 
@@ -133,7 +129,6 @@ export class SWCollections extends WorkerLoader {
     if (this.colls[name] && metadata) {
       // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
       this.colls[name].config.metadata = metadata;
-      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       this.colls[name].metadata = metadata;
     }
     return metadata;
@@ -144,18 +139,17 @@ export class SWCollections extends WorkerLoader {
     name: string,
     fullSize: number,
     dedupSize: number,
-    updateDecode?: boolean,
+    updateDecode?: boolean
   ) {
     const metadata = await super.updateSize(
       name,
       fullSize,
       dedupSize,
-      updateDecode,
+      updateDecode
     );
     if (this.colls[name] && metadata) {
       // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
       this.colls[name].config.metadata = metadata;
-      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       this.colls[name].metadata = metadata;
     }
     if (updateDecode !== undefined && this.colls[name]) {
@@ -253,7 +247,7 @@ export class SWReplay {
     if (defaultConfig.injectScripts) {
       // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts']. | TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
       defaultConfig.injectScripts = defaultConfig.injectScripts.map(
-        (url: string) => this.staticPrefix + "proxy/" + url,
+        (url: string) => this.staticPrefix + "proxy/" + url
       );
     }
 
@@ -265,7 +259,7 @@ export class SWReplay {
     this.collections = new CollectionsClass(
       prefixes,
       sp.get("root"),
-      defaultConfig,
+      defaultConfig
     );
     this.collections.loadAll(sp.get("dbColl"));
 
@@ -417,7 +411,7 @@ export class SWReplay {
       if (!response) {
         response = notFound(
           request,
-          "Sorry, this url was not cached for offline use",
+          "Sorry, this url was not cached for offline use"
         );
       }
       return response;
@@ -447,7 +441,7 @@ export class SWReplay {
       return await this.api.apiResponse(
         request.url.slice(this.apiPrefix.length),
         request,
-        event,
+        event
       );
     }
 
@@ -515,7 +509,7 @@ export class SWReplay {
           (response as any).date,
           response.status,
           request,
-          event,
+          event
         );
       }
 

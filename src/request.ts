@@ -1,4 +1,3 @@
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { postToGetUrl } from "warcio";
 
 const REPLAY_REGEX =
@@ -27,7 +26,7 @@ export class ArchiveRequest {
       ts = "",
       proxyOrigin = null,
       localOrigin = null,
-    } = {},
+    } = {}
   ) {
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
 
@@ -117,7 +116,7 @@ export class ArchiveRequest {
 
   prepareProxyRequest(
     prefix: string,
-    isLive = true,
+    isLive = true
   ): {
     referrer?: string;
     headers: Headers;

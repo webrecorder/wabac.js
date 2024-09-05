@@ -6,7 +6,6 @@ import {
   WARCParser,
   type WARCRecord,
   postToGetUrl,
-  // @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 } from "warcio";
 
 import { extractText } from "./extract";
@@ -34,7 +33,7 @@ class WARCLoader extends BaseParser {
     reader: Source,
     abort: AbortController | null = null,
     loadId: string | null = null,
-    sourceExtra = null,
+    sourceExtra = null
   ) {
     super();
 
@@ -150,7 +149,7 @@ class WARCLoader extends BaseParser {
 
   parseRevisitRecord(
     record: WARCRecord,
-    reqRecord: WARCRecord | null,
+    reqRecord: WARCRecord | null
   ): ResourceEntry | null {
     const url = record.warcTargetURI!.split("#")[0];
     const date = record.warcDate;
@@ -161,6 +160,7 @@ class WARCLoader extends BaseParser {
     let status: number | undefined;
 
     if (record.httpHeaders) {
+      // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
       const parsed = this.parseResponseHttpHeaders(record, url, reqRecord);
       if (parsed) {
         respHeaders = Object.fromEntries(parsed.headers.entries());
@@ -179,6 +179,7 @@ class WARCLoader extends BaseParser {
     const digest = record.warcPayloadDigest || null;
 
     return {
+      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
       url,
       ts,
       origURL,
@@ -193,7 +194,7 @@ class WARCLoader extends BaseParser {
   parseResponseHttpHeaders(
     record: WARCRecord,
     url: string,
-    reqRecord: WARCRecord | null,
+    reqRecord: WARCRecord | null
   ) {
     let status = 200;
     let headers: Headers | null = null;
@@ -249,7 +250,7 @@ class WARCLoader extends BaseParser {
   indexReqResponse(
     record: WARCRecord,
     reqRecord: WARCRecord | null,
-    parser: WARCParser,
+    parser: WARCParser
   ) {
     const entry = this.parseRecords(record, reqRecord);
 
@@ -260,7 +261,7 @@ class WARCLoader extends BaseParser {
 
   parseRecords(
     record: WARCRecord,
-    reqRecord: WARCRecord | null,
+    reqRecord: WARCRecord | null
   ): ResourceEntry | null {
     switch (record.warcType) {
       case "revisit":
@@ -286,6 +287,7 @@ class WARCLoader extends BaseParser {
     let url = record.warcTargetURI!.split("#")[0];
     const date = record.warcDate;
 
+    // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
     const parsed = this.parseResponseHttpHeaders(record, url, reqRecord);
 
     if (!parsed) {
@@ -323,6 +325,7 @@ class WARCLoader extends BaseParser {
           postData: reqRecord.payload,
         };
 
+        // @ts-expect-error [TODO] - TS2345 - Argument of type '{ headers: Headers; method: string; url: string | undefined; postData: Uint8Array | null; }' is not assignable to parameter of type 'Request'.
         if (postToGetUrl(data)) {
           // original requestUrl
           requestUrl = url;
@@ -342,8 +345,10 @@ class WARCLoader extends BaseParser {
     }
 
     if (this.detectPages) {
+      // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
       if (isPage(url, status, mime)) {
         const title = url;
+        // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
         this.addPage({ url, date, title });
       }
     }
@@ -358,6 +363,7 @@ class WARCLoader extends BaseParser {
     const reader = payload ? null : record.reader;
 
     const entry: ResourceEntry = {
+      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
       url,
       ts,
       status,
@@ -372,10 +378,11 @@ class WARCLoader extends BaseParser {
 
     if (this.pageMap[ts + "/" + url] && payload && mime.startsWith("text/")) {
       this.pageMap[ts + "/" + url].textPromise = extractText(
+        // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
         url,
         payload,
         headers.get("content-encoding"),
-        headers.get("transfer-encoding"),
+        headers.get("transfer-encoding")
       );
     }
 
@@ -456,7 +463,7 @@ class WARCLoader extends BaseParser {
             Math.round((parser.offset / totalSize) * 95.0),
             "Loading Canceled",
             parser.offset,
-            totalSize,
+            totalSize
           );
           interruptLoads[this.loadId]();
           if (this.abort) {
@@ -474,7 +481,7 @@ class WARCLoader extends BaseParser {
             parser.offset,
             totalSize,
             null,
-            extraMsg,
+            extraMsg
           );
           lastUpdate = updateTime;
         }
@@ -517,7 +524,7 @@ class WARCLoader extends BaseParser {
         Math.round((parser.offset / totalSize) * 95.0),
         `Sorry there was an error downloading. Please try again (${e})`,
         parser.offset,
-        totalSize,
+        totalSize
       );
 
       console.warn(e);
@@ -551,7 +558,7 @@ class WARCLoader extends BaseParser {
 
     if (this.lists.length) {
       this.promises.push(
-        this.db.addCuratedPageLists(this.lists, "bookmarks", "public"),
+        this.db.addCuratedPageLists(this.lists, "bookmarks", "public")
       );
     }
   }

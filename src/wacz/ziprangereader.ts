@@ -1,9 +1,6 @@
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { AsyncIterReader, concatChunks } from "warcio";
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'hash-wasm'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { createSHA256 } from "hash-wasm";
 import { BaseLoader, getReadableStreamFromIter } from "../blockloaders";
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'hash-wasm/dist/lib/WASMInterface.js'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { type IHasher } from "hash-wasm/dist/lib/WASMInterface.js";
 import { type GetHash } from "../remotearchivedb";
 
@@ -59,6 +56,7 @@ export class HashingAsyncIterReader extends AsyncIterReader implements GetHash {
     }
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'AsyncIterReader'.
   async _loadNext() {
     const value = await super._loadNext();
     if (value) {
@@ -87,7 +85,7 @@ export class ZipRangeReader {
 
   constructor(
     loader: BaseLoader,
-    entries: Record<string, ZipEntry> | null = null,
+    entries: Record<string, ZipEntry> | null = null
   ) {
     this.loader = loader;
     this.entries = entries;
@@ -106,7 +104,7 @@ export class ZipRangeReader {
       const endChunk = (await this.loader.getRange(
         start,
         length,
-        false,
+        false
       )) as Uint8Array;
 
       try {
@@ -116,11 +114,11 @@ export class ZipRangeReader {
           const extraChunk = (await this.loader.getRange(
             e.start,
             e.length,
-            false,
+            false
           )) as Uint8Array;
           const combinedChunk = concatChunks(
             [extraChunk, endChunk],
-            e.length + length,
+            e.length + length
           );
           this.entries = this._loadEntries(combinedChunk, e.start);
         }
@@ -133,7 +131,7 @@ export class ZipRangeReader {
 
   _loadEntries(
     data: Uint8Array,
-    dataStartOffset: number,
+    dataStartOffset: number
   ): Record<string, any> | null {
     // Adapted from
     // Copyright (c) 2016 Rob Wu <rob@robwu.nl> (https://robwu.nl)
@@ -230,7 +228,7 @@ export class ZipRangeReader {
 
       const decoder = bitFlag & 0x800 ? utf8Decoder : asciiDecoder;
       const filename = decoder.decode(
-        data.subarray(offset + 46, offset + 46 + fileNameLength),
+        data.subarray(offset + 46, offset + 46 + fileNameLength)
       );
 
       // ZIP64 support
@@ -282,7 +280,6 @@ export class ZipRangeReader {
 
         // optimization if no extraFieldLength, can set offset and avoid extra lookup
         if (!extraFieldLength) {
-          // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
           entries[filename].offset = 30 + fileNameLength + localEntryOffset;
         }
       }
@@ -320,7 +317,7 @@ export class ZipRangeReader {
       signal?: AbortSignal | null;
       unzip?: boolean;
       computeHash?: boolean;
-    } = {},
+    } = {}
   ): Promise<ReaderAndHasher> {
     if (this.entries === null) {
       await this.load();
@@ -340,12 +337,12 @@ export class ZipRangeReader {
       const header = (await this.loader.getRange(
         entry.localEntryOffset,
         30,
-        false,
+        false
       )) as Uint8Array;
       const view = new DataView(
         header.buffer,
         header.byteOffset,
-        header.byteLength,
+        header.byteLength
       );
 
       const fileNameLength = view.getUint16(26, true);
@@ -367,7 +364,7 @@ export class ZipRangeReader {
       offset,
       length,
       true,
-      signal,
+      signal
     )) as ReadableStream;
 
     const streamReader: ReadableStreamDefaultReader = body.getReader();
@@ -387,7 +384,7 @@ export class ZipRangeReader {
     if (!unzip) {
       reader = new AsyncIterReader(
         streamReader,
-        entry.deflate ? "deflate" : null,
+        entry.deflate ? "deflate" : null
       );
       // if unzip and not deflated, reuse AsyncIterReader for auto unzipping
     } else if (!entry.deflate) {
@@ -395,7 +392,7 @@ export class ZipRangeReader {
     } else {
       // need to deflate, than unzip again
       reader = new AsyncIterReader(
-        new AsyncIterReader(streamReader, "deflate"),
+        new AsyncIterReader(streamReader, "deflate")
       );
     }
 
@@ -469,7 +466,7 @@ export class ZipBlockLoader extends BaseLoader {
     offset: number,
     length: number,
     streaming = false,
-    signal = null,
+    signal = null
   ) {
     const { reader } = await this.zipreader.loadFile(this.filename, {
       offset,

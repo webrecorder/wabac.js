@@ -1,7 +1,6 @@
 import { ArchiveResponse } from "./response";
 import { fuzzyMatcher } from "./fuzzymatcher";
 
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { WARCParser, AsyncIterReader, type Source } from "warcio";
 import { type DBStore } from "./types";
 import { type ArchiveRequest } from "./request";
@@ -27,7 +26,7 @@ export class RemoteWARCProxy implements DBStore {
 
   async getResource(
     request: ArchiveRequest,
-    prefix: string,
+    prefix: string
   ): Promise<ArchiveResponse | Response | null> {
     const { url, headers } = request.prepareProxyRequest(prefix);
     let reqHeaders: HeadersInit = headers;
@@ -166,7 +165,7 @@ export class RemoteWARCProxy implements DBStore {
 
       if (record.warcType === "revisit") {
         const warcRevisitTarget = record.warcHeaders.headers.get(
-          "WARC-Refers-To-Target-URI",
+          "WARC-Refers-To-Target-URI"
         );
         if (warcRevisitTarget && warcRevisitTarget !== url) {
           return await this.resolveHeaders(warcRevisitTarget);
@@ -195,7 +194,7 @@ export class RemoteWARCProxy implements DBStore {
     } catch (e) {
       console.warn(e);
       console.warn(
-        "Ignoring headers, error parsing headers response for: " + url,
+        "Ignoring headers, error parsing headers response for: " + url
       );
     }
 

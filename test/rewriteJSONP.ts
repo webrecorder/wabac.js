@@ -1,4 +1,3 @@
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'ava'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import test from "ava";
 
 import { doRewrite } from "./helpers/index.js";
@@ -6,17 +5,18 @@ import { doRewrite } from "./helpers/index.js";
 // ===========================================================================
 const rewriteJSONP = test.macro({
   async exec(
-    // @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
     t,
     content: string,
     expected: string,
     url = "http://example.com/?callback=jQuery_ABC",
-    useBaseRules = true,
+    useBaseRules = true
   ) {
     const { text: actual } = await doRewrite({
       content,
       contentType: "application/json",
+      // @ts-expect-error [TODO] - TS2322 - Type 'unknown' is not assignable to type 'string | undefined'.
       url,
+      // @ts-expect-error [TODO] - TS2322 - Type 'unknown' is not assignable to type 'boolean | undefined'.
       useBaseRules,
     });
 
@@ -27,7 +27,6 @@ const rewriteJSONP = test.macro({
     }
   },
 
-  // @ts-expect-error [TODO] - TS7006 - Parameter 'input' implicitly has an 'any' type. | TS7006 - Parameter 'expected' implicitly has an 'any' type.
   title(providedTitle = "JSONP", input, expected) {
     return `${providedTitle}: ${input} ${expected ? expected : "UNCHANGED"}`.trim();
   },
@@ -35,20 +34,19 @@ const rewriteJSONP = test.macro({
 
 // ===========================================================================
 const rewriteJSONPMissingCB = test.macro({
-  // @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
   async exec(t, content: string, useBaseRules = true) {
     const url = "http://example.com/";
     const { text: actual } = await doRewrite({
       content,
       contentType: "application/json",
       url,
+      // @ts-expect-error [TODO] - TS2322 - Type 'unknown' is not assignable to type 'boolean | undefined'.
       useBaseRules,
     });
 
     t.is(actual, content);
   },
 
-  // @ts-expect-error [TODO] - TS7006 - Parameter 'input' implicitly has an 'any' type. | TS7006 - Parameter 'expected' implicitly has an 'any' type.
   title(providedTitle = "JSONP Missing Callback", input, expected) {
     return `${providedTitle}: ${input} => ${expected}`.trim();
   },
@@ -58,40 +56,40 @@ const rewriteJSONPMissingCB = test.macro({
 test(
   rewriteJSONP,
   'jQuery_1234({"foo": "bar", "some": "data"})',
-  'jQuery_ABC({"foo": "bar", "some": "data"})',
+  'jQuery_ABC({"foo": "bar", "some": "data"})'
 );
 
 test(
   "test with space",
   rewriteJSONP,
   '    jQuery_1234({"foo": "bar", "some": "data"})',
-  'jQuery_ABC({"foo": "bar", "some": "data"})',
+  'jQuery_ABC({"foo": "bar", "some": "data"})'
 );
 
 test(
   rewriteJSONP,
   ' /**/ jQuery_1234({"foo": "bar", "some": "data"})',
-  'jQuery_ABC({"foo": "bar", "some": "data"})',
+  'jQuery_ABC({"foo": "bar", "some": "data"})'
 );
 
 test(
   rewriteJSONP,
   ' /* some comment */ jQuery_1234({"foo": "bar", "some": "data"})',
-  'jQuery_ABC({"foo": "bar", "some": "data"})',
+  'jQuery_ABC({"foo": "bar", "some": "data"})'
 );
 
 test(
   rewriteJSONP,
   'some.other.object1234({"foo": "bar", "some": "data"})',
   'some.other.object5678({"foo": "bar", "some": "data"})',
-  "http://example.com/?jsonp=some.other.object5678",
+  "http://example.com/?jsonp=some.other.object5678"
 );
 
 test(
   rewriteJSONP,
   `// some comment
  jQuery_1234({"foo": "bar", "some": "data"})`,
-  'jQuery_ABC({"foo": "bar", "some": "data"})',
+  'jQuery_ABC({"foo": "bar", "some": "data"})'
 );
 
 test(
@@ -99,7 +97,7 @@ test(
   `// some comment
  // blah = 4;
  jQuery_1234({"foo": "bar", "some": "data"})`,
-  'jQuery_ABC({"foo": "bar", "some": "data"})',
+  'jQuery_ABC({"foo": "bar", "some": "data"})'
 );
 
 // JSONP valid but 'callback=' missing in url tests
@@ -108,14 +106,14 @@ test(rewriteJSONPMissingCB, 'jQuery_1234({"foo": "bar", "some": "data"})');
 test(
   rewriteJSONPMissingCB,
   `// some comment
- jQuery_1234({"foo": "bar", "some": "data"})`,
+ jQuery_1234({"foo": "bar", "some": "data"})`
 );
 
 // Invalid JSONP Tests, input unchanged
 test(
   rewriteJSONP,
   ' /* comment jQuery_1234({"foo": "bar", "some": "data"})',
-  "",
+  ""
 );
 
 test(rewriteJSONP, 'function jQuery_1234({"foo": "bar", "some": "data"})', "");
@@ -125,7 +123,7 @@ test(rewriteJSONP, 'var foo = ({"foo": "bar", "some": "data"})', "");
 test(
   rewriteJSONP,
   ' abc /* some comment */ jQuery_1234({"foo": "bar", "some": "data"})',
-  "",
+  ""
 );
 
 test(
@@ -133,5 +131,5 @@ test(
   `// some comment
  blah = 4;
  jQuery_1234({"foo": "bar", "some": "data"})`,
-  "",
+  ""
 );

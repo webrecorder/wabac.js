@@ -1,4 +1,3 @@
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'fast-xml-parser'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
 
 // orig pywb defaults
@@ -124,7 +123,7 @@ export const xmlOpts = {
 export function rewriteDASH(
   text: string,
   opts: Record<string, any>,
-  bestIds?: string[],
+  bestIds?: string[]
 ) {
   try {
     return _rewriteDASH(text, opts, bestIds);
@@ -137,7 +136,7 @@ export function rewriteDASH(
 function _rewriteDASH(
   text: string,
   opts: Record<string, any>,
-  bestIds?: string[],
+  bestIds?: string[]
 ) {
   const parser = new XMLParser(xmlOpts);
   const root = parser.parse(text);

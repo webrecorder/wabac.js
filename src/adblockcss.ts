@@ -1,6 +1,6 @@
 export async function getAdBlockCSSResponse(
   fullDomain: string,
-  adblockUrl: string,
+  adblockUrl: string
 ) {
   const domainParts = fullDomain.split(".");
   const allDomains: string[] = [];
@@ -33,7 +33,7 @@ export async function getAdBlockCSSResponse(
   }
 
   const linestream: ReadableStream<string> = body.pipeThrough(
-    new ByLineStream(),
+    new ByLineStream()
   );
 
   async function* yieldRules(linestream: ReadableStream<string>) {
@@ -135,7 +135,7 @@ export class ByLineTransform {
 
   transform(
     chunkArray: Uint8Array,
-    controller: TransformStreamDefaultController,
+    controller: TransformStreamDefaultController
   ) {
     const chunk = this.decoder.decode(chunkArray);
     // see: http://www.unicode.org/reports/tr18/#Line_Boundaries

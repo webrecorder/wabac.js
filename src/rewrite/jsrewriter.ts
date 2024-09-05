@@ -1,5 +1,4 @@
 import { type Rule, RxRewriter } from "./rxrewriter";
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'acorn'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import * as acorn from "acorn";
 
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
@@ -24,7 +23,7 @@ const GLOBAL_OVERRIDES = [
 ];
 
 const GLOBALS_CONCAT_STR = GLOBAL_OVERRIDES.map(
-  (x) => `(?:^|[^$.])\\b${x}\\b(?:$|[^$])`,
+  (x) => `(?:^|[^$.])\\b${x}\\b(?:$|[^$])`
 ).join("|");
 
 const GLOBALS_RX = new RegExp(`(${GLOBALS_CONCAT_STR})`);
@@ -74,7 +73,7 @@ const createJSRules: () => Rule[] = () => {
       x: string,
       _opts: Record<string, any>,
       offset: number,
-      str: string,
+      str: string
     ) => {
       if (offset > 0) {
         const prev = str[offset - 1];
@@ -104,7 +103,7 @@ const createJSRules: () => Rule[] = () => {
       x: string,
       _opts: Record<string, any>,
       offset: number,
-      str: string,
+      str: string
     ) => {
       const firstChar = str[offset];
       if (firstChar === "\n") {
@@ -154,7 +153,7 @@ const createJSRules: () => Rule[] = () => {
     // if prev char is '\n', or if prev is not '.' or '$', no semi
     [
       new RegExp(
-        `[^$.]\\s?\\bthis\\b(?=(?:\\.(?:${GLOBAL_OVERRIDES.join("|")})\\b))`,
+        `[^$.]\\s?\\bthis\\b(?=(?:\\.(?:${GLOBAL_OVERRIDES.join("|")})\\b))`
       ),
       replaceThisProp(),
     ],
@@ -280,7 +279,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     if (excludeOverrides.size) {
       const filteredGlobals = GLOBAL_OVERRIDES.filter(
-        (x) => !excludeOverrides.has(x),
+        (x) => !excludeOverrides.has(x)
       );
       this.firstBuff = this.initLocalDecl(filteredGlobals);
     }

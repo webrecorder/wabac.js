@@ -21,7 +21,7 @@ function detectTextType(bytes: Uint8Array) {
     if (lines.length > 1 && lines.indexOf(" {") >= 0) {
       return ".cdxj";
     }
-  } catch (e) {
+  } catch (_e) {
     return "";
   }
 }
@@ -76,12 +76,9 @@ export async function detectFileType(response: Response) {
   const reader = response.body!.getReader();
   let fileType: string | undefined = "";
   const { value, done } = await reader.read();
-  // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
   if (!done && value.length >= PEEK_BYTES) {
-    // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
     fileType = checkMagicBytes(value.slice(0, PEEK_BYTES));
     if (!fileType) {
-      // @ts-expect-error [TODO] - TS2345 - Argument of type 'Uint8Array | undefined' is not assignable to parameter of type 'Uint8Array'.
       fileType = detectTextType(value);
     }
   }

@@ -1,4 +1,3 @@
-// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { BaseAsyncIterReader, AsyncIterReader, LimitReader } from "warcio";
 import {
   isNullBodyStatus,
@@ -46,7 +45,7 @@ class ArchiveResponse {
       ? new AsyncIterReader(response.body.getReader(), null, false)
       : null;
     const status = Number(
-      response.headers.get("x-redirect-status") || response.status,
+      response.headers.get("x-redirect-status") || response.status
     );
     const statusText =
       response.headers.get("x-redirect-statusText") || response.statusText;
@@ -149,6 +148,7 @@ class ArchiveResponse {
     this.buffer = null;
 
     if (payload && payload instanceof BaseAsyncIterReader) {
+      // @ts-expect-error [TODO] - TS2740 - Type 'BaseAsyncIterReader' is missing the following properties from type 'AsyncIterReader': compressed, opts, inflator, _sourceIter, and 18 more.
       this.reader = payload;
     } else {
       // @ts-expect-error [TODO] - TS2322 - Type 'Uint8Array | AsyncIterable<Uint8Array> | null' is not assignable to type 'Uint8Array | null'.
