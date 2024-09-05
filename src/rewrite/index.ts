@@ -134,9 +134,11 @@ export class Rewriter {
     if (!mime && response) {
       mime = response.headers.get("Content-Type") || "";
       const parts = mime.split(";");
+      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
       mime = parts[0];
       if (parts.length > 1) {
         this.isCharsetUTF8 =
+          // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
           parts[1]
             .trim()
             .toLowerCase()
@@ -300,6 +302,7 @@ export class Rewriter {
       if (bomFound && !this.isCharsetUTF8) {
         let mime = headers.get("Content-Type") || "";
         const parts = mime.split(";");
+        // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
         mime = parts[0];
         if (mime) {
           headers.set("Content-Type", mime + "; charset=utf-8");
@@ -418,6 +421,7 @@ export class Rewriter {
   // JS
   rewriteJS(text: string, opts: Record<string, any>) {
     const noUrlProxyRewrite =
+      // @ts-expect-error [TODO] - TS4111 - Property 'rewriteUrl' comes from an index signature, so it must be accessed with ['rewriteUrl']. | TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule']. | TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
       opts && !opts.rewriteUrl && opts.isModule === undefined && !opts.inline;
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
@@ -468,6 +472,7 @@ export class Rewriter {
           }
           scopes[this.rewriteUrl(scopeKey).replace("mp_/", "esm_/")] = newScope;
         }
+        // @ts-expect-error [TODO] - TS4111 - Property 'scopes' comes from an index signature, so it must be accessed with ['scopes'].
         (output as Record<string, any>).scopes = scopes;
       }
 
@@ -485,6 +490,7 @@ export class Rewriter {
       return false;
     }
 
+    // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string | boolean | null'.
     this._jsonpCallback = callback[1];
     return true;
   }
@@ -506,6 +512,7 @@ export class Rewriter {
     }
 
     return (
+      // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'. | TS2532 - Object is possibly 'undefined'.
       this._jsonpCallback + text.slice(text.indexOf(jsonM[1]) + jsonM[1].length)
     );
   }

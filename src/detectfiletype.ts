@@ -12,6 +12,7 @@ const isWarcFile = hasMagicBytes(warcMagicBytes);
 const PEEK_BYTES = 4;
 
 // todo: improve this to do full detection of different text types
+// @ts-expect-error [TODO] - TS7030 - Not all code paths return a value.
 function detectTextType(bytes: Uint8Array) {
   try {
     const text = new TextDecoder().decode(bytes);
@@ -55,6 +56,7 @@ export function getKnownFileExtension(name: string) {
   return undefined;
 }
 
+// @ts-expect-error [TODO] - TS7030 - Not all code paths return a value.
 export function checkMagicBytes(fileBytes: Uint8Array) {
   // todo: add additional detection for WACZ besides just zip
   if (isZipFile(fileBytes)) {
@@ -74,9 +76,12 @@ export async function detectFileType(response: Response) {
   const reader = response.body!.getReader();
   let fileType: string | undefined = "";
   const { value, done } = await reader.read();
+  // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
   if (!done && value.length >= PEEK_BYTES) {
+    // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
     fileType = checkMagicBytes(value.slice(0, PEEK_BYTES));
     if (!fileType) {
+      // @ts-expect-error [TODO] - TS2345 - Argument of type 'Uint8Array | undefined' is not assignable to parameter of type 'Uint8Array'.
       fileType = detectTextType(value);
     }
   }

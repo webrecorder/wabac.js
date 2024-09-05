@@ -21,6 +21,7 @@ class APIRouter {
       }
 
       this.routes[method] = this.routes[method] || {};
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       this.routes[method][name] = new Path(route);
     }
   }
@@ -30,10 +31,11 @@ class APIRouter {
       const parts = url.split("?", 2);
       const matchUrl = parts[0];
 
+      // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'. Type 'undefined' is not assignable to type 'string'
       const res = route.test(matchUrl);
       if (res) {
-        res._route = name;
-        res._query = new URLSearchParams(parts.length === 2 ? parts[1] : "");
+        res["_route"] = name;
+        res["_query"] = new URLSearchParams(parts.length === 2 ? parts[1] : "");
         return res;
       }
     }
@@ -81,8 +83,10 @@ class API {
   }
 
   async handleApi(request: Request, params: RouteMatch, event: FetchEvent) {
+    // @ts-expect-error [TODO] - TS4111 - Property '_route' comes from an index signature, so it must be accessed with ['_route'].
     switch (params._route) {
       case "index":
+        // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         return await this.listAll(params._query.get("filter"));
 
       case "createColl": {
@@ -95,12 +99,14 @@ class API {
       }
 
       case "coll": {
+        // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
         }
         const data = getCollData(coll);
 
+        // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         if (params._query.get("all") === "1") {
           if (coll.store.db) {
             data.pages = await coll.store.getAllPages();
@@ -121,7 +127,9 @@ class API {
           data.numPages = 0;
         }
 
+        // @ts-expect-error [TODO] - TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
         if (coll.config.metadata.ipfsPins) {
+          // @ts-expect-error [TODO] - TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
           data.ipfsPins = coll.config.metadata.ipfsPins;
         }
 
@@ -129,8 +137,10 @@ class API {
       }
 
       case "deleteColl": {
+        // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const keepFileHandle = params._query.get("reload") === "1";
 
+        // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
         if (!(await this.collections.deleteColl(params.coll, keepFileHandle))) {
           return { error: "collection_not_found" };
         }
@@ -141,6 +151,7 @@ class API {
         const requestJSON = await request.json();
         return {
           success: await this.collections.updateAuth(
+            // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
             params.coll,
             requestJSON.headers,
           ),
@@ -150,6 +161,7 @@ class API {
       case "updateMetadata": {
         const requestJSON = await request.json();
         const metadata = await this.collections.updateMetadata(
+          // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
           params.coll,
           requestJSON,
         );
@@ -157,18 +169,27 @@ class API {
       }
 
       case "urls": {
+        // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
         }
+        // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const url = params._query.get("url");
+        // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const count = Number(params._query.get("count") || 100);
+        // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const mime = params._query.get("mime");
+        // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const prefix = params._query.get("prefix") === "1";
 
+        // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const fromUrl = params._query.get("fromUrl");
+        // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const fromTs = params._query.get("fromTs");
+        // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const fromMime = params._query.get("fromMime");
+        // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const fromStatus = Number(params._query.get("fromStatus") || 0);
 
         if (!coll.store.resourcesByMime) {
@@ -202,10 +223,12 @@ class API {
       }
 
       case "urlsTs": {
+        // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
         }
+        // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const url = params._query.get("url");
         const timestamps = await coll.store.getTimestampsByURL(url);
 
@@ -213,6 +236,7 @@ class API {
       }
 
       case "pages": {
+        // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
@@ -222,6 +246,7 @@ class API {
       }
 
       case "textIndex": {
+        // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
@@ -234,10 +259,12 @@ class API {
       }
 
       case "curated": {
+        // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
         }
+        // @ts-expect-error [TODO] - TS4111 - Property 'list' comes from an index signature, so it must be accessed with ['list'].
         const list = Number(params.list);
         if (!coll.store.db) {
           return { curated: [] };
@@ -251,14 +278,17 @@ class API {
       }
 
       case "deletePage": {
+        // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
         const coll = await this.collections.getColl(params.coll);
         if (!coll) {
           return { error: "collection_not_found" };
         }
         const { pageSize, dedupSize } = await coll.store.deletePage(
+          // @ts-expect-error [TODO] - TS4111 - Property 'page' comes from an index signature, so it must be accessed with ['page'].
           params.page,
         );
 
+        // @ts-expect-error [TODO] - TS4111 - Property 'coll' comes from an index signature, so it must be accessed with ['coll'].
         this.collections.updateSize(params.coll, pageSize, dedupSize);
 
         return { pageSize, dedupSize };

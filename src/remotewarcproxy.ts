@@ -1,6 +1,7 @@
 import { ArchiveResponse } from "./response";
 import { fuzzyMatcher } from "./fuzzymatcher";
 
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { WARCParser, AsyncIterReader, type Source } from "warcio";
 import { type DBStore } from "./types";
 import { type ArchiveRequest } from "./request";
@@ -12,6 +13,7 @@ export class RemoteWARCProxy implements DBStore {
   notFoundPageUrl: string;
 
   constructor(rootConfig: Record<string, any>) {
+    // @ts-expect-error [TODO] - TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig'].
     const config = rootConfig.extraConfig || {};
 
     this.sourceUrl = config.prefix;

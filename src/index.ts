@@ -1,3 +1,4 @@
+// @ts-expect-error [TODO] - TS2792 - Cannot find module './rewrite'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 export { getCustomRewriter, rewriteDASH, rewriteHLS } from "./rewrite";
 
 export { SWReplay, SWCollections } from "./swmain";

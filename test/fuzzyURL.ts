@@ -1,3 +1,4 @@
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'ava'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import test, { type ExecutionContext } from "ava";
 import { FuzzyMatcher } from "../src/fuzzymatcher.js";
 

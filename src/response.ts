@@ -1,3 +1,4 @@
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { BaseAsyncIterReader, AsyncIterReader, LimitReader } from "warcio";
 import {
   isNullBodyStatus,
@@ -90,6 +91,7 @@ class ArchiveResponse {
     if (cookie) {
       const cookies: string[] = [];
       cookie.split(",").forEach((c) => {
+        // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
         const cval = c.split(";", 1)[0].trim();
         if (cval.indexOf("=") > 0) {
           cookies.push(cval);
@@ -149,6 +151,7 @@ class ArchiveResponse {
     if (payload && payload instanceof BaseAsyncIterReader) {
       this.reader = payload;
     } else {
+      // @ts-expect-error [TODO] - TS2322 - Type 'Uint8Array | AsyncIterable<Uint8Array> | null' is not assignable to type 'Uint8Array | null'.
       this.buffer = payload;
     }
 

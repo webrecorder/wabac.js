@@ -1,3 +1,4 @@
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { postToGetUrl } from "warcio";
 
 const REPLAY_REGEX =
@@ -51,8 +52,11 @@ export class ArchiveRequest {
       return;
     } else {
       this.pageId = wbUrl[1] || "";
+      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
       this.timestamp = wbUrl[2];
+      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
       this.mod = wbUrl[3];
+      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
       this.url = wbUrl[4];
     }
 

@@ -1,3 +1,4 @@
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'ava'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import test from "ava";
 
 import { doRewrite } from "./helpers/index.js";
@@ -5,6 +6,7 @@ import { doRewrite } from "./helpers/index.js";
 // ===========================================================================
 const rewriteJS = test.macro({
   async exec(
+    // @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
     t,
     content: string,
     expected: string,
@@ -33,6 +35,7 @@ const rewriteJS = test.macro({
 // ===========================================================================
 const rewriteJSWrapped = test.macro({
   async exec(
+    // @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
     t,
     content: string,
     expected: string,
@@ -59,6 +62,7 @@ const rewriteJSWrapped = test.macro({
 // ===========================================================================
 const rewriteJSImport = test.macro({
   async exec(
+    // @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
     t,
     content: string,
     expected: string,

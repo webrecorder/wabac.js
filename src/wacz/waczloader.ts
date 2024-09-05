@@ -17,6 +17,7 @@ export class SingleWACZLoader implements ArchiveLoader {
   constructor(loader: BaseLoader, config: Record<string, any>, loadId = null) {
     this.loader = loader;
     this.loadId = loadId;
+    // @ts-expect-error [TODO] - TS4111 - Property 'loadUrl' comes from an index signature, so it must be accessed with ['loadUrl'].
     this.loadUrl = config.loadUrl;
   }
 

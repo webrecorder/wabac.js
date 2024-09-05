@@ -1,3 +1,4 @@
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'ava'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import test from "ava";
 
 import { doRewrite } from "./helpers/index.js";
@@ -9,6 +10,7 @@ import { xmlOpts } from "../src/rewrite/rewriteVideo.js";
 xmlOpts.format = true;
 
 // ===========================================================================
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("DASH", async (t) => {
   const content = await fs.readFile(
     new URL("./data/sample_dash.mpd", import.meta.url),
@@ -99,6 +101,7 @@ test('FB DASH 2', async t => {
 });
 */
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("HLS DEFAULT MAX", async (t) => {
   const content = await fs.readFile(
     new URL("./data/sample_hls.m3u8", import.meta.url),
@@ -124,6 +127,7 @@ http://example.com/video_1.m3u8`;
   t.is(result, expected, result);
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("HLS DEFAULT MAX - NATIVE STREAMING", async (t) => {
   const content = await fs.readFile(
     new URL("./data/sample_hls.m3u8", import.meta.url),
@@ -148,6 +152,7 @@ http://localhost:8080/prefix/20201226101010mp_/http://example.com/video_1.m3u8`;
   t.is(result, expected, result);
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("HLS DEFAULT OLD REPLAY MAX", async (t) => {
   const content = await fs.readFile(
     new URL("./data/sample_hls.m3u8", import.meta.url),
@@ -173,6 +178,7 @@ http://example.com/video_5.m3u8`;
   t.is(result, expected);
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("YT rewrite", async (t) => {
   const content = `
 <html>
@@ -208,6 +214,7 @@ const test4 = ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""
   t.is(result, expected, result);
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("FB rewrite JS", async (t) => {
   const content = `\
 <script>
@@ -229,6 +236,7 @@ const test1 = {"__nodash__url": "foo", {"some__nodash__": "a", "data__nodash__fo
   t.is(result, expected);
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("Twitter rewrite json", async (t) => {
   const content = {
     video_info: {
@@ -286,6 +294,7 @@ test("Twitter rewrite json", async (t) => {
   }
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("Twitter rewrite embedded json", async (t) => {
   const content = {
     video: {

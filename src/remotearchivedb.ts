@@ -5,6 +5,7 @@ import {
   AsyncIterReader,
   LimitReader,
   concatChunks,
+  // @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 } from "warcio";
 
 import { type BaseLoader, createLoader } from "./blockloaders";
@@ -578,6 +579,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
     for await (const _chunk of iter);
   }
 
+  // @ts-expect-error [TODO] - TS4112 - This member cannot have an 'override' modifier because its containing class 'PayloadBufferingReader' does not extend another class.
   override async readFully() {
     if (!this.fullbuff) {
       // should not set if already false
@@ -587,6 +589,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
     return this.fullbuff!;
   }
 
+  // @ts-expect-error [TODO] - TS4112 - This member cannot have an 'override' modifier because its containing class 'PayloadBufferingReader' does not extend another class.
   override getReadableStream() {
     const stream = super.getReadableStream();
 

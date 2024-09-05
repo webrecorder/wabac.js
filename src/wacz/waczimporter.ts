@@ -142,10 +142,12 @@ export class WACZImporter {
   }
 
   async loadLeafWACZPackage(datapackage: Record<string, any>) {
+    // @ts-expect-error [TODO] - TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
     const metadata = datapackage.metadata || {};
 
     let pagesHash = null;
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'resources' comes from an index signature, so it must be accessed with ['resources'].
     for (const res of datapackage.resources) {
       if (res.path === MAIN_PAGES_JSON) {
         pagesHash = res.hash;
@@ -178,27 +180,39 @@ export class WACZImporter {
     const root: Record<string, any> = yaml.load(text) as Record<string, any>;
 
     const metadata: Record<string, any> = {
+      // @ts-expect-error [TODO] - TS4111 - Property 'desc' comes from an index signature, so it must be accessed with ['desc'].
       desc: root.desc,
+      // @ts-expect-error [TODO] - TS4111 - Property 'title' comes from an index signature, so it must be accessed with ['title'].
       title: root.title,
     };
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'textIndex' comes from an index signature, so it must be accessed with ['textIndex'].
     if (root.textIndex) {
+      // @ts-expect-error [TODO] - TS4111 - Property 'textIndex' comes from an index signature, so it must be accessed with ['textIndex']. | TS4111 - Property 'textIndex' comes from an index signature, so it must be accessed with ['textIndex'].
       metadata.textIndex = root.textIndex;
+      // @ts-expect-error [TODO] - TS4111 - Property 'config' comes from an index signature, so it must be accessed with ['config'].
       if (!root.config) {
+        // @ts-expect-error [TODO] - TS4111 - Property 'config' comes from an index signature, so it must be accessed with ['config'].
         root.config = {};
       }
+      // @ts-expect-error [TODO] - TS4111 - Property 'config' comes from an index signature, so it must be accessed with ['config']. | TS4111 - Property 'textIndex' comes from an index signature, so it must be accessed with ['textIndex'].
       root.config.textIndex = root.textIndex;
     }
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'config' comes from an index signature, so it must be accessed with ['config'].
     if (this.isRoot && root.config !== undefined) {
+      // @ts-expect-error [TODO] - TS4111 - Property 'config' comes from an index signature, so it must be accessed with ['config'].
       this.store.initConfig(root.config);
     }
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'title' comes from an index signature, so it must be accessed with ['title'].
     if (!metadata.title) {
+      // @ts-expect-error [TODO] - TS4111 - Property 'title' comes from an index signature, so it must be accessed with ['title']. | TS2339 - Property 'sourceName' does not exist on type 'Config'.
       metadata.title = this.store.config.sourceName;
     }
 
     // All pages
+    // @ts-expect-error [TODO] - TS4111 - Property 'pages' comes from an index signature, so it must be accessed with ['pages'].
     const pages = root.pages || [];
 
     if (pages?.length) {
@@ -206,6 +220,7 @@ export class WACZImporter {
     }
 
     // Curated Pages
+    // @ts-expect-error [TODO] - TS4111 - Property 'pageLists' comes from an index signature, so it must be accessed with ['pageLists'].
     const pageLists = root.pageLists || [];
 
     if (pageLists?.length) {

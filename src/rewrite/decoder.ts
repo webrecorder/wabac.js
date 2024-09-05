@@ -2,6 +2,7 @@ import brotliDecode from "brotli/decompress.js";
 
 import pako from "pako";
 
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { AsyncIterReader } from "warcio";
 import { type ArchiveResponse } from "../response";
 
@@ -93,8 +94,11 @@ function dechunkArrayBuffer(data: Uint8Array) {
 
     // check hex digits, 0-9, A-Z, a-z
     while (
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS2532 - Object is possibly 'undefined'.
       (data[i] >= 48 && data[i] <= 57) ||
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS2532 - Object is possibly 'undefined'.
       (data[i] >= 65 && data[i] <= 70) ||
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS2532 - Object is possibly 'undefined'.
       (data[i] >= 97 && data[i] <= 102)
     ) {
       i++;

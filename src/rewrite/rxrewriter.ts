@@ -44,6 +44,7 @@ export class RxRewriter {
         continue;
       }
 
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       const result = this.rules![i][1].call(this, curr, opts, offset, str);
       if (result) {
         return result;

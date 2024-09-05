@@ -48,9 +48,11 @@ export async function getAdBlockCSSResponse(
             continue;
           }
           // exception rule
+          // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
           if (parts[0].endsWith("#@")) {
             continue;
           }
+          // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
           const matches = parts[0].split(",");
 
           // match all subdomains exactly
@@ -146,6 +148,7 @@ export class ByLineTransform {
     }
 
     if (buffer.length > 0) {
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       buffer[buffer.length - 1] += lines[0];
       lines.shift();
     }

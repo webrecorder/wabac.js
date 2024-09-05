@@ -1,5 +1,6 @@
 declare let self: ServiceWorkerGlobalScope;
 
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'http-status-codes'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { getReasonPhrase } from "http-status-codes";
 import { type ArchiveRequest } from "./request";
 
@@ -111,6 +112,7 @@ export async function digestMessage(
 export function decodeLatin1(buf: Uint8Array) {
   let str = "";
   for (let i = 0; i < buf.length; i++) {
+    // @ts-expect-error [TODO] - TS2345 - Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
     str += String.fromCharCode(buf[i]);
   }
   return str;
@@ -143,6 +145,7 @@ export function makeHeaders(
       const headersObj = headers as Record<string, string>;
       for (const key of Object.keys(headers)) {
         const value = headersObj[key];
+        // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
         const newValue = value.replace(/[\r\n]+/g, ", ");
         if (value != newValue) {
           headersObj[key] = newValue;
@@ -170,6 +173,7 @@ export function parseSetCookie(setCookie: string, scheme: string) {
     const cookieCore = cookie.split(";", 1)[0];
     // if has cookie flags
     if (cookieCore !== cookie) {
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       const cookieRemainder = cookie.slice(cookieCore.length).toLowerCase();
       if (cookieRemainder.indexOf("httponly") > 0) {
         continue;
@@ -179,6 +183,7 @@ export function parseSetCookie(setCookie: string, scheme: string) {
       }
     }
 
+    // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
     cookies.push(cookieCore);
   }
 
@@ -226,6 +231,7 @@ export async function handleAuthNeeded(e: any, config: any) {
           source: config.sourceUrl,
           coll: config.dbname.slice(3),
           type: "authneeded",
+          // @ts-expect-error [TODO] - TS4111 - Property 'fileHandle' comes from an index signature, so it must be accessed with ['fileHandle'].
           fileHandle: e.info.fileHandle,
         });
       }

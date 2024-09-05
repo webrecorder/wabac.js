@@ -22,6 +22,7 @@ export class SWCollections extends WorkerLoader {
   prefixes: Prefixes;
   colls: Record<string, Collection>;
   inited: Promise<boolean> | null;
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   root: string | null;
   defaultConfig: Record<string, any>;
 
@@ -40,10 +41,12 @@ export class SWCollections extends WorkerLoader {
     this._fileHandles = {};
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   _createCollection(opts: Record<string, any>): Collection {
     return new Collection(opts, this.prefixes, this.defaultConfig);
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   async loadAll(dbColl?: any): Promise<boolean> {
     this.colls = {};
     this.inited = super.loadAll(dbColl);
@@ -57,12 +60,14 @@ export class SWCollections extends WorkerLoader {
     return this.colls[name];
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   async reload(name: string) {
     delete this.colls[name];
 
     await this.getColl(name);
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   async addCollection(data: any, progressUpdate: any) {
     const opts = await super.addCollection(data, progressUpdate);
 
@@ -73,18 +78,24 @@ export class SWCollections extends WorkerLoader {
     return opts;
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   async deleteColl(name: string, keepFileHandle = false) {
     if (this.colls[name]) {
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       if (this.colls[name].store) {
+        // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
         await this.colls[name].store.delete();
       }
 
       if (
         this._fileHandles &&
         keepFileHandle &&
+        // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'extra' comes from an index signature, so it must be accessed with ['extra'].
         this.colls[name].config.extra?.fileHandle
       ) {
+        // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'sourceUrl' comes from an index signature, so it must be accessed with ['sourceUrl'].
         this._fileHandles[this.colls[name].config.sourceUrl] =
+          // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'extra' comes from an index signature, so it must be accessed with ['extra'].
           this.colls[name].config.extra.fileHandle;
       }
     }
@@ -96,6 +107,7 @@ export class SWCollections extends WorkerLoader {
     return true;
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   async initNewColl(metadata: any, extraConfig = {}, type = "archive") {
     const coll = await super.initNewColl(metadata, extraConfig, type);
     if (coll) {
@@ -104,23 +116,30 @@ export class SWCollections extends WorkerLoader {
     return coll;
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   async updateAuth(name: string, headers: Record<string, string>) {
+    // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
     if (this.colls[name] && (this.colls[name].store as any).updateHeaders) {
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       (this.colls[name].store as any).updateHeaders(headers);
     }
 
     return await super.updateAuth(name, headers);
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   async updateMetadata(name: string, newMetadata: Record<string, string>) {
     const metadata = await super.updateMetadata(name, newMetadata);
     if (this.colls[name] && metadata) {
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
       this.colls[name].config.metadata = metadata;
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       this.colls[name].metadata = metadata;
     }
     return metadata;
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   async updateSize(
     name: string,
     fullSize: number,
@@ -134,10 +153,13 @@ export class SWCollections extends WorkerLoader {
       updateDecode,
     );
     if (this.colls[name] && metadata) {
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
       this.colls[name].config.metadata = metadata;
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       this.colls[name].metadata = metadata;
     }
     if (updateDecode !== undefined && this.colls[name]) {
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'decode' comes from an index signature, so it must be accessed with ['decode'].
       this.colls[name].config.decode = updateDecode;
     }
     return metadata;
@@ -220,18 +242,23 @@ export class SWReplay {
 
     if (sp.has("injectScripts")) {
       const injectScripts = sp.get("injectScripts")!.split(",");
+      // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts']. | TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
       defaultConfig.injectScripts = defaultConfig.injectScripts
-        ? [...injectScripts, ...defaultConfig.injectScripts]
+        ? // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
+          [...injectScripts, ...defaultConfig.injectScripts]
         : injectScripts;
     }
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
     if (defaultConfig.injectScripts) {
+      // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts']. | TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
       defaultConfig.injectScripts = defaultConfig.injectScripts.map(
         (url: string) => this.staticPrefix + "proxy/" + url,
       );
     }
 
     if (sp.has("adblockUrl")) {
+      // @ts-expect-error [TODO] - TS4111 - Property 'adblockUrl' comes from an index signature, so it must be accessed with ['adblockUrl'].
       defaultConfig.adblockUrl = sp.get("adblockUrl");
     }
 
@@ -443,9 +470,11 @@ export class SWReplay {
     let collId = this.collections.root;
 
     if (!collId) {
+      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string | null'.
       collId = request.url.slice(this.replayPrefix.length).split("/", 1)[0];
     }
 
+    // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | null' is not assignable to parameter of type 'string'.
     const coll = await this.collections.getColl(collId);
 
     if (
@@ -464,8 +493,11 @@ export class SWReplay {
     };
 
     if (this.proxyOriginMode) {
+      // @ts-expect-error [TODO] - TS4111 - Property 'mod' comes from an index signature, so it must be accessed with ['mod'].
       opts.mod = "id_";
+      // @ts-expect-error [TODO] - TS4111 - Property 'proxyOrigin' comes from an index signature, so it must be accessed with ['proxyOrigin']. | TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig'].
       opts.proxyOrigin = coll.config.extraConfig.proxyOrigin;
+      // @ts-expect-error [TODO] - TS4111 - Property 'localOrigin' comes from an index signature, so it must be accessed with ['localOrigin'].
       opts.localOrigin = self.location.origin;
     }
 

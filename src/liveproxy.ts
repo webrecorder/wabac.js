@@ -19,13 +19,18 @@ export class LiveProxy implements DBStore {
   ) {
     extraConfig = extraConfig || {};
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
     this.prefix = extraConfig.prefix || "";
+    // @ts-expect-error [TODO] - TS4111 - Property 'proxyPathOnly' comes from an index signature, so it must be accessed with ['proxyPathOnly'].
     this.proxyPathOnly = extraConfig.proxyPathOnly || false;
+    // @ts-expect-error [TODO] - TS4111 - Property 'isLive' comes from an index signature, so it must be accessed with ['isLive']. | TS4111 - Property 'isLive' comes from an index signature, so it must be accessed with ['isLive'].
     this.isLive = extraConfig.isLive !== undefined ? extraConfig.isLive : true;
+    // @ts-expect-error [TODO] - TS4111 - Property 'archivePrefix' comes from an index signature, so it must be accessed with ['archivePrefix'].
     this.archivePrefix = extraConfig.archivePrefix || "";
     this.cloneResponse = cloneResponse;
     this.allowBody = allowBody || this.isLive;
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'hostProxy' comes from an index signature, so it must be accessed with ['hostProxy'].
     this.hostProxy = extraConfig.hostProxy;
 
     if (this.hostProxy instanceof Array) {

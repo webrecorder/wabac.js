@@ -1,4 +1,5 @@
 import { type Rule, RxRewriter } from "./rxrewriter";
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'acorn'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import * as acorn from "acorn";
 
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
@@ -120,6 +121,7 @@ const createJSRules: () => Rule[] = () => {
     return (x: string, opts: Record<string, any>) => {
       let res = x.replace(src, target);
       // if not module, add empty string, otherwise, import.meta.url
+      // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
       res += opts.isModule ? "import.meta.url, " : "null, ";
       return res;
     };
@@ -295,14 +297,18 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     }
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'RxRewriter'.
   rewrite(text: string, opts: Record<string, any>) {
     opts = opts || {};
+    // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule']. | TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
     if (opts.isModule === undefined || opts.isModule === null) {
+      // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
       opts.isModule = this.detectIsModule(text);
     }
 
     let rules = DEFAULT_RULES;
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
     if (opts.isModule) {
       rules = [...rules, this.getESMImportRule()];
     }
@@ -317,12 +323,15 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     let newText = super.rewrite(text, opts);
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
     if (opts.isModule) {
+      // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
       return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) + newText;
     }
 
     const wrapGlobals = GLOBALS_RX.exec(text);
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
     if (opts.inline) {
       newText = newText.replace(/\n/g, " ");
     }
@@ -337,6 +346,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
         }
       }
       newText = this.firstBuff + newText + hoistGlobals + this.lastBuff;
+      // @ts-expect-error [TODO] - TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
       if (opts.inline) {
         newText = newText.replace(/\n/g, " ");
       }
@@ -349,10 +359,12 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     // mark as module side-effect + rewrite if http[s] url
     function rewriteImport() {
       return (x: string, opts: Record<string, any>) => {
+        // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
         const prefix = opts.prefix.replace("mp_/", "esm_/");
 
         return x.replace(IMPORT_HTTP_RX, (_, g1, g2, g3) => {
           try {
+            // @ts-expect-error [TODO] - TS4111 - Property 'baseUrl' comes from an index signature, so it must be accessed with ['baseUrl'].
             g2 = new URL(g2, opts.baseUrl).href;
             g2 = prefix + g2;
           } catch (e) {

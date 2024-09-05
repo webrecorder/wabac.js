@@ -38,6 +38,7 @@ class StatsTracker {
           );
       }
     } else {
+      // @ts-expect-error [TODO] - TS2322 - Type 'TimeRangeStat | undefined' is not assignable to type 'TimeRangeStat'.
       timeRange = this.timeRanges[id];
     }
 
@@ -68,6 +69,7 @@ class StatsTracker {
             children: new Set<string>(),
           };
         }
+        // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
         this.timeRanges[client.id].children.add(id);
         break;
       }
@@ -101,13 +103,18 @@ class StatsTracker {
     const srcRange = this.timeRanges[id] || {};
 
     const timeRange = {
+      // @ts-expect-error [TODO] - TS2339 - Property 'count' does not exist on type '{}'.
       count: srcRange.count || 0,
+      // @ts-expect-error [TODO] - TS2339 - Property 'min' does not exist on type '{}'.
       min: srcRange.min,
+      // @ts-expect-error [TODO] - TS2339 - Property 'max' does not exist on type '{}'.
       max: srcRange.max,
     };
 
+    // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
     const children = this.timeRanges[id] && this.timeRanges[id].children;
 
+    // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
     for (const child of children.values()) {
       const childRange = this.timeRanges[child];
 

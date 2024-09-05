@@ -27,6 +27,7 @@ class HARLoader extends BaseParser {
   }
 
   parsePages(har: HAR) {
+    // @ts-expect-error [TODO] - TS4111 - Property 'log' comes from an index signature, so it must be accessed with ['log'].
     for (const page of har.log.pages) {
       if (!page.pageTimings?.onLoad) {
         continue;
@@ -52,6 +53,7 @@ class HARLoader extends BaseParser {
   }
 
   parseEntries(har: HAR) {
+    // @ts-expect-error [TODO] - TS4111 - Property 'log' comes from an index signature, so it must be accessed with ['log'].
     for (const entry of har.log.entries) {
       const ts = new Date(entry.startedDateTime).getTime();
 

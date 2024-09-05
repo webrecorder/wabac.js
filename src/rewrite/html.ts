@@ -1,3 +1,4 @@
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'parse5-html-rewriting-stream'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { RewritingStream } from "parse5-html-rewriting-stream";
 
 import {
@@ -8,7 +9,9 @@ import {
   REPLAY_TOP_FRAME_NAME,
 } from "../utils";
 import { type ArchiveResponse, type Rewriter } from "./index.js";
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'parse5-sax-parser'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { type StartTag } from "parse5-sax-parser";
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'parse5'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { type Token } from "parse5";
 
 const encoder = new TextEncoder();
@@ -127,6 +130,7 @@ class HTMLRewriter {
     } else if (equiv === "refresh") {
       return attr.value.replace(
         META_REFRESH_REGEX,
+        // @ts-expect-error [TODO] - TS7006 - Parameter 'm' implicitly has an 'any' type. | TS7006 - Parameter 'p1' implicitly has an 'any' type. | TS7006 - Parameter 'p2' implicitly has an 'any' type. | TS7006 - Parameter 'p3' implicitly has an 'any' type.
         (m, p1, p2, p3) => p1 + this.rewriteUrl(rewriter, p2) + p3,
       );
     } else if (this.getAttr(attrs, "name") === "referrer") {
@@ -146,6 +150,7 @@ class HTMLRewriter {
     for (const v of value.split(SRCSET_REGEX)) {
       if (v) {
         const parts = v.trim().split(" ");
+        // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
         parts[0] = this.rewriteUrl(rewriter, parts[0]);
         rv.push(parts.join(" "));
       }
@@ -348,6 +353,7 @@ class HTMLRewriter {
       }
     };
 
+    // @ts-expect-error [TODO] - TS7006 - Parameter 'startTag' implicitly has an 'any' type.
     rwStream.on("startTag", (startTag) => {
       const tagRules = rewriteTags[startTag.tagName];
 
@@ -394,6 +400,7 @@ class HTMLRewriter {
       }
     });
 
+    // @ts-expect-error [TODO] - TS7006 - Parameter 'endTag' implicitly has an 'any' type.
     rwStream.on("endTag", (endTag) => {
       if (endTag.tagName === context) {
         if (replaceTag) {
@@ -416,6 +423,7 @@ class HTMLRewriter {
       rwStream.emitEndTag(endTag);
     });
 
+    // @ts-expect-error [TODO] - TS7006 - Parameter 'textToken' implicitly has an 'any' type. | TS7006 - Parameter 'raw' implicitly has an 'any' type.
     rwStream.on("text", (textToken, raw) => {
       const text = (() => {
         if (context === "script") {
@@ -453,6 +461,7 @@ class HTMLRewriter {
     response.setReader(
       new ReadableStream({
         async start(controller) {
+          // @ts-expect-error [TODO] - TS7006 - Parameter 'text' implicitly has an 'any' type.
           rwStream.on("data", (text) => {
             controller.enqueue(
               isCharsetUTF8 ? encoder.encode(text) : encodeLatin1(text),
@@ -496,6 +505,7 @@ class HTMLRewriter {
     if (this.rule && this.ruleMatch) {
       // todo: make more general if additional rules needed
       // for now, just replace the first match
+      // @ts-expect-error [TODO] - TS2769 - No overload matches this call.
       const replacer = this.rule.replace.replace("$U1", this.ruleMatch[1]);
       const newText = text.replace(this.rule.match, replacer);
       if (text !== newText) {
@@ -507,6 +517,7 @@ class HTMLRewriter {
 
   rewriteJSBase64(text: string, rewriter: Rewriter) {
     const parts = text.split(",");
+    // @ts-expect-error [TODO] - TS2769 - No overload matches this call.
     const content = rewriter.rewriteJS(atob(parts[1]), { isModule: false });
     parts[1] = btoa(content);
     return parts.join(",");

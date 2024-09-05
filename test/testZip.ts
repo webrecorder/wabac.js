@@ -1,5 +1,6 @@
 //import { fetch } from "node:fetch";
 
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'ava'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import anyTest, { type TestFn } from "ava";
 import http from "http";
 
@@ -11,6 +12,7 @@ import { ZipRangeReader } from "../src/wacz/ziprangereader";
 
 import { createLoader } from "../src/blockloaders";
 
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { WARCParser } from "warcio";
 
 const test = anyTest as TestFn<{ baseUrl: string; server: http.Server }>;
@@ -23,15 +25,18 @@ function createServer() {
   );
 }
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test.before(async (t) => {
   t.context.server = createServer();
   t.context.baseUrl = await listen(t.context.server);
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test.after.always((t) => {
   t.context.server.close();
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("test head", async (t) => {
   const res = await fetch(t.context.baseUrl + "/sample_dash.mpd", {
     method: "HEAD",
@@ -40,6 +45,7 @@ test("test head", async (t) => {
   t.is(res.headers.get("Content-Length"), "3229");
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("test range", async (t) => {
   const res = await fetch(t.context.baseUrl + "/sample_dash.mpd", {
     headers: { Range: "bytes=12-24" },
@@ -48,6 +54,7 @@ test("test range", async (t) => {
   t.is(await res.text(), "urn:mpeg:dash");
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("load test.zip entries", async (t) => {
   const zipreader = new ZipRangeReader(
     await createLoader({ url: t.context.baseUrl + "/example.zip" }),
@@ -101,6 +108,7 @@ test("load test.zip entries", async (t) => {
   });
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("load test.zip file fully", async (t) => {
   const zipreader = new ZipRangeReader(
     await createLoader({ url: t.context.baseUrl + "/example.zip" }),
@@ -122,6 +130,7 @@ org,iana,www)/ 20140126200624 {"url":"http://www.iana.org/","mime":"text/html","
   );
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("load test.zip WARC.GZ record", async (t) => {
   const zipreader = new ZipRangeReader(
     await createLoader({ url: t.context.baseUrl + "/example.zip" }),
@@ -149,6 +158,7 @@ test("load test.zip WARC.GZ record", async (t) => {
   t.is(line, "<!doctype html>\n");
 });
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
 test("load test.zip WARC record", async (t) => {
   const zipreader = new ZipRangeReader(
     await createLoader({ url: t.context.baseUrl + "/example.zip" }),

@@ -20,6 +20,7 @@ type WARCRecordWithPage = WARCRecord & {
 // ===========================================================================
 class CDXFromWARCLoader extends WARCLoader {
   cdxindexer: CDXIndexer | null = null;
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WARCLoader'.
   sourceExtra: any;
   shaPrefix: string;
 
@@ -35,6 +36,7 @@ class CDXFromWARCLoader extends WARCLoader {
     this.shaPrefix = shaPrefix;
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WARCLoader'.
   filterRecord(record: WARCRecordWithPage) {
     switch (record.warcType) {
       case "warcinfo":
@@ -59,6 +61,7 @@ class CDXFromWARCLoader extends WARCLoader {
     return null;
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WARCLoader'.
   index(record: WARCRecord, parser: WARCParser) {
     if (record) {
       record._offset = parser.offset;
@@ -67,6 +70,7 @@ class CDXFromWARCLoader extends WARCLoader {
     return super.index(record, parser);
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WARCLoader'.
   indexReqResponse(
     record: WARCRecordWithPage,
     reqRecord: WARCRecord,
@@ -91,7 +95,7 @@ class CDXFromWARCLoader extends WARCLoader {
       return;
     }
 
-    if (cdx.status === 206) {
+    if (cdx["status"] === 206) {
       const headers = record.httpHeaders?.headers;
       if (headers && !this.isFullRangeRequest(headers)) {
         return;
@@ -111,8 +115,11 @@ class CDXFromWARCLoader extends WARCLoader {
   getSource(cdx: Record<string, any>) {
     return {
       ...this.sourceExtra,
+      // @ts-expect-error [TODO] - TS4111 - Property 'filename' comes from an index signature, so it must be accessed with ['filename'].
       path: cdx.filename,
+      // @ts-expect-error [TODO] - TS4111 - Property 'offset' comes from an index signature, so it must be accessed with ['offset'].
       start: Number(cdx.offset),
+      // @ts-expect-error [TODO] - TS4111 - Property 'length' comes from an index signature, so it must be accessed with ['length'].
       length: Number(cdx.length),
     };
   }
@@ -120,8 +127,10 @@ class CDXFromWARCLoader extends WARCLoader {
   addCdx(cdx: Record<string, any>) {
     const { url, mime } = cdx;
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'status' comes from an index signature, so it must be accessed with ['status'].
     const status = Number(cdx.status) || 200;
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'timestamp' comes from an index signature, so it must be accessed with ['timestamp'].
     const date = tsToDate(cdx.timestamp);
     const ts = date.getTime();
 
@@ -148,10 +157,13 @@ class CDXFromWARCLoader extends WARCLoader {
       source,
     };
 
+    // @ts-expect-error [TODO] - TS4111 - Property 'method' comes from an index signature, so it must be accessed with ['method'].
     if (cdx.method) {
+      // @ts-expect-error [TODO] - TS4111 - Property 'method' comes from an index signature, so it must be accessed with ['method']. | TS4111 - Property 'method' comes from an index signature, so it must be accessed with ['method'].
       if (cdx.method === "HEAD" || cdx.method === "OPTIONS") {
         return;
       }
+      // @ts-expect-error [TODO] - TS4111 - Property 'method' comes from an index signature, so it must be accessed with ['method'].
       entry.method = cdx.method;
     }
 
@@ -160,10 +172,14 @@ class CDXFromWARCLoader extends WARCLoader {
     }
 
     // url with post query appended
+    // @ts-expect-error [TODO] - TS4111 - Property 'method' comes from an index signature, so it must be accessed with ['method']. | TS4111 - Property 'method' comes from an index signature, so it must be accessed with ['method'].
     if (cdx.method && cdx.method !== "GET") {
       entry.url = appendRequestQuery(
+        // @ts-expect-error [TODO] - TS4111 - Property 'url' comes from an index signature, so it must be accessed with ['url'].
         cdx.url,
+        // @ts-expect-error [TODO] - TS4111 - Property 'requestBody' comes from an index signature, so it must be accessed with ['requestBody'].
         cdx.requestBody || "",
+        // @ts-expect-error [TODO] - TS4111 - Property 'method' comes from an index signature, so it must be accessed with ['method'].
         cdx.method,
       );
     }
@@ -174,6 +190,7 @@ class CDXFromWARCLoader extends WARCLoader {
 
 // ===========================================================================
 class CDXLoader extends CDXFromWARCLoader {
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'CDXFromWARCLoader'.
   async load(db: any, progressUpdate?: any, totalSize?: number) {
     this.db = db;
 

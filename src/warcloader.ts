@@ -6,6 +6,7 @@ import {
   WARCParser,
   type WARCRecord,
   postToGetUrl,
+  // @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 } from "warcio";
 
 import { extractText } from "./extract";
@@ -216,6 +217,7 @@ class WARCLoader extends BaseParser {
       //  return null;
       //}
 
+      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
       mime = (headers.get("content-type") || "").split(";")[0];
 
       // skip partial responses (not starting from 0)
@@ -394,6 +396,7 @@ class WARCLoader extends BaseParser {
     }
 
     if (this.sourceExtra) {
+      // @ts-expect-error [TODO] - TS2322 - Type 'object' is not assignable to type 'Source | undefined'.
       entry.source = this.sourceExtra;
     }
 
@@ -531,6 +534,7 @@ class WARCLoader extends BaseParser {
     return this.metadata;
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'BaseParser'.
   async _finishLoad() {
     if (this.pages.length) {
       for (const { page, textPromise } of Object.values(this.pageMap)) {
@@ -574,11 +578,13 @@ function isPage(url: string, status: number, mime: string) {
   // skip urls with long query
   const parts = url.split("?", 2);
 
+  // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS2532 - Object is possibly 'undefined'.
   if (parts.length === 2 && parts[1].length > parts[0].length) {
     return false;
   }
 
   // skip 'files' starting with '.' from being listed as pages
+  // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS2532 - Object is possibly 'undefined'.
   if (parts[0].substring(parts[0].lastIndexOf("/") + 1).startsWith(".")) {
     return false;
   }
@@ -597,8 +603,10 @@ class SingleRecordWARCLoader extends WARCLoader {
     this.detectPages = false;
   }
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WARCLoader'.
   addPage() {}
 
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WARCLoader'.
   async load() {
     const record = await new WARCParser(this.reader).parse();
 
@@ -618,6 +626,7 @@ class SingleRecordWARCLoader extends WARCLoader {
 
 // ===========================================================================
 class WARCInfoOnlyWARCLoader extends WARCLoader {
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WARCLoader'.
   filterRecord(record: WARCRecord) {
     if (record.warcType != "warcinfo") {
       return "done";

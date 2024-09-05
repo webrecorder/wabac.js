@@ -1,14 +1,19 @@
 import {
   toByteArray as decodeBase64,
   fromByteArray as encodeBase64,
+  // @ts-expect-error [TODO] - TS2792 - Cannot find module 'base64-js'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 } from "base64-js";
 import { base16 } from "../utils";
 
+// @ts-expect-error [TODO] - TS2792 - Cannot find module '@peculiar/x509'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import * as x509 from "@peculiar/x509";
+// @ts-expect-error [TODO] - TS2792 - Cannot find module '@peculiar/asn1-schema'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { AsnParser } from "@peculiar/asn1-schema";
+// @ts-expect-error [TODO] - TS2792 - Cannot find module '@peculiar/asn1-ecc'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { ECDSASigValue } from "@peculiar/asn1-ecc";
 //import { ASN1 } from "asn1-parser";
 
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { concatChunks } from "warcio";
 
 const SPLIT_PEM = /-{5}(BEGIN|END) .*-{5}/gm;
@@ -49,6 +54,7 @@ export async function verifyWACZSignature({
     const certs = domainCert.split("\n\n");
 
     const certBuffer = decodeBase64(
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       certs[0].replace(SPLIT_PEM, "").replace(/\s/gm, ""),
     );
 

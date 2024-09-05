@@ -1,3 +1,4 @@
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'ava'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import test from "ava";
 
 import { doRewrite } from "./helpers/index.js";
@@ -5,6 +6,7 @@ import { doRewrite } from "./helpers/index.js";
 // ===========================================================================
 const rewriteHtml = test.macro({
   async exec(
+    // @ts-expect-error [TODO] - TS7006 - Parameter 't' implicitly has an 'any' type.
     t,
     content: string,
     expected: string,
@@ -40,6 +42,7 @@ const rewriteHtml = test.macro({
     t.is(actual, expected);
   },
 
+  // @ts-expect-error [TODO] - TS7006 - Parameter 'input' implicitly has an 'any' type. | TS7006 - Parameter 'expected' implicitly has an 'any' type.
   title(providedTitle = "HTML", input, expected) {
     return `${providedTitle}: ${input} => ${expected}`.trim();
   },
@@ -48,6 +51,7 @@ const rewriteHtml = test.macro({
 // ===========================================================================
 
 // ===========================================================================
+// @ts-expect-error [TODO] - TS7006 - Parameter 'text' implicitly has an 'any' type.
 function wrapScript(text) {
   return `\
 var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
@@ -69,6 +73,7 @@ ${text}
 }`;
 }
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 'text' implicitly has an 'any' type.
 function wrapScriptInline(text) {
   return wrapScript(text)
     .replace(/\n/g, " ")
@@ -76,6 +81,7 @@ function wrapScriptInline(text) {
     .replace(/[&][&]/g, "&amp;&amp;");
 }
 
+// @ts-expect-error [TODO] - TS7006 - Parameter 'text' implicitly has an 'any' type.
 function wrapScriptModule(text) {
   return `\
 <script type="module">import { window, globalThis, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010mp_/__wb_module_decl.js";

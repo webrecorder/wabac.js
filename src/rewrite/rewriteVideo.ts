@@ -1,3 +1,4 @@
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'fast-xml-parser'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
 
 // orig pywb defaults
@@ -13,6 +14,7 @@ function getMaxResAndBand(opts: Record<string, any> = {}) {
   // read opts from warc, if any
   let maxRes, maxBand;
 
+  // @ts-expect-error [TODO] - TS4111 - Property 'response' comes from an index signature, so it must be accessed with ['response'].
   const extraOpts = opts.response?.extraOpts;
 
   if (extraOpts) {
@@ -23,6 +25,7 @@ function getMaxResAndBand(opts: Record<string, any> = {}) {
     }
   }
 
+  // @ts-expect-error [TODO] - TS4111 - Property 'response' comes from an index signature, so it must be accessed with ['response']. | TS4111 - Property 'response' comes from an index signature, so it must be accessed with ['response'].
   const isReplay = opts.response && !opts.response.isLive;
   let res;
 
@@ -34,8 +37,11 @@ function getMaxResAndBand(opts: Record<string, any> = {}) {
     res = { maxRes: OLD_DEFAULT_MAX_RES, maxBand: OLD_DEFAULT_MAX_BAND };
   }
 
+  // @ts-expect-error [TODO] - TS4111 - Property 'save' comes from an index signature, so it must be accessed with ['save'].
   if (opts.save) {
+    // @ts-expect-error [TODO] - TS4111 - Property 'save' comes from an index signature, so it must be accessed with ['save'].
     opts.save.maxRes = res.maxRes;
+    // @ts-expect-error [TODO] - TS4111 - Property 'save' comes from an index signature, so it must be accessed with ['save'].
     opts.save.maxBand = res.maxBand;
   }
 
@@ -63,7 +69,9 @@ export function rewriteHLS(text: string, opts: Record<string, any>) {
     const m = line.match(EXT_INF);
     if (!m) {
       // if has rewriteUrl (not-ajax), then rewrite HLS urls
+      // @ts-expect-error [TODO] - TS4111 - Property 'rewriteUrl' comes from an index signature, so it must be accessed with ['rewriteUrl'].
       if (opts.rewriteUrl && !line.startsWith("#")) {
+        // @ts-expect-error [TODO] - TS4111 - Property 'rewriteUrl' comes from an index signature, so it must be accessed with ['rewriteUrl'].
         lines[count] = opts.rewriteUrl(line);
       }
       count += 1;

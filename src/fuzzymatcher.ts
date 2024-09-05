@@ -1,4 +1,5 @@
 import levenshtein from "js-levenshtein";
+// @ts-expect-error [TODO] - TS2792 - Cannot find module 'warcio'. Did you mean to set the 'moduleResolution' option to 'node', or to add aliases to the 'paths' option?
 import { jsonToQueryParams } from "warcio";
 
 type FuzzyRule = {
@@ -446,11 +447,15 @@ export class FuzzyMatcher {
     const foundNoQ = foundQ > 0 ? foundValue.slice(0, foundQ) : foundValue;
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    // @ts-expect-error [TODO] - TS2538 - Type 'undefined' cannot be used as an index type.
     if (!keySets[keyBase]) {
+      // @ts-expect-error [TODO] - TS2538 - Type 'undefined' cannot be used as an index type.
       keySets[keyBase] = { value: [], found: new Set() };
     }
 
+    // @ts-expect-error [TODO] - TS2538 - Type 'undefined' cannot be used as an index type.
     keySets[keyBase].value.push(valueNoQ);
+    // @ts-expect-error [TODO] - TS2538 - Type 'undefined' cannot be used as an index type.
     keySets[keyBase].found.add(foundNoQ);
   }
 

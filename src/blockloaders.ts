@@ -24,7 +24,9 @@ export type BlockLoaderOpts = {
 export async function createLoader(opts: BlockLoaderOpts): Promise<BaseLoader> {
   const { url } = opts;
 
+  // @ts-expect-error [TODO] - TS4111 - Property 'arrayBuffer' comes from an index signature, so it must be accessed with ['arrayBuffer'].
   if (opts.extra?.arrayBuffer) {
+    // @ts-expect-error [TODO] - TS4111 - Property 'arrayBuffer' comes from an index signature, so it must be accessed with ['arrayBuffer'].
     return new ArrayBufferLoader(opts.extra.arrayBuffer);
   }
 
@@ -101,6 +103,7 @@ export abstract class BaseLoader {
 // ===========================================================================
 class FetchRangeLoader extends BaseLoader {
   url: string;
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'BaseLoader'.
   length: number | null;
   isValid = false;
   ipfsAPI = null;
@@ -183,6 +186,7 @@ class FetchRangeLoader extends BaseLoader {
         if (range) {
           const rangeParts = range.split("/");
           if (rangeParts.length === 2) {
+            // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
             this.length = parseInt(rangeParts[1]);
           }
         }
@@ -276,6 +280,7 @@ class FetchRangeLoader extends BaseLoader {
 class GoogleDriveLoader extends BaseLoader {
   fileId: string;
   apiUrl: string;
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'BaseLoader'.
   length: number;
 
   publicUrl: string | null = null;
@@ -298,7 +303,9 @@ class GoogleDriveLoader extends BaseLoader {
     this.apiUrl = `https://www.googleapis.com/drive/v3/files/${this.fileId}?alt=media`;
 
     this.headers = headers || {};
+    // @ts-expect-error [TODO] - TS4111 - Property 'publicUrl' comes from an index signature, so it must be accessed with ['publicUrl'].
     if (extra?.publicUrl) {
+      // @ts-expect-error [TODO] - TS4111 - Property 'publicUrl' comes from an index signature, so it must be accessed with ['publicUrl'].
       this.publicUrl = extra.publicUrl;
     }
     this.length = size || 0;
@@ -411,10 +418,12 @@ class GoogleDriveLoader extends BaseLoader {
       } catch (e) {
         if (
           e instanceof AccessDeniedError &&
+          // @ts-expect-error [TODO] - TS4111 - Property 'resp' comes from an index signature, so it must be accessed with ['resp'].
           e.info.resp?.headers
             .get("content-type")
             .startsWith("application/json")
         ) {
+          // @ts-expect-error [TODO] - TS4111 - Property 'resp' comes from an index signature, so it must be accessed with ['resp'].
           const err = await e.info.resp.json();
           if (
             err.error?.errors &&
@@ -676,6 +685,7 @@ class FileHandleLoader extends BaseLoader {
 class IPFSRangeLoader extends BaseLoader {
   url: string;
   opts: Record<string, any>;
+  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'BaseLoader'.
   length: number | null;
   isValid = false;
 
