@@ -14,6 +14,8 @@ import {
 import { type AsyncIterReader, getSurt } from "warcio";
 import { LiveProxy } from "../liveproxy";
 
+import { type IDBPTransaction, type IDBPDatabase } from "idb";
+
 import {
   INDEX_CDX,
   INDEX_IDX,
@@ -26,6 +28,7 @@ import {
   type WACZLoadSource,
   WACZ_LEAF,
 } from "./waczfile";
+import { type DBType as ADBType } from "../archivedb";
 import { EXTRA_PAGES_JSON, WACZImporter } from "./waczimporter";
 import {
   type BaseLoader,
@@ -50,24 +53,56 @@ export type IDXLine = {
   loaded: boolean;
 };
 
+type Config = {
+  dbname: string;
+  noCache: boolean;
+  decode?: unknown;
+  metadata?: {
+    textIndex?: string;
+  };
+  extraConfig?: {
+    decodeResponses?: unknown;
+    hostProxy?: boolean;
+    fuzzy?: [RegExp | string, string][];
+    textIndex?: string;
+  };
+};
+
+interface MDBType extends ADBType {
+  ziplines: {
+    key: [string, string];
+    value: unknown;
+  };
+  waczfiles: {
+    key: string;
+    value: unknown;
+  };
+  verification: {
+    key: string;
+    value: unknown;
+  };
+}
+
 // ==========================================================================
 export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
-  config: Record<string, any>;
+  config: Config;
   waczfiles: Record<string, WACZFile>;
   waczNameForHash: Record<string, string>;
   ziploadercache: Record<string, Promise<void>>;
   updating: any | null;
   rootSourceType: "wacz" | "json";
-  sourceLoader: BaseLoader;
+  sourceLoader: BaseLoader | undefined;
   externalSource: LiveProxy | null;
   textIndex: string;
   fuzzyUrlRules: { match: RegExp; replace: any }[];
 
   constructor(
-    config: Record<string, any>,
+    config: Config,
     sourceLoader: BaseLoader,
-    rootSourceType: "wacz" | "json" = "wacz",
+    rootSourceType: "wacz" | "json" = "wacz"
   ) {
+    // TODO @ikreymer it looks like we're passing `noCache` into what the `loader` param and not the `noCache` param, is there a loader that should be present here?
+    // @ts-expect-error
     super(config.dbname, config.noCache);
 
     this.config = config;
@@ -92,7 +127,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     }
   }
 
-  initConfig(extraConfig: Record<string, any>) {
+  initConfig(extraConfig: NonNullable<Config["extraConfig"]>) {
     if (extraConfig.decodeResponses !== undefined) {
       this.config.decode = extraConfig.decodeResponses;
     }
@@ -110,13 +145,22 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     }
   }
 
-  updateHeaders(headers: Record<string, string>) {
+  override updateHeaders(headers: Record<string, string>) {
     if (this.sourceLoader) {
-      (this.sourceLoader as any).headers = headers;
+      this.sourceLoader.headers = headers;
     }
   }
 
-  _initDB(db: any, oldV: number, newV: number, tx: any) {
+  override _initDB(
+    db: IDBPDatabase<MDBType>,
+    oldV: number,
+    newV: number,
+    tx: IDBPTransaction<
+      MDBType,
+      (keyof MDBType)[],
+      "readwrite" | "versionchange"
+    >
+  ) {
     super._initDB(db, oldV, newV, tx);
 
     if (!oldV) {
@@ -182,7 +226,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     return this.waczfiles[file.waczname];
   }
 
-  async init() {
+  override async init() {
     await super.init();
 
     const fileDatas = (await this.db!.getAll("waczfiles")) || [];
@@ -208,7 +252,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     await this.checkUpdates();
   }
 
-  async close() {
+  override async close() {
     super.close();
     caches.delete("cache:" + this.name.slice("db:".length));
   }
@@ -221,12 +265,12 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     }
   }
 
-  async addVerifyData(
+  override async addVerifyData(
     prefix = "",
     id: string,
     expected: string,
     actual: string | null = null,
-    log = false,
+    log = false
   ) {
     let matched = false;
 
@@ -243,7 +287,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     await this.db!.put("verification", { id, expected, matched });
   }
 
-  async addVerifyDataList(prefix: string, datalist: any[]) {
+  override async addVerifyDataList(prefix: string, datalist: any[]) {
     const tx = this.db!.transaction("verification", "readwrite");
 
     for (const data of datalist) {
@@ -260,7 +304,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     }
   }
 
-  async getVerifyInfo() {
+  override async getVerifyInfo() {
     const results = await this.db!.getAll("verification");
 
     let numValid = 0;
@@ -300,14 +344,14 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     return res?.expected;
   }
 
-  async clearAll() {
+  override async clearAll() {
     await super.clearAll();
 
     await this.clearZipData();
   }
 
-  async loadRecordFromSource(
-    cdx: Record<string, any>,
+  override async loadRecordFromSource(
+    cdx: Record<string, any>
   ): LoadRecordFromSourceType {
     const { start, length, path, wacz } = cdx.source;
     const params = { offset: start, length, unzip: true, computeHash: true };
@@ -316,7 +360,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     const { reader, hasher } = await this.loadFileFromNamedWACZ(
       waczname,
       "archive/" + path,
-      params,
+      params
     );
 
     const loader = new SingleRecordWARCLoader(reader);
@@ -373,12 +417,12 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     filename: string,
     waczname: string,
     progressUpdate?: any,
-    total?: number,
+    total?: number
   ) {
     const { reader, hasher } = await this.loadFileFromNamedWACZ(
       waczname,
       filename,
-      { computeHash: true },
+      { computeHash: true }
     );
 
     const loader = new CDXLoader(reader, null, waczname, { wacz: waczname });
@@ -399,12 +443,12 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     filename: string,
     waczname: string,
     progressUpdate?: any,
-    total?: number,
+    total?: number
   ): Promise<void> {
     const { reader, hasher } = await this.loadFileFromNamedWACZ(
       waczname,
       filename,
-      { computeHash: true },
+      { computeHash: true }
     );
 
     const batch: IDXLine[] = [];
@@ -434,7 +478,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
           }
           if (indexMetadata.format !== "cdxj-gzip-1.0") {
             console.log(
-              `Unknown CDXJ format "${indexMetadata.format}", archive may not parse correctly`,
+              `Unknown CDXJ format "${indexMetadata.format}", archive may not parse correctly`
             );
           }
           continue;
@@ -513,7 +557,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     waczname: string,
     url: string,
     datetime = 0,
-    isPrefix = false,
+    isPrefix = false
   ) {
     //const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
 
@@ -595,7 +639,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
   async doCDXLoad(
     cacheKey: string,
     zipblock: IDXLine,
-    waczname: string,
+    waczname: string
   ): Promise<void> {
     try {
       const filename = "indexes/" + zipblock.filename;
@@ -608,7 +652,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
       const { reader, hasher } = await this.loadFileFromNamedWACZ(
         waczname,
         filename,
-        params,
+        params
       );
 
       const loader = new CDXLoader(reader, null, "", { wacz: waczname });
@@ -650,10 +694,10 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     return currPage;
   }
 
-  async lookupUrl(
+  override async lookupUrl(
     url: string,
     datetime: number,
-    opts: Record<string, any> = {},
+    opts: Record<string, any> = {}
   ) {
     try {
       const { waczname } = opts;
@@ -681,7 +725,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     waczname: string,
     url: string,
     datetime: number,
-    opts: Record<string, any>,
+    opts: Record<string, any>
   ) {
     const { indexType, isNew } = await this.loadIndex(waczname);
 
@@ -706,7 +750,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     return await super.lookupUrl(url, datetime, opts);
   }
 
-  async resourcesByUrlAndMime(
+  override async resourcesByUrlAndMime(
     url: string,
     ...args: [string, number, boolean, string, string]
   ) {
@@ -751,7 +795,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
   async loadFileFromWACZ(
     waczfile: WACZFile,
     filename: string,
-    opts: Record<string, any>,
+    opts: Record<string, any>
   ): LoadWACZEntry {
     try {
       return await waczfile.loadFile(filename, opts);
@@ -767,7 +811,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
   async loadFileFromNamedWACZ(
     waczname: string,
     filename: string,
-    opts: Record<string, any>,
+    opts: Record<string, any>
   ): LoadWACZEntry {
     const waczfile = this.waczfiles[waczname];
 
@@ -811,7 +855,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
 
   async loadWACZFiles(
     json: Record<string, any>,
-    parent: WACZLoadSource = this,
+    parent: WACZLoadSource = this
   ) {
     const promises: Promise<void>[] = [];
 
@@ -826,7 +870,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
         const name = parent.getName(res.name);
         const hash = res.hash;
         return { name, hash, path };
-      },
+      }
     );
 
     for (const { name, hash, path } of files) {
@@ -883,7 +927,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
           const { reader } = await this.loadFileFromNamedWACZ(
             waczname,
             this.textIndex,
-            { unzip: true },
+            { unzip: true }
           );
           if (reader) {
             readers.push(reader);
@@ -908,11 +952,11 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     }
   }
 
-  async getResource(
+  override async getResource(
     request: ArchiveRequest,
     prefix: string,
     event: FetchEvent,
-    { pageId }: Record<string, any> = {},
+    { pageId }: Record<string, any> = {}
   ): Promise<ArchiveResponse | Response | null> {
     await this.initing;
 
@@ -979,7 +1023,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
       }
 
       return Response.redirect(
-        `${prefix}:${foundHash}/${ts}mp_/${request.url}`,
+        `${prefix}:${foundHash}/${ts}mp_/${request.url}`
       );
     }
 
