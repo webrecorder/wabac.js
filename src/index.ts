@@ -1,10 +1,8 @@
-export { getCustomRewriter, rewriteDASH, rewriteHLS } from "./rewrite";
+export { getCustomRewriter, rewriteDASH, rewriteHLS, Rewriter } from "./rewrite";
 
-export { SWReplay, SWCollections } from "./swmain";
+export { ArchiveRequest } from "./request";
 
-export { ArchiveDB } from "./archivedb";
-
-export { LiveProxy } from "./liveproxy";
+export { ArchiveResponse } from "./response";
 
 export {
   getTSMillis,
@@ -18,6 +16,4 @@ export { createLoader } from "./blockloaders";
 
 export { ZipRangeReader } from "./wacz/ziprangereader";
 
-export { WorkerLoader } from "./loaders";
-
-export { API } from "./api";
+export { FuzzyMatcher } from "./fuzzymatcher";

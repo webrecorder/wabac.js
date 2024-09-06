@@ -14,6 +14,7 @@ module.exports = {
     //"wombat": "@webrecorder/wombat/src/wbWombat.js",
     //"wombatWorkers": "@webrecorder/wombat/src/wombatWorkers.js",
     sw: "./src/sw.ts",
+    swlib: "./src/swlib.ts",
     index: "./src/index.ts",
   },
   output: {

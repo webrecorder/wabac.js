@@ -5,10 +5,12 @@
   "type": "module",
   "exports": {
     ".": {
+      "types": "./dist/types/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./sw": {
-      "default": "./dist/sw.js"
+    "./swlib": {
+      "types": "./dist/types/swlib.d.ts",
+      "default": "./dist/swlib.js"
     }
   },
   "license": "AGPL-3.0-or-later",
