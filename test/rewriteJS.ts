@@ -170,6 +170,8 @@ test(
   "(a,b,Q.contains(i[t], _____WB$wombat$check$this$function_____(this)))",
 );
 
+test(rewriteJS, `const a = "{\\"some data\\": \\"foo = this\\"};"`, "");
+
 test(
   rewriteJSWrapped,
   "location = http://example.com/",

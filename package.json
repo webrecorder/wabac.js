@@ -82,9 +82,9 @@
     "start-dev": "webpack-dev-server --mode development",
     "start-live-proxy": "cp dist/sw.js ./examples/live-proxy/sw.js && cd ./examples/live-proxy && ./fetch-adblock.sh && http-server -p 10001",
     "test": "c8 ava",
-    "lint:check": "eslint ./",
-    "lint": "eslint --fix ./",
-    "format:check": "prettier --check ./",
-    "format": "prettier --write ./"
+    "lint:check": "eslint ./src/ ./test/",
+    "lint": "eslint --fix ./src/ ./test/",
+    "format:check": "prettier --check ./src/ ./test/",
+    "format": "prettier --write ./src/ ./test/"
   }
 }

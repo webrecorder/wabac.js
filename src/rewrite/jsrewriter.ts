@@ -89,9 +89,9 @@ const createJSRules: () => Rule[] = () => {
 
   function replaceThis() {
     // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (x: string, _opts: any, offset: number, fullString: string) => {
-      if (isInString(x, offset)) {
+      if (isInString(fullString, offset)) {
         return x;
       }
       return x.replace("this", thisRw);
