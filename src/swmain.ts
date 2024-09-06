@@ -6,9 +6,8 @@ import { StatsTracker } from "./statstracker";
 
 import { API } from "./api";
 
-import WOMBAT from "./wombat/wombat.txt";
-import WOMBAT_WORKERS from "./wombat/wombatWorkers.txt";
-//import WOMBAT_WORKERS from "@webrecorder/wombat/src/wombatWorkers.txt";
+import WOMBAT from "../dist-wombat/wombat.txt";
+import WOMBAT_WORKERS from "../dist-wombat/wombatWorkers.txt";
 
 import { ArchiveRequest } from "./request";
 

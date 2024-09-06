@@ -5,6 +5,7 @@ import {
   encodeLatin1,
   MAX_STREAM_CHUNK_SIZE,
   tsToDate,
+  getStatusText,
 } from "./utils";
 import { Buffer } from "buffer";
 
@@ -14,7 +15,7 @@ const decoder = new TextDecoder();
 type ArchiveResponseOpts = {
   payload: AsyncIterable<Uint8Array> | Uint8Array | null;
   status: number;
-  statusText: string;
+  statusText?: string;
   headers: Headers;
   url: string;
   date: Date;
@@ -160,7 +161,7 @@ class ArchiveResponse {
     }
 
     this.status = status;
-    this.statusText = statusText;
+    this.statusText = statusText || getStatusText(status);
     this.headers = headers;
     this.url = url;
     this.date = date;
