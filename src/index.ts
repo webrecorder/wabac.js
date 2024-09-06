@@ -1,4 +1,9 @@
-export { getCustomRewriter, rewriteDASH, rewriteHLS, Rewriter } from "./rewrite";
+export {
+  getCustomRewriter,
+  rewriteDASH,
+  rewriteHLS,
+  Rewriter,
+} from "./rewrite";
 
 export { ArchiveRequest } from "./request";
 

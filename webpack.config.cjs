@@ -7,14 +7,13 @@ const CopyPlugin = require("copy-webpack-plugin");
 const package_json = require("./package.json");
 const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 
-
 const wombatBuild = {
   name: "wombat",
   mode: "production",
   target: "web",
   entry: {
-    "wombat": "@webrecorder/wombat/src/wbWombat.js",
-    "wombatWorkers": "@webrecorder/wombat/src/wombatWorkers.js",
+    wombat: "@webrecorder/wombat/src/wbWombat.js",
+    wombatWorkers: "@webrecorder/wombat/src/wombatWorkers.js",
   },
   output: {
     path: path.join(__dirname, "dist-wombat"),
@@ -30,8 +29,7 @@ const wombatBuild = {
       }),
     ],
   },
-}
-
+};
 
 const mainBuild = {
   name: "main",
@@ -49,7 +47,7 @@ const mainBuild = {
     publicPath: "/dist/",
     globalObject: "self",
     library: {
-      type: 'module',
+      type: "module",
     },
   },
 
@@ -65,7 +63,7 @@ const mainBuild = {
   },
 
   experiments: {
-    outputModule: true
+    outputModule: true,
   },
 
   devServer: {
