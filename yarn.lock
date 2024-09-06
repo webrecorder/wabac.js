@@ -896,12 +896,12 @@
   resolved "https://registry.yarnpkg.com/@webpack-cli/serve/-/serve-1.5.2.tgz#ea584b637ff63c5a477f6f21604b5a205b72c9ec"
   integrity sha512-vgJ5OLWadI8aKjDlOH3rb+dYyPd2GTZuQC/Tihjct6F9GpXGZINo3Y/IVuZVTM1eDQB+/AOsjPUWH/WySDaXvw==
 
-"@webrecorder/wombat@^3.8.0":
-  version "3.8.0"
-  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.8.0.tgz#63ed3df199f11223b23c9ce66202590b8511ae2a"
-  integrity sha512-MpzNu9+ClCHjOER9XCrsEIsJk15L6qGO+PxeBPiOtaFJmNUiz0auMT5AQwiPqJgKEAniZTlPx1O4kNCVJu9f2Q==
+"@webrecorder/wombat@^3.8.1":
+  version "3.8.1"
+  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.8.1.tgz#d1030aa80da3826691b2c9355d895545e6b02fa3"
+  integrity sha512-A9Ed7OMHNjigruXoNAVdLuMzmsCIwh2GQUoZvGbGceV381Ka6Tx5FyeEe9vDoJD/hPGDeGdxbyCOB2/2t8NV9w==
   dependencies:
-    warcio "^2.3.0"
+    warcio "^2.3.1"
 
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"
@@ -3750,7 +3750,7 @@ walk-up-path@^3.0.1:
   resolved "https://registry.yarnpkg.com/walk-up-path/-/walk-up-path-3.0.1.tgz#c8d78d5375b4966c717eb17ada73dbd41490e886"
   integrity sha512-9YlCL/ynK3CTlrSRrDxZvUauLzAswPCrsaCgilqFevUYpeEW0/3ScEjaa3kbW/T0ghhkEr7mv+fpjqn1Y1YuTA==
 
-warcio@^2.3.0, warcio@^2.3.1:
+warcio@^2.3.1:
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/warcio/-/warcio-2.3.1.tgz#8ac9de897de1a556161168f2a3938b60929908ca"
   integrity sha512-PjcWqzXfs6HdWfHi1V/i8MoMmV5M0Csg3rOa2mqCJ1dmCJXswVfQ0VXbEVumwavNIW2oFFj6LJoCHHeL4Ls/zw==
