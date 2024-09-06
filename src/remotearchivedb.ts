@@ -9,12 +9,9 @@ import {
 
 import { type BaseLoader, createLoader } from "./blockloaders";
 import { type Source, type ResourceEntry } from "./types";
+import { type GetHash } from "./wacz/ziprangereader";
 
 const MAX_CACHE_SIZE = 25_000_000;
-
-export type GetHash = {
-  getHash: () => string;
-};
 
 export type LoadRecordFromSourceType = Promise<{
   remote: ResourceEntry | null;

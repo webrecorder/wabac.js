@@ -2,13 +2,16 @@ import { AsyncIterReader, concatChunks } from "warcio";
 import { createSHA256 } from "hash-wasm";
 import { BaseLoader, getReadableStreamFromIter } from "../blockloaders";
 import { type IHasher } from "hash-wasm/dist/lib/WASMInterface.js";
-import { type GetHash } from "../remotearchivedb";
 
 // ===========================================================================
 const MAX_INT32 = 0xffffffff;
 const MAX_INT16 = 0xffff;
 
 // ===========================================================================
+export type GetHash = {
+  getHash: () => string;
+};
+
 export type ReaderAndHasher = {
   reader: AsyncIterReader;
   hasher?: GetHash | null;
