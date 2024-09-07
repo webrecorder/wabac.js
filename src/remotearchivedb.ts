@@ -40,18 +40,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
     this.streamMap = new Map<string, ChunkStore>();
   }
 
-  abstract loadSource(source: Source): Promise<ReadableStream<Uint8Array>>;
-
-  async loadRecordFromSource(
-    cdx: RemoteResourceEntry,
-  ): LoadRecordFromSourceType {
-    const responseStream = await this.loadSource(cdx.source);
-
-    const loader = new SingleRecordWARCLoader(responseStream);
-
-    const remote = await loader.load();
-    return { remote };
-  }
+  abstract loadRecordFromSource(cdx: RemoteResourceEntry): LoadRecordFromSourceType;
 
   override async loadPayload(
     cdx: ResourceEntry,
@@ -307,7 +296,23 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
 }
 
 // ===========================================================================
-export class RemoteSourceArchiveDB extends OnDemandPayloadArchiveDB {
+export abstract class SimpleRemoteArchiveDB extends OnDemandPayloadArchiveDB {
+  abstract loadSource(source: Source): Promise<ReadableStream<Uint8Array>>;
+
+  override async loadRecordFromSource(
+    cdx: RemoteResourceEntry,
+  ): LoadRecordFromSourceType {
+    const responseStream = await this.loadSource(cdx.source);
+
+    const loader = new SingleRecordWARCLoader(responseStream);
+
+    const remote = await loader.load();
+    return { remote };
+  }
+}
+
+// ===========================================================================
+export class RemoteSourceArchiveDB extends SimpleRemoteArchiveDB {
   loader: BaseLoader;
 
   constructor(name: string, loader: BaseLoader, noCache = false) {
@@ -334,7 +339,7 @@ export class RemoteSourceArchiveDB extends OnDemandPayloadArchiveDB {
 }
 
 // ===========================================================================
-export class RemotePrefixArchiveDB extends OnDemandPayloadArchiveDB {
+export class RemotePrefixArchiveDB extends SimpleRemoteArchiveDB {
   remoteUrlPrefix: string;
   headers: Record<string, string>;
 

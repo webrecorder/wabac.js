@@ -1,6 +1,6 @@
 import {
   type LoadRecordFromSourceType,
-  RemoteSourceArchiveDB,
+  OnDemandPayloadArchiveDB,
 } from "../remotearchivedb";
 import { SingleRecordWARCLoader } from "../warcloader";
 import { CDXLoader, CDX_COOKIE } from "../cdxloader";
@@ -85,7 +85,7 @@ interface MDBType extends ADBType {
 }
 
 // ==========================================================================
-export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
+export class MultiWACZ extends OnDemandPayloadArchiveDB implements WACZLoadSource {
   config: Config;
   waczfiles: Record<string, WACZFile>;
   waczNameForHash: Record<string, string>;
@@ -106,8 +106,6 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     sourceLoader: BaseLoader,
     rootSourceType: "wacz" | "json" = "wacz",
   ) {
-    // TODO @ikreymer it looks like we're passing `noCache` into what the `loader` param and not the `noCache` param, is there a loader that should be present here?
-    // @ts-expect-error
     super(config.dbname, config.noCache);
 
     this.config = config;
@@ -150,7 +148,7 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
     }
   }
 
-  override updateHeaders(headers: Record<string, string>) {
+  updateHeaders(headers: Record<string, string>) {
     if (this.sourceLoader) {
       this.sourceLoader.headers = headers;
     }

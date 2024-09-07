@@ -76,10 +76,12 @@ export type ADBType = {
   payload: {
     key: string;
     value: { digest: string; payload: Uint8Array | null };
+    indexes: { digest: string; }
   };
   digestRef: {
     key: string;
     value: DigestRefCount | null;
+    indexes: { digest: string; }
   };
 };
 // ===========================================================================
@@ -109,9 +111,7 @@ export class ArchiveDB implements DBStore {
     this.useRefCounts = !noRefCounts;
 
     this.allowRepeats = true;
-    // TODO @ikreymer there's no case where `allowRepeats` could be false, why is this checked?
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    this.repeatTracker = this.allowRepeats ? new RepeatTracker() : null;
+    this.repeatTracker = new RepeatTracker();
     this.fuzzyPrefixSearch = true;
 
     this.initing = this.init();
@@ -169,11 +169,12 @@ export class ArchiveDB implements DBStore {
       //urlStore.createIndex("ts", "ts");
       urlStore.createIndex("mimeStatusUrl", ["mime", "status", "url"]);
 
-      // TODO @ikreymer `unique` isn't an option for `IDBDatabase#createObjectStore`, is `db` actually an `IDBPDatabase`?
-      // @ts-expect-error
-      db.createObjectStore("payload", { keyPath: "digest", unique: true });
-      // @ts-expect-error -- same as above
-      db.createObjectStore("digestRef", { keyPath: "digest", unique: true });
+
+      const payloadStore = db.createObjectStore("payload", { keyPath: "digest" });
+      payloadStore.createIndex("digest", "digest", {unique: true});
+
+      const digestRef = db.createObjectStore("digestRef", { keyPath: "digest" });
+      digestRef.createIndex("digest", "digest", {unique: true});
     }
   }
 
@@ -772,10 +773,8 @@ export class ArchiveDB implements DBStore {
         result.status >= 300 &&
         result.status < 400
       ) {
-        // TODO @ikreymer is `location` needed at all? It doesn't get used anywhere
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const location = new Headers(result.respHeaders).get("location");
-        if (new URL(self.location.href, url).href === url) {
+        const location = new Headers(result.respHeaders).get("location") || "";
+        if (new URL(location, url).href === url) {
           return true;
         }
       }

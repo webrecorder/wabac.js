@@ -455,9 +455,8 @@ class WARCLoader extends BaseParser {
 
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async load(db: any, progressUpdate: any, totalSize?: number | undefined) {
-    // TODO @ikreymer is this reasonable? unsure how this is used
-    if (totalSize == null) {
+  async load(db: any, progressUpdate: any, totalSize = 0) {
+    if (progressUpdate && !totalSize) {
       throw new Error("totalSize is required");
     }
     this.db = db;
@@ -488,7 +487,7 @@ class WARCLoader extends BaseParser {
 
         // [TODO]
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (interruptLoads && this.loadId && interruptLoads[this.loadId]) {
+        if (progressUpdate && interruptLoads && this.loadId && interruptLoads[this.loadId]) {
           progressUpdate(
             Math.round((parser.offset / totalSize) * 95.0),
             "Loading Canceled",
