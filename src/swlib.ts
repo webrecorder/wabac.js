@@ -1,5 +1,7 @@
 export * from "./index";
 
+export * from "./types";
+
 export { SWReplay, SWCollections } from "./swmain";
 
 export { CollectionLoader } from "./loaders";
