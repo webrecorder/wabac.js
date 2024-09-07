@@ -28,8 +28,7 @@ import {
   type WACZLoadSource,
   WACZ_LEAF,
 } from "./waczfile";
-// @ts-expect-error [TODO] - TS2459 - Module '"../archivedb"' declares 'DBType' locally, but it is not exported.
-import { type DBType as ADBType } from "../archivedb";
+import { type ADBType } from "../archivedb";
 import { EXTRA_PAGES_JSON, WACZImporter } from "./waczimporter";
 import {
   type BaseLoader,
@@ -39,6 +38,7 @@ import {
 import { type ArchiveResponse } from "../response";
 import { type ArchiveRequest } from "../request";
 import { type LoadWACZEntry } from "./ziprangereader";
+import { type RemoteResourceEntry } from "../types";
 
 const MAX_BLOCKS = 3;
 
@@ -396,18 +396,15 @@ export class MultiWACZ extends RemoteSourceArchiveDB implements WACZLoadSource {
   }
 
   override async loadRecordFromSource(
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    cdx: Record<string, any>,
+    cdx: RemoteResourceEntry,
   ): LoadRecordFromSourceType {
-    // @ts-expect-error [TODO] - TS4111 - Property 'source' comes from an index signature, so it must be accessed with ['source'].
     const { start, length, path, wacz } = cdx.source;
     const params = { offset: start, length, unzip: true, computeHash: true };
-    const waczname = wacz;
+    const waczname = wacz!;
 
     const { reader, hasher } = await this.loadFileFromNamedWACZ(
       // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
       waczname,
       "archive/" + path,
       params,

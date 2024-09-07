@@ -6,7 +6,7 @@ export { SWReplay, SWCollections } from "./swmain";
 
 export { CollectionLoader } from "./loaders";
 
-export { ArchiveDB } from "./archivedb";
+export { ArchiveDB, type ADBType, type ADBOpts } from "./archivedb";
 
 export { LiveProxy } from "./liveproxy";
 

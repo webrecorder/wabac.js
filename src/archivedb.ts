@@ -39,7 +39,7 @@ const EMPTY_PAYLOAD_SHA1 = "sha1:3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ";
 
 const DB_VERSION = 4;
 
-export type Opts = {
+export type ADBOpts = {
   minDedupSize?: number | undefined;
   noRefCounts?: unknown;
   noFuzzyCheck?: boolean;
@@ -47,7 +47,7 @@ export type Opts = {
   pageId?: string;
 };
 
-type DBType = {
+export type ADBType = {
   pages: {
     key: string;
     value: PageEntry & { size?: number };
@@ -94,9 +94,9 @@ export class ArchiveDB implements DBStore {
   repeatTracker: RepeatTracker | null = null;
   fuzzyPrefixSearch = true;
   initing: Promise<void>;
-  db: IDBPDatabase<DBType> | null = null;
+  db: IDBPDatabase<ADBType> | null = null;
 
-  constructor(name: string, opts: Opts | undefined = {}) {
+  constructor(name: string, opts: ADBOpts | undefined = {}) {
     this.name = name;
     this.db = null;
 
@@ -138,12 +138,12 @@ export class ArchiveDB implements DBStore {
   }
 
   _initDB(
-    db: IDBPDatabase<DBType>,
+    db: IDBPDatabase<ADBType>,
     oldV: number,
     _newV: number | null,
     _tx?: IDBPTransaction<
-      DBType,
-      (keyof DBType)[],
+      ADBType,
+      (keyof ADBType)[],
       "readwrite" | "versionchange"
     >,
   ) {
@@ -208,7 +208,7 @@ export class ArchiveDB implements DBStore {
 
   async addPage(
     page: PageEntry,
-    tx?: IDBPTransaction<DBType, [keyof DBType], "readwrite"> | null,
+    tx?: IDBPTransaction<ADBType, [keyof ADBType], "readwrite"> | null,
   ) {
     const url = page.url;
     const title = page.title || page.url;
@@ -239,7 +239,7 @@ export class ArchiveDB implements DBStore {
 
   async addPages(
     pages: PageEntry[],
-    pagesTable: keyof DBType = "pages",
+    pagesTable: keyof ADBType = "pages",
     update = false,
   ) {
     const tx = this.db!.transaction(pagesTable, "readwrite");
@@ -308,7 +308,7 @@ export class ArchiveDB implements DBStore {
 
   async convertCuratedPagesToV2(
     db: IDBPDatabase<
-      DBType & {
+      ADBType & {
         pages: { key: string; value: { page?: PageEntry } & PageEntry };
         curatedPages: { key: string; value: { page?: PageEntry } & PageEntry };
       }
@@ -391,12 +391,10 @@ export class ArchiveDB implements DBStore {
     return await this.db!.getAll("pages");
   }
 
-  async getPages(pages: PageEntry[]) {
+  async getPages(pages: string[]) {
     const results: PageEntry[] = [];
     pages.sort();
 
-    // TODO @ikreymer `matchAny` takes a `string[]`, but here we're passing it `PageEntry[]` — not sure what's happening here
-    // @ts-expect-error
     for await (const result of this.matchAny("pages", null, pages)) {
       results.push(result);
     }
@@ -439,7 +437,7 @@ export class ArchiveDB implements DBStore {
   async dedupResource(
     digest: string,
     payload: Uint8Array | null | undefined,
-    tx: IDBPTransaction<DBType, (keyof DBType)[], "readwrite">,
+    tx: IDBPTransaction<ADBType, (keyof ADBType)[], "readwrite">,
     count = 1,
   ): Promise<DigestRefCount | null> {
     const digestRefStore = tx.objectStore("digestRef");
@@ -645,7 +643,7 @@ export class ArchiveDB implements DBStore {
     request: ArchiveRequest,
     _prefix: string,
     event: FetchEvent,
-    opts: Opts = {},
+    opts: ADBOpts = {},
   ): Promise<ArchiveResponse | Response | null> {
     const ts = tsToDate(request.timestamp).getTime();
     let url: string = request.url;
@@ -740,7 +738,7 @@ export class ArchiveDB implements DBStore {
 
   async loadPayload(
     result: ResourceEntry,
-    _opts: Opts,
+    _opts: ADBOpts,
   ): Promise<
     | AsyncIterable<Uint8Array>
     | Iterable<Uint8Array>
@@ -791,7 +789,7 @@ export class ArchiveDB implements DBStore {
   async lookupUrl(
     url: string,
     ts?: number,
-    opts: Opts = {},
+    opts: ADBOpts = {},
   ): Promise<ResourceEntry | null> {
     const tx = this.db!.transaction("resources", "readonly");
 
@@ -858,7 +856,7 @@ export class ArchiveDB implements DBStore {
 
   async lookupQueryPrefix(
     url: string,
-    opts: Opts,
+    opts: ADBOpts,
   ): Promise<ResourceEntry | null> {
     const { rule, prefix, fuzzyCanonUrl /*, fuzzyPrefix*/ } =
       fuzzyMatcher.getRuleFor(url);
@@ -924,10 +922,10 @@ export class ArchiveDB implements DBStore {
     }
   }
 
-  async *matchAny<S extends keyof DBType>(
+  async *matchAny<S extends keyof ADBType>(
     storeName: S,
-    indexName: DBType[S] extends { indexes: {} }
-      ? keyof DBType[S]["indexes"] | null
+    indexName: ADBType[S] extends { indexes: {} }
+      ? keyof ADBType[S]["indexes"] | null
       : null,
     sortedKeys: string[],
     subKey?: number,

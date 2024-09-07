@@ -5,6 +5,7 @@ export type Source = {
   start: number;
   length: number;
   path: string;
+  wacz?: string;
 };
 
 export type ResourceEntry = {
@@ -37,12 +38,16 @@ export type ResourceEntry = {
   "req.http:cookie"?: string;
 };
 
+export type RemoteResourceEntry = ResourceEntry & {
+  source: Source;
+};
+
 export type PageEntry = {
   url: string;
 
   date?: string | null;
   datetime?: string | null;
-  ts?: number | string;
+  ts?: number;
 
   title?: string;
   id?: string;

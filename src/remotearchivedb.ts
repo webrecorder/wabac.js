@@ -1,4 +1,4 @@
-import { ArchiveDB, type Opts as ADBOpts } from "./archivedb";
+import { ArchiveDB, type ADBOpts } from "./archivedb";
 import { SingleRecordWARCLoader } from "./warcloader";
 import {
   BaseAsyncIterReader,
@@ -8,7 +8,11 @@ import {
 } from "warcio";
 
 import { type BaseLoader, createLoader } from "./blockloaders";
-import { type Source, type ResourceEntry } from "./types";
+import {
+  type Source,
+  type ResourceEntry,
+  type RemoteResourceEntry,
+} from "./types";
 import { type GetHash } from "./wacz/ziprangereader";
 
 const MAX_CACHE_SIZE = 25_000_000;
@@ -38,9 +42,9 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
 
   abstract loadSource(source: Source): Promise<ReadableStream<Uint8Array>>;
 
-  async loadRecordFromSource(cdx: {
-    source: Source;
-  }): LoadRecordFromSourceType {
+  async loadRecordFromSource(
+    cdx: RemoteResourceEntry,
+  ): LoadRecordFromSourceType {
     const responseStream = await this.loadSource(cdx.source);
 
     const loader = new SingleRecordWARCLoader(responseStream);
@@ -78,9 +82,9 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
       return new PartialStreamReader(chunkstore);
     }
 
-    // TODO @ikreymer `source` doens't exist on ResourceEntry, should it?
-    // @ts-expect-error
-    const { remote, hasher } = await this.loadRecordFromSource(cdx);
+    const { remote, hasher } = await this.loadRecordFromSource(
+      cdx as RemoteResourceEntry,
+    );
 
     if (!remote) {
       console.log(`No WARC Record Loaded for: ${cdx.url}`);
