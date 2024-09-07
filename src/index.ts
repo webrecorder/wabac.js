@@ -15,6 +15,7 @@ export {
   digestMessage,
   tsToDate,
   randomId,
+  getCollData,
 } from "./utils";
 
 export { createLoader } from "./blockloaders";
