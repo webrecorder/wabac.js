@@ -15,6 +15,7 @@ import { getAdBlockCSSResponse } from "./adblockcss";
 import { notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
+import { type CollConfig } from "./types";
 
 const DEFAULT_CSP =
   "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
@@ -30,9 +31,7 @@ export class Collection {
   name: string;
   store: ArchiveDB;
 
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  config: Record<string, any>;
+  config: CollConfig;
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata: Record<string, any>;
@@ -75,11 +74,11 @@ export class Collection {
     this.name = name;
     this.store = store;
     this.config = config;
-    // @ts-expect-error [TODO] - TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata']. | TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
     this.metadata = this.config.metadata ? this.config.metadata : {};
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig'].
-    const extraConfig = { ...defaultConfig, ...this.config.extraConfig };
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const extraConfig: any = { ...defaultConfig, ...this.config.extraConfig };
 
     this.injectScripts = extraConfig.injectScripts || [];
     this.noRewritePrefixes = extraConfig.noRewritePrefixes || null;
@@ -107,7 +106,6 @@ export class Collection {
     this.prefix = prefixes.main;
 
     // support root collection hashtag nav
-    // @ts-expect-error [TODO] - TS4111 - Property 'root' comes from an index signature, so it must be accessed with ['root'].
     if (this.config.root) {
       this.isRoot = true;
     } else {
@@ -254,7 +252,6 @@ export class Collection {
         workerInsertFunc,
         urlRewrite: !noRewrite,
         contentRewrite: !noRewrite,
-        // @ts-expect-error [TODO] - TS4111 - Property 'decode' comes from an index signature, so it must be accessed with ['decode'].
         decode: this.config.decode,
       };
 
@@ -405,10 +402,8 @@ export class Collection {
 
     if (this.baseFrameUrl && !this.baseFramePrefix) {
       baseUrl = this.baseFrameUrl;
-      // @ts-expect-error [TODO] - TS4111 - Property 'sourceUrl' comes from an index signature, so it must be accessed with ['sourceUrl'].
     } else if (!this.isRoot && this.config.sourceUrl) {
       baseUrl = this.baseFramePrefix || "./";
-      // @ts-expect-error [TODO] - TS4111 - Property 'sourceUrl' comes from an index signature, so it must be accessed with ['sourceUrl'].
       baseUrl += `?source=${this.config.sourceUrl}`;
     }
 
@@ -429,11 +424,7 @@ export class Collection {
 
     let content = "";
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'topTemplateUrl' comes from an index signature, so it must be accessed with ['topTemplateUrl'].
     if (this.config.topTemplateUrl) {
-      // @ts-expect-error [TODO] - TS4111 - Property 'topTemplateUrl' comes from an index signature, so it must be accessed with ['topTemplateUrl'].
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const resp = await fetch(this.config.topTemplateUrl);
       const topTemplate = await resp.text();
       content = topTemplate

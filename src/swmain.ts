@@ -104,7 +104,6 @@ export class SWCollections extends WorkerLoader {
         // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'extra' comes from an index signature, so it must be accessed with ['extra'].
         this.colls[name].config.extra?.fileHandle
       ) {
-        // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'sourceUrl' comes from an index signature, so it must be accessed with ['sourceUrl'].
         this._fileHandles[this.colls[name].config.sourceUrl] =
           // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'extra' comes from an index signature, so it must be accessed with ['extra'].
           this.colls[name].config.extra.fileHandle;
@@ -150,7 +149,6 @@ export class SWCollections extends WorkerLoader {
   async updateMetadata(name: string, newMetadata: Record<string, string>) {
     const metadata = await super.updateMetadata(name, newMetadata);
     if (this.colls[name] && metadata) {
-      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
       this.colls[name].config.metadata = metadata;
       this.colls[name].metadata = metadata;
     }
@@ -173,12 +171,10 @@ export class SWCollections extends WorkerLoader {
       updateDecode,
     );
     if (this.colls[name] && metadata) {
-      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
       this.colls[name].config.metadata = metadata;
       this.colls[name].metadata = metadata;
     }
     if (updateDecode !== undefined && this.colls[name]) {
-      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'decode' comes from an index signature, so it must be accessed with ['decode'].
       this.colls[name].config.decode = updateDecode;
     }
     // [TODO]

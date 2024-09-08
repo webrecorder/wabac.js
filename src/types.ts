@@ -117,7 +117,7 @@ export type CollConfig = {
   topTemplateUrl?: string;
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata: Record<string, any>;
+  metadata?: Record<string, any>;
 
   loadUrl?: string;
 
@@ -136,7 +136,6 @@ export type CollConfig = {
 
   onDemand?: boolean;
 };
-
 
 export type WACZCollConfig = CollConfig & {
   dbname: string;

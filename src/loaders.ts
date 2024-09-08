@@ -30,7 +30,12 @@ import {
   AuthNeededError,
 } from "./utils";
 import { detectFileType, getKnownFileExtension } from "./detectfiletype";
-import { type CollConfig, type ArchiveLoader, type DBStore, type WACZCollConfig } from "./types";
+import {
+  type CollConfig,
+  type ArchiveLoader,
+  type DBStore,
+  type WACZCollConfig,
+} from "./types";
 
 // [TODO]
 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -44,7 +49,6 @@ const interruptLoads: Record<string, () => void> = {};
 // [TODO]
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).interruptLoads = interruptLoads;
-
 
 export type LoadColl = {
   name?: string;
@@ -139,7 +143,7 @@ export class CollectionLoader {
 
   async deleteColl(name: string) {
     await this._init_db;
-    const data = await this.colldb!.get("colls", name) as LoadColl | null;
+    const data = (await this.colldb!.get("colls", name)) as LoadColl | null;
     if (!data) {
       return false;
     }
@@ -233,7 +237,7 @@ export class CollectionLoader {
     const decode = false;
     const ctime = new Date().getTime();
 
-    const data : LoadColl = {
+    const data: LoadColl = {
       name: id,
       type,
       config: {
@@ -640,7 +644,7 @@ export class WorkerLoader extends CollectionLoader {
       config.loadUrl = loadUrl;
       config.sourceUrl = file.sourceUrl;
 
-      let sourceName : string = file.name || file.sourceUrl;
+      let sourceName: string = file.name || file.sourceUrl;
 
       // parse to strip out query, keep hash/fragment (if any)
       try {
@@ -653,9 +657,7 @@ export class WorkerLoader extends CollectionLoader {
       } catch (e) {
         // ignore, keep sourceName as is
       }
-      config.sourceName = sourceName.slice(
-        sourceName.lastIndexOf("/") + 1,
-      );
+      config.sourceName = sourceName.slice(sourceName.lastIndexOf("/") + 1);
 
       config.size = typeof file.size === "number" ? file.size : null;
       config.extra = file.extra;
