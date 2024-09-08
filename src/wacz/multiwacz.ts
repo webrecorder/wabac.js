@@ -111,7 +111,7 @@ export class MultiWACZ
     this.externalSource = null;
     this.fuzzyUrlRules = [];
 
-    this.textIndex = config.metadata.textIndex || EXTRA_PAGES_JSON;
+    this.textIndex = config.metadata?.textIndex || EXTRA_PAGES_JSON;
 
     if (config.extraConfig) {
       this.initConfig(config.extraConfig);
