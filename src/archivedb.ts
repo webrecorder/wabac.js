@@ -24,6 +24,7 @@ import {
   type ResourceEntry,
 } from "./types";
 import { type ArchiveRequest } from "./request";
+import { type BaseAsyncIterReader } from "warcio";
 
 const MAX_FUZZY_MATCH = 128000;
 const MAX_RESULTS = 16;
@@ -76,12 +77,12 @@ export type ADBType = {
   payload: {
     key: string;
     value: { digest: string; payload: Uint8Array | null };
-    indexes: { digest: string; }
+    indexes: { digest: string };
   };
   digestRef: {
     key: string;
     value: DigestRefCount | null;
-    indexes: { digest: string; }
+    indexes: { digest: string };
   };
 };
 // ===========================================================================
@@ -169,12 +170,15 @@ export class ArchiveDB implements DBStore {
       //urlStore.createIndex("ts", "ts");
       urlStore.createIndex("mimeStatusUrl", ["mime", "status", "url"]);
 
+      const payloadStore = db.createObjectStore("payload", {
+        keyPath: "digest",
+      });
+      payloadStore.createIndex("digest", "digest", { unique: true });
 
-      const payloadStore = db.createObjectStore("payload", { keyPath: "digest" });
-      payloadStore.createIndex("digest", "digest", {unique: true});
-
-      const digestRef = db.createObjectStore("digestRef", { keyPath: "digest" });
-      digestRef.createIndex("digest", "digest", {unique: true});
+      const digestRef = db.createObjectStore("digestRef", {
+        keyPath: "digest",
+      });
+      digestRef.createIndex("digest", "digest", { unique: true });
     }
   }
 
@@ -740,13 +744,7 @@ export class ArchiveDB implements DBStore {
   async loadPayload(
     result: ResourceEntry,
     _opts: ADBOpts,
-  ): Promise<
-    | AsyncIterable<Uint8Array>
-    | Iterable<Uint8Array>
-    | Uint8Array
-    | null
-    | undefined
-  > {
+  ): Promise<BaseAsyncIterReader | Uint8Array | null> {
     if (result.digest && !result.payload) {
       if (
         result.digest === EMPTY_PAYLOAD_SHA256 ||
@@ -762,7 +760,7 @@ export class ArchiveDB implements DBStore {
       return payload;
     }
 
-    return result.payload;
+    return result.payload || null;
   }
 
   isSelfRedirect(url: string, result: ResourceEntry | undefined) {

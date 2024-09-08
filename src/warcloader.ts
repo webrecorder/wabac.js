@@ -1,9 +1,7 @@
 import { makeHeaders, Canceled, tsToDate } from "./utils";
 
 import {
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  AsyncIterReader,
+  type BaseAsyncIterReader,
   type Source,
   WARCParser,
   type WARCRecord,
@@ -378,7 +376,9 @@ class WARCLoader extends BaseParser {
     const digest = record.warcPayloadDigest || null;
 
     const payload = record.payload;
-    const reader = payload ? null : record.reader;
+    const reader: BaseAsyncIterReader | null = payload
+      ? null
+      : (record.reader as BaseAsyncIterReader);
 
     const entry: ResourceEntry = {
       // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
@@ -486,8 +486,8 @@ class WARCLoader extends BaseParser {
         >;
 
         // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (progressUpdate && interruptLoads && this.loadId && interruptLoads[this.loadId]) {
+
+        if (progressUpdate && this.loadId && interruptLoads[this.loadId]) {
           progressUpdate(
             Math.round((parser.offset / totalSize) * 95.0),
             "Loading Canceled",

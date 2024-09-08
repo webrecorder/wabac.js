@@ -40,18 +40,14 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
     this.streamMap = new Map<string, ChunkStore>();
   }
 
-  abstract loadRecordFromSource(cdx: RemoteResourceEntry): LoadRecordFromSourceType;
+  abstract loadRecordFromSource(
+    cdx: RemoteResourceEntry,
+  ): LoadRecordFromSourceType;
 
   override async loadPayload(
     cdx: ResourceEntry,
     opts: Opts,
-  ): Promise<
-    | AsyncIterable<Uint8Array>
-    | Iterable<Uint8Array>
-    | Uint8Array
-    | null
-    | undefined
-  > {
+  ): Promise<BaseAsyncIterReader | Uint8Array | null> {
     let payload = await super.loadPayload(cdx, opts);
     if (payload) {
       if (
@@ -66,8 +62,6 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
     const chunkstore = this.streamMap.get(cdx.url);
     if (chunkstore) {
       console.log(`Reuse stream for ${cdx.url}`);
-      // TODO @ikreymer in this class, this method can return a `PartialStreamReader`, where it can't (and doesn't make sense to) in ArchiveDB — is there a shared set of elements that would make more sense?
-      // @ts-expect-error
       return new PartialStreamReader(chunkstore);
     }
 
@@ -198,12 +192,10 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
         // cache here only if somehow the digests don't match (wrong digest from previous versions?)
         if (
           origResult.digest !== remote.digest &&
-          // TODO @ikreymer when will payload be an async iterator?
-          // @ts-expect-error
-          !payload[Symbol.asyncIterator] &&
-          remote.digest
+          remote.digest &&
+          payload instanceof Uint8Array
         ) {
-          await this.commitPayload(payload as Uint8Array, remote.digest);
+          await this.commitPayload(payload, remote.digest);
         }
       }
 
@@ -231,7 +223,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
       console.log("Not cacheing, too big: " + cdx.url);
     }
 
-    payload = remote.payload;
+    payload = remote.payload || null;
 
     if (!payload && !remote.reader) {
       return null;
@@ -265,7 +257,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
       }
     }
 
-    return payload ? payload : remote.reader;
+    return payload ? payload : remote.reader || null;
   }
 
   async commitPayload(payload: Uint8Array | null | undefined, digest: string) {
@@ -378,12 +370,13 @@ export class RemotePrefixArchiveDB extends SimpleRemoteArchiveDB {
 }
 
 // ===========================================================================
-class PartialStreamReader {
+class PartialStreamReader extends BaseAsyncIterReader {
   chunkstore: ChunkStore;
   offset: number;
   size: number;
 
   constructor(chunkstore: ChunkStore) {
+    super();
     this.chunkstore = chunkstore;
     this.offset = 0;
     this.size = this.chunkstore.totalLength;
@@ -400,7 +393,11 @@ class PartialStreamReader {
     this.size = length;
   }
 
-  getReadableStream() {
+  async *[Symbol.asyncIterator]() {
+    yield* this.chunkstore.getChunkIter();
+  }
+
+  override getReadableStream() {
     console.log(`Offset: ${this.offset}, Size: ${this.size}`);
 
     const reader: AsyncGenerator<Uint8Array> = this.chunkstore.getChunkIter();
@@ -412,6 +409,12 @@ class PartialStreamReader {
       this.offset,
     );
     return limitreader.getReadableStream();
+  }
+
+  async readlineRaw(
+    _maxLength?: number | undefined,
+  ): Promise<Uint8Array | null> {
+    throw new Error("Method not implemented.");
   }
 }
 

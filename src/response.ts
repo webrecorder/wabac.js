@@ -13,7 +13,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 type ArchiveResponseOpts = {
-  payload: AsyncIterable<Uint8Array> | Uint8Array | null;
+  payload: BaseAsyncIterReader | Uint8Array | null;
   status: number;
   statusText?: string;
   headers: Headers;
@@ -120,7 +120,7 @@ class ArchiveResponse {
     });
   }
 
-  reader: AsyncIterReader | null;
+  reader: BaseAsyncIterReader | null;
   buffer: Uint8Array | null;
 
   status: number;
@@ -153,10 +153,8 @@ class ArchiveResponse {
     this.buffer = null;
 
     if (payload && payload instanceof BaseAsyncIterReader) {
-      // @ts-expect-error [TODO] - TS2740 - Type 'BaseAsyncIterReader' is missing the following properties from type 'AsyncIterReader': compressed, opts, inflator, _sourceIter, and 18 more.
       this.reader = payload;
     } else {
-      // @ts-expect-error [TODO] - TS2322 - Type 'Uint8Array | AsyncIterable<Uint8Array> | null' is not assignable to type 'Uint8Array | null'.
       this.buffer = payload;
     }
 
@@ -224,7 +222,7 @@ class ArchiveResponse {
     this.reader = null;
   }
 
-  setReader(reader: AsyncIterReader | ReadableStream) {
+  setReader(reader: BaseAsyncIterReader | ReadableStream) {
     if (reader instanceof BaseAsyncIterReader) {
       this.reader = reader;
       this.buffer = null;

@@ -85,7 +85,10 @@ interface MDBType extends ADBType {
 }
 
 // ==========================================================================
-export class MultiWACZ extends OnDemandPayloadArchiveDB implements WACZLoadSource {
+export class MultiWACZ
+  extends OnDemandPayloadArchiveDB
+  implements WACZLoadSource
+{
   config: Config;
   waczfiles: Record<string, WACZFile>;
   waczNameForHash: Record<string, string>;
@@ -401,8 +404,6 @@ export class MultiWACZ extends OnDemandPayloadArchiveDB implements WACZLoadSourc
     const waczname = wacz!;
 
     const { reader, hasher } = await this.loadFileFromNamedWACZ(
-      // [TODO]
-
       waczname,
       "archive/" + path,
       params,

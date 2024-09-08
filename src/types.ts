@@ -1,3 +1,4 @@
+import { type BaseAsyncIterReader } from "warcio";
 import { type ArchiveRequest } from "./request";
 import { type ArchiveResponse } from "./response";
 
@@ -20,7 +21,7 @@ export type ResourceEntry = {
   reqHeaders?: Record<string, string> | null;
   recordDigest?: string | null;
   payload?: Uint8Array | null;
-  reader?: AsyncIterable<Uint8Array> | Iterable<Uint8Array> | null;
+  reader?: BaseAsyncIterReader | null;
   referrer?: string | null;
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
