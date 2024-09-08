@@ -100,3 +100,56 @@ export interface ArchiveLoader {
     totalLength?: number | undefined,
   ) => Promise<void>;
 }
+
+export type CollConfig = {
+  root?: string;
+  dbname: string;
+
+  ctime?: number;
+
+  decode?: boolean;
+
+  sourceUrl: string;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  extraConfig?: Record<string, any>;
+
+  topTemplateUrl?: string;
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata: Record<string, any>;
+
+  loadUrl?: string;
+
+  size?: number;
+
+  headers?: Record<string, string>;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  extra?: Record<string, any>;
+
+  noCache?: boolean;
+
+  remotePrefix?: string;
+
+  sourceName?: string;
+
+  onDemand?: boolean;
+};
+
+
+export type WACZCollConfig = CollConfig & {
+  dbname: string;
+  noCache?: boolean;
+  decode?: unknown;
+  loadUrl: string;
+  metadata?: {
+    textIndex?: string;
+  };
+  extraConfig?: {
+    decodeResponses?: unknown;
+    hostProxy?: boolean;
+    fuzzy?: [RegExp | string, string][];
+    textIndex?: string;
+  };
+};

@@ -38,7 +38,7 @@ import {
 import { type ArchiveResponse } from "../response";
 import { type ArchiveRequest } from "../request";
 import { type LoadWACZEntry } from "./ziprangereader";
-import { type RemoteResourceEntry } from "../types";
+import { type RemoteResourceEntry, type WACZCollConfig } from "../types";
 
 const MAX_BLOCKS = 3;
 
@@ -52,21 +52,6 @@ export type IDXLine = {
   length: number;
   digest?: string;
   loaded: boolean;
-};
-
-type Config = {
-  dbname: string;
-  noCache: boolean;
-  decode?: unknown;
-  metadata?: {
-    textIndex?: string;
-  };
-  extraConfig?: {
-    decodeResponses?: unknown;
-    hostProxy?: boolean;
-    fuzzy?: [RegExp | string, string][];
-    textIndex?: string;
-  };
 };
 
 interface MDBType extends ADBType {
@@ -89,7 +74,7 @@ export class MultiWACZ
   extends OnDemandPayloadArchiveDB
   implements WACZLoadSource
 {
-  config: Config;
+  config: WACZCollConfig;
   waczfiles: Record<string, WACZFile>;
   waczNameForHash: Record<string, string>;
   ziploadercache: Record<string, Promise<void>>;
@@ -105,7 +90,7 @@ export class MultiWACZ
   fuzzyUrlRules: { match: RegExp; replace: any }[];
 
   constructor(
-    config: Config,
+    config: WACZCollConfig,
     sourceLoader: BaseLoader,
     rootSourceType: "wacz" | "json" = "wacz",
   ) {
@@ -126,16 +111,16 @@ export class MultiWACZ
     this.externalSource = null;
     this.fuzzyUrlRules = [];
 
-    this.textIndex = config.metadata?.textIndex || EXTRA_PAGES_JSON;
+    this.textIndex = config.metadata.textIndex || EXTRA_PAGES_JSON;
 
     if (config.extraConfig) {
       this.initConfig(config.extraConfig);
     }
   }
 
-  initConfig(extraConfig: NonNullable<Config["extraConfig"]>) {
+  initConfig(extraConfig: NonNullable<WACZCollConfig["extraConfig"]>) {
     if (extraConfig.decodeResponses !== undefined) {
-      this.config.decode = extraConfig.decodeResponses;
+      this.config.decode = !!extraConfig.decodeResponses;
     }
     if (extraConfig.hostProxy) {
       this.externalSource = new LiveProxy(extraConfig, { hostProxyOnly: true });
@@ -207,7 +192,6 @@ export class MultiWACZ
 
       db.createObjectStore("verification", { keyPath: "id" });
 
-      // @ts-expect-error [TODO] - TS2339 - Property 'loadUrl' does not exist on type 'Config'.
       const waczname = this.config.loadUrl;
 
       for (const line of ziplines) {
@@ -216,8 +200,6 @@ export class MultiWACZ
       }
 
       const indexType = ziplines.length > 0 ? INDEX_IDX : INDEX_CDX;
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const hash = await this.computeFileHash(waczname, "");
       const filedata = new WACZFile({
         waczname,
@@ -1197,7 +1179,6 @@ export class MultiWACZ
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!response || (response.status !== 206 && response.status !== 200)) {
-      // @ts-expect-error [TODO] - TS2339 - Property 'loadUrl' does not exist on type 'Config'.
       console.warn("WACZ update failed from: " + this.config.loadUrl);
       return {};
     }
@@ -1220,9 +1201,6 @@ export class MultiWACZ
   }
 
   getLoadPath(path: string) {
-    // @ts-expect-error [TODO] - TS2339 - Property 'loadUrl' does not exist on type 'Config'.
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return new URL(path, this.config.loadUrl).href;
   }
 

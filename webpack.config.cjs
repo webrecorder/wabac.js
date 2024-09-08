@@ -45,7 +45,6 @@ const mainBuild = {
     filename: "[name].js",
     globalObject: "self",
     publicPath: "/dist/",
-    globalObject: "self",
     library: {
       type: "module",
     },
