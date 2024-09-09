@@ -227,9 +227,7 @@ export class CollectionLoader {
   }
 
   async initNewColl(
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    metadata: Record<string, any>,
+    metadata: CollMetadata,
     extraConfig = {},
     type = "archive",
   ) {
@@ -671,7 +669,7 @@ export class WorkerLoader extends CollectionLoader {
         // [TODO]
         // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
         if (this._fileHandles && this._fileHandles[config.sourceUrl]) {
-          config.extra = { fileHandle: this._fileHandles[config.sourceUrl] };
+          config.extra = { fileHandle: this._fileHandles[config.sourceUrl]! };
         } else {
           progressUpdate(0, "missing_local_file");
           return false;
@@ -895,7 +893,6 @@ Make sure this is a valid URL and you have access to this file.`,
 
     config.ctime = new Date().getTime();
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'extra' comes from an index signature, so it must be accessed with ['extra'].
     if (this._fileHandles && config.extra?.fileHandle) {
       delete this._fileHandles[config.sourceUrl];
     }

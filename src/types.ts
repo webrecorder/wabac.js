@@ -1,6 +1,7 @@
 import { type BaseAsyncIterReader } from "warcio";
 import { type ArchiveRequest } from "./request";
 import { type ArchiveResponse } from "./response";
+import { type BlockLoaderExtra } from "./blockloaders";
 
 export type Source = {
   start: number;
@@ -155,8 +156,7 @@ export type CollConfig = {
 
   headers?: Record<string, string>;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extra?: Record<string, any>;
+  extra?: BlockLoaderExtra;
 
   noCache?: boolean;
 

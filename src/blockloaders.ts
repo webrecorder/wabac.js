@@ -12,12 +12,16 @@ export type ResponseAbort = {
   abort: AbortController | null;
 };
 
+export type BlockLoaderExtra = {
+  arrayBuffer?: Uint8Array;
+  publicUrl?: string;
+  fileHandle?: FileSystemFileHandle;
+};
+
 export type BlockLoaderOpts = {
   url: string;
   headers?: Record<string, string> | Headers;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extra?: Record<string, any>;
+  extra?: BlockLoaderExtra;
   size?: number;
   blob?: Blob;
 };
@@ -26,11 +30,7 @@ export type BlockLoaderOpts = {
 export async function createLoader(opts: BlockLoaderOpts): Promise<BaseLoader> {
   const { url } = opts;
 
-  // @ts-expect-error [TODO] - TS4111 - Property 'arrayBuffer' comes from an index signature, so it must be accessed with ['arrayBuffer'].
   if (opts.extra?.arrayBuffer) {
-    // @ts-expect-error [TODO] - TS4111 - Property 'arrayBuffer' comes from an index signature, so it must be accessed with ['arrayBuffer'].
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return new ArrayBufferLoader(opts.extra.arrayBuffer);
   }
 
@@ -309,9 +309,7 @@ class GoogleDriveLoader extends BaseLoader {
     url: string;
     headers?: Record<string, string> | Headers;
     size?: number;
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    extra?: Record<string, any>;
+    extra?: BlockLoaderExtra;
   }) {
     super(true);
 
@@ -319,9 +317,7 @@ class GoogleDriveLoader extends BaseLoader {
     this.apiUrl = `https://www.googleapis.com/drive/v3/files/${this.fileId}?alt=media`;
 
     this.headers = headers || {};
-    // @ts-expect-error [TODO] - TS4111 - Property 'publicUrl' comes from an index signature, so it must be accessed with ['publicUrl'].
     if (extra?.publicUrl) {
-      // @ts-expect-error [TODO] - TS4111 - Property 'publicUrl' comes from an index signature, so it must be accessed with ['publicUrl'].
       this.publicUrl = extra.publicUrl;
     }
     this.length = size || 0;
@@ -641,9 +637,7 @@ class FileHandleLoader extends BaseLoader {
   }: {
     blob?: Blob | null;
     size?: number;
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    extra?: any;
+    extra?: BlockLoaderExtra;
     url: string;
   }) {
     super(true);
@@ -653,7 +647,7 @@ class FileHandleLoader extends BaseLoader {
     this.size = blob ? blob.size : size || 0;
     this.length = this.size;
 
-    this.fileHandle = extra.fileHandle;
+    this.fileHandle = extra!.fileHandle!;
   }
 
   get isValid() {

@@ -22,8 +22,8 @@ export class SWCollections extends WorkerLoader {
   prefixes: Prefixes;
   colls: Record<string, Collection>;
   inited: Promise<boolean> | null;
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
-  root: string | null;
+
+  override root: string | null;
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultConfig: Record<string, any>;
@@ -102,11 +102,9 @@ export class SWCollections extends WorkerLoader {
       if (
         this._fileHandles &&
         keepFileHandle &&
-        // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'extra' comes from an index signature, so it must be accessed with ['extra'].
         this.colls[name].config.extra?.fileHandle
       ) {
         this._fileHandles[this.colls[name].config.sourceUrl] =
-          // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'. | TS4111 - Property 'extra' comes from an index signature, so it must be accessed with ['extra'].
           this.colls[name].config.extra.fileHandle;
       }
     }
