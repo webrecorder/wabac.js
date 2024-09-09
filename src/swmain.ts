@@ -10,6 +10,7 @@ import WOMBAT from "../dist-wombat/wombat.txt";
 import WOMBAT_WORKERS from "../dist-wombat/wombatWorkers.txt";
 
 import { ArchiveRequest } from "./request";
+import { type CollMetadata } from "./types";
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
@@ -145,20 +146,16 @@ export class SWCollections extends WorkerLoader {
     return await super.updateAuth(name, headers);
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
-  async updateMetadata(name: string, newMetadata: Record<string, string>) {
+  override async updateMetadata(name: string, newMetadata: CollMetadata) {
     const metadata = await super.updateMetadata(name, newMetadata);
     if (this.colls[name] && metadata) {
       this.colls[name].config.metadata = metadata;
       this.colls[name].metadata = metadata;
     }
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return metadata;
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
-  async updateSize(
+  override async updateSize(
     name: string,
     fullSize: number,
     dedupSize: number,
@@ -177,8 +174,6 @@ export class SWCollections extends WorkerLoader {
     if (updateDecode !== undefined && this.colls[name]) {
       this.colls[name].config.decode = updateDecode;
     }
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return metadata;
   }
 }

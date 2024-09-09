@@ -1,4 +1,5 @@
 import { BaseParser } from "./baseparser";
+import { type CollMetadata } from "./types";
 
 // [TODO]
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,7 +21,7 @@ class HARLoader extends BaseParser {
 
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async load(db: any): Promise<void> {
+  async load(db: any): Promise<CollMetadata | undefined> {
     this.db = db;
 
     this.parseEntries(this.har);
@@ -28,6 +29,8 @@ class HARLoader extends BaseParser {
     this.parsePages(this.har);
 
     await this.finishIndexing();
+
+    return undefined;
   }
 
   parsePages(har: HAR) {

@@ -146,8 +146,6 @@ export class SingleWACZFullImportLoader implements ArchiveLoader {
     const loader = new WARCLoader(reader, null, filename);
     loader.detectPages = false;
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return await loader.load(db, progressUpdate, total);
   }
 }

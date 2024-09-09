@@ -1,4 +1,4 @@
-import { type ResourceEntry } from "./types";
+import { type CollMetadata, type ResourceEntry } from "./types";
 import { tsToDate } from "./utils";
 import { WARCLoader } from "./warcloader";
 
@@ -215,7 +215,7 @@ class CDXLoader extends CDXFromWARCLoader {
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'CDXFromWARCLoader'.
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async load(db: any, progressUpdate?: any, totalSize?: number) {
+  override async load(db: any, progressUpdate?: any, totalSize?: number) : Promise<CollMetadata | undefined> {
     this.db = db;
 
     // [TODO]

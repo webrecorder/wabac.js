@@ -98,7 +98,15 @@ export interface ArchiveLoader {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     progressUpdateCallback?: any,
     totalLength?: number | undefined,
-  ) => Promise<void>;
+  ) => Promise<CollMetadata | undefined>;
+}
+
+export type CollMetadata = {
+  fullSize?: number;
+  size?: number;
+  mtime?: number;
+  title?: string;
+  desc?: string;
 }
 
 export type CollConfig = {
@@ -115,9 +123,8 @@ export type CollConfig = {
   extraConfig?: Record<string, any>;
 
   topTemplateUrl?: string;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: Record<string, any>;
+
+  metadata?: CollMetadata;
 
   loadUrl?: string;
 
@@ -142,7 +149,7 @@ export type WACZCollConfig = CollConfig & {
   noCache?: boolean;
   decode?: unknown;
   loadUrl: string;
-  metadata?: {
+  metadata?: CollMetadata & {
     textIndex?: string;
   };
   extraConfig?: {

@@ -35,6 +35,7 @@ import {
   type ArchiveLoader,
   type DBStore,
   type WACZCollConfig,
+  type CollMetadata,
 } from "./types";
 
 // [TODO]
@@ -51,16 +52,24 @@ const interruptLoads: Record<string, () => void> = {};
 (self as any).interruptLoads = interruptLoads;
 
 export type LoadColl = {
-  name?: string;
+  name: string;
   type: string;
   config: CollConfig;
   store?: DBStore;
 };
 
+export type CollDB = {
+  colls: {
+    key: string;
+    value: {name: string, type: string, config: CollConfig}
+    indexes: { type: string; };
+  };
+};
+
 // ===========================================================================
 export class CollectionLoader {
   root: string | null = null;
-  colldb: IDBPDatabase | null = null;
+  colldb: IDBPDatabase<CollDB> | null = null;
   checkIpfs = true;
   _init_db: Promise<void>;
 
@@ -88,11 +97,12 @@ export class CollectionLoader {
         const parts = extraColl.split(":");
         if (parts.length === 2) {
           const config = {
-            dbname: parts[1],
-            sourceName: parts[1],
+            dbname: parts[1]!,
+            sourceName: parts[1]!,
             decode: false,
+            sourceUrl: "",
           };
-          const collData = { name: parts[0], type: "archive", config };
+          const collData = { name: parts[0]!, type: "archive", config };
           console.log("Adding Coll: " + JSON.stringify(collData));
           await this.colldb!.put("colls", collData);
         }
@@ -103,7 +113,7 @@ export class CollectionLoader {
       const allColls = await this.listAll();
 
       // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       const promises = allColls.map(async (data) => this._initColl(data));
 
       await Promise.all(promises);
@@ -118,8 +128,6 @@ export class CollectionLoader {
 
   async listAll() {
     await this._init_db;
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return await this.colldb!.getAll("colls");
   }
 
@@ -131,7 +139,7 @@ export class CollectionLoader {
     }
 
     // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return await this._initColl(data);
   }
 
@@ -143,7 +151,7 @@ export class CollectionLoader {
 
   async deleteColl(name: string) {
     await this._init_db;
-    const data = (await this.colldb!.get("colls", name)) as LoadColl | null;
+    const data = (await this.colldb!.get("colls", name));
     if (!data) {
       return false;
     }
@@ -181,8 +189,7 @@ export class CollectionLoader {
     return true;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async updateMetadata(name: string, newMetadata: Record<string, any>) {
+  async updateMetadata(name: string, newMetadata: CollMetadata) {
     await this._init_db;
     const data = await this.colldb!.get("colls", name);
     if (!data) {
@@ -191,8 +198,6 @@ export class CollectionLoader {
     data.config.metadata = { ...data.config.metadata, ...newMetadata };
 
     await this.colldb!.put("colls", data);
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return data.config.metadata;
   }
 
@@ -201,14 +206,14 @@ export class CollectionLoader {
     fullSize: number,
     dedupSize: number,
     decodeUpdate?: boolean,
-  ) {
+  ) : Promise<CollMetadata | false> {
     await this._init_db;
     const data = await this.colldb!.get("colls", name);
     if (!data) {
       return false;
     }
 
-    const metadata = data.config.metadata;
+    const metadata = data.config.metadata || {};
     metadata.fullSize = (metadata.fullSize || 0) + fullSize;
     metadata.size = (metadata.size || 0) + dedupSize;
     metadata.mtime = new Date().getTime();
@@ -218,8 +223,6 @@ export class CollectionLoader {
       data.config.decode = decodeUpdate;
     }
     await this.colldb!.put("colls", data);
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return metadata;
   }
 
@@ -237,7 +240,7 @@ export class CollectionLoader {
     const decode = false;
     const ctime = new Date().getTime();
 
-    const data: LoadColl = {
+    const data = {
       name: id,
       type,
       config: {
@@ -480,7 +483,7 @@ export class WorkerLoader extends CollectionLoader {
         client.postMessage({
           msg_type: "collAdded",
           name,
-          sourceUrl: res.config.sourceUrl,
+          sourceUrl: res?.config.sourceUrl,
         });
 
         //this.doListAll(client);
@@ -626,6 +629,7 @@ export class WorkerLoader extends CollectionLoader {
         }
         config.dbname = existing.config.dbname;
         updateExistingConfig = existing.config;
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (updateExistingConfig) {
           updateExistingConfig.decode = true;
         }
@@ -852,7 +856,6 @@ Make sure this is a valid URL and you have access to this file.`,
       await db.initing;
 
       try {
-        // @ts-expect-error [TODO] - TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
         config.metadata = await loader.load(db, progressUpdate, contentLength);
         // [TODO]
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -873,7 +876,7 @@ Make sure this is a valid URL and you have access to this file.`,
           contentLength,
           updateExistingConfig.decode,
         );
-        return { config: updateExistingConfig, type: "" };
+        return { config: updateExistingConfig, type: "", name: "" };
       }
 
       // @ts-expect-error [TODO] - TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
@@ -898,9 +901,7 @@ Make sure this is a valid URL and you have access to this file.`,
       delete this._fileHandles[config.sourceUrl];
     }
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const collData: Record<string, any> = { name, type, config };
+    const collData = { name, type, config };
     await this.colldb!.add("colls", collData);
     // @ts-expect-error [TODO] - TS4111 - Property 'store' comes from an index signature, so it must be accessed with ['store'].
     collData.store = generalDB;

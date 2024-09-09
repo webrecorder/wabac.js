@@ -15,7 +15,7 @@ import { getAdBlockCSSResponse } from "./adblockcss";
 import { notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
-import { type CollConfig } from "./types";
+import { type CollMetadata, type CollConfig } from "./types";
 
 const DEFAULT_CSP =
   "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
@@ -32,9 +32,7 @@ export class Collection {
   store: ArchiveDB;
 
   config: CollConfig;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata: Record<string, any>;
+  metadata: CollMetadata
 
   injectScripts: string[];
 

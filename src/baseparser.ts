@@ -1,4 +1,4 @@
-import { type ArchiveLoader, type DBStore, type PageEntry } from "./types";
+import { type CollMetadata, type ArchiveLoader, type DBStore, type PageEntry } from "./types";
 
 const DEFAULT_BATCH_SIZE = 1000;
 
@@ -113,7 +113,7 @@ abstract class BaseParser implements ArchiveLoader {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     progressUpdateCallback?: any,
     totalLength?: number,
-  ): Promise<void>;
+  ): Promise<CollMetadata | undefined>;
 }
 
 export { BaseParser };

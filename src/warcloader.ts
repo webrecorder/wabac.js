@@ -11,7 +11,7 @@ import {
 import { extractText } from "./extract";
 
 import { BaseParser } from "./baseparser";
-import { type ResourceEntry } from "./types";
+import { type CollMetadata, type ResourceEntry } from "./types";
 
 // ===========================================================================
 class WARCLoader extends BaseParser {
@@ -24,9 +24,8 @@ class WARCLoader extends BaseParser {
   detectPages = false;
 
   _lastRecord: WARCRecord | null = null;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata: any = {};
+
+  metadata: CollMetadata = {};
   pages: string[] = [];
   lists: string[] = [];
   // [TODO]
@@ -571,8 +570,6 @@ class WARCLoader extends BaseParser {
 
     progressUpdate(100, null, totalSize, totalSize);
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.metadata;
   }
 
