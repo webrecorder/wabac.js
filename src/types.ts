@@ -107,7 +107,31 @@ export type CollMetadata = {
   mtime?: number;
   title?: string;
   desc?: string;
-}
+};
+
+export type ExtraConfig = {
+  prefix?: string;
+  type?: string;
+  headers?: Record<string, string>;
+
+  injectScripts?: string[];
+  noRewritePrefixes?: string[] | null;
+
+  noPostToGet?: boolean;
+  convertPostToGet?: boolean;
+
+  coHeaders?: boolean;
+  csp?: string;
+
+  injectRelCanon?: boolean;
+
+  baseUrlSourcePrefix?: string;
+  baseUrl?: string;
+  baseUrlHashReplay?: boolean;
+
+  liveRedirectOnNotFound?: boolean;
+  adblockUrl?: string;
+};
 
 export type CollConfig = {
   root?: string;
@@ -118,9 +142,8 @@ export type CollConfig = {
   decode?: boolean;
 
   sourceUrl: string;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extraConfig?: Record<string, any>;
+
+  extraConfig?: ExtraConfig;
 
   topTemplateUrl?: string;
 
@@ -152,7 +175,7 @@ export type WACZCollConfig = CollConfig & {
   metadata?: CollMetadata & {
     textIndex?: string;
   };
-  extraConfig?: {
+  extraConfig?: ExtraConfig & {
     decodeResponses?: unknown;
     hostProxy?: boolean;
     fuzzy?: [RegExp | string, string][];

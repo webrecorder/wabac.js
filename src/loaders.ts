@@ -61,8 +61,8 @@ export type LoadColl = {
 export type CollDB = {
   colls: {
     key: string;
-    value: {name: string, type: string, config: CollConfig}
-    indexes: { type: string; };
+    value: { name: string; type: string; config: CollConfig };
+    indexes: { type: string };
   };
 };
 
@@ -151,7 +151,7 @@ export class CollectionLoader {
 
   async deleteColl(name: string) {
     await this._init_db;
-    const data = (await this.colldb!.get("colls", name));
+    const data = await this.colldb!.get("colls", name);
     if (!data) {
       return false;
     }
@@ -206,7 +206,7 @@ export class CollectionLoader {
     fullSize: number,
     dedupSize: number,
     decodeUpdate?: boolean,
-  ) : Promise<CollMetadata | false> {
+  ): Promise<CollMetadata | false> {
     await this._init_db;
     const data = await this.colldb!.get("colls", name);
     if (!data) {
@@ -680,7 +680,6 @@ export class WorkerLoader extends CollectionLoader {
 
       // @ts-expect-error [TODO] - TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig']. | TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig'].
       config.extraConfig = data.extraConfig;
-      // @ts-expect-error [TODO] - TS4111 - Property 'headers' comes from an index signature, so it must be accessed with ['headers']. | TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig'].
       config.headers = file.headers || config.extraConfig?.headers;
       config.noCache = file.noCache;
       let sourceLoader = await createLoader({

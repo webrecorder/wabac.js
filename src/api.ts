@@ -376,7 +376,7 @@ class API {
         return;
       }
 
-      if (filter && coll.type.indexOf(filter) !== 0) {
+      if (filter && !coll.type.startsWith(filter)) {
         return;
       }
 

@@ -15,7 +15,7 @@ import { getAdBlockCSSResponse } from "./adblockcss";
 import { notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
-import { type CollMetadata, type CollConfig } from "./types";
+import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
 
 const DEFAULT_CSP =
   "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
@@ -32,7 +32,7 @@ export class Collection {
   store: ArchiveDB;
 
   config: CollConfig;
-  metadata: CollMetadata
+  metadata: CollMetadata;
 
   injectScripts: string[];
 
@@ -74,9 +74,10 @@ export class Collection {
     this.config = config;
     this.metadata = this.config.metadata ? this.config.metadata : {};
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const extraConfig: any = { ...defaultConfig, ...this.config.extraConfig };
+    const extraConfig: ExtraConfig = {
+      ...defaultConfig,
+      ...this.config.extraConfig,
+    };
 
     this.injectScripts = extraConfig.injectScripts || [];
     this.noRewritePrefixes = extraConfig.noRewritePrefixes || null;
@@ -91,8 +92,8 @@ export class Collection {
 
     this.injectRelCanon = extraConfig.injectRelCanon || false;
 
-    this.baseFramePrefix = extraConfig.baseUrlSourcePrefix;
-    this.baseFrameUrl = extraConfig.baseUrl;
+    this.baseFramePrefix = extraConfig.baseUrlSourcePrefix!;
+    this.baseFrameUrl = extraConfig.baseUrl!;
     this.baseFrameHashReplay = extraConfig.baseUrlHashReplay || false;
 
     this.liveRedirectOnNotFound = extraConfig.liveRedirectOnNotFound || false;

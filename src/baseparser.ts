@@ -1,4 +1,9 @@
-import { type CollMetadata, type ArchiveLoader, type DBStore, type PageEntry } from "./types";
+import {
+  type CollMetadata,
+  type ArchiveLoader,
+  type DBStore,
+  type PageEntry,
+} from "./types";
 
 const DEFAULT_BATCH_SIZE = 1000;
 
