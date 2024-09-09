@@ -566,7 +566,7 @@ export class WorkerLoader extends CollectionLoader {
     progressUpdate: any,
   ): Promise<LoadColl | false> {
     // @ts-expect-error [TODO] - TS4111 - Property 'name' comes from an index signature, so it must be accessed with ['name'].
-    let name = data.name;
+    let name: string = data.name;
 
     let type = "";
     // @ts-expect-error [TODO] - TS4111 - Property 'root' comes from an index signature, so it must be accessed with ['root'].
@@ -758,17 +758,13 @@ Make sure this is a valid URL and you have access to this file.`,
 
       if (sourceExt === ".wacz") {
         if (config.onDemand) {
-          // [TODO]
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           loader = new SingleWACZLoader(sourceLoader, config, name);
           // @ts-expect-error [TODO] - TS2345 - Argument of type 'Record<string, any>' is not assignable to parameter of type 'Config'.
-          db = new MultiWACZ(config, sourceLoader, "wacz");
+          db = new MultiWACZ(config as WACZCollConfig, sourceLoader, "wacz");
           type = "wacz";
 
           // can load on demand, but want a full import
         } else if (sourceLoader.canLoadOnDemand && file.newFullImport) {
-          // [TODO]
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           loader = new SingleWACZFullImportLoader(sourceLoader, config, name);
           //use default db
           db = null;
@@ -791,12 +787,8 @@ Make sure this is a valid URL and you have access to this file.`,
           !config.noCache &&
           (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand)
         ) {
-          // [TODO]
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           loader = new WARCLoader(stream, abort, name);
         } else {
-          // [TODO]
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           loader = new CDXFromWARCLoader(stream, abort, name);
           type = "remotesource";
           db = new RemoteSourceArchiveDB(
@@ -809,8 +801,6 @@ Make sure this is a valid URL and you have access to this file.`,
         config.remotePrefix =
           // @ts-expect-error [TODO] - TS4111 - Property 'remotePrefix' comes from an index signature, so it must be accessed with ['remotePrefix'].
           data.remotePrefix || loadUrl.slice(0, loadUrl.lastIndexOf("/") + 1);
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         loader = new CDXLoader(stream, abort, name);
         type = "remoteprefix";
         db = new RemotePrefixArchiveDB(

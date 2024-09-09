@@ -1,5 +1,5 @@
 import { type BaseLoader } from "../blockloaders";
-import { type ArchiveLoader } from "../types";
+import { type CollConfig, type ArchiveLoader } from "../types";
 import { MAX_FULL_DOWNLOAD_SIZE } from "../utils";
 
 import { WARCLoader } from "../warcloader";
@@ -14,13 +14,14 @@ export class SingleWACZLoader implements ArchiveLoader {
   loadId: string | null = null;
   loadUrl: string;
 
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(loader: BaseLoader, config: Record<string, any>, loadId = null) {
+  constructor(
+    loader: BaseLoader,
+    config: CollConfig,
+    loadId: string | null = null,
+  ) {
     this.loader = loader;
     this.loadId = loadId;
-    // @ts-expect-error [TODO] - TS4111 - Property 'loadUrl' comes from an index signature, so it must be accessed with ['loadUrl'].
-    this.loadUrl = config.loadUrl;
+    this.loadUrl = config.loadUrl!;
   }
 
   // [TODO]
@@ -53,13 +54,13 @@ export class SingleWACZLoader implements ArchiveLoader {
 export class SingleWACZFullImportLoader implements ArchiveLoader {
   loader: BaseLoader;
   loadId: string | null = null;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  config: Record<string, any>;
+  config: CollConfig;
 
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  constructor(loader: BaseLoader, config: Record<string, any>, loadId = null) {
+  constructor(
+    loader: BaseLoader,
+    config: CollConfig,
+    loadId: string | null = null,
+  ) {
     this.config = config;
     this.loadId = loadId;
 
