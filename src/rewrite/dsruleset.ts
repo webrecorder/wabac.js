@@ -81,7 +81,7 @@ export const DEFAULT_RULES: Rules[] = [
         ruleReplace('"bulkRouteFetchBatchSize":1'),
       ],
       [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplace('"maxBatchSize":1')],
-     ],
+    ],
   },
 
   {
