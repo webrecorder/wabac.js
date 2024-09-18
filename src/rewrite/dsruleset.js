@@ -40,13 +40,14 @@ export const DEFAULT_RULES = [
     ]
   },
   {
-    contains: ["instagram.com/"],
+    contains: ["instagram.com/", "fbcdn.net/"],
     rxRules: [
       [/"is_dash_eligible":(?:true|1)/, ruleReplace("\"is_dash_eligible\":false")],
-      [/"debugNoBatching\s?":(?:false|0)/, ruleReplace("\"debugNoBatching\":true")]
+      [/"debugNoBatching\s?":(?:false|0)/, ruleReplace("\"debugNoBatching\":true")],
+      [/"bulkRouteFetchBatchSize\s?":(?:[^{},]+)/, ruleReplace("\"bulkRouteFetchBatchSize\":1")],
+      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplace("\"maxBatchSize\":1")]
     ]
   },
-
   {
     contains: ["api.twitter.com/2/", "twitter.com/i/api/2/", "twitter.com/i/api/graphql/",
       "api.x.com/2/", "x.com/i/api/2/", "x.com/i/api/graphql/"],
