@@ -76,7 +76,12 @@ export const DEFAULT_RULES: Rules[] = [
         /"debugNoBatching\s?":(?:false|0)/,
         ruleReplace('"debugNoBatching":true'),
       ],
-    ],
+      [
+        /"bulkRouteFetchBatchSize\s?":(?:[^{},]+)/,
+        ruleReplace('"bulkRouteFetchBatchSize":1'),
+      ],
+      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplace('"maxBatchSize":1')],
+     ],
   },
 
   {
