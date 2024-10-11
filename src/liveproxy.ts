@@ -1,6 +1,9 @@
+import { getProxyNotFoundResponse } from "./notfound";
 import { type ArchiveRequest } from "./request";
 import { ArchiveResponse } from "./response";
 import { type DBStore } from "./types";
+
+declare let self: ServiceWorkerGlobalScope;
 
 // ===========================================================================
 export class LiveProxy implements DBStore {
@@ -14,6 +17,8 @@ export class LiveProxy implements DBStore {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   hostProxy: Record<string, any>;
   hostProxyOnly: boolean;
+
+  messageOnProxyErrors: boolean;
 
   constructor(
     // [TODO]
@@ -35,6 +40,9 @@ export class LiveProxy implements DBStore {
     this.archivePrefix = extraConfig.archivePrefix || "";
     this.cloneResponse = cloneResponse;
     this.allowBody = allowBody || this.isLive;
+
+    // @ts-expect-error [TODO] - TS4111 - Property 'messageOnProxyErrors' comes from an index signature, so it must be accessed with ['messageOnProxyErrors'].
+    this.messageOnProxyErrors = extraConfig.messageOnProxyErrors || false;
 
     // @ts-expect-error [TODO] - TS4111 - Property 'hostProxy' comes from an index signature, so it must be accessed with ['hostProxy'].
     this.hostProxy = extraConfig.hostProxy;
@@ -109,14 +117,20 @@ export class LiveProxy implements DBStore {
 
     let body: Uint8Array | null = null;
 
-    if (
-      this.allowBody &&
-      (request.method === "POST" || request.method === "PUT")
-    ) {
-      body = await request.getBody();
+    const isPOST =
+      request.method === "POST" ||
+      request.method === "PUT" ||
+      request.method === "DELETE";
+
+    if (isPOST) {
+      if (this.allowBody) {
+        body = await request.getBody();
+      } else {
+        void this.sendProxyError("post-request-attempt", url, request.method);
+      }
     }
 
-    const response = await fetch(fetchUrl, {
+    let response = await fetch(fetchUrl, {
       method: request.method,
       body,
       headers,
@@ -124,6 +138,33 @@ export class LiveProxy implements DBStore {
       mode: "cors",
       redirect: "follow",
     });
+
+    let noRW = false;
+
+    if (isPOST && response.status >= 400) {
+      void this.sendProxyError(
+        "post-request-failed",
+        url,
+        request.method,
+        response.status,
+      );
+    } else if (response.status === 429) {
+      void this.sendProxyError(
+        "rate-limited",
+        url,
+        request.method,
+        response.status,
+      );
+    }
+
+    if (
+      response.status > 400 &&
+      response.status !== 404 &&
+      ["", "document", "iframe"].includes(request.destination)
+    ) {
+      response = getProxyNotFoundResponse(url, response.status);
+      noRW = true;
+    }
 
     let clonedResponse: Response | null = null;
 
@@ -135,7 +176,7 @@ export class LiveProxy implements DBStore {
       url,
       response,
       date: new Date(),
-      noRW: false,
+      noRW,
       isLive: this.isLive,
       archivePrefix: this.archivePrefix,
     });
@@ -145,5 +186,25 @@ export class LiveProxy implements DBStore {
     }
 
     return archiveResponse;
+  }
+
+  async sendProxyError(
+    type: string,
+    url: string,
+    method: string,
+    status?: number,
+  ) {
+    if (!this.messageOnProxyErrors) {
+      return;
+    }
+
+    const clients = await self.clients.matchAll({ type: "window" });
+    for (const client of clients) {
+      const clientUrl = new URL(client.url);
+      if (clientUrl.searchParams.get("source") === this.prefix) {
+        client.postMessage({ type, url, method, status });
+        break;
+      }
+    }
   }
 }
