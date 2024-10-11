@@ -42,6 +42,10 @@ export function notFoundByTypeResponse(
       contentType = "text/html; charset=utf-8";
   }
 
+  return textToResponse(content, contentType, status);
+}
+
+function textToResponse(content: string, contentType: string, status = 200) {
   const buff = new TextEncoder().encode(content);
 
   const initOpt = {
@@ -133,4 +137,47 @@ function getScriptCSSNotFound(
 
 function getJSONNotFound(URL: string, TS: string, error = "not_found") {
   return JSON.stringify({ error, URL, TS });
+}
+
+export function getProxyNotFoundResponse(url: string, status: number) {
+  return textToResponse(getHTMLNotProxyError(url, status), "text/html", status);
+}
+
+function getHTMLNotProxyError(requestURL: string, status: number) {
+  return `
+  <!doctype html>
+  <html>
+  <head>
+  <script>
+  window.requestURL = "${requestURL}";
+  </script>
+  </head>
+  <body style="font-family: sans-serif">
+  <h2>Live page could not be loaded</h2>
+  <p>Sorry, this page was could not be loaded through the archiving proxy. Check the URL and try again.</p>
+  <p><code id="url" style="word-break: break-all; font-size: larger">Status Code: ${status}</code></p>
+  <p id="goback" style="display: none"><a href="#" onclick="window.history.back()">Go Back</a> to the previous page.</a></p>
+
+  <script>
+  let isTop = true;
+  try {
+    if (window.parent._WB_wombat_location) {
+      isTop = false;
+    }
+  } catch (e) {
+
+  }
+  if (isTop) {
+    document.querySelector("#goback").style.display = "";
+
+    window.parent.postMessage({
+      wb_type: "live-proxy-url-error",
+      url: window.requestURL,
+      status: ${status},
+    }, "*");
+  }
+  </script>
+  </body>
+  </html>
+  `;
 }
