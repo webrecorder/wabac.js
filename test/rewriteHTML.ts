@@ -569,10 +569,17 @@ test(
 );
 
 test(
+  "iframe rw",
+  rewriteHtml,
+  '<iframe src="https://example.com/iframe.html"></iframe>',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/iframe.html"></iframe>'
+);
+
+test(
   "object pdf",
   rewriteHtml,
   '<object type="application/pdf" data="https://example.com/some/file.pdf">',
-  '<iframe type="application/pdf" src="http://localhost:8080/prefix/20201226101010mp_/https://example.com/some/file.pdf">',
+  '<iframe type="application/pdf" src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf">',
 );
 
 test(
