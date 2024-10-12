@@ -249,7 +249,7 @@ class HTMLRewriter {
         // convert object tag to iframe or img
         if (type === "application/pdf") {
           attr.name = "src";
-          attr.value = this.rewriteUrl(rewriter, attr.value);
+          attr.value = this.rewriteUrl(rewriter, attr.value, false, "if_");
           tag.tagName = "iframe";
         } else if (type === "image/svg+xml") {
           attr.name = "src";
@@ -260,7 +260,7 @@ class HTMLRewriter {
             const value = attr.value.replace(rule.match, rule.replace);
             if (value !== attr.value) {
               attr.name = "src";
-              attr.value = this.rewriteUrl(rewriter, value);
+              attr.value = this.rewriteUrl(rewriter, value, false, "if_");
               tag.tagName = "iframe";
               break;
             }
@@ -277,6 +277,9 @@ class HTMLRewriter {
         ) {
           attr.value = REPLAY_TOP_FRAME_NAME;
         }
+      } else if (name === "src" && (tagName === "iframe" || tagName === "frame")) {
+        const mod = attrRules[name];
+        attr.value = this.rewriteUrl(rewriter, attr.value, false, mod);
       } else if (name === "href" || name === "src") {
         attr.value = this.rewriteUrl(rewriter, attr.value);
       } else {
@@ -506,7 +509,7 @@ class HTMLRewriter {
       text = decoder.decode(encodeLatin1(text));
     }
     const res = rewriter.rewriteUrl(text, forceAbs);
-    return mod ? res.replace("mp_/", mod + "/") : res;
+    return mod && mod !== defmod ? res.replace(defmod + "/", mod + "/") : res;
   }
 
   rewriteHTMLText(text: string) {
