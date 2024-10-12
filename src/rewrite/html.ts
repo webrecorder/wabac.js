@@ -277,7 +277,10 @@ class HTMLRewriter {
         ) {
           attr.value = REPLAY_TOP_FRAME_NAME;
         }
-      } else if (name === "src" && (tagName === "iframe" || tagName === "frame")) {
+      } else if (
+        name === "src" &&
+        (tagName === "iframe" || tagName === "frame")
+      ) {
         const mod = attrRules[name];
         attr.value = this.rewriteUrl(rewriter, attr.value, false, mod);
       } else if (name === "href" || name === "src") {

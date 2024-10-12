@@ -572,7 +572,7 @@ test(
   "iframe rw",
   rewriteHtml,
   '<iframe src="https://example.com/iframe.html"></iframe>',
-  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/iframe.html"></iframe>'
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/iframe.html"></iframe>',
 );
 
 test(
