@@ -5,3 +5,7 @@
 **/*.wacz
 **/adblock.gz
 **/node_modules
+**/dist
+.tsimp
+coverage
+dist-wombat

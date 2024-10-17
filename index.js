@@ -11,5 +11,10 @@ export { LiveProxy } from "./src/liveproxy.js";
 
 export { API } from "./src/api.js";
 
-export { getStatusText, getCollData, getTSMillis, tsToDate, randomId } from "./src/utils.js";
-
+export {
+  getStatusText,
+  getCollData,
+  getTSMillis,
+  tsToDate,
+  randomId,
+} from "./src/utils.js";

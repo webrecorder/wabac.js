@@ -1,13 +1,24 @@
 {
   "name": "@webrecorder/wabac",
-  "version": "2.19.9",
+  "version": "2.20.0",
   "main": "index.js",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./swlib": {
+      "types": "./dist/types/swlib.d.ts",
+      "default": "./dist/swlib.js"
+    }
+  },
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@peculiar/asn1-ecc": "^2.3.4",
     "@peculiar/asn1-schema": "^2.3.3",
     "@peculiar/x509": "^1.9.2",
+    "@types/js-levenshtein": "^1.1.3",
     "@webrecorder/wombat": "^3.8.2",
     "acorn": "^8.10.0",
     "auto-js-ipfs": "^2.1.1",
@@ -27,17 +38,37 @@
     "path-parser": "^6.1.0",
     "process": "^0.11.10",
     "stream-browserify": "^3.0.0",
-    "warcio": "^2.3.0"
+    "warcio": "^2.3.1"
   },
   "devDependencies": {
-    "ava": "^5.3.1",
+    "@swc-node/register": "^1.10.9",
+    "@swc/core": "^1.7.23",
+    "@types/brotli": "^1.3.4",
+    "@types/http-link-header": "^1.0.5",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.12.5",
+    "@types/pako": "1.0.1",
+    "@types/serve-static": "^1.15.7",
+    "@types/test-listen": "^1.1.2",
+    "@types/web": "^0.0.142",
+    "@types/wicg-file-system-access": "^2023.10.5",
+    "@typescript-eslint/eslint-plugin": "^8.4.0",
+    "@typescript-eslint/parser": "^8.4.0",
+    "ava": "^6.1.3",
     "c8": "^7.12.0",
-    "eslint": "^8.25.0",
+    "copy-webpack-plugin": "^12.0.2",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
     "fake-indexeddb": "^4.0.0",
     "globals": "^13.17.0",
+    "prettier": "^3.3.3",
     "raw-loader": "^4.0.2",
     "serve-static": "^1.15.0",
     "test-listen": "^1.1.0",
+    "ts-loader": "^9.5.1",
+    "tsconfig-paths-webpack-plugin": "^4.1.0",
+    "tsimp": "^2.0.11",
+    "typescript": "^5.5.4",
     "webpack": "^5.76.0",
     "webpack-cli": "^4.8.0"
   },
@@ -51,14 +82,9 @@
     "start-dev": "webpack-dev-server --mode development",
     "start-live-proxy": "cp dist/sw.js ./examples/live-proxy/sw.js && cd ./examples/live-proxy && ./fetch-adblock.sh && http-server -p 10001",
     "test": "c8 ava",
-    "lint": "eslint ./src/ ./test/ webpack.config.cjs"
-  },
-  "ava": {
-    "concurrency": 1,
-    "verbose": true,
-    "serial": true,
-    "files": [
-      "test/*.js"
-    ]
+    "lint:check": "eslint ./src/ ./test/",
+    "lint": "eslint --fix ./src/ ./test/",
+    "format:check": "prettier --check ./src/ ./test/",
+    "format": "prettier --write ./src/ ./test/"
   }
 }

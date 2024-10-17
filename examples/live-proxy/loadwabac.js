@@ -1,34 +1,39 @@
 const proxyPrefix = "https://wabac-cors-proxy.webrecorder.workers.dev/proxy/";
 
-
-class WabacLiveProxy
-{
-  constructor({collName = "liveproxy", adblockUrl = undefined} = {}) {
+// [TODO]
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class WabacLiveProxy {
+  constructor({ collName = "liveproxy", adblockUrl = undefined } = {}) {
     this.url = "";
     this.ts = "";
     this.collName = collName;
     this.matchRx = new RegExp(`${collName}\\/([\\d]+)?\\w\\w_\\/(.*)`);
     this.adblockUrl = adblockUrl;
 
-    this.queryParams = {"injectScripts": "./custom.js"};
+    this.queryParams = { injectScripts: "./custom.js" };
   }
 
   async init() {
     window.addEventListener("load", () => {
       const iframe = document.querySelector("#content");
       if (iframe) {
-        iframe.addEventListener("load", () => this.onIframeLoad(iframe.contentWindow.location.href));
+        iframe.addEventListener("load", () =>
+          this.onIframeLoad(iframe.contentWindow.location.href),
+        );
       }
     });
 
     const scope = "./";
 
     // also add inject of custom.js as a script into each replayed page
-    await navigator.serviceWorker.register("./sw.js?" + new URLSearchParams(this.queryParams).toString(), {scope});
+    await navigator.serviceWorker.register(
+      "./sw.js?" + new URLSearchParams(this.queryParams).toString(),
+      { scope },
+    );
 
     let initedResolve = null;
 
-    const inited = new Promise((resolve) => initedResolve = resolve);
+    const inited = new Promise((resolve) => (initedResolve = resolve));
 
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (event.data.msg_type === "collAdded") {
@@ -44,7 +49,7 @@ class WabacLiveProxy
       msg_type: "addColl",
       name: this.collName,
       type: "live",
-      file: {"sourceUrl": `proxy:${proxyPrefix}`},
+      file: { sourceUrl: `proxy:${proxyPrefix}` },
       skipExisting: false,
       extraConfig: {
         prefix: proxyPrefix,
@@ -53,7 +58,7 @@ class WabacLiveProxy
         baseUrlHashReplay: true,
         noPostToGet: true,
         archivePrefix: "https://web.archive.org/web/",
-        adblockUrl: this.adblockUrl
+        adblockUrl: this.adblockUrl,
       },
     };
 
@@ -65,6 +70,8 @@ class WabacLiveProxy
       navigator.serviceWorker.controller.postMessage(msg);
     }
 
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises, @typescript-eslint/no-unnecessary-condition
     if (inited) {
       await inited;
     }
@@ -80,18 +87,20 @@ class WabacLiveProxy
     this.onHashChange();
   }
 
-  onHashChange () {
+  onHashChange() {
     const m = window.location.hash.slice(1).match(/\/?(?:([\d]+)\/)?(.*)/);
 
-    const url = m && m[2] || "https://example.com/";
-    const ts = m && m[1] || "";
-    
+    const url = m?.[2] || "https://example.com/";
+    const ts = m?.[1] || "";
+
     // don't change if same url
     if (url === this.url && ts === this.ts) {
       return;
     }
 
-    let iframeUrl = ts ? `/w/${this.collName}/${ts}mp_/${url}` : `/w/${this.collName}/mp_/${url}`;
+    let iframeUrl = ts
+      ? `/w/${this.collName}/${ts}mp_/${url}`
+      : `/w/${this.collName}/mp_/${url}`;
 
     const iframe = document.querySelector("#content");
     iframe.src = iframeUrl;
