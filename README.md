@@ -42,7 +42,7 @@ wabac.js can also be used imported as a module, providing two exports:
 
 `import * from @webrecorder/wabac` - Provides exports for rewriting and WACZ reading. Designed to be used as a general purpose library in any JS environment. See [index.ts](src/index.ts) for more details.
 
-`import * from @webrecorder/wabac/swlib` - Provides exports for extending wabac.js functionality in a service worker. Designed to be used in a service worker or web worker environment. See [swlib.ts](src/swlib.ts) for more details. See [https://github.com/webrecorder/awp-sw](webrecorder/awp-sw) for an example of this usage.
+`import * from @webrecorder/wabac/swlib` - Provides exports for extending wabac.js functionality in a service worker. Designed to be used in a service worker or web worker environment. See [swlib.ts](src/swlib.ts) for more details. See [webrecorder/awp-sw](https://github.com/webrecorder/awp-sw) for an example of this usage.
 
 
 
