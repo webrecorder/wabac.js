@@ -7,7 +7,7 @@ _service worker based web archive replay_
 
 **wabac.js** is a core part of <img src="https://raw.githubusercontent.com/webrecorder/replayweb.page/refs/heads/main/favicons/icon-192.png" width="24" height="24"> [ReplayWeb.page](https://replayweb.page).
 
-With 2.20.0 release, wabac.js is actually fully TypeScript based.
+With 2.20.0 release, wabac.js is written fully in TypeScript.
 
 This library provides the 'server-side' portion for web archive replay, and an API for managing web archive collections,
 and is designed to be run as service worker (or web worker). The system handles URL rewriting and preparing web archive
@@ -26,17 +26,24 @@ Using the ReplayWeb.page is only one way to use wabac.js. Additional ways to use
 
 ## API
 
-The wabac.js includes an internal API provides for loading web archives and getting information about a web archive collections.
-Additional documentation is still needed.
+When the wabac.js service worker is installed, it provides an API for serving archived web content, as well as metadata about web archive collections.
+All archives are organized into discreet collections with a unique id.
+
+- `/w/<collection id>/<modifier >/https://...` - provides an endpoint for loading archived web content by URL.
+
+- `/w/api/c/<collection id>` - provides an endpoint for getting info about a web archive collection
+
+Additional documentation on this API is still a work-in-progress.
 
 
-## Usage as Library
+## Usage as a module
 
-The library provides two general purpose exports:
+wabac.js can also be used imported as a module, providing two exports:
 
-`import * from @webrecorder/wabac` - Provides exports for rewriting and WACZ reading. Designed for any JS environment. See [index.ts](src/index.ts) for more details.
+`import * from @webrecorder/wabac` - Provides exports for rewriting and WACZ reading. Designed to be used as a general purpose library in any JS environment. See [index.ts](src/index.ts) for more details.
 
-`import * from @webrecorder/wabac/swlib` - Provides exports for extending wabac.js in a service worker. Designed to be used in a service worker or web worker environment. See [swlib.ts](src/swlib.ts) for more details.
+`import * from @webrecorder/wabac/swlib` - Provides exports for extending wabac.js functionality in a service worker. Designed to be used in a service worker or web worker environment. See [swlib.ts](src/swlib.ts) for more details. See [https://github.com/webrecorder/awp-sw](webrecorder/awp-sw) for an example of this usage.
+
 
 
 ## Old Version
