@@ -11,6 +11,8 @@ export class ArchiveRequest {
   hash = "";
   cookie = "";
 
+  isProxyOrigin = false;
+
   request: Request;
   method: string;
   mode: string;
@@ -66,6 +68,7 @@ export class ArchiveRequest {
       if (url.origin === localOrigin) {
         this.url = proxyOrigin + url.pathname + (url.search ? url.search : "");
       }
+      this.isProxyOrigin = true;
     }
 
     const hashIndex = this.url.indexOf("#");
