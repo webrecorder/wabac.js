@@ -1049,7 +1049,7 @@ export class MultiWACZ
     event: FetchEvent,
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    { pageId }: Record<string, any> = {},
+    { pageId, noRedirect }: Record<string, any> = {},
   ): Promise<ArchiveResponse | Response | null> {
     await this.initing;
 
@@ -1097,6 +1097,9 @@ export class MultiWACZ
         loadFirst: true,
       });
       if (resp) {
+        if (noRedirect) {
+          return resp;
+        }
         foundMap.set((resp as ArchiveResponse).date, { name, hash: file.hash });
       }
     }
