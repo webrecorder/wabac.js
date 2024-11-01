@@ -389,7 +389,7 @@ export class Collection {
       return response;
     }
 
-    const opts = { pageId: query.pageId, noRedirect: query.isProxyOrigin};
+    const opts = { pageId: query.pageId, noRedirect: query.isProxyOrigin };
 
     response = await this.store.getResource(query, this.prefix, event, opts);
 
