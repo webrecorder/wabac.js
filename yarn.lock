@@ -896,12 +896,12 @@
   resolved "https://registry.yarnpkg.com/@webpack-cli/serve/-/serve-1.5.2.tgz#ea584b637ff63c5a477f6f21604b5a205b72c9ec"
   integrity sha512-vgJ5OLWadI8aKjDlOH3rb+dYyPd2GTZuQC/Tihjct6F9GpXGZINo3Y/IVuZVTM1eDQB+/AOsjPUWH/WySDaXvw==
 
-"@webrecorder/wombat@^3.8.3":
-  version "3.8.3"
-  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.8.3.tgz#c5a077225d1a70def9fbbbfcd50fa4465d236546"
-  integrity sha512-dqgoxigB3OdX5JeB3yxJrUNwFwUBlYC+LmGrLEgGeP259MFzXQLD2pmfuqGt5ygWvIv56SrAMV4sUceux07X2A==
+"@webrecorder/wombat@^3.8.5":
+  version "3.8.5"
+  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.8.5.tgz#f62b18412c9e72d896c9604bbefe77c6fd9c43ea"
+  integrity sha512-yQDycwPtOmwNQUg/ro1xz4c5NWvgdszIllayYXV2WmyCJv27Gj1VJAXtBoEAVQffOl0Q14JVtMs+IaAEY67F9Q==
   dependencies:
-    warcio "^2.3.1"
+    warcio "^2.4.0"
 
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"
@@ -3750,10 +3750,10 @@ walk-up-path@^3.0.1:
   resolved "https://registry.yarnpkg.com/walk-up-path/-/walk-up-path-3.0.1.tgz#c8d78d5375b4966c717eb17ada73dbd41490e886"
   integrity sha512-9YlCL/ynK3CTlrSRrDxZvUauLzAswPCrsaCgilqFevUYpeEW0/3ScEjaa3kbW/T0ghhkEr7mv+fpjqn1Y1YuTA==
 
-warcio@^2.3.1:
-  version "2.3.1"
-  resolved "https://registry.yarnpkg.com/warcio/-/warcio-2.3.1.tgz#8ac9de897de1a556161168f2a3938b60929908ca"
-  integrity sha512-PjcWqzXfs6HdWfHi1V/i8MoMmV5M0Csg3rOa2mqCJ1dmCJXswVfQ0VXbEVumwavNIW2oFFj6LJoCHHeL4Ls/zw==
+warcio@^2.4.0:
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/warcio/-/warcio-2.4.0.tgz#13bae2837f1bbf5cf7585f75857e6311d30557bd"
+  integrity sha512-EfxXCgsnZ35CGf2j99QBMyB6EI98KEQ6YmeER+8Lnv/4KFJ3thT76PiX37HfZVbPJS21JihA0Eddjk9QBQRlPg==
   dependencies:
     "@types/pako" "^1.0.7"
     "@types/stream-buffers" "^3.0.7"
@@ -3762,7 +3762,7 @@ warcio@^2.3.1:
     pako "^1.0.11"
     tempy "^3.1.0"
     uuid-random "^1.3.2"
-    yargs "^17.6.2"
+    yargs "^17.7.2"
 
 watchpack@^2.4.0:
   version "2.4.0"
@@ -3962,19 +3962,6 @@ yargs@^16.2.0:
     string-width "^4.2.0"
     y18n "^5.0.5"
     yargs-parser "^20.2.2"
-
-yargs@^17.6.2:
-  version "17.6.2"
-  resolved "https://registry.yarnpkg.com/yargs/-/yargs-17.6.2.tgz#2e23f2944e976339a1ee00f18c77fedee8332541"
-  integrity sha512-1/9UrdHjDZc0eOU0HxOHoS78C69UD3JRMvzlJ7S79S2nTaWRA/whGCTV8o9e/N/1Va9YIV7Q4sOxD8VV4pCWOw==
-  dependencies:
-    cliui "^8.0.1"
-    escalade "^3.1.1"
-    get-caller-file "^2.0.5"
-    require-directory "^2.1.1"
-    string-width "^4.2.3"
-    y18n "^5.0.5"
-    yargs-parser "^21.1.1"
 
 yargs@^17.7.2:
   version "17.7.2"
