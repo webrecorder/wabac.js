@@ -40,6 +40,26 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
     this.streamMap = new Map<string, ChunkStore>();
   }
 
+  isSameUrl(remoteUrl: string, cdxUrl: string, method?: string | null) {
+    if (remoteUrl === cdxUrl) {
+      return true;
+    }
+
+    const decodedRemoteUrl = decodeURIComponent(remoteUrl);
+    const decodedCdxUrl = decodeURIComponent(cdxUrl);
+
+    if (decodedRemoteUrl === decodedCdxUrl) {
+      return true;
+    }
+
+    // if non-GET, check if cdxUrl starts with requested url
+    if (method && decodedCdxUrl.startsWith(decodedRemoteUrl)) {
+      return true;
+    }
+
+    return false;
+  }
+
   abstract loadRecordFromSource(
     cdx: RemoteResourceEntry,
   ): LoadRecordFromSourceType;
@@ -74,13 +94,7 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
       return null;
     }
 
-    if (
-      remote.url !== cdx.url &&
-      !(
-        cdx.method &&
-        decodeURIComponent(cdx.url).startsWith(decodeURIComponent(remote.url))
-      )
-    ) {
+    if (!this.isSameUrl(remote.url, cdx.url, cdx.method)) {
       console.log(`Wrong url: expected ${cdx.url}, got ${remote.url}`);
       return null;
     }
