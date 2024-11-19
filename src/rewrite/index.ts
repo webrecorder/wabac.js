@@ -220,7 +220,6 @@ export class Rewriter {
   async rewrite(
     response: ArchiveResponse,
     request: ArchiveRequest,
-    requestURL: string,
   ): Promise<ArchiveResponse> {
     const rewriteMode = this.contentRewrite
       ? this.getRewriteMode(request, response, this.baseUrl)
@@ -329,9 +328,9 @@ export class Rewriter {
       response.setText(text, this.isCharsetUTF8);
     } else {
       // check range-as-query
-      const result = hasRangeAsQuery(requestURL);
+      const result = hasRangeAsQuery(request.url);
       if (result) {
-        const url = new URL(requestURL);
+        const url = new URL(request.url);
         const start = parseInt(url.searchParams.get(result.start) || "");
         const end = parseInt(url.searchParams.get(result.end) || "");
         if (!isNaN(start) && !isNaN(end)) {
