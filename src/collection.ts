@@ -163,6 +163,7 @@ export class Collection {
         );
       } else {
         response = await this.getReplayResponse(request, event);
+        requestURL = request.url;
         if (
           response &&
           response instanceof ArchiveResponse &&

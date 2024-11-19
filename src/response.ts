@@ -137,8 +137,6 @@ class ArchiveResponse {
 
   clonedResponse: Response | null = null;
 
-  rewritten = false;
-
   constructor({
     payload,
     status,
