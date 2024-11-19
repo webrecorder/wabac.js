@@ -1,3 +1,4 @@
+import { rewriteDASH } from "./rewriteVideo";
 import { type RxRewriter, type Rule } from "./rxrewriter";
 
 //import unescapeJs from "unescape-js";
@@ -50,9 +51,15 @@ export const DEFAULT_RULES: Rules[] = [
     contains: ["facebook.com/", "fbsbx.com/"],
     rxRules: [
       //[/"dash_prefetch_experimental.*"playlist".*?(?=["][,]["]dash)/, ruleRewriteFBDash],
-      [/"dash_/, ruleReplace('"__nodash__')],
-      [/_dash"/, ruleReplace('__nodash__"')],
-      [/_dash_/, ruleReplace("__nodash__")],
+      //[/\\u003C\?xml.*\\u003C\/MPD>/, ruleRewriteFBDash],
+      //[/<\?xml(.|\n)*<\/MPD>/, ruleRewriteFBDash],
+      [/"dash_manifests.*?,"failure_reason":null}]/, ruleRewriteFBDash],
+      //[/"dash_manifests.*?,"failure_reason":null}]/, ruleReplace('"dash_manifests":[{"manifest_xml":null, "failure_reason":{"type":"NotEligibleForDash"}}]')],
+      //[/"dash_manifests.*?,"failure_reason":null}]/, ruleReplace('"dash_manifests":[{"manifest_xml":null, "failure_reason":{"type":"NotEligibleForDash"}}]')],
+      //[/"dash_manifest_urls.*?,"failure_reason":null}]/, ruleReplace('"dash_manifest_urls":[{"manifest_url":null, "failure_reason":{"type":"NotEligibleForDash"}}]')],
+
+      //[/_dash"/, ruleReplace('__nodash__"')],
+      //[/_dash_/, ruleReplace("__nodash__")],
       [/"playlist/, ruleReplace('"__playlist__')],
       [
         /"debugNoBatching\s?":(?:false|0)/,
@@ -123,6 +130,60 @@ export const HTML_ONLY_RULES: Rules[] = [
   },
   ...DEFAULT_RULES,
 ];
+
+const RANGE_RULES = [
+  {
+    contains: /video.*fbcdn.net/,
+    start: "bytestart",
+    end: "byteend",
+  },
+];
+
+export function hasRangeAsQuery(url: string) {
+  for (const rule of RANGE_RULES) {
+    const { contains, start, end } = rule;
+    if (url.match(contains)) {
+      return { start, end };
+    }
+  }
+
+  return null;
+}
+
+export function removeRangeAsQuery(url: string) {
+  const result = hasRangeAsQuery(url);
+  if (!result) {
+    return null;
+  }
+  try {
+    const parsedUrl = new URL(url);
+    if (
+      !parsedUrl.searchParams.has(result.start) ||
+      !parsedUrl.searchParams.has(result.end)
+    ) {
+      return null;
+    }
+    parsedUrl.searchParams.delete(result.start);
+    parsedUrl.searchParams.delete(result.end);
+    return parsedUrl.href;
+  } catch (_e) {
+    return null;
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function ruleRewriteFBDash(text: string, opts: Record<string, any>) {
+  const start = text.indexOf("\\u003C?xml");
+  const end = text.indexOf("\\u003C\\/MPD>", start) + "\\u003C\\/MPD>".length;
+  const rwtext: string = JSON.parse('"' + text.slice(start, end) + '"');
+
+  let rw = rewriteDASH(rwtext, opts);
+  console.log("FB DASH", rw);
+
+  rw = JSON.stringify(rw).replaceAll("<", "\\u003C").slice(1, -1);
+
+  return text.slice(0, start) + rw + text.slice(end);
+}
 
 // ===========================================================================
 function ruleReplace(str: string) {

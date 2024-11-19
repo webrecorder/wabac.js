@@ -1,4 +1,5 @@
-import { Rewriter } from "./rewrite/index";
+import { Rewriter } from "./rewrite";
+import { removeRangeAsQuery } from "./rewrite/dsruleset";
 
 import {
   getTS,
@@ -162,8 +163,11 @@ export class Collection {
           this.adblockUrl,
         );
       } else {
+        const filterUrl = removeRangeAsQuery(request.url);
+        if (filterUrl) {
+          request.url = filterUrl;
+        }
         response = await this.getReplayResponse(request, event);
-        requestURL = request.url;
         if (
           response &&
           response instanceof ArchiveResponse &&
@@ -256,7 +260,7 @@ export class Collection {
 
       const rewriter = new Rewriter(rewriteOpts);
 
-      response = await rewriter.rewrite(response, request);
+      response = await rewriter.rewrite(response, request, requestURL);
 
       if (mod !== "id_") {
         response.headers.append("Content-Security-Policy", this.csp);

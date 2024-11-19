@@ -1,4 +1,4 @@
-import { BaseAsyncIterReader, AsyncIterReader, LimitReader } from "warcio";
+import { BaseAsyncIterReader, AsyncIterReader } from "warcio";
 import {
   isNullBodyStatus,
   decodeLatin1,
@@ -136,6 +136,8 @@ class ArchiveResponse {
   updateTS: string | null;
 
   clonedResponse: Response | null = null;
+
+  rewritten = false;
 
   constructor({
     payload,
@@ -300,21 +302,8 @@ class ArchiveResponse {
     const start = Number(bytes[1]);
     const end = Number(bytes[2]) || length - 1;
 
-    if (this.buffer) {
-      this.buffer = this.buffer.slice(start, end + 1);
-    } else if (this.reader) {
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (!(this.reader instanceof LimitReader) || !this.reader.setLimitSkip) {
-        return false;
-      }
-      if (start !== 0 || end !== length - 1) {
-        this.reader.setLimitSkip(end - start + 1, start);
-      }
-      //TODO
-      // } else if (this.reader.setRangeAll) {
-      //   this.reader.setRangeAll(length);
-      // }
+    if (!this.setRawRange(start, end)) {
+      return false;
     }
 
     this.headers.set("Content-Range", `bytes ${start}-${end}/${length}`);
@@ -324,6 +313,20 @@ class ArchiveResponse {
     this.statusText = "Partial Content";
 
     return true;
+  }
+
+  setRawRange(start: number, end: number) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const reader = this.reader as any;
+    if (this.buffer) {
+      this.buffer = this.buffer.slice(start, end + 1);
+      return true;
+    } else if (reader?.setLimitSkip) {
+      reader.setLimitSkip(end - start + 1, start);
+      return true;
+    }
+
+    return false;
   }
 
   makeResponse(coHeaders = false, overwriteDisposition = false) {
