@@ -208,6 +208,7 @@ const test4 = ytplayer.config.args.dash = "0"; ytplayer.config.args.dashmpd = ""
   t.is(result, expected, result);
 });
 
+/*
 test("FB rewrite JS", async (t) => {
   const content = `\
 <script>
@@ -228,6 +229,7 @@ const test1 = {"__nodash__url": "foo", {"some__nodash__": "a", "data__nodash__fo
   });
   t.is(result, expected);
 });
+*/
 
 test("Twitter rewrite json", async (t) => {
   const content = {

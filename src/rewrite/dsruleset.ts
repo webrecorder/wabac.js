@@ -140,6 +140,9 @@ const RANGE_RULES = [
 ];
 
 export function hasRangeAsQuery(url: string) {
+  if (!url) {
+    return null;
+  }
   for (const rule of RANGE_RULES) {
     const { contains, start, end } = rule;
     if (url.match(contains)) {
