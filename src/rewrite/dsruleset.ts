@@ -175,7 +175,6 @@ export function ruleRewriteFBDash(text: string, opts: Record<string, any>) {
   const rwtext: string = JSON.parse('"' + text.slice(start, end) + '"');
 
   let rw = rewriteDASH(rwtext, opts);
-  console.log("FB DASH", rw);
 
   rw = JSON.stringify(rw).replaceAll("<", "\\u003C").slice(1, -1);
 
