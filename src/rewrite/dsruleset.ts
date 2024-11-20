@@ -171,7 +171,12 @@ export function removeRangeAsQuery(url: string) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ruleRewriteFBDash(text: string, opts: Record<string, any>) {
   const start = text.indexOf("\\u003C?xml");
-  const end = text.indexOf("\\u003C\\/MPD>", start) + "\\u003C\\/MPD>".length;
+  let end = text.indexOf("/MPD>", start);
+  if (end < 0) {
+    return text;
+  }
+  end += "/MPD>".length;
+
   const rwtext: string = JSON.parse('"' + text.slice(start, end) + '"');
 
   let rw = rewriteDASH(rwtext, opts);
