@@ -341,7 +341,6 @@ export class Rewriter {
             (isNaN(existingLen) || existingLen > newLen) &&
             response.setRawRange(start, end)
           ) {
-            console.log("setting range", start, end, newLen);
             response.headers.set("Content-Length", String(newLen));
           }
         }
