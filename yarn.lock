@@ -3764,10 +3764,10 @@ warcio@^2.4.0:
     uuid-random "^1.3.2"
     yargs "^17.7.2"
 
-warcio@^2.4.1:
-  version "2.4.1"
-  resolved "https://registry.yarnpkg.com/warcio/-/warcio-2.4.1.tgz#6b4c68ba926f415f506ed9c28eef7fa5b7bcb2d8"
-  integrity sha512-Tmlv/O7tl4bcJzY38REFNoeRXTPx9BoSSUUpGcZpUdogY3A0UX6yMWybVc4UN6OCxPMeJyt+K1mZ0I/0tKiFBQ==
+warcio@^2.4.2:
+  version "2.4.2"
+  resolved "https://registry.yarnpkg.com/warcio/-/warcio-2.4.2.tgz#782d8dcb0769f271b0ae96521fb4969e2570e9b3"
+  integrity sha512-QYbZ3EGYtnAIrzL7Bajo7ak87pipilpkIfaFIzFQWUX4wuXNuKqnfQy/EAoi2tEIl3VJgsWcL+wjjk4+15MKbQ==
   dependencies:
     "@types/pako" "^1.0.7"
     "@types/stream-buffers" "^3.0.7"
