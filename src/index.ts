@@ -5,6 +5,8 @@ export {
   Rewriter,
 } from "./rewrite";
 
+export { removeRangeAsQuery, hasRangeAsQuery } from "./rewrite/dsruleset";
+
 export { ArchiveRequest } from "./request";
 
 export { ArchiveResponse } from "./response";

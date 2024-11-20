@@ -3764,6 +3764,20 @@ warcio@^2.4.0:
     uuid-random "^1.3.2"
     yargs "^17.7.2"
 
+warcio@^2.4.2:
+  version "2.4.2"
+  resolved "https://registry.yarnpkg.com/warcio/-/warcio-2.4.2.tgz#782d8dcb0769f271b0ae96521fb4969e2570e9b3"
+  integrity sha512-QYbZ3EGYtnAIrzL7Bajo7ak87pipilpkIfaFIzFQWUX4wuXNuKqnfQy/EAoi2tEIl3VJgsWcL+wjjk4+15MKbQ==
+  dependencies:
+    "@types/pako" "^1.0.7"
+    "@types/stream-buffers" "^3.0.7"
+    base32-encode "^2.0.0"
+    hash-wasm "^4.9.0"
+    pako "^1.0.11"
+    tempy "^3.1.0"
+    uuid-random "^1.3.2"
+    yargs "^17.7.2"
+
 watchpack@^2.4.0:
   version "2.4.0"
   resolved "https://registry.yarnpkg.com/watchpack/-/watchpack-2.4.0.tgz#fa33032374962c78113f93c7f2fb4c54c9862a5d"

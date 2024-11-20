@@ -6,7 +6,11 @@ import { decodeResponse } from "./decoder";
 
 import { rewriteDASH, rewriteHLS } from "./rewriteVideo";
 
-import { DomainSpecificRuleSet, HTML_ONLY_RULES } from "./dsruleset";
+import {
+  DomainSpecificRuleSet,
+  hasRangeAsQuery,
+  HTML_ONLY_RULES,
+} from "./dsruleset";
 
 import { RxRewriter } from "./rxrewriter";
 import { JSRewriter } from "./jsrewriter";
@@ -322,6 +326,26 @@ export class Rewriter {
         this.isCharsetUTF8 = true;
       }
       response.setText(text, this.isCharsetUTF8);
+    } else {
+      // check range-as-query
+      const result = hasRangeAsQuery(request.url);
+      if (result) {
+        const url = new URL(request.url);
+        const start = parseInt(url.searchParams.get(result.start) || "");
+        const end = parseInt(url.searchParams.get(result.end) || "");
+        if (!isNaN(start) && !isNaN(end)) {
+          const existingLen = Number(response.headers.get("Content-Length"));
+          const newLen = end - start + 1;
+          if (
+            existingLen !== newLen &&
+            (isNaN(existingLen) || existingLen > newLen) &&
+            response.setRawRange(start, end)
+          ) {
+            console.log("setting range", start, end, newLen);
+            response.headers.set("Content-Length", String(newLen));
+          }
+        }
+      }
     }
 
     return response;

@@ -1,4 +1,4 @@
-import { Rewriter } from "./rewrite/index";
+import { Rewriter } from "./rewrite";
 
 import {
   getTS,
