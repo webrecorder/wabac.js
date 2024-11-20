@@ -50,14 +50,8 @@ export const DEFAULT_RULES: Rules[] = [
   {
     contains: ["facebook.com/", "fbsbx.com/"],
     rxRules: [
-      //[/"dash_prefetch_experimental.*"playlist".*?(?=["][,]["]dash)/, ruleRewriteFBDash],
-      //[/\\u003C\?xml.*\\u003C\/MPD>/, ruleRewriteFBDash],
-      //[/<\?xml(.|\n)*<\/MPD>/, ruleRewriteFBDash],
       [/"dash_manifests.*?,"failure_reason":null}]/, ruleRewriteFBDash],
-      //[/"dash_manifests.*?,"failure_reason":null}]/, ruleReplace('"dash_manifests":[{"manifest_xml":null, "failure_reason":{"type":"NotEligibleForDash"}}]')],
-      //[/"dash_manifests.*?,"failure_reason":null}]/, ruleReplace('"dash_manifests":[{"manifest_xml":null, "failure_reason":{"type":"NotEligibleForDash"}}]')],
-      //[/"dash_manifest_urls.*?,"failure_reason":null}]/, ruleReplace('"dash_manifest_urls":[{"manifest_url":null, "failure_reason":{"type":"NotEligibleForDash"}}]')],
-
+      //[/"dash_/, ruleReplace('"__nodash__')],
       //[/_dash"/, ruleReplace('__nodash__"')],
       //[/_dash_/, ruleReplace("__nodash__")],
       [/"playlist/, ruleReplace('"__playlist__')],
