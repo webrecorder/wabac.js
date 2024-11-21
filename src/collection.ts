@@ -524,9 +524,8 @@ window.home = "${this.rootPrefix}";
       // @ts-expect-error [TODO] - TS4111 - Property 'pixelRatio' comes from an index signature, so it must be accessed with ['pixelRatio']. | TS4111 - Property 'pixelRatio' comes from an index signature, so it must be accessed with ['pixelRatio'].
       extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 1;
     // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const storage = extraOpts?.storage ? btoa(extraOpts.storage) : "";
+
+    const storage = extraOpts?.storage ? JSON.stringify(extraOpts.storage) : '""';
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
     return `
 <!-- WB Insert -->
@@ -569,7 +568,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   wbinfo.static_prefix = "${this.staticPrefix}";
   wbinfo.enable_auto_fetch = true;
   wbinfo.presetCookie = ${presetCookieStr};
-  wbinfo.storage = "${storage}";
+  wbinfo.storage = ${storage};
   wbinfo.isSW = true;
   wbinfo.injectDocClose = true;
   wbinfo.pixel_ratio = ${pixelRatio};
