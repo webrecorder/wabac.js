@@ -1,8 +1,8 @@
-import { type ArchiveResponse } from "../response";
+import { type WARCExtraOpts, type ArchiveResponse } from "../response";
 
 export type RwOpts = {
   response?: ArchiveResponse;
-  save?: { maxRes: number; maxBand: number; maxBitrate: number };
+  save?: WARCExtraOpts;
   prefix?: string;
   baseUrl?: string;
   isModule?: boolean | null;

@@ -24,6 +24,9 @@ export type WARCExtraOpts = {
   maxBand?: number;
 
   maxBitrate?: number;
+
+  cert?: { issuer: string; ctc: string };
+  ipType?: string;
 };
 
 type ArchiveResponseOpts = {
