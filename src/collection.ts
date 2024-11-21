@@ -526,8 +526,8 @@ window.home = "${this.rootPrefix}";
     // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
 
     const storage = extraOpts?.storage
-        // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
-      ? JSON.stringify(extraOpts.storage)
+      ? // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
+        JSON.stringify(extraOpts.storage)
       : '""';
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
     return `
