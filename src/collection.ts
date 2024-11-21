@@ -525,7 +525,9 @@ window.home = "${this.rootPrefix}";
       extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 1;
     // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
 
-    const storage = extraOpts?.storage ? JSON.stringify(extraOpts.storage) : '""';
+    const storage = extraOpts?.storage
+      ? JSON.stringify(extraOpts.storage)
+      : '""';
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
     return `
 <!-- WB Insert -->
