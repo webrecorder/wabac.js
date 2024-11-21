@@ -187,11 +187,11 @@ const DEFAULT_RULES = createJSRules();
 
 // ===========================================================================
 class JSRewriter extends RxRewriter {
-  extraRules: Rule[];
+  extraRules?: Rule[];
   firstBuff: string;
   lastBuff: string;
 
-  constructor(extraRules: Rule[]) {
+  constructor(extraRules?: Rule[]) {
     super();
     this.extraRules = extraRules;
 
@@ -305,8 +305,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     }
   }
 
-  override rewrite(text: string, opts?: RwOpts) {
-    opts = opts || {};
+  override rewrite(text: string, opts: RwOpts) {
     if (opts.isModule === undefined || opts.isModule === null) {
       opts.isModule = this.detectIsModule(text);
     }
@@ -317,7 +316,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       rules = [...rules, this.getESMImportRule()];
     }
 
-    if (this.extraRules.length) {
+    if (this.extraRules?.length) {
       this.rules = [...rules, ...this.extraRules];
     } else {
       this.rules = rules;

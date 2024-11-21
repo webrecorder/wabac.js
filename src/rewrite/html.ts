@@ -127,9 +127,8 @@ class HTMLRewriter {
     } else if (equiv === "refresh") {
       return attr.value.replace(
         META_REFRESH_REGEX,
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        (m, p1, p2, p3) => p1 + this.rewriteUrl(rewriter, p2) + p3,
+        (_m, p1: string, p2: string, p3: string) =>
+          p1 + this.rewriteUrl(rewriter, p2) + p3,
       );
     } else if (this.getAttr(attrs, "name") === "referrer") {
       return "no-referrer-when-downgrade";
@@ -148,8 +147,7 @@ class HTMLRewriter {
     for (const v of value.split(SRCSET_REGEX)) {
       if (v) {
         const parts = v.trim().split(" ");
-        // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
-        parts[0] = this.rewriteUrl(rewriter, parts[0]);
+        parts[0] = this.rewriteUrl(rewriter, parts[0] || "");
         rv.push(parts.join(" "));
       }
     }
@@ -219,9 +217,7 @@ class HTMLRewriter {
         try {
           // rewrite url, keeping relativeness intact
           attr.value = this.rewriter.updateBaseUrl(attr.value);
-          // [TODO]
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (e) {
+        } catch (_e) {
           console.warn("Invalid <base>: " + attr.value);
         }
       } else if (tagName === "script" && name === "src") {
@@ -230,12 +226,7 @@ class HTMLRewriter {
         const newValue = this.rewriteUrl(rewriter, attr.value, false, mod);
         if (newValue === attr.value) {
           tag.attrs.push({ name: "__wb_orig_src", value: attr.value });
-          if (
-            // [TODO]
-            // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-            attr.value &&
-            attr.value.startsWith("data:text/javascript;base64")
-          ) {
+          if (attr.value.startsWith("data:text/javascript;base64")) {
             attr.value = this.rewriteJSBase64(attr.value, rewriter);
           } else {
             attr.value = this.rewriteUrl(rewriter, attr.value, true, mod);
@@ -468,10 +459,8 @@ class HTMLRewriter {
     response.setReader(
       new ReadableStream({
         async start(controller) {
-          rwStream.on("data", (text) => {
+          rwStream.on("data", (text: string) => {
             controller.enqueue(
-              // [TODO]
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
               isCharsetUTF8 ? encoder.encode(text) : encodeLatin1(text),
             );
           });
@@ -513,8 +502,10 @@ class HTMLRewriter {
     if (this.rule && this.ruleMatch) {
       // todo: make more general if additional rules needed
       // for now, just replace the first match
-      // @ts-expect-error [TODO] - TS2769 - No overload matches this call.
-      const replacer = this.rule.replace.replace("$U1", this.ruleMatch[1]);
+      const replacer = this.rule.replace.replace(
+        "$U1",
+        this.ruleMatch[1] || "",
+      );
       const newText = text.replace(this.rule.match, replacer);
       if (text !== newText) {
         return newText;

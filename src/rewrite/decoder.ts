@@ -58,7 +58,7 @@ async function decodeContent(
 
   try {
     if (contentEncoding === "br") {
-      content = brotliDecode(content as Buffer);
+      content = brotliDecode(content as unknown as Buffer);
 
       // if ended up with zero-length, probably not valid, just use original
       if (content.length === 0) {

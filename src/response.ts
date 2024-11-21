@@ -22,6 +22,8 @@ export type WARCExtraOpts = {
 
   adaptive_max_bandwidth?: number;
   maxBand?: number;
+
+  maxBitrate?: number;
 };
 
 type ArchiveResponseOpts = {

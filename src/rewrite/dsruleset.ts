@@ -201,9 +201,7 @@ function ruleDisableMediaSourceTypeSupported() {
 }
 
 // ===========================================================================
-// [TODO]
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function setMaxBitrate(opts: any) {
+function setMaxBitrate(opts: RwOpts) {
   let maxBitrate = MAX_BITRATE;
   const extraOpts = opts.response?.extraOpts;
 
@@ -396,11 +394,7 @@ export class DomainSpecificRuleSet {
     this.rewriters = new Map();
 
     for (const rule of this.rwRules) {
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (rule.rxRules) {
-        this.rewriters.set(rule, new this.RewriterCls(rule.rxRules));
-      }
+      this.rewriters.set(rule, new this.RewriterCls(rule.rxRules));
     }
     this.defaultRewriter = new this.RewriterCls();
   }
