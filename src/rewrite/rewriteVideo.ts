@@ -1,4 +1,5 @@
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
+import { type RwOpts } from "./rxrewriter";
 
 // orig pywb defaults
 const OLD_DEFAULT_MAX_BAND = 2000000;
@@ -9,13 +10,10 @@ const DEFAULT_MAX_BAND = 1000000;
 const DEFAULT_MAX_RES = 860 * 480;
 
 // ===========================================================================
-// [TODO]
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getMaxResAndBand(opts: Record<string, any> = {}) {
+function getMaxResAndBand(opts: RwOpts) {
   // read opts from warc, if any
   let maxRes, maxBand;
 
-  // @ts-expect-error [TODO] - TS4111 - Property 'response' comes from an index signature, so it must be accessed with ['response'].
   const extraOpts = opts.response?.extraOpts;
 
   if (extraOpts) {
@@ -26,7 +24,6 @@ function getMaxResAndBand(opts: Record<string, any> = {}) {
     }
   }
 
-  // @ts-expect-error [TODO] - TS4111 - Property 'response' comes from an index signature, so it must be accessed with ['response']. | TS4111 - Property 'response' comes from an index signature, so it must be accessed with ['response'].
   const isReplay = opts.response && !opts.response.isLive;
   let res;
 
@@ -38,11 +35,8 @@ function getMaxResAndBand(opts: Record<string, any> = {}) {
     res = { maxRes: OLD_DEFAULT_MAX_RES, maxBand: OLD_DEFAULT_MAX_BAND };
   }
 
-  // @ts-expect-error [TODO] - TS4111 - Property 'save' comes from an index signature, so it must be accessed with ['save'].
   if (opts.save) {
-    // @ts-expect-error [TODO] - TS4111 - Property 'save' comes from an index signature, so it must be accessed with ['save'].
     opts.save.maxRes = res.maxRes;
-    // @ts-expect-error [TODO] - TS4111 - Property 'save' comes from an index signature, so it must be accessed with ['save'].
     opts.save.maxBand = res.maxBand;
   }
 
@@ -51,9 +45,7 @@ function getMaxResAndBand(opts: Record<string, any> = {}) {
 
 // ===========================================================================
 //HLS
-// [TODO]
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function rewriteHLS(text: string, opts: Record<string, any>) {
+export function rewriteHLS(text: string, opts: RwOpts) {
   const EXT_INF = /#EXT-X-STREAM-INF:(?:.*[,])?BANDWIDTH=([\d]+)/;
   const EXT_RESOLUTION = /RESOLUTION=([\d]+)x([\d]+)/;
 
@@ -72,9 +64,7 @@ export function rewriteHLS(text: string, opts: Record<string, any>) {
     const m = line.match(EXT_INF);
     if (!m) {
       // if has rewriteUrl (not-ajax), then rewrite HLS urls
-      // @ts-expect-error [TODO] - TS4111 - Property 'rewriteUrl' comes from an index signature, so it must be accessed with ['rewriteUrl'].
       if (opts.rewriteUrl && !line.startsWith("#")) {
-        // @ts-expect-error [TODO] - TS4111 - Property 'rewriteUrl' comes from an index signature, so it must be accessed with ['rewriteUrl'].
         lines[count] = opts.rewriteUrl(line);
       }
       count += 1;
@@ -124,16 +114,8 @@ export const xmlOpts = {
   suppressBooleanAttributes: false,
 };
 
-export function rewriteDASH(
-  text: string,
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  opts: Record<string, any>,
-  bestIds?: string[],
-) {
+export function rewriteDASH(text: string, opts: RwOpts, bestIds?: string[]) {
   try {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return _rewriteDASH(text, opts, bestIds);
   } catch (e) {
     console.log(e);
@@ -141,13 +123,7 @@ export function rewriteDASH(
   }
 }
 
-function _rewriteDASH(
-  text: string,
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  opts: Record<string, any>,
-  bestIds?: string[],
-) {
+function _rewriteDASH(text: string, opts: RwOpts, bestIds?: string[]) {
   const parser = new XMLParser(xmlOpts);
   const root = parser.parse(text);
 
@@ -157,7 +133,6 @@ function _rewriteDASH(
   let bestRes = 0;
   let bestBand = 0;
 
-  // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let adaptSets: any[];
 
@@ -172,7 +147,6 @@ function _rewriteDASH(
     bestRes = 0;
     bestBand = 0;
 
-    // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let reps: any[];
 
@@ -201,9 +175,7 @@ function _rewriteDASH(
     }
 
     if (best && Array.isArray(bestIds)) {
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      bestIds.push(best["@_id"]);
+      bestIds.push(best["@_id"] as string);
     }
 
     if (best) {
@@ -214,12 +186,10 @@ function _rewriteDASH(
   const toXML = new XMLBuilder(xmlOpts);
   const xml = toXML.build(root);
 
-  const xmlOutput = xml.trim();
+  const xmlOutput: string = xml.trim();
   if (!xmlOutput.slice(0, 5).toLowerCase().startsWith("<?xml")) {
     return "<?xml version='1.0' encoding='UTF-8'?>\n" + xmlOutput;
   } else {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return xmlOutput;
   }
 }

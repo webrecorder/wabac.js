@@ -1,4 +1,4 @@
-import { type Rule, RxRewriter } from "./rxrewriter";
+import { type Rule, type RwOpts, RxRewriter } from "./rxrewriter";
 import * as acorn from "acorn";
 
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
@@ -123,12 +123,9 @@ const createJSRules: () => Rule[] = () => {
   }
 
   function replaceImport(src: string, target: string) {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (x: string, opts: Record<string, any>) => {
+    return (x: string, opts: RwOpts) => {
       let res = x.replace(src, target);
       // if not module, add empty string, otherwise, import.meta.url
-      // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
       res += opts.isModule ? "import.meta.url, " : "null, ";
       return res;
     };
@@ -308,29 +305,19 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     }
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'RxRewriter'.
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewrite(text: string, opts: Record<string, any>) {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  override rewrite(text: string, opts?: RwOpts) {
     opts = opts || {};
-    // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule']. | TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
     if (opts.isModule === undefined || opts.isModule === null) {
-      // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
       opts.isModule = this.detectIsModule(text);
     }
 
     let rules = DEFAULT_RULES;
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
     if (opts.isModule) {
       rules = [...rules, this.getESMImportRule()];
     }
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
-    if (this.extraRules && this.extraRules.length) {
+    if (this.extraRules.length) {
       this.rules = [...rules, ...this.extraRules];
     } else {
       this.rules = rules;
@@ -340,17 +327,12 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     let newText = super.rewrite(text, opts);
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
     if (opts.isModule) {
-      // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) + newText;
+      return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix || "") + newText;
     }
 
     const wrapGlobals = GLOBALS_RX.exec(text);
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
     if (opts.inline) {
       newText = newText.replace(/\n/g, " ");
     }
@@ -367,7 +349,6 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
         }
       }
       newText = this.firstBuff + newText + hoistGlobals + this.lastBuff;
-      // @ts-expect-error [TODO] - TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
       if (opts.inline) {
         newText = newText.replace(/\n/g, " ");
       }

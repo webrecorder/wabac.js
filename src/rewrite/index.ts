@@ -12,7 +12,7 @@ import {
   HTML_ONLY_RULES,
 } from "./dsruleset";
 
-import { RxRewriter } from "./rxrewriter";
+import { type RwOpts, RxRewriter } from "./rxrewriter";
 import { JSRewriter } from "./jsrewriter";
 
 import { HTMLRewriter } from "./html";
@@ -61,8 +61,6 @@ type RewriterOpts = {
 
 export function getCustomRewriter(url: string, isHTML: boolean) {
   const rules = isHTML ? htmlRules : baseRules;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return rules.getCustomRewriter(url);
 }
 
@@ -252,17 +250,13 @@ export class Rewriter {
       );
     }
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const opts: any = {
+    const opts: RwOpts = {
       response,
       prefix: this.prefix,
       baseUrl: this.baseUrl,
     };
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let rwFunc: ((x: string, opts: any) => string) | null = null;
+    let rwFunc: ((x: string, opts: RwOpts) => string) | null = null;
 
     switch (rewriteMode) {
       case "html":
@@ -460,14 +454,9 @@ export class Rewriter {
   }
 
   // JS
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewriteJS(text: string, opts: Record<string, any>) {
+  rewriteJS(text: string, opts: RwOpts) {
     const noUrlProxyRewrite =
-      // @ts-expect-error [TODO] - TS4111 - Property 'rewriteUrl' comes from an index signature, so it must be accessed with ['rewriteUrl']. | TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule']. | TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      opts && !opts.rewriteUrl && opts.isModule === undefined && !opts.inline;
+      !opts.rewriteUrl && opts.isModule === undefined && !opts.inline;
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
 
@@ -476,22 +465,16 @@ export class Rewriter {
       return text;
     }
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return dsRewriter.rewrite(text, opts);
   }
 
   // JSON
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewriteJSON(text: string, opts: Record<string, any>) {
+  rewriteJSON(text: string, opts: RwOpts) {
     text = this.rewriteJSONP(text);
 
     const dsRewriter = baseRules.getRewriter(this.baseUrl);
 
     if (dsRewriter !== baseRules.defaultRewriter) {
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return dsRewriter.rewrite(text, opts);
     }
 

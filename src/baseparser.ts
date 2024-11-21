@@ -1,3 +1,4 @@
+import { type WARCExtraOpts } from "./response";
 import {
   type CollMetadata,
   type ArchiveLoader,
@@ -21,9 +22,7 @@ export type ResourceEntry = {
   payload?: Uint8Array | null;
   reader?: AsyncIterable<Uint8Array> | Iterable<Uint8Array> | null;
   referrer?: string | null;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extraOpts?: Record<string, any> | null;
+  extraOpts?: WARCExtraOpts | null;
   pageId?: string | null;
   origURL?: string | null;
   origTS?: number | null;

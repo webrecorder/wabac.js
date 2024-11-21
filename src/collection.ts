@@ -9,7 +9,7 @@ import {
   REPLAY_TOP_FRAME_NAME,
 } from "./utils";
 
-import { ArchiveResponse } from "./response";
+import { ArchiveResponse, type WARCExtraOpts } from "./response";
 
 import { getAdBlockCSSResponse } from "./adblockcss";
 import { notFoundByTypeResponse } from "./notfound";
@@ -495,9 +495,7 @@ window.home = "${this.rootPrefix}";
     setCookie: string | null,
     isLive: boolean,
     referrer: string,
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    extraOpts: Record<string, any> | null,
+    extraOpts?: WARCExtraOpts | null,
   ) {
     const coll = this.name;
 
@@ -521,13 +519,9 @@ window.home = "${this.rootPrefix}";
     }
 
     const pixelRatio =
-      // @ts-expect-error [TODO] - TS4111 - Property 'pixelRatio' comes from an index signature, so it must be accessed with ['pixelRatio']. | TS4111 - Property 'pixelRatio' comes from an index signature, so it must be accessed with ['pixelRatio'].
       extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 1;
-    // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
-
     const storage = extraOpts?.storage
-      ? // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
-        JSON.stringify(extraOpts.storage)
+      ? JSON.stringify(extraOpts.storage)
       : '""';
     const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
     return `

@@ -12,6 +12,18 @@ import { Buffer } from "buffer";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
+export type WARCExtraOpts = {
+  pixelRatio?: number;
+  storage?: string;
+  rewritten?: number;
+
+  adaptive_max_resolution?: number;
+  maxRes?: number;
+
+  adaptive_max_bandwidth?: number;
+  maxBand?: number;
+};
+
 type ArchiveResponseOpts = {
   payload: BaseAsyncIterReader | Uint8Array | null;
   status: number;
@@ -19,9 +31,7 @@ type ArchiveResponseOpts = {
   headers: Headers;
   url: string;
   date: Date;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extraOpts?: Record<string, any> | null;
+  extraOpts?: WARCExtraOpts | null;
   noRW?: boolean;
   isLive?: boolean;
   updateTS?: string | null;
@@ -127,9 +137,7 @@ class ArchiveResponse {
   statusText: string;
   url: string;
   date: Date;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extraOpts: Record<string, any> | null;
+  extraOpts: WARCExtraOpts | null;
   headers: Headers;
   noRW: boolean;
   isLive: boolean;

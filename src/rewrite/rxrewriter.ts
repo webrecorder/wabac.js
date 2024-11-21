@@ -1,8 +1,18 @@
+import { type ArchiveResponse } from "../response";
+
+export type RwOpts = {
+  response?: ArchiveResponse;
+  save?: { maxRes: number; maxBand: number };
+  prefix?: string;
+  baseUrl?: string;
+  isModule?: boolean | null;
+  inline?: boolean;
+  rewriteUrl?: (x: string) => string;
+};
+
 export type Rule = [
   RegExp,
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (x: string, opts: Record<string, any>, offset: number, str: string) => string,
+  (x: string, opts: RwOpts, offset: number, str: string) => string,
 ];
 
 // ===========================================================================
@@ -36,22 +46,18 @@ export class RxRewriter {
     this.rx = new RegExp(rxString, "gm");
   }
 
-  // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  doReplace(match: string, params: any[], opts: Record<string, any>) {
-    const offset = params[params.length - 2];
-    const str = params[params.length - 1];
+  doReplace(match: string, params: any[], opts: RwOpts) {
+    const offset = params[params.length - 2] as number;
+    const str = params[params.length - 1] as string;
 
     for (let i = 0; i < this.rules!.length; i++) {
-      const curr = params[i];
+      const curr = params[i] as string;
       if (!curr) {
         continue;
       }
 
-      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      const result = this.rules![i][1].call(this, curr, opts, offset, str);
+      const result = this.rules![i]![1].call(this, curr, opts, offset, str);
       if (result) {
         return result;
       }
@@ -63,14 +69,13 @@ export class RxRewriter {
     return match;
   }
 
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewrite(text: string, opts: Record<string, any>) {
+  rewrite(text: string, opts: RwOpts) {
     if (!this.rx) {
       return text;
     }
 
-    return text.replace(this.rx, (match, ...params) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return text.replace(this.rx, (match, ...params: any[]) =>
       this.doReplace(match, params, opts),
     );
   }

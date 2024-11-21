@@ -1,11 +1,11 @@
 import { rewriteDASH } from "./rewriteVideo";
-import { type RxRewriter, type Rule } from "./rxrewriter";
+import { type RxRewriter, type Rule, type RwOpts } from "./rxrewriter";
 
 //import unescapeJs from "unescape-js";
 const MAX_BITRATE = 5000000;
 
 type Rules = {
-  contains: string[];
+  contains?: string[];
   rxRules: Rule[];
 };
 
@@ -168,8 +168,7 @@ export function removeRangeAsQuery(url: string) {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function ruleRewriteFBDash(text: string, opts: Record<string, any>) {
+export function ruleRewriteFBDash(text: string, opts: RwOpts) {
   const START_TAG = "\\u003C?xml";
   const END_TAG = "/MPD>";
 
@@ -219,9 +218,7 @@ function setMaxBitrate(opts: any) {
 
 // ===========================================================================
 function ruleRewriteTwitterVideo(prefix: string) {
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (str: string, opts: Record<string, any>) => {
+  return (str: string, opts: RwOpts) => {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!opts) {
@@ -313,11 +310,7 @@ function ruleRewriteVimeoConfig(str: string) {
 }
 
 // ===========================================================================
-// [TODO]
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ruleRewriteVimeoDashManifest(str: string, opts: Record<string, any>) {
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+function ruleRewriteVimeoDashManifest(str: string, opts?: RwOpts) {
   if (!opts) {
     return str;
   }
@@ -330,7 +323,6 @@ function ruleRewriteVimeoDashManifest(str: string, opts: Record<string, any>) {
 
   try {
     vimeoManifest = JSON.parse(str);
-    console.log("manifest", vimeoManifest);
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
@@ -413,10 +405,8 @@ export class DomainSpecificRuleSet {
     this.defaultRewriter = new this.RewriterCls();
   }
 
-  getCustomRewriter(url: string) {
+  getCustomRewriter(url: string): RxRewriter | null {
     for (const rule of this.rwRules) {
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!rule.contains) {
         continue;
       }
@@ -436,9 +426,7 @@ export class DomainSpecificRuleSet {
     return null;
   }
 
-  getRewriter(url: string) {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  getRewriter(url: string): RxRewriter {
     return this.getCustomRewriter(url) || this.defaultRewriter;
   }
 }

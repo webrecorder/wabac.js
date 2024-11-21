@@ -440,12 +440,8 @@ class HTMLRewriter {
           isTextEmpty = isTextEmpty && textToken.text.trim().length === 0;
 
           if (scriptRw === "js" || isModule) {
-            // [TODO]
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return rewriter.rewriteJS(textToken.text, { isModule, prefix });
           } else if (scriptRw === "json") {
-            // [TODO]
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return rewriter.rewriteJSON(textToken.text, { prefix });
           } else if (scriptRw === "importmap") {
             return rewriter.rewriteImportmap(textToken.text);
@@ -460,8 +456,6 @@ class HTMLRewriter {
       })();
 
       for (let i = 0; i < text.length; i += MAX_STREAM_CHUNK_SIZE) {
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         rwStream.emitRaw(text.slice(i, i + MAX_STREAM_CHUNK_SIZE));
       }
     });
@@ -531,10 +525,9 @@ class HTMLRewriter {
 
   rewriteJSBase64(text: string, rewriter: Rewriter) {
     const parts = text.split(",");
-    // @ts-expect-error [TODO] - TS2769 - No overload matches this call.
-    const content = rewriter.rewriteJS(atob(parts[1]), { isModule: false });
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const content = rewriter.rewriteJS(atob(parts[1] || ""), {
+      isModule: false,
+    });
     parts[1] = btoa(content);
     return parts.join(",");
   }

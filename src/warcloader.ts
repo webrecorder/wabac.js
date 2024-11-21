@@ -408,9 +408,7 @@ class WARCLoader extends BaseParser {
     if (extraMetadata) {
       try {
         entry.extraOpts = JSON.parse(extraMetadata);
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
+      } catch (_e) {
         // ignore error on extraOpts
       }
     }

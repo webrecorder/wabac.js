@@ -1,6 +1,6 @@
 import { type BaseAsyncIterReader } from "warcio";
 import { type ArchiveRequest } from "./request";
-import { type ArchiveResponse } from "./response";
+import { type WARCExtraOpts, type ArchiveResponse } from "./response";
 import { type BlockLoaderExtra } from "./blockloaders";
 
 export type Source = {
@@ -24,9 +24,7 @@ export type ResourceEntry = {
   payload?: Uint8Array | null;
   reader?: BaseAsyncIterReader | null;
   referrer?: string | null;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extraOpts?: Record<string, any> | null;
+  extraOpts?: WARCExtraOpts | null;
   pageId?: string | null;
   origURL?: string | null;
   origTS?: number | null;
