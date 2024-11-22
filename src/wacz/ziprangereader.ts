@@ -427,7 +427,6 @@ export class ZipRangeReader {
 export class ZipBlockLoader extends BaseLoader {
   zipreader: ZipRangeReader;
   filename: string;
-  size = 0;
 
   constructor(zipreader: ZipRangeReader, filename: string) {
     super(true);
@@ -442,7 +441,7 @@ export class ZipBlockLoader extends BaseLoader {
   async doInitialFetch(tryHead = false) {
     await this.zipreader.load();
 
-    this.size = this.zipreader.getCompressedSize(this.filename);
+    this.length = this.zipreader.getCompressedSize(this.filename);
 
     let stream: ReadableStream<Uint8Array> | null = null;
 
@@ -459,13 +458,11 @@ export class ZipBlockLoader extends BaseLoader {
   }
 
   async getLength() {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (this.size === null) {
+    if (this.length === null) {
       await this.doInitialFetch(true);
     }
 
-    return this.size;
+    return this.length || 0;
   }
 
   async getRange(
