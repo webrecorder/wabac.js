@@ -354,6 +354,13 @@ export class Rewriter {
     // set internal base to full url
     this.baseUrl = new URL(url, this.baseUrl).href;
 
+    if (this.baseUrl.startsWith(self.location.origin)) {
+      const inx = this.baseUrl.indexOf("/http");
+      if (inx >= 0) {
+        this.baseUrl = this.baseUrl.slice(inx + 1);
+      }
+    }
+
     // not an absolute url, ensure it has slash
     if (url && this.baseUrl != url) {
       try {

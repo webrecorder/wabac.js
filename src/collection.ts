@@ -269,8 +269,11 @@ export class Collection {
       response.setRange(range);
     }
 
+    const ct = response.headers.get("content-type");
+
     const deleteDisposition =
-      request.destination === "iframe" || request.destination === "document";
+      !ct?.startsWith("application/") &&
+      (request.destination === "iframe" || request.destination === "document");
     return response.makeResponse(this.coHeaders, deleteDisposition);
   }
 
