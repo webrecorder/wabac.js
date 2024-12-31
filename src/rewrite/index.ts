@@ -78,6 +78,7 @@ export class Rewriter {
   decode: boolean;
 
   prefix: string;
+  originPrefix = "";
   relPrefix = "";
   schemeRelPrefix = "";
   scheme: string;
@@ -109,6 +110,7 @@ export class Rewriter {
     this.prefix = prefix || "";
     if (this.prefix && urlRewrite) {
       const parsed = new URL(this.prefix);
+      this.originPrefix = parsed.origin;
       this.relPrefix = parsed.pathname;
       this.schemeRelPrefix = this.prefix.slice(parsed.protocol.length);
     }
@@ -351,6 +353,14 @@ export class Rewriter {
   }
 
   updateBaseUrl(url: string) {
+    // if already rewritten, unrewrite first
+    if (this.originPrefix && url.startsWith(this.originPrefix)) {
+      const inx = url.indexOf("/http");
+      if (inx >= 0) {
+        url = url.slice(inx + 1);
+      }
+    }
+
     // set internal base to full url
     this.baseUrl = new URL(url, this.baseUrl).href;
 
