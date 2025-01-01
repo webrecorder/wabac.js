@@ -482,9 +482,10 @@ class HTMLRewriter {
           rwStream.on("data", (text) => {
             controller.enqueue(
               // [TODO]
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
               htmlrewriter.isCharsetUTF8
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                 ? encoder.encode(text)
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
                 : encodeLatin1(text),
             );
           });
