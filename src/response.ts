@@ -6,6 +6,7 @@ import {
   MAX_STREAM_CHUNK_SIZE,
   tsToDate,
   getStatusText,
+  INITIAL_STREAM_CHUNK_SIZE,
 } from "./utils";
 import { Buffer } from "buffer";
 
@@ -251,7 +252,12 @@ class ArchiveResponse {
 
     async function* iter() {
       if (buffer) {
-        for (let i = 0; i < buffer.length; i += MAX_STREAM_CHUNK_SIZE) {
+        let i = 0;
+
+        yield buffer.slice(0, i + INITIAL_STREAM_CHUNK_SIZE);
+        i += INITIAL_STREAM_CHUNK_SIZE;
+
+        for (i; i < buffer.length; i += MAX_STREAM_CHUNK_SIZE) {
           yield buffer.slice(i, i + MAX_STREAM_CHUNK_SIZE);
         }
       } else if (reader) {
