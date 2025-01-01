@@ -211,6 +211,10 @@ class HTMLRewriter {
         attr.name = "_" + attr.name;
       } else if (tagName === "meta" && name === "content") {
         attr.value = this.rewriteMetaContent(tag.attrs, attr, rewriter);
+      } else if (tagName === "meta" && name === "charset") {
+        if (value && ["utf8", "utf-8"].includes(value.toLowerCase())) {
+          this.isCharsetUTF8 = true;
+        }
       } else if (tagName === "param" && isUrl(value)) {
         attr.value = this.rewriteUrl(rewriter, attr.value);
       } else if (name.startsWith("data-") && isUrl(value)) {
@@ -469,7 +473,8 @@ class HTMLRewriter {
     const sourceGen = response.createIter();
     let hasData = false;
 
-    const isCharsetUTF8 = this.isCharsetUTF8;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const htmlrewriter = this;
 
     response.setReader(
       new ReadableStream({
@@ -477,8 +482,11 @@ class HTMLRewriter {
           rwStream.on("data", (text) => {
             controller.enqueue(
               // [TODO]
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-              isCharsetUTF8 ? encoder.encode(text) : encodeLatin1(text),
+              htmlrewriter.isCharsetUTF8
+                ? // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                  encoder.encode(text)
+                : // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                  encodeLatin1(text),
             );
           });
 
@@ -487,7 +495,7 @@ class HTMLRewriter {
           });
 
           for await (const chunk of sourceGen) {
-            if (isCharsetUTF8) {
+            if (htmlrewriter.isCharsetUTF8) {
               rwStream.write(decoder.decode(chunk), "utf8");
             } else {
               rwStream.write(decodeLatin1(chunk), "latin1");
