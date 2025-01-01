@@ -483,10 +483,10 @@ class HTMLRewriter {
             controller.enqueue(
               // [TODO]
               htmlrewriter.isCharsetUTF8
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                ? encoder.encode(text)
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                : encodeLatin1(text),
+                ? // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                  encoder.encode(text)
+                : // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                  encodeLatin1(text),
             );
           });
 
