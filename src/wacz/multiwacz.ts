@@ -1073,7 +1073,7 @@ export class MultiWACZ
       }
       // @ts-expect-error [TODO] - TS2345 - Argument of type '{ waczname: string; }' is not assignable to parameter of type 'Opts'.
       resp = await super.getResource(request, prefix, event, { waczname });
-      if (resp) {
+      if (resp && resp.url === request.url) {
         return resp;
       }
     }
