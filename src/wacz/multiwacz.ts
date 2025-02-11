@@ -917,7 +917,7 @@ export class MultiWACZ
     path,
     parent,
     loader = null,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }: WACZFileInitOptions & { name: string }): Promise<Record<string, any>> {
     const waczname = name || path || "";
 
@@ -1240,8 +1240,12 @@ export class MultiWACZ
     }
   }
 
+   
+  async queryPages(
+    urlPrefix: string,
+    limit = 25,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async queryPages(urlPrefix: string, limit = 25) : Promise<Record<string, any>[]> {
+  ): Promise<Record<string, any>[]> {
     const params = new URLSearchParams();
     params.set("urlPrefix", urlPrefix);
     params.set("pageSize", limit + "");
@@ -1262,7 +1266,7 @@ export class MultiWACZ
       if (file) {
         x.waczhash = file.hash;
       }
-      if (typeof(x.ts) === "string") {
+      if (typeof x.ts === "string") {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         x.ts = new Date(x.ts).getTime();
       }

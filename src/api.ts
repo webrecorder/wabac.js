@@ -303,6 +303,7 @@ class API {
           // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
           const limit = Number(params._query.get("limit")) || 25;
           if (q) {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             const pages = await coll.store.queryPages(q, limit);
             return { pages };
           }
