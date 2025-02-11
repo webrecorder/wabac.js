@@ -1,6 +1,7 @@
 import { Path } from "path-parser";
 import { getCollData } from "./utils";
 import { type SWCollections } from "./swmain";
+import { MultiWACZ } from "./wacz/multiwacz";
 
 // [TODO]
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -126,6 +127,9 @@ class API {
             data.pages = await coll.store.getAllPages();
             data.lists = await coll.store.db.getAll("pageLists");
             data.curatedPages = await coll.store.db.getAll("curatedPages");
+            if (coll.store instanceof MultiWACZ) {
+              data.hasPagesQuery = !!coll.store.pagesQuery;
+            }
           } else {
             data.pages = [];
             data.lists = [];

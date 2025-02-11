@@ -57,7 +57,7 @@ export class WACZFile implements WACZLoadSource {
   parent: WACZLoadSource | null;
   fileType: WACZType;
   indexType: IndexType;
-  // [TODO]
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   entries: Record<string, any> | null;
   nonSurt: boolean;
@@ -149,7 +149,6 @@ export class WACZFile implements WACZLoadSource {
     };
   }
 
-  // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async save(db: any, always = false) {
     const zipreader = this.zipreader;
