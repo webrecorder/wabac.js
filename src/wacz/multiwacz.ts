@@ -1240,6 +1240,40 @@ export class MultiWACZ
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async queryPages(urlPrefix: string, limit = 25) : Promise<Record<string, any>[]> {
+    const params = new URLSearchParams();
+    params.set("urlPrefix", urlPrefix);
+    params.set("pageSize", limit + "");
+    const res = await fetch(this.pagesQuery + "?" + params.toString(), {
+      headers: this.sourceLoader?.headers,
+    });
+    if (res.status !== 200) {
+      return [];
+    }
+    const json = await res.json();
+    if (!json) {
+      return [];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pages = json.items.map((x: any) => {
+      x.wacz = x.filename;
+      const file = this.waczfiles[x.filename];
+      if (file) {
+        x.waczhash = file.hash;
+      }
+      if (typeof(x.ts) === "string") {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        x.ts = new Date(x.ts).getTime();
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return x;
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return pages;
+  }
+
   async getWACZFilesForPagesQuery(requestUrl: string) {
     const params = new URLSearchParams();
     const url = new URL(requestUrl);

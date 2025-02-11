@@ -297,6 +297,16 @@ class API {
         if (!coll) {
           return { error: "collection_not_found" };
         }
+        if (coll.store instanceof MultiWACZ) {
+          // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
+          const q = params._query.get("q");
+          // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
+          const limit = Number(params._query.get("limit")) || 25;
+          if (q) {
+            const pages = await coll.store.queryPages(q, limit);
+            return { pages };
+          }
+        }
         const pages = await coll.store.getAllPages();
         return { pages };
       }
