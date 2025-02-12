@@ -1263,7 +1263,7 @@ export class MultiWACZ
     page = 1,
     pageSize = 25,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ): Promise<Record<string, any>[]> {
+  ): Promise<{pages: Record<string, any>[], total: number}> {
     const params = new URLSearchParams();
     params.set("search", search);
     params.set("page", page + "");
@@ -1272,14 +1272,17 @@ export class MultiWACZ
       headers: this.sourceLoader?.headers,
     });
     if (res.status !== 200) {
-      return [];
+      return {pages: [], total: 0};
     }
     const json = await res.json();
     if (!json) {
-      return [];
+      return {pages: [], total: 0};
     }
+
+    const total = json.total;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pages = json.items.map((x: any) => {
+    const pages : Record<string, any>[] = json.items.map((x: any) => {
       x.wacz = x.filename;
       const file = this.waczfiles[x.filename];
       if (file) {
@@ -1293,8 +1296,7 @@ export class MultiWACZ
       return x;
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return pages;
+    return {pages, total};
   }
 
   async getWACZFilesToTry(request: ArchiveRequest, waczname: string | null) {

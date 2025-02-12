@@ -306,8 +306,8 @@ class API {
           const pageSize = Number(params._query.get("pageSize")) || 25;
           if (q) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            const pages = await coll.store.queryPages(q, page, pageSize);
-            return { pages };
+            const { pages, total } = await coll.store.queryPages(q, page, pageSize);
+            return { pages, total };
           }
         }
         const pages = await coll.store.getAllPages();
