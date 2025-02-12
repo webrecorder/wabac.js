@@ -305,8 +305,8 @@ class API {
           // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
           const pageSize = Number(params._query.get("pageSize")) || 25;
           if (search) {
-             
             const { pages, total } = await coll.store.queryPages(
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
               search,
               page,
               pageSize,

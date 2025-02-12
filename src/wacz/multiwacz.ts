@@ -1046,8 +1046,8 @@ export class MultiWACZ
         waczhash,
       });
       if (isSeed) {
-         
         const set: Set<string> =
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           this.seedPageWACZs.get(crawl_id) || new Set<string>();
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         set.add(filename);
