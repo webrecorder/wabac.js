@@ -58,6 +58,12 @@ export type IDXLine = {
   loaded: boolean;
 };
 
+export type AlwaysLoadData = {
+  wacz: string;
+  crawlId: string;
+  hasPages: boolean;
+}
+
 interface MDBType extends ADBType {
   ziplines: {
     key: [string, string];
@@ -94,6 +100,9 @@ export class MultiWACZ
   fuzzyUrlRules: { match: RegExp; replace: any }[];
 
   pagesQuery = "";
+
+  alwaysLoadNoPages: string[] = [];
+  alwaysLoadByCrawl: Map<string, string[]> = new Map<string, string[]>();
 
   constructor(
     config: WACZCollConfig,
@@ -915,6 +924,7 @@ export class MultiWACZ
     name,
     hash,
     path,
+    crawlId,
     parent,
     loader = null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -923,7 +933,7 @@ export class MultiWACZ
 
     hash = await this.computeFileHash(waczname, hash);
 
-    const file = this.addWACZFile({ waczname, hash, path, parent, loader });
+    const file = this.addWACZFile({ waczname, hash, crawlId, path, parent, loader });
 
     if (!this.pagesQuery) {
       await file.init();
@@ -964,17 +974,18 @@ export class MultiWACZ
 
     // @ts-expect-error [TODO] - TS4111 - Property 'resources' comes from an index signature, so it must be accessed with ['resources'].
     const files = json.resources.map(
-      (res: { path: string; name: string; hash: string }) => {
+      (res: { path: string; name: string; hash: string, crawlId?: string }) => {
         const path = parent.getLoadPath(res.path);
-        const name = parent.getName(res.name).split("/")[1];
+        const name = parent.getName(res.name);
         const hash = res.hash;
-        return { name, hash, path };
+        const crawlId = res.crawlId;
+        return { name, hash, path, crawlId };
       },
     );
 
-    for (const { name, hash, path } of files) {
+    for (const { name, hash, path, crawlId } of files) {
       if (!this.waczfiles[name]) {
-        promises.push(this.addNewWACZ({ name, hash, path, parent }));
+        promises.push(this.addNewWACZ({ name, hash, path, parent, crawlId }));
       } else if (this.waczfiles[name].path !== path) {
         // [TODO]
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -986,9 +997,25 @@ export class MultiWACZ
       await Promise.allSettled(promises);
     }
 
+    if (json["alwaysLoad"]) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      this.initAlwaysLoadData(json["alwaysLoad"]);
+    }
+
     if (json["pages"]) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await this.addInitialPages(json["pages"]);
+    }
+  }
+
+  initAlwaysLoadData(alwaysLoad: AlwaysLoadData[]) {
+    for (const {wacz, crawlId, hasPages} of alwaysLoad) {
+      if (!hasPages) {
+        this.alwaysLoadNoPages.push(wacz);
+      }
+      if (crawlId) {
+        this.alwaysLoadByCrawl.set(crawlId, [wacz]);
+      }
     }
   }
 
@@ -1134,29 +1161,20 @@ export class MultiWACZ
       }
     }
 
-    const foundMap = new Map();
+    const waczFilesToTry: string[] = await this.getWACZFilesToTry(request, waczname);
 
-    let waczFilesToTry: Record<string, WACZFile> | null = null;
-
-    if (this.pagesQuery) {
-      if (
-        request.destination === "document" ||
-        request.destination === "iframe"
-      ) {
-        const res = await this.getWACZFilesForPagesQuery(request.url);
-        if (res) {
-          waczFilesToTry = res;
-        }
-      }
-    } else {
-      waczFilesToTry = this.waczfiles;
-    }
-
-    if (!waczFilesToTry) {
+    if (!waczFilesToTry.length) {
       return null;
     }
 
-    for (const [name, file] of Object.entries(waczFilesToTry)) {
+    const foundMap = new Map();
+
+    for (const name of waczFilesToTry) {
+      const file = this.waczfiles[name];
+      if (!file) {
+        continue;
+      }
+
       if (file.fileType !== WACZ_LEAF) {
         continue;
       }
@@ -1239,16 +1257,17 @@ export class MultiWACZ
       return await handleAuthNeeded(e, this.config);
     }
   }
-
    
   async queryPages(
-    urlPrefix: string,
-    limit = 25,
+    search: string,
+    page = 1,
+    pageSize = 25,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<Record<string, any>[]> {
     const params = new URLSearchParams();
-    params.set("urlPrefix", urlPrefix);
-    params.set("pageSize", limit + "");
+    params.set("search", search);
+    params.set("page", page + "");
+    params.set("pageSize", pageSize + "");
     const res = await fetch(this.pagesQuery + "?" + params.toString(), {
       headers: this.sourceLoader?.headers,
     });
@@ -1278,7 +1297,46 @@ export class MultiWACZ
     return pages;
   }
 
-  async getWACZFilesForPagesQuery(requestUrl: string) {
+  async getWACZFilesToTry(request: ArchiveRequest, waczname: string | null) {
+    let names : string[] = [];
+
+    // always try WACZ files with no pages
+    if (this.alwaysLoadNoPages.length) {
+      names = [...this.alwaysLoadNoPages];
+    }
+
+    // if top-level doc, and has page query, query for which WACZ files should be tried
+    if (this.pagesQuery && (
+      request.destination === "document" ||
+      request.destination === "iframe"
+    )) {
+      const res = await this.getWACZFilesForPagesQuery(request.url);
+      if (res) {
+        names = [...names, ...res];
+        return names;
+      }
+    }
+
+    // if already has a WACZ files, try others from same crawl
+    if (waczname) {
+      const file = this.waczfiles[waczname];
+      if (file?.crawlId) {
+        const res = this.alwaysLoadByCrawl.get(file.crawlId);
+        if (res) {
+          names = [...names, ...res];
+        }
+      }
+    }
+
+    // finally if 3 or less WACZ files, just try all of them
+    if (!names.length && Object.keys(this.waczfiles).length <= 3) {
+      names = Object.keys(this.waczfiles);
+    }
+
+    return names;
+  }
+
+  async getWACZFilesForPagesQuery(requestUrl: string) : Promise<string[] | null> {
     const params = new URLSearchParams();
     const url = new URL(requestUrl);
     url.search = "";
@@ -1295,13 +1353,9 @@ export class MultiWACZ
     if (!json) {
       return null;
     }
-    const selectFiles: Record<string, WACZFile> = {};
-    json.items.forEach((x: { filename: string }) => {
-      const file = this.waczfiles[x.filename];
-      if (file) {
-        selectFiles[x.filename] = file;
-      }
-    });
+    const items: {filename: string}[] = json.items;
+    const selectFiles = items.map((x: {filename: string}) => x.filename);
+
     return selectFiles;
   }
 

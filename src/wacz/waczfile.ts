@@ -35,6 +35,7 @@ export type WACZFileInitOptions = {
   path?: string;
   parent?: WACZLoadSource | null;
   fileType?: WACZType;
+  crawlId?: string;
   indexType?: IndexType;
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,13 +48,14 @@ export type WACZFileInitOptions = {
 export type WACZFileOptions = WACZFileInitOptions & {
   waczname: string;
   hash: string;
-};
+}
 
 // ==========================================================================
 export class WACZFile implements WACZLoadSource {
   waczname?: string;
   hash?: string;
   path?: string;
+  crawlId?: string;
   parent: WACZLoadSource | null;
   fileType: WACZType;
   indexType: IndexType;
@@ -74,6 +76,7 @@ export class WACZFile implements WACZLoadSource {
     indexType = INDEX_NOT_LOADED,
     nonSurt = false,
     loader = null,
+    crawlId,
   }: WACZFileInitOptions) {
     this.waczname = waczname;
     this.hash = hash;
@@ -85,6 +88,7 @@ export class WACZFile implements WACZLoadSource {
     this.indexType = indexType;
     this.fileType = fileType;
     this.nonSurt = nonSurt;
+    this.crawlId = crawlId;
   }
 
   markAsMultiWACZ() {
@@ -143,6 +147,7 @@ export class WACZFile implements WACZLoadSource {
       waczname: this.waczname,
       hash: this.hash,
       path: this.path,
+      crawlId: this.crawlId,
       entries: this.entries,
       indexType: this.indexType,
       nonSurt: this.nonSurt,
