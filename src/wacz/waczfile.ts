@@ -48,7 +48,7 @@ export type WACZFileInitOptions = {
 export type WACZFileOptions = WACZFileInitOptions & {
   waczname: string;
   hash: string;
-}
+};
 
 // ==========================================================================
 export class WACZFile implements WACZLoadSource {

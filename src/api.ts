@@ -128,7 +128,7 @@ class API {
             data.lists = await coll.store.db.getAll("pageLists");
             data.curatedPages = await coll.store.db.getAll("curatedPages");
             if (coll.store instanceof MultiWACZ) {
-              data.hasPagesQuery = !!coll.store.pagesQuery;
+              data.canQueryPages = !!coll.store.pagesQueryUrl;
             }
           } else {
             data.pages = [];
@@ -299,14 +299,18 @@ class API {
         }
         if (coll.store instanceof MultiWACZ) {
           // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
-          const q = params._query.get("q");
+          const search = params._query.get("search");
           // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
           const page = Number(params._query.get("page")) || 1;
           // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
           const pageSize = Number(params._query.get("pageSize")) || 25;
-          if (q) {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            const { pages, total } = await coll.store.queryPages(q, page, pageSize);
+          if (search) {
+             
+            const { pages, total } = await coll.store.queryPages(
+              search,
+              page,
+              pageSize,
+            );
             return { pages, total };
           }
         }
