@@ -1058,6 +1058,7 @@ export class MultiWACZ
         favIconUrl,
         wacz: filename,
         waczhash,
+        isSeed
       });
       if (isSeed) {
         const set: Set<string> =

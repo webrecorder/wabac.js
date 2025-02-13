@@ -63,6 +63,7 @@ export type PageEntry = {
   favIconUrl?: string;
   wacz?: string;
   waczhash?: string;
+  isSeed?: boolean;
 
   pos?: number;
   // [TODO]
