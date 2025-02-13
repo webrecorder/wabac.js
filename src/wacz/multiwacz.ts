@@ -100,6 +100,8 @@ export class MultiWACZ
 
   pagesQueryUrl = "";
 
+  totalPages?: number = undefined;
+
   preloadResources: string[] = [];
   seedPageWACZs: Map<string, Set<string>> = new Map<string, Set<string>>();
 
@@ -959,7 +961,7 @@ export class MultiWACZ
   async loadWACZFiles(
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    json: { resources: any; seedPages: any; preloadResources: any },
+    json: { resources: any; initialPages: any; preloadResources: any, totalPages: number },
     parent: WACZLoadSource = this,
   ) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1009,14 +1011,18 @@ export class MultiWACZ
       }
     }
 
-    if (json.seedPages) {
+    if (json.initialPages) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      await this.addSeedPages(json.seedPages);
+      await this.addInitialPages(json.initialPages);
+    }
+
+    if (!isNaN(json.totalPages)) {
+      this.totalPages = json.totalPages;
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async addSeedPages(pagesImport: Record<string, any>[]) {
+  async addInitialPages(pagesImport: Record<string, any>[]) {
     const pages: PageEntry[] = [];
     for (const {
       id,
