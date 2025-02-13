@@ -960,8 +960,16 @@ export class MultiWACZ
 
   async loadWACZFiles(
     // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    json: { resources: any; initialPages: any; preloadResources: any, totalPages: number },
+
+    json: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      resources: any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      initialPages: any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      preloadResources: any;
+      totalPages: number;
+    },
     parent: WACZLoadSource = this,
   ) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
