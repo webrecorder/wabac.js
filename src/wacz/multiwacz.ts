@@ -1275,13 +1275,15 @@ export class MultiWACZ
   }
 
   async queryPages(
-    search: string,
+    search = "",
     page = 1,
     pageSize = 25,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<{ pages: Record<string, any>[]; total: number }> {
     const params = new URLSearchParams();
-    params.set("search", search);
+    if (search) {
+      params.set("search", search);
+    }
     params.set("page", page + "");
     params.set("pageSize", pageSize + "");
     const res = await fetch(this.pagesQueryUrl + "?" + params.toString(), {
