@@ -57,6 +57,14 @@ export type PageEntry = {
 
   timestamp?: string;
 
+  mime?: string;
+  depth?: number;
+  status?: number;
+  favIconUrl?: string;
+  wacz?: string;
+  waczhash?: string;
+  isSeed?: boolean;
+
   pos?: number;
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

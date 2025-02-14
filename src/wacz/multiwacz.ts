@@ -38,7 +38,11 @@ import {
 import { type ArchiveResponse } from "../response";
 import { type ArchiveRequest } from "../request";
 import { type LoadWACZEntry } from "./ziprangereader";
-import { type RemoteResourceEntry, type WACZCollConfig } from "../types";
+import {
+  type PageEntry,
+  type RemoteResourceEntry,
+  type WACZCollConfig,
+} from "../types";
 
 const MAX_BLOCKS = 3;
 
@@ -52,6 +56,11 @@ export type IDXLine = {
   length: number;
   digest?: string;
   loaded: boolean;
+};
+
+export type PreloadResources = {
+  name: string;
+  crawlId: string;
 };
 
 interface MDBType extends ADBType {
@@ -88,6 +97,13 @@ export class MultiWACZ
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fuzzyUrlRules: { match: RegExp; replace: any }[];
+
+  pagesQueryUrl = "";
+
+  totalPages?: number = undefined;
+
+  preloadResources: string[] = [];
+  seedPageWACZs: Map<string, Set<string>> = new Map<string, Set<string>>();
 
   constructor(
     config: WACZCollConfig,
@@ -218,9 +234,10 @@ export class MultiWACZ
   }
 
   addWACZFile(file: WACZFileOptions) {
-    this.waczfiles[file.waczname] = new WACZFile(file);
+    const waczfile = new WACZFile(file);
+    this.waczfiles[file.waczname] = waczfile;
     this.waczNameForHash[file.hash] = file.waczname;
-    return this.waczfiles[file.waczname];
+    return waczfile;
   }
 
   override async init() {
@@ -408,6 +425,10 @@ export class MultiWACZ
   async loadIndex(waczname: string) {
     if (!this.waczfiles[waczname]) {
       throw new Error("unknown waczfile: " + waczname);
+    }
+
+    if (!this.waczfiles[waczname].entries) {
+      await this.waczfiles[waczname].init();
     }
 
     if (this.waczfiles[waczname].indexType) {
@@ -904,59 +925,82 @@ export class MultiWACZ
     name,
     hash,
     path,
+    crawlId,
     parent,
     loader = null,
-  }: WACZFileInitOptions & { name: string }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }: WACZFileInitOptions & { name: string }): Promise<Record<string, any>> {
     const waczname = name || path || "";
 
     hash = await this.computeFileHash(waczname, hash);
 
-    const file = this.addWACZFile({ waczname, hash, path, parent, loader });
+    const file = this.addWACZFile({
+      waczname,
+      hash,
+      crawlId,
+      path,
+      parent,
+      loader,
+    });
 
-    // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
-    await file.init();
+    if (!this.pagesQueryUrl) {
+      await file.init();
+    }
 
-    // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
     await file.save(this.db, true);
 
-    // @ts-expect-error [TODO] - TS2345 - Argument of type 'WACZFile | undefined' is not assignable to parameter of type 'WACZFile'.
-    const importer = new WACZImporter(this, file, !parent);
-
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return await importer.load();
+    if (!this.pagesQueryUrl) {
+      const importer = new WACZImporter(this, file, !parent);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return await importer.load();
+    } else {
+      return {};
+    }
   }
 
   async loadWACZFiles(
     // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    json: Record<string, any>,
+
+    json: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      resources: any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      initialPages: any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      preloadResources: any;
+      totalPages: number;
+    },
     parent: WACZLoadSource = this,
   ) {
-    const promises: Promise<void>[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const promises: Promise<any>[] = [];
 
     const update = async (name: string, path: string) => {
-      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
-      await this.waczfiles[name].init(path);
-      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
-      await this.waczfiles[name].save(this.db, true);
+      const waczfile = this.waczfiles[name];
+      if (!waczfile) {
+        return;
+      }
+      if (!this.pagesQueryUrl) {
+        waczfile.path = path;
+      } else {
+        await waczfile.init(path);
+      }
+      await waczfile.save(this.db, true);
     };
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'resources' comes from an index signature, so it must be accessed with ['resources'].
     const files = json.resources.map(
-      (res: { path: string; name: string; hash: string }) => {
+      (res: { path: string; name: string; hash: string; crawlId?: string }) => {
         const path = parent.getLoadPath(res.path);
         const name = parent.getName(res.name);
         const hash = res.hash;
-        return { name, hash, path };
+        const crawlId = res.crawlId;
+        return { name, hash, path, crawlId };
       },
     );
 
-    for (const { name, hash, path } of files) {
+    for (const { name, hash, path, crawlId } of files) {
       if (!this.waczfiles[name]) {
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        promises.push(this.addNewWACZ({ name, hash, path, parent }));
+        promises.push(this.addNewWACZ({ name, hash, path, parent, crawlId }));
       } else if (this.waczfiles[name].path !== path) {
         // [TODO]
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -967,6 +1011,67 @@ export class MultiWACZ
     if (promises.length) {
       await Promise.allSettled(promises);
     }
+
+    if (json.preloadResources) {
+      for (const { name } of json.preloadResources) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        this.preloadResources.push(name);
+      }
+    }
+
+    if (json.initialPages) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      await this.addInitialPages(json.initialPages);
+    }
+
+    if (!isNaN(json.totalPages)) {
+      this.totalPages = json.totalPages;
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async addInitialPages(pagesImport: Record<string, any>[]) {
+    const pages: PageEntry[] = [];
+    for (const {
+      id,
+      url,
+      title,
+      ts,
+      mime,
+      status,
+      depth,
+      favIconUrl,
+      filename,
+      isSeed,
+      crawl_id,
+    } of pagesImport) {
+      const file = this.waczfiles[filename];
+      const waczhash = file ? file.hash : "";
+      pages.push({
+        id,
+        url,
+        title,
+        ts,
+        mime,
+        status,
+        depth,
+        favIconUrl,
+        wacz: filename,
+        waczhash,
+        isSeed,
+      });
+      if (isSeed) {
+        const set: Set<string> =
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          this.seedPageWACZs.get(crawl_id) || new Set<string>();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        set.add(filename);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        this.seedPageWACZs.set(crawl_id, set);
+      }
+    }
+
+    return await this.addPages(pages);
   }
 
   async getTextIndex() {
@@ -976,7 +1081,7 @@ export class MultiWACZ
 
     const keys = Object.keys(this.waczfiles);
 
-    if (!this.textIndex || !keys.length) {
+    if (this.pagesQueryUrl || !this.textIndex || !keys.length) {
       return new Response("", { headers });
     }
 
@@ -1078,9 +1183,23 @@ export class MultiWACZ
       }
     }
 
+    const waczFilesToTry: string[] = await this.getWACZFilesToTry(
+      request,
+      waczname,
+    );
+
+    if (!waczFilesToTry.length) {
+      return null;
+    }
+
     const foundMap = new Map();
 
-    for (const [name, file] of Object.entries(this.waczfiles)) {
+    for (const name of waczFilesToTry) {
+      const file = this.waczfiles[name];
+      if (!file) {
+        continue;
+      }
+
       if (file.fileType !== WACZ_LEAF) {
         continue;
       }
@@ -1164,6 +1283,113 @@ export class MultiWACZ
     }
   }
 
+  async queryPages(
+    search = "",
+    page = 1,
+    pageSize = 25,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<{ pages: Record<string, any>[]; total: number }> {
+    const params = new URLSearchParams();
+    if (search) {
+      params.set("search", search);
+    }
+    params.set("page", page + "");
+    params.set("pageSize", pageSize + "");
+    const res = await fetch(this.pagesQueryUrl + "?" + params.toString(), {
+      headers: this.sourceLoader?.headers,
+    });
+    if (res.status !== 200) {
+      return { pages: [], total: 0 };
+    }
+    const json = await res.json();
+    if (!json) {
+      return { pages: [], total: 0 };
+    }
+
+    const total = json.total;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pages: Record<string, any>[] = json.items.map((x: any) => {
+      x.wacz = x.filename;
+      const file = this.waczfiles[x.filename];
+      if (file) {
+        x.waczhash = file.hash;
+      }
+      if (typeof x.ts === "string") {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        x.ts = new Date(x.ts).getTime();
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return x;
+    });
+
+    return { pages, total };
+  }
+
+  async getWACZFilesToTry(request: ArchiveRequest, waczname: string | null) {
+    let names: string[] = [];
+
+    // always try WACZ files with no pages
+    if (this.preloadResources.length) {
+      names = [...this.preloadResources];
+    }
+
+    // if top-level doc, and has page query, query for which WACZ files should be tried
+    if (
+      this.pagesQueryUrl &&
+      (request.destination === "document" || request.destination === "iframe")
+    ) {
+      const res = await this.getWACZFilesForPagesQuery(request.url);
+      if (res) {
+        names = [...names, ...res];
+        return names;
+      }
+    }
+
+    // if already has a WACZ files, try others from same crawl
+    if (waczname) {
+      const file = this.waczfiles[waczname];
+      if (file?.crawlId) {
+        const res = this.seedPageWACZs.get(file.crawlId);
+        if (res) {
+          names = [...names, ...res.values()];
+        }
+      }
+    }
+
+    // finally if 3 or less WACZ files, just try all of them
+    if (!names.length && Object.keys(this.waczfiles).length <= 3) {
+      names = Object.keys(this.waczfiles);
+    }
+
+    return names;
+  }
+
+  async getWACZFilesForPagesQuery(
+    requestUrl: string,
+  ): Promise<string[] | null> {
+    const params = new URLSearchParams();
+    const url = new URL(requestUrl);
+    url.search = "";
+    url.hash = "";
+    params.set("url", url.href);
+    params.set("pageSize", "10");
+    const res = await fetch(this.pagesQueryUrl + "?" + params.toString(), {
+      headers: this.sourceLoader?.headers,
+    });
+    if (res.status !== 200) {
+      return null;
+    }
+    const json = await res.json();
+    if (!json) {
+      return null;
+    }
+    const items: { filename: string }[] = json.items;
+    const selectFiles = items.map((x: { filename: string }) => x.filename);
+
+    return selectFiles;
+  }
+
   async checkUpdates() {
     if (this.rootSourceType === "json") {
       await this.loadFromJSON();
@@ -1187,6 +1413,10 @@ export class MultiWACZ
     }
 
     const data = await response.json();
+
+    if (data.pagesQueryUrl) {
+      this.pagesQueryUrl = data.pagesQueryUrl;
+    }
 
     switch (data.profile) {
       case "data-package":

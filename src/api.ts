@@ -1,6 +1,7 @@
 import { Path } from "path-parser";
 import { getCollData } from "./utils";
 import { type SWCollections } from "./swmain";
+import { MultiWACZ } from "./wacz/multiwacz";
 
 // [TODO]
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -126,6 +127,9 @@ class API {
             data.pages = await coll.store.getAllPages();
             data.lists = await coll.store.db.getAll("pageLists");
             data.curatedPages = await coll.store.db.getAll("curatedPages");
+            if (coll.store instanceof MultiWACZ) {
+              data.canQueryPages = !!coll.store.pagesQueryUrl;
+            }
           } else {
             data.pages = [];
             data.lists = [];
@@ -293,8 +297,28 @@ class API {
         if (!coll) {
           return { error: "collection_not_found" };
         }
+        let total = undefined;
+        if (coll.store instanceof MultiWACZ) {
+          // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
+          const search = params._query.get("search");
+          // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
+          const page = Number(params._query.get("page")) || 1;
+          // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
+          const pageSize = Number(params._query.get("pageSize")) || 25;
+          if (search || page > 1) {
+            const { pages, total } = await coll.store.queryPages(
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+              search,
+              page,
+              pageSize,
+            );
+            return { pages, total };
+          } else {
+            total = coll.store.totalPages;
+          }
+        }
         const pages = await coll.store.getAllPages();
-        return { pages };
+        return { pages, total };
       }
 
       case "textIndex": {

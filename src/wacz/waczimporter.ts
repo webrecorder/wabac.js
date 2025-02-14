@@ -149,7 +149,7 @@ export class WACZImporter {
 
       case "multi-wacz-package":
         // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return await this.loadMultiWACZPackage(root);
 
       default:
@@ -159,9 +159,11 @@ export class WACZImporter {
 
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async loadMultiWACZPackage(root: Record<string, any>) {
+  async loadMultiWACZPackage(root: any) {
     this.file.markAsMultiWACZ();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     await this.store.loadWACZFiles(root, this.file);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return root;
   }
 
