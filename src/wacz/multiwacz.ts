@@ -1334,12 +1334,24 @@ export class MultiWACZ
       names = [...this.preloadResources];
     }
 
+    let pageUrl;
+
     // if top-level doc, and has page query, query for which WACZ files should be tried
     if (
       this.pagesQueryUrl &&
       (request.destination === "document" || request.destination === "iframe")
     ) {
-      const res = await this.getWACZFilesForPagesQuery(request.url);
+      pageUrl = request.url;
+    // thumbnail or other custom resource for page, lookup corresponding page url
+    } else if (this.pagesQueryUrl && request.url.startsWith("urn:")) {
+      const inx = request.url.indexOf("http");
+      if (inx > 0) {
+        pageUrl = request.url.slice(inx);
+      }
+    }
+
+    if (pageUrl) {
+      const res = await this.getWACZFilesForPagesQuery(pageUrl);
       if (res) {
         names = [...names, ...res];
         return names;
@@ -1385,7 +1397,15 @@ export class MultiWACZ
       return null;
     }
     const items: { filename: string }[] = json.items;
-    const selectFiles = items.map((x: { filename: string }) => x.filename);
+    const selectFiles = [];
+    for (const file of items) {
+      if (file.filename) {
+        selectFiles.push(file.filename);
+      }
+    }
+    if (!selectFiles.length) {
+      return null;
+    }
 
     return selectFiles;
   }
