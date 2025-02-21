@@ -1342,7 +1342,7 @@ export class MultiWACZ
       (request.destination === "document" || request.destination === "iframe")
     ) {
       pageUrl = request.url;
-    // thumbnail or other custom resource for page, lookup corresponding page url
+      // thumbnail or other custom resource for page, lookup corresponding page url
     } else if (this.pagesQueryUrl && request.url.startsWith("urn:")) {
       const inx = request.url.indexOf("http");
       if (inx > 0) {
