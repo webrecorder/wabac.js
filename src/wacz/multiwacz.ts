@@ -1403,7 +1403,7 @@ export class MultiWACZ
       });
       json = await res.json();
     }
-    const items: { filename: string, url: string }[] = json.items;
+    const items: { filename: string; url: string }[] = json.items;
     const selectFiles = [];
     for (const file of items) {
       if (!file.url.startsWith(url.href)) {
