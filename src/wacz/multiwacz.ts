@@ -1382,23 +1382,33 @@ export class MultiWACZ
   ): Promise<string[] | null> {
     const params = new URLSearchParams();
     const url = new URL(requestUrl);
-    url.search = "";
+    //url.search = "";
     url.hash = "";
     params.set("url", url.href);
-    params.set("pageSize", "10");
-    const res = await fetch(this.pagesQueryUrl + "?" + params.toString(), {
+    params.set("pageSize", "25");
+    let res = await fetch(this.pagesQueryUrl + "?" + params.toString(), {
       headers: this.sourceLoader?.headers,
     });
     if (res.status !== 200) {
       return null;
     }
-    const json = await res.json();
-    if (!json) {
-      return null;
+    let json = await res.json();
+    if (!json?.items.length && url.search) {
+      // remove query string and try again
+      url.search = "";
+      params.delete("url");
+      params.set("search", url.href);
+      res = await fetch(this.pagesQueryUrl + "?" + params.toString(), {
+        headers: this.sourceLoader?.headers,
+      });
+      json = await res.json();
     }
-    const items: { filename: string }[] = json.items;
+    const items: { filename: string, url: string }[] = json.items;
     const selectFiles = [];
     for (const file of items) {
+      if (!file.url.startsWith(url.href)) {
+        break;
+      }
       if (file.filename) {
         selectFiles.push(file.filename);
       }
