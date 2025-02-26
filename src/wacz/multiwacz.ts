@@ -1382,7 +1382,6 @@ export class MultiWACZ
   ): Promise<string[] | null> {
     const params = new URLSearchParams();
     const url = new URL(requestUrl);
-    //url.search = "";
     url.hash = "";
     params.set("url", url.href);
     params.set("pageSize", "25");
