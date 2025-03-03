@@ -100,15 +100,16 @@ export class ZipRangeReader {
 
   async load(always = false): Promise<Record<string, ZipEntry>> {
     if (!this.entries || always) {
-      const totalLength = await this.loader.getLength();
-
-      const length = Math.min(MAX_INT16 + 23, totalLength);
-      const start = totalLength - length;
-      const endChunk = (await this.loader.getRange(
-        start,
-        length,
+      const endChunkOffset = MAX_INT16 + 23;
+      const endChunk = (await this.loader.getRangeFromEnd(
+        endChunkOffset,
         false,
       )) as Uint8Array;
+
+      const start = Math.max(
+        (await this.loader.getLength()) - endChunkOffset,
+        0,
+      );
 
       try {
         this.entries = this._loadEntries(endChunk, start);

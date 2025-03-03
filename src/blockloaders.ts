@@ -88,6 +88,7 @@ export abstract class BaseLoader {
   canLoadOnDemand = true;
   headers: Record<string, string> | Headers = {};
   length: number | null = null;
+  canDoNegativeRange = false;
 
   constructor(canLoadOnDemand: boolean) {
     this.canLoadOnDemand = canLoadOnDemand;
@@ -108,6 +109,24 @@ export abstract class BaseLoader {
   ): Promise<Uint8Array | ReadableStream<Uint8Array>>;
 
   abstract get isValid(): boolean;
+
+  async getRangeFromEnd(
+    length: number,
+    streaming: boolean,
+    signal?: AbortSignal | null,
+  ): Promise<Uint8Array | ReadableStream<Uint8Array>> {
+    if (!this.canDoNegativeRange) {
+      const totalLength = await this.getLength();
+      return await this.getRange(
+        totalLength - length,
+        length,
+        streaming,
+        signal,
+      );
+    } else {
+      return await this.getRange(0, -length, streaming, signal);
+    }
+  }
 }
 
 // ===========================================================================
@@ -136,6 +155,7 @@ class FetchRangeLoader extends BaseLoader {
     this.headers = headers || {};
     this.length = length;
     this.canLoadOnDemand = canLoadOnDemand;
+    this.canDoNegativeRange = true;
   }
 
   override async doInitialFetch(
@@ -194,14 +214,7 @@ class FetchRangeLoader extends BaseLoader {
     if (this.length === null && response) {
       this.length = Number(response.headers.get("Content-Length"));
       if (!this.length && response.status === 206) {
-        const range = response.headers.get("Content-Range");
-        if (range) {
-          const rangeParts = range.split("/");
-          if (rangeParts.length === 2) {
-            // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
-            this.length = parseInt(rangeParts[1]);
-          }
-        }
+        this.parseLengthFromContentRange(response.headers);
       }
     }
 
@@ -240,9 +253,13 @@ class FetchRangeLoader extends BaseLoader {
     length: number,
     streaming = false,
     signal: AbortSignal | null = null,
-  ) {
+  ): Promise<Uint8Array | ReadableStream<Uint8Array>> {
     const headers = new Headers(this.headers);
-    headers.set("Range", `bytes=${offset}-${offset + length - 1}`);
+    if (length < 0) {
+      headers.set("Range", `bytes=${length}`);
+    } else {
+      headers.set("Range", `bytes=${offset}-${offset + length - 1}`);
+    }
 
     const cache: RequestCache = "no-store";
 
@@ -258,6 +275,16 @@ class FetchRangeLoader extends BaseLoader {
     }
 
     if (resp.status != 206) {
+      if (length < 0) {
+        // attempt to get full length and try non-negative range
+        const totalLength = await this.getLength();
+        return await this.getRange(
+          totalLength + length,
+          -length,
+          streaming,
+          signal,
+        );
+      }
       const info = { url: this.url, status: resp.status, resp };
 
       if (resp.status === 401) {
@@ -267,6 +294,10 @@ class FetchRangeLoader extends BaseLoader {
       } else {
         throw new RangeError(info);
       }
+    }
+
+    if (this.length === null) {
+      this.parseLengthFromContentRange(resp.headers);
     }
 
     if (streaming) {
@@ -280,13 +311,24 @@ class FetchRangeLoader extends BaseLoader {
     let backoff = 1000;
     for (let count = 0; count < 20; count++) {
       const resp = await fetch(url, options);
-      if (resp.status !== 429) {
+      if (resp.status !== 429 && resp.status !== 503) {
         return resp;
       }
       await sleep(backoff);
       backoff += 2000;
     }
     throw new Error("retryFetch failed");
+  }
+
+  parseLengthFromContentRange(headers: Headers) {
+    const range = headers.get("Content-Range");
+    if (range) {
+      const rangeParts = range.split("/");
+      if (rangeParts.length === 2) {
+        // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+        this.length = parseInt(rangeParts[1]);
+      }
+    }
   }
 }
 
