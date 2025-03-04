@@ -62,9 +62,7 @@ export async function createLoader(opts: BlockLoaderOpts): Promise<BaseLoader> {
     if (self.location && scheme === self.location.protocol.split(":")[0]) {
       return new FetchRangeLoader(opts);
     }
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (e) {
+  } catch (_) {
     // likely no self and self.location, so ignore
   }
 
@@ -73,9 +71,7 @@ export async function createLoader(opts: BlockLoaderOpts): Promise<BaseLoader> {
     await fetch(`${scheme}://localhost`, { method: "HEAD" });
     // if reached here, scheme is supported, so use fetch loader
     return new FetchRangeLoader(opts);
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (e) {
+  } catch (_) {
     // if raised exception, scheme not supported, don't use fetch loader
   }
 
@@ -132,8 +128,7 @@ export abstract class BaseLoader {
 // ===========================================================================
 class FetchRangeLoader extends BaseLoader {
   url: string;
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'BaseLoader'.
-  length: number | null;
+  override length: number | null;
   isValid = false;
   ipfsAPI = null;
   loadingIPFS = null;
@@ -184,9 +179,7 @@ class FetchRangeLoader extends BaseLoader {
             response.headers.get("Accept-Ranges") === "bytes";
           this.isValid = true;
         }
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
+      } catch (_) {
         // ignore fetch failure, considered invalid
       }
     }
@@ -226,10 +219,8 @@ class FetchRangeLoader extends BaseLoader {
         if (json.size) {
           this.length = json.size;
         }
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (e: any) {
-        console.log("Error fetching from helper: " + e.toString());
+      } catch (e) {
+        console.log("Error fetching from helper: " + e!.toString());
       }
     }
 
@@ -380,16 +371,12 @@ class GoogleDriveLoader extends BaseLoader {
       });
       try {
         result = await loader.doInitialFetch(tryHead);
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
+      } catch (_) {
         // catch and ignore, considered invalid
       }
 
       if (!loader.isValid) {
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-        if (result && result.abort) {
+        if (result?.abort) {
           result.abort.abort();
         }
 
@@ -400,14 +387,10 @@ class GoogleDriveLoader extends BaseLoader {
           });
           try {
             result = await loader.doInitialFetch(tryHead);
-            // [TODO]
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          } catch (e) {
+          } catch (_) {
             // catch and ignore, considered invalid
           }
-          // [TODO]
-          // eslint-disable-next-line @typescript-eslint/prefer-optional-chain
-          if (!loader.isValid && result && result.abort) {
+          if (!loader.isValid && result?.abort) {
             result.abort.abort();
           }
         }
@@ -447,9 +430,7 @@ class GoogleDriveLoader extends BaseLoader {
 
       try {
         return await loader.getRange(offset, length, streaming, signal);
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
+      } catch (_) {
         if (await this.refreshPublicUrl()) {
           loader = new FetchRangeLoader({
             url: this.publicUrl,
@@ -457,9 +438,7 @@ class GoogleDriveLoader extends BaseLoader {
           });
           try {
             return await loader.getRange(offset, length, streaming, signal);
-            // [TODO]
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          } catch (e) {
+          } catch (_) {
             // ignore fetch failure, considered invalid
           }
         }
@@ -483,13 +462,11 @@ class GoogleDriveLoader extends BaseLoader {
       } catch (e) {
         if (
           e instanceof AccessDeniedError &&
-          // @ts-expect-error [TODO] - TS4111 - Property 'resp' comes from an index signature, so it must be accessed with ['resp'].
-          e.info.resp?.headers
+          e.info["resp"]?.headers
             .get("content-type")
             .startsWith("application/json")
         ) {
-          // @ts-expect-error [TODO] - TS4111 - Property 'resp' comes from an index signature, so it must be accessed with ['resp'].
-          const err = await e.info.resp.json();
+          const err = await e.info["resp"].json();
           if (
             err.error?.errors &&
             err.error.errors[0].reason === "userRateLimitExceeded"
@@ -515,9 +492,7 @@ class GoogleDriveLoader extends BaseLoader {
         this.publicUrl = json.url;
         return true;
       }
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (e) {
+    } catch (_) {
       // ignore, return false
     }
 
@@ -668,7 +643,7 @@ class BlobCacheLoader extends BaseLoader {
 class FileHandleLoader extends BaseLoader {
   url: string;
   file: Blob | null;
-  size: number;
+  size?: number;
   fileHandle: FileSystemFileHandle;
 
   constructor({
@@ -697,12 +672,10 @@ class FileHandleLoader extends BaseLoader {
   }
 
   override async getLength(): Promise<number> {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (this.size === undefined) {
       await this.initFileObject();
     }
-    return this.size;
+    return this.size!;
   }
 
   async initFileObject() {
@@ -755,26 +728,11 @@ class FileHandleLoader extends BaseLoader {
 // ===========================================================================
 class IPFSRangeLoader extends BaseLoader {
   url: string;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  opts: Record<string, any>;
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'BaseLoader'.
-  length: number | null;
+  opts: Omit<BlockLoaderOpts, "url">;
+  override length: number | null;
   isValid = false;
 
-  constructor({
-    url,
-    headers,
-    ...opts
-  }: {
-    url: string;
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    headers?: Record<string, any>;
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    opts?: Record<string, any>;
-  }) {
+  constructor({ url, headers, ...opts }: BlockLoaderOpts) {
     super(true);
 
     this.url = url;
@@ -822,9 +780,9 @@ class IPFSRangeLoader extends BaseLoader {
     if (tryHead || !this.isValid) {
       body = new Uint8Array([]);
     } else {
-      const iter = autoipfsClient.get(this.url, { signal });
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      const iter = autoipfsClient.get(this.url, {
+        signal,
+      });
       body = getReadableStreamFromIter(iter);
     }
 
@@ -848,16 +806,12 @@ class IPFSRangeLoader extends BaseLoader {
     });
 
     if (streaming) {
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return getReadableStreamFromIter(iter);
     } else {
       const chunks: Uint8Array[] = [];
       let size = 0;
 
       for await (const chunk of iter) {
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         chunks.push(chunk);
         size += chunk.byteLength;
       }
