@@ -13,7 +13,16 @@ export async function initAutoIPFS(opts: Record<string, any>) {
     autoipfsAPI = await create(opts);
   }
 
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return autoipfsAPI;
+  return autoipfsAPI as {
+    get: (
+      url: string,
+      opts: {
+        start?: number;
+        offset?: number;
+        end?: number;
+        signal?: AbortSignal | null;
+      },
+    ) => AsyncIterable<Uint8Array>;
+    getSize: (url: string) => number | null;
+  };
 }
