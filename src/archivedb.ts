@@ -396,6 +396,10 @@ export class ArchiveDB implements DBStore {
     return await this.db!.getAll("pages");
   }
 
+  async getPagesByUrl(url: string) {
+    return await this.db!.getAllFromIndex("pages", "url", url);
+  }
+
   async getPages(pages: string[]) {
     const results: PageEntry[] = [];
     pages.sort();

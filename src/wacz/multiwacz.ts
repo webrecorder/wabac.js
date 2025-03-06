@@ -99,6 +99,7 @@ export class MultiWACZ
   fuzzyUrlRules: { match: RegExp; replace: any }[];
 
   pagesQueryUrl = "";
+  referrerMap = new Map<string, string>();
 
   totalPages?: number = undefined;
 
@@ -1348,6 +1349,18 @@ export class MultiWACZ
       if (inx > 0) {
         pageUrl = request.url.slice(inx);
       }
+    } else if (request.isProxyOrigin && request.referrer) {
+      pageUrl = request.referrer;
+      this.referrerMap.set(request.url, pageUrl);
+      let topLevelPage: string | undefined = "";
+      while (pageUrl) {
+        topLevelPage = this.referrerMap.get(pageUrl);
+        if (topLevelPage && topLevelPage !== pageUrl) {
+          pageUrl = topLevelPage;
+        } else {
+          break;
+        }
+      }
     }
 
     if (pageUrl) {
@@ -1380,6 +1393,18 @@ export class MultiWACZ
   async getWACZFilesForPagesQuery(
     requestUrl: string,
   ): Promise<string[] | null> {
+    const selectFiles = [];
+
+    const pages = await this.getPagesByUrl(requestUrl);
+    for (const page of pages) {
+      if (page.wacz) {
+        selectFiles.push(page.wacz);
+      }
+    }
+    if (selectFiles.length) {
+      return selectFiles;
+    }
+
     const params = new URLSearchParams();
     const url = new URL(requestUrl);
     url.hash = "";
@@ -1403,7 +1428,6 @@ export class MultiWACZ
       json = await res.json();
     }
     const items: { filename: string; url: string }[] = json.items;
-    const selectFiles = [];
     for (const file of items) {
       if (!file.url.startsWith(url.href)) {
         break;
@@ -1415,6 +1439,11 @@ export class MultiWACZ
     if (!selectFiles.length) {
       return null;
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    this.addInitialPages(json.items).catch((e) =>
+      console.log(e, "additional page add failed"),
+    );
 
     return selectFiles;
   }

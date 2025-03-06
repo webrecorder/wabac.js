@@ -17,6 +17,8 @@ export class ArchiveRequest {
   method: string;
   mode: string;
 
+  private _proxyReferrer = "";
+
   _postToGetConverted = false;
 
   constructor(
@@ -64,9 +66,13 @@ export class ArchiveRequest {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (proxyOrigin && localOrigin) {
-      const url = new URL(this.url);
-      if (url.origin === localOrigin) {
-        this.url = proxyOrigin + url.pathname + (url.search ? url.search : "");
+      this.url = resolveProxyOrigin(proxyOrigin, localOrigin, this.url);
+      if (this.request.referrer) {
+        this._proxyReferrer = resolveProxyOrigin(
+          proxyOrigin,
+          localOrigin,
+          this.request.referrer,
+        );
       }
       this.isProxyOrigin = true;
     }
@@ -87,7 +93,7 @@ export class ArchiveRequest {
   }
 
   get referrer() {
-    return this.request.referrer;
+    return this._proxyReferrer || this.request.referrer;
   }
 
   async convertPostToGet() {
@@ -168,4 +174,16 @@ export class ArchiveRequest {
     const request = this.request.clone();
     return new Uint8Array(await request.arrayBuffer());
   }
+}
+
+function resolveProxyOrigin(
+  proxyOrigin: string,
+  localOrigin: string,
+  urlStr: string,
+) {
+  const url = new URL(urlStr);
+  if (url.origin === localOrigin) {
+    return proxyOrigin + url.pathname + (url.search ? url.search : "");
+  }
+  return urlStr;
 }
