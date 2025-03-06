@@ -406,7 +406,7 @@ export class SWReplay {
   }
 
   async staticPathProxy(url: string, request: Request) {
-    url = url.slice((this.proxyPrefix).length);
+    url = url.slice(this.proxyPrefix.length);
     url = new URL(url, self.location.href).href;
     request = new Request(url);
     return this.defaultFetch(request, "no-store");
@@ -416,7 +416,10 @@ export class SWReplay {
     const opts: RequestInit = {};
     if (cache) {
       opts.cache = cache;
-    } else if (request.cache === "only-if-cached" && request.mode !== "same-origin") {
+    } else if (
+      request.cache === "only-if-cached" &&
+      request.mode !== "same-origin"
+    ) {
       opts.cache = "default";
     }
     return self.fetch(request, opts);
@@ -529,7 +532,7 @@ export class SWReplay {
       ? request.url
       : request.url.substring(coll.prefix.length);
 
-    const opts: ArchiveRequestInitOpts  = {
+    const opts: ArchiveRequestInitOpts = {
       isRoot: !!this.collections.root,
     };
 

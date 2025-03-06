@@ -4,7 +4,7 @@ const REPLAY_REGEX =
   /^(?::([\w-]+)\/)?(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
 export type ArchiveRequestInitOpts = {
-  isRoot?: boolean,
+  isRoot?: boolean;
   mod?: string;
   ts?: string;
   proxyOrigin?: string;
@@ -39,7 +39,7 @@ export class ArchiveRequest {
       ts = "",
       proxyOrigin = undefined,
       localOrigin = undefined,
-    } : ArchiveRequestInitOpts = {},
+    }: ArchiveRequestInitOpts = {},
   ) {
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
 
