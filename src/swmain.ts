@@ -527,6 +527,8 @@ export class SWReplay {
       opts.mod = "id_";
       // @ts-expect-error [TODO] - TS4111 - Property 'proxyOrigin' comes from an index signature, so it must be accessed with ['proxyOrigin']. | TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig'].
       opts.proxyOrigin = coll.config.extraConfig.proxyOrigin;
+      // @ts-expect-error [TODO] - TS4111 - Property 'proxyTs' comes from an index signature, so it must be accessed with ['proxyOrigin']. | TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig'].
+      opts.ts = coll.config.extraConfig.proxyTs || "";
       // @ts-expect-error [TODO] - TS4111 - Property 'localOrigin' comes from an index signature, so it must be accessed with ['localOrigin'].
       opts.localOrigin = self.location.origin;
     }

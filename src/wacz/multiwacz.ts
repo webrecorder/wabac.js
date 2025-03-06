@@ -1378,16 +1378,13 @@ export class MultiWACZ
         const res = this.seedPageWACZs.get(file.crawlId);
         if (res) {
           names = [...names, ...res.values()];
+          return names;
         }
       }
     }
 
-    // finally if 3 or less WACZ files, just try all of them
-    if (!names.length && Object.keys(this.waczfiles).length <= 3) {
-      names = Object.keys(this.waczfiles);
-    }
-
-    return names;
+    // finally, fall back to all wacz files if no other choice
+    return Object.keys(this.waczfiles);
   }
 
   async getWACZFilesForPagesQuery(
