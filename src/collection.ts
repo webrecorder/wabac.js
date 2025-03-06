@@ -60,6 +60,8 @@ export class Collection {
 
   staticPrefix: string;
 
+  proxyHeadInsert = "";
+
   constructor(
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,6 +105,8 @@ export class Collection {
     this.adblockUrl = extraConfig.adblockUrl;
 
     this.prefix = prefixes.main;
+
+    this.proxyHeadInsert = extraConfig.proxyHeadInsert || "";
 
     // support root collection hashtag nav
     if (this.config.root) {
@@ -203,7 +207,9 @@ export class Collection {
       return response;
     }
 
-    if (!response.noRW) {
+    if (request.isProxyOrigin) {
+      response = await this.proxyInsertBanner(response, this.proxyHeadInsert);
+    } else if (!response.noRW) {
       const basePrefix =
         this.prefix + (request.pageId ? `:${request.pageId}/` : "");
       const basePrefixTS = basePrefix + requestTS;
@@ -600,5 +606,42 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
 </script>
 ${this.injectScripts.map((script) => `<script src='${script}'> </script>`).join("")}
   `;
+  }
+
+  async proxyInsertBanner(response: ArchiveResponse, headInsert: string) {
+    const mime = response.headers.get("Content-Type") || "";
+    const parts = mime.split(";");
+    const ct = parts[0];
+
+    if (ct !== "text/html") {
+      return response;
+    }
+
+    let isCharsetUTF8 = false;
+
+    if (parts.length > 1) {
+      isCharsetUTF8 =
+        // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
+        parts[1]
+          .trim()
+          .toLowerCase()
+          .replace("charset=", "")
+          .replace("-", "") === "utf8";
+    }
+
+    let { text } = await response.getText(isCharsetUTF8);
+
+    const match = /(<head.*?>)/.exec(text);
+
+    if (match) {
+      const inx = match.index + match[0].length;
+      text = text.slice(0, inx) + headInsert + text.slice(inx);
+    } else {
+      text = headInsert + text;
+    }
+
+    response.setText(text, isCharsetUTF8);
+
+    return response;
   }
 }

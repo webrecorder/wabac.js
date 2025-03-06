@@ -100,6 +100,7 @@ export class MultiWACZ
 
   pagesQueryUrl = "";
   referrerMap = new Map<string, string>();
+  notAPage = new Set<string>();
 
   totalPages?: number = undefined;
 
@@ -1384,7 +1385,7 @@ export class MultiWACZ
     }
 
     // finally, fall back to all wacz files if no other choice
-    return Object.keys(this.waczfiles);
+    return Object.keys(this.waczfiles).slice(0, 3);
   }
 
   async getWACZFilesForPagesQuery(
@@ -1400,6 +1401,10 @@ export class MultiWACZ
     }
     if (selectFiles.length) {
       return selectFiles;
+    }
+
+    if (this.notAPage.has(requestUrl)) {
+      return null;
     }
 
     const params = new URLSearchParams();
@@ -1434,6 +1439,7 @@ export class MultiWACZ
       }
     }
     if (!selectFiles.length) {
+      this.notAPage.add(requestUrl);
       return null;
     }
 

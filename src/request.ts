@@ -3,6 +3,14 @@ import { postToGetUrl } from "warcio";
 const REPLAY_REGEX =
   /^(?::([\w-]+)\/)?(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
+export type ArchiveRequestInitOpts = {
+  isRoot?: boolean,
+  mod?: string;
+  ts?: string;
+  proxyOrigin?: string;
+  localOrigin?: string;
+};
+
 export class ArchiveRequest {
   url = "";
   timestamp = "";
@@ -17,6 +25,7 @@ export class ArchiveRequest {
   method: string;
   mode: string;
 
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly
   private _proxyReferrer = "";
 
   _postToGetConverted = false;
@@ -28,9 +37,9 @@ export class ArchiveRequest {
       isRoot = false,
       mod = "",
       ts = "",
-      proxyOrigin = null,
-      localOrigin = null,
-    } = {},
+      proxyOrigin = undefined,
+      localOrigin = undefined,
+    } : ArchiveRequestInitOpts = {},
   ) {
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
 
@@ -63,8 +72,6 @@ export class ArchiveRequest {
       this.url = wbUrl[4];
     }
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (proxyOrigin && localOrigin) {
       this.url = resolveProxyOrigin(proxyOrigin, localOrigin, this.url);
       if (this.request.referrer) {

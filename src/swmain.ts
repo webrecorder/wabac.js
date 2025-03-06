@@ -9,7 +9,7 @@ import { API } from "./api";
 import WOMBAT from "../dist-wombat/wombat.txt";
 import WOMBAT_WORKERS from "../dist-wombat/wombatWorkers.txt";
 
-import { ArchiveRequest } from "./request";
+import { ArchiveRequest, type ArchiveRequestInitOpts } from "./request";
 import { type CollMetadata } from "./types";
 
 const CACHE_PREFIX = "wabac-";
@@ -193,6 +193,7 @@ export class SWReplay {
   replayPrefix: string;
   staticPrefix: string;
   distPrefix: string;
+  proxyPrefix: string;
 
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -271,7 +272,7 @@ export class SWReplay {
     if (defaultConfig.injectScripts) {
       // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts']. | TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
       defaultConfig.injectScripts = defaultConfig.injectScripts.map(
-        (url: string) => this.staticPrefix + "proxy/" + url,
+        (url: string) => this.proxyPrefix + url,
       );
     }
 
@@ -291,8 +292,15 @@ export class SWReplay {
 
     this.proxyOriginMode = !!sp.get("proxyOriginMode");
 
+    if (this.proxyOriginMode) {
+      this.proxyPrefix = "https://wab.ac/proxy/";
+      this.apiPrefix = "https://wab.ac/api/";
+    } else {
+      this.proxyPrefix = this.staticPrefix + "proxy/";
+      this.apiPrefix = this.replayPrefix + "api/";
+    }
+
     this.api = new ApiClass(this.collections);
-    this.apiPrefix = this.replayPrefix + "api/";
 
     this.allowRewrittenCache = sp.get("allowCache") ? true : false;
 
@@ -336,6 +344,9 @@ export class SWReplay {
     const url = event.request.url;
 
     if (this.proxyOriginMode) {
+      if (url.startsWith(this.proxyPrefix)) {
+        return this.staticPathProxy(url, event.request);
+      }
       return this.getResponseFor(event.request, event);
     }
 
@@ -356,7 +367,7 @@ export class SWReplay {
     }
 
     // JS rewrite on static/external files not from archive
-    if (url.startsWith(this.staticPrefix + "proxy/")) {
+    if (url.startsWith(this.proxyPrefix)) {
       return this.staticPathProxy(url, event.request);
     }
 
@@ -395,15 +406,17 @@ export class SWReplay {
   }
 
   async staticPathProxy(url: string, request: Request) {
-    url = url.slice((this.staticPrefix + "proxy/").length);
+    url = url.slice((this.proxyPrefix).length);
     url = new URL(url, self.location.href).href;
     request = new Request(url);
-    return this.defaultFetch(request);
+    return this.defaultFetch(request, "no-store");
   }
 
-  async defaultFetch(request: Request) {
+  async defaultFetch(request: Request, cache?: RequestCache) {
     const opts: RequestInit = {};
-    if (request.cache === "only-if-cached" && request.mode !== "same-origin") {
+    if (cache) {
+      opts.cache = cache;
+    } else if (request.cache === "only-if-cached" && request.mode !== "same-origin") {
       opts.cache = "default";
     }
     return self.fetch(request, opts);
@@ -466,7 +479,7 @@ export class SWReplay {
 
   async getResponseFor(request: Request, event: FetchEvent) {
     // API
-    if (!this.proxyOriginMode && request.url.startsWith(this.apiPrefix)) {
+    if (request.url.startsWith(this.apiPrefix)) {
       if (this.stats && request.url.startsWith(this.apiPrefix + "stats.json")) {
         return await this.stats.getStats(event);
       }
@@ -516,20 +529,14 @@ export class SWReplay {
       ? request.url
       : request.url.substring(coll.prefix.length);
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const opts: Record<string, any> = {
+    const opts: ArchiveRequestInitOpts  = {
       isRoot: !!this.collections.root,
     };
 
     if (this.proxyOriginMode) {
-      // @ts-expect-error [TODO] - TS4111 - Property 'mod' comes from an index signature, so it must be accessed with ['mod'].
       opts.mod = "id_";
-      // @ts-expect-error [TODO] - TS4111 - Property 'proxyOrigin' comes from an index signature, so it must be accessed with ['proxyOrigin']. | TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig'].
-      opts.proxyOrigin = coll.config.extraConfig.proxyOrigin;
-      // @ts-expect-error [TODO] - TS4111 - Property 'proxyTs' comes from an index signature, so it must be accessed with ['proxyOrigin']. | TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig'].
-      opts.ts = coll.config.extraConfig.proxyTs || "";
-      // @ts-expect-error [TODO] - TS4111 - Property 'localOrigin' comes from an index signature, so it must be accessed with ['localOrigin'].
+      opts.proxyOrigin = coll.config.extraConfig?.proxyOrigin;
+      opts.ts = coll.config.extraConfig?.proxyTs || "";
       opts.localOrigin = self.location.origin;
     }
 
