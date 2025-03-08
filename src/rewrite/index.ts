@@ -67,7 +67,28 @@ export function getCustomRewriter(url: string, isHTML: boolean) {
 }
 
 // ===========================================================================
-export class Rewriter {
+export abstract class BaseRewriter {
+  url = "";
+  headInsertFunc: InsertFunc | null = null;
+  prefix = "";
+
+  abstract rewriteUrl(url: string, forceAbs: boolean): string;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  abstract rewriteJS(text: string, opts: Record<string, any>): string;
+
+  abstract rewriteCSS(text: string): string;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  abstract rewriteJSON(text: string, opts: Record<string, any>): string;
+
+  abstract rewriteImportmap(text: string): string;
+
+  abstract updateBaseUrl(url: string): string;
+}
+
+// ===========================================================================
+export class Rewriter extends BaseRewriter {
   urlRewrite: boolean;
   contentRewrite: boolean;
 
@@ -77,16 +98,14 @@ export class Rewriter {
 
   decode: boolean;
 
-  prefix: string;
   originPrefix = "";
   relPrefix = "";
   schemeRelPrefix = "";
   scheme: string;
-  url: string;
   responseUrl: string;
   isCharsetUTF8: boolean;
 
-  headInsertFunc: InsertFunc | null;
+  //headInsertFunc: InsertFunc | null;
   workerInsertFunc: InsertFunc | null;
 
   _jsonpCallback: string | boolean | null;
@@ -102,6 +121,7 @@ export class Rewriter {
     decode = true,
     useBaseRules = false,
   }: RewriterOpts) {
+    super();
     this.urlRewrite = urlRewrite;
     this.contentRewrite = contentRewrite;
     this.dsRules = urlRewrite && !useBaseRules ? jsRules : baseRules;
@@ -403,7 +423,7 @@ export class Rewriter {
     return true;
   }
 
-  rewriteUrl(url: string, forceAbs = false) {
+  override rewriteUrl(url: string, forceAbs = false) {
     if (!this.urlRewrite) {
       return url;
     }
@@ -795,5 +815,49 @@ export class Rewriter {
       console.warn("Error parsing link header: " + value);
       return value;
     }
+  }
+}
+
+// ===========================================================================
+export class ProxyRewriter extends BaseRewriter {
+  proxyOrigin: string;
+  localOrigin: string;
+
+  constructor(request: ArchiveRequest, headInsertFunc: InsertFunc) {
+    super();
+    this.url = request.url;
+    this.proxyOrigin = request.proxyOrigin!;
+    this.localOrigin = request.localOrigin!;
+    this.headInsertFunc = headInsertFunc;
+  }
+
+  rewriteUrl(urlStr: string): string {
+    if (!urlStr.startsWith(this.proxyOrigin)) {
+      return urlStr;
+    }
+
+    return this.localOrigin + urlStr.slice(this.proxyOrigin.length);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rewriteJS(text: string, _: Record<string, any>): string {
+    return text;
+  }
+
+  rewriteCSS(text: string): string {
+    return text;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rewriteJSON(text: string, _: Record<string, any>): string {
+    return text;
+  }
+
+  rewriteImportmap(text: string) {
+    return text;
+  }
+
+  updateBaseUrl(url: string): string {
+    return url;
   }
 }

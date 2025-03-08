@@ -1,4 +1,4 @@
-import { Rewriter } from "./rewrite";
+import { ProxyRewriter, Rewriter } from "./rewrite";
 
 import {
   getTS,
@@ -16,6 +16,7 @@ import { notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
 import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
+import { ProxyHTMLRewriter } from "./rewrite/html";
 
 const DEFAULT_CSP =
   "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
@@ -213,6 +214,7 @@ export class Collection {
 
     if (request.isProxyOrigin) {
       response = await this.proxyInsertBanner(
+        request,
         response,
         requestTS,
         this.proxyBannerUrl,
@@ -618,25 +620,28 @@ ${this.injectScripts.map((script) => `<script src='${script}'> </script>`).join(
   }
 
   async proxyInsertBanner(
+    request: ArchiveRequest,
     response: ArchiveResponse,
     requestTS: string,
-    bannerScript: string,
+    bannerScriptUrl: string,
   ) {
     const timestamp = getTS(response.date.toISOString());
 
-    const headInsert = `
+    const headInsertFunc = (url: string) => {
+      return `
 <!-- WB Insert -->
 <script>
   const wbinfo = {};
-  wbinfo.url = "${response.url}";
+  wbinfo.url = "${url}";
   wbinfo.timestamp = "${timestamp}";
   wbinfo.request_ts = "${requestTS}";
   wbinfo.mod = "id_";
   wbinfo.coll = "${this.name}";
 </script>
-<script src="${this.proxyPrefix}${bannerScript}"></script>
+<script src="${this.proxyPrefix}${bannerScriptUrl}"></script>
 <!-- End WB Insert -->
     `;
+    };
 
     const mime = response.headers.get("Content-Type") || "";
     const parts = mime.split(";");
@@ -645,6 +650,8 @@ ${this.injectScripts.map((script) => `<script src='${script}'> </script>`).join(
     if (ct !== "text/html") {
       return response;
     }
+
+    const rewriter = new ProxyRewriter(request, headInsertFunc);
 
     let isCharsetUTF8 = false;
 
@@ -658,18 +665,22 @@ ${this.injectScripts.map((script) => `<script src='${script}'> </script>`).join(
           .replace("-", "") === "utf8";
     }
 
-    let { text } = await response.getText(isCharsetUTF8);
+    const htmlrewriter = new ProxyHTMLRewriter(rewriter, isCharsetUTF8);
 
-    const match = /(<head.*?>)/.exec(text);
+    response = await htmlrewriter.rewrite(response);
 
-    if (match) {
-      const inx = match.index + match[0].length;
-      text = text.slice(0, inx) + headInsert + text.slice(inx);
-    } else {
-      text = headInsert + text;
-    }
+    // let { text } = await response.getText(isCharsetUTF8);
 
-    response.setText(text, isCharsetUTF8);
+    // const match = /(<head.*?>)/.exec(text);
+
+    // if (match) {
+    //   const inx = match.index + match[0].length;
+    //   text = text.slice(0, inx) + headInsert + text.slice(inx);
+    // } else {
+    //   text = headInsert + text;
+    // }
+
+    // response.setText(text, isCharsetUTF8);
 
     return response;
   }
