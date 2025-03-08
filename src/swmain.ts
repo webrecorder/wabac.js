@@ -237,12 +237,6 @@ export class SWReplay {
     this.staticPrefix = this.prefix + "static/";
     this.distPrefix = this.prefix + "dist/";
 
-    const prefixes: Prefixes = {
-      static: this.staticPrefix,
-      root: this.prefix,
-      main: this.replayPrefix,
-    };
-
     this.staticData = staticData || new Map();
     this.staticData.set(this.staticPrefix + "wombat.js", {
       type: "application/javascript",
@@ -281,15 +275,6 @@ export class SWReplay {
       defaultConfig.adblockUrl = sp.get("adblockUrl");
     }
 
-    this.collections = new CollectionsClass(
-      prefixes,
-      sp.get("root"),
-      defaultConfig,
-    );
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this.collections.loadAll(sp.get("dbColl"));
-
     this.proxyOriginMode = !!sp.get("proxyOriginMode");
 
     if (this.proxyOriginMode) {
@@ -299,6 +284,23 @@ export class SWReplay {
       this.proxyPrefix = this.staticPrefix + "proxy/";
       this.apiPrefix = this.replayPrefix + "api/";
     }
+
+    const prefixes: Prefixes = {
+      static: this.staticPrefix,
+      root: this.prefix,
+      main: this.replayPrefix,
+      proxy: this.proxyPrefix,
+      api: this.apiPrefix,
+    };
+
+    this.collections = new CollectionsClass(
+      prefixes,
+      sp.get("root"),
+      defaultConfig,
+    );
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.collections.loadAll(sp.get("dbColl"));
 
     this.api = new ApiClass(this.collections);
 
@@ -520,6 +522,11 @@ export class SWReplay {
 
     // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | null' is not assignable to parameter of type 'string'.
     const coll = await this.collections.getColl(collId);
+
+    // proxy origin, but no collection registered, just pass through to ensure setup is completed
+    if (!coll && this.proxyOriginMode) {
+      return this.defaultFetch(request);
+    }
 
     if (
       !coll ||

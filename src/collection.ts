@@ -24,6 +24,8 @@ export type Prefixes = {
   static: string;
   root: string;
   main: string;
+  proxy: string;
+  api: string;
 };
 
 // ===========================================================================
@@ -59,8 +61,9 @@ export class Collection {
   adblockUrl?: string;
 
   staticPrefix: string;
+  proxyPrefix: string;
 
-  proxyHeadInsert = "";
+  proxyBannerUrl = "";
 
   constructor(
     // [TODO]
@@ -106,7 +109,7 @@ export class Collection {
 
     this.prefix = prefixes.main;
 
-    this.proxyHeadInsert = extraConfig.proxyHeadInsert || "";
+    this.proxyBannerUrl = extraConfig.proxyBannerUrl || "";
 
     // support root collection hashtag nav
     if (this.config.root) {
@@ -117,6 +120,7 @@ export class Collection {
     }
 
     this.staticPrefix = prefixes.static;
+    this.proxyPrefix = prefixes.proxy;
   }
 
   async handleRequest(request: ArchiveRequest, event: FetchEvent) {
@@ -208,7 +212,11 @@ export class Collection {
     }
 
     if (request.isProxyOrigin) {
-      response = await this.proxyInsertBanner(response, this.proxyHeadInsert);
+      response = await this.proxyInsertBanner(
+        response,
+        requestTS,
+        this.proxyBannerUrl,
+      );
     } else if (!response.noRW) {
       const basePrefix =
         this.prefix + (request.pageId ? `:${request.pageId}/` : "");
@@ -605,10 +613,31 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   }
 </script>
 ${this.injectScripts.map((script) => `<script src='${script}'> </script>`).join("")}
-  `;
+<!-- End WB Insert -->
+`;
   }
 
-  async proxyInsertBanner(response: ArchiveResponse, headInsert: string) {
+  async proxyInsertBanner(
+    response: ArchiveResponse,
+    requestTS: string,
+    bannerScript: string,
+  ) {
+    const timestamp = getTS(response.date.toISOString());
+
+    const headInsert = `
+<!-- WB Insert -->
+<script>
+  const wbinfo = {};
+  wbinfo.url = "${response.url}";
+  wbinfo.timestamp = "${timestamp}";
+  wbinfo.request_ts = "${requestTS}";
+  wbinfo.mod = "id_";
+  wbinfo.coll = "${this.name}";
+</script>
+<script src="${this.proxyPrefix}${bannerScript}"></script>
+<!-- End WB Insert -->
+    `;
+
     const mime = response.headers.get("Content-Type") || "";
     const parts = mime.split(";");
     const ct = parts[0];

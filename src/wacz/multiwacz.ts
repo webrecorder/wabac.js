@@ -1194,7 +1194,10 @@ export class MultiWACZ
       return null;
     }
 
-    const foundMap = new Map();
+    const foundMap = new Map<
+      number,
+      { name: string; hash?: string; resp: ArchiveResponse }
+    >();
 
     for (const name of waczFilesToTry) {
       const file = this.waczfiles[name];
@@ -1218,34 +1221,37 @@ export class MultiWACZ
         loadFirst: true,
       });
       if (resp) {
-        if (noRedirect) {
-          return resp;
-        }
-        foundMap.set((resp as ArchiveResponse).date, { name, hash: file.hash });
+        const arResponse = resp as ArchiveResponse;
+        const ts = arResponse.date.getTime();
+        foundMap.set(ts, { name, hash: file.hash, resp: arResponse });
       }
     }
 
     if (foundMap.size > 0) {
       const requestTS = tsToDate(request.timestamp);
       let min = -1;
-      let ts;
+      let timestamp;
       let foundHash;
+      let bestResponse: ArchiveResponse;
 
-      for (const date of foundMap.keys()) {
-        const dist = Math.abs(date.getTime() - requestTS.getTime());
+      for (const ts of foundMap.keys()) {
+        const dist = Math.abs(ts - requestTS.getTime());
         if (min < 0 || dist < min) {
-          const { name, hash } = foundMap.get(date);
+          const { name, hash, resp } = foundMap.get(ts)!;
           waczname = name;
           foundHash = hash;
-          // [TODO]
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          ts = getTS(date.toISOString());
+          timestamp = getTS(resp.date.toISOString());
           min = dist;
+          bestResponse = resp;
         }
       }
 
+      if (noRedirect) {
+        return bestResponse!;
+      }
+
       return Response.redirect(
-        `${prefix}:${foundHash}/${ts}mp_/${request.url}`,
+        `${prefix}:${foundHash}/${timestamp}mp_/${request.url}`,
       );
     }
 
@@ -1365,10 +1371,22 @@ export class MultiWACZ
     }
 
     if (pageUrl) {
-      const res = await this.getWACZFilesForPagesQuery(pageUrl);
+      let res = await this.getWACZFilesForPagesQuery(pageUrl);
       if (res) {
         names = [...names, ...res];
         return names;
+      }
+
+      if (pageUrl.startsWith("https://www.")) {
+        const url = new URL(pageUrl);
+        if (url.pathname === "/") {
+          url.hostname = url.hostname.replace("www.", "");
+          res = await this.getWACZFilesForPagesQuery(url.href);
+          if (res) {
+            names = [...names, ...res];
+            return names;
+          }
+        }
       }
     }
 

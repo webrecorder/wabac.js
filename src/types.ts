@@ -143,7 +143,7 @@ export type ExtraConfig = {
 
   proxyOrigin?: string;
   proxyTs?: string;
-  proxyHeadInsert?: string;
+  proxyBannerUrl?: string;
 };
 
 export type CollConfig = {
