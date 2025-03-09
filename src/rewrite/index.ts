@@ -67,28 +67,7 @@ export function getCustomRewriter(url: string, isHTML: boolean) {
 }
 
 // ===========================================================================
-export abstract class BaseRewriter {
-  url = "";
-  headInsertFunc: InsertFunc | null = null;
-  prefix = "";
-
-  abstract rewriteUrl(url: string, forceAbs: boolean): string;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  abstract rewriteJS(text: string, opts: Record<string, any>): string;
-
-  abstract rewriteCSS(text: string): string;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  abstract rewriteJSON(text: string, opts: Record<string, any>): string;
-
-  abstract rewriteImportmap(text: string): string;
-
-  abstract updateBaseUrl(url: string): string;
-}
-
-// ===========================================================================
-export class Rewriter extends BaseRewriter {
+export class Rewriter {
   urlRewrite: boolean;
   contentRewrite: boolean;
 
@@ -98,14 +77,16 @@ export class Rewriter extends BaseRewriter {
 
   decode: boolean;
 
+  prefix = "";
   originPrefix = "";
   relPrefix = "";
   schemeRelPrefix = "";
   scheme: string;
+  url: string;
   responseUrl: string;
   isCharsetUTF8: boolean;
 
-  //headInsertFunc: InsertFunc | null;
+  headInsertFunc: InsertFunc | null;
   workerInsertFunc: InsertFunc | null;
 
   _jsonpCallback: string | boolean | null;
@@ -121,7 +102,6 @@ export class Rewriter extends BaseRewriter {
     decode = true,
     useBaseRules = false,
   }: RewriterOpts) {
-    super();
     this.urlRewrite = urlRewrite;
     this.contentRewrite = contentRewrite;
     this.dsRules = urlRewrite && !useBaseRules ? jsRules : baseRules;
@@ -423,7 +403,7 @@ export class Rewriter extends BaseRewriter {
     return true;
   }
 
-  override rewriteUrl(url: string, forceAbs = false) {
+  rewriteUrl(url: string, forceAbs = false) {
     if (!this.urlRewrite) {
       return url;
     }
@@ -465,7 +445,7 @@ export class Rewriter extends BaseRewriter {
   }
 
   // HTML
-  async rewriteHtml(response: ArchiveResponse) {
+  async rewriteHtml(response: ArchiveResponse): Promise<ArchiveResponse> {
     const htmlRW = new HTMLRewriter(this, this.isCharsetUTF8);
     return htmlRW.rewrite(response);
   }
@@ -492,7 +472,7 @@ export class Rewriter extends BaseRewriter {
   // JS
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewriteJS(text: string, opts: Record<string, any>) {
+  rewriteJS(text: string, opts: Record<string, any>): string {
     const noUrlProxyRewrite =
       // @ts-expect-error [TODO] - TS4111 - Property 'rewriteUrl' comes from an index signature, so it must be accessed with ['rewriteUrl']. | TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule']. | TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
       // [TODO]
@@ -514,7 +494,7 @@ export class Rewriter extends BaseRewriter {
   // JSON
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewriteJSON(text: string, opts: Record<string, any>) {
+  rewriteJSON(text: string, opts: Record<string, any>): string {
     text = this.rewriteJSONP(text);
 
     const dsRewriter = baseRules.getRewriter(this.baseUrl);
@@ -837,7 +817,9 @@ export class ProxyRewriter extends Rewriter {
     return this.localOrigin + urlStr.slice(this.proxyOrigin.length);
   }
 
-  override async rewriteHtml(response: ArchiveResponse) {
+  override async rewriteHtml(
+    response: ArchiveResponse,
+  ): Promise<ArchiveResponse> {
     const htmlRW = new ProxyHTMLRewriter(this, this.isCharsetUTF8);
     return htmlRW.rewrite(response);
   }

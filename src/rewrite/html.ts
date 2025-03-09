@@ -7,7 +7,7 @@ import {
   MAX_STREAM_CHUNK_SIZE,
   REPLAY_TOP_FRAME_NAME,
 } from "../utils";
-import { type ArchiveResponse, type BaseRewriter } from "./index.js";
+import { type ArchiveResponse, type Rewriter } from "./index.js";
 import { type StartTag } from "parse5-sax-parser";
 import { type Token } from "parse5";
 
@@ -91,12 +91,12 @@ const TEXT_NODE_REWRITE_RULES: TextNodeRewriteRule[] = [
 
 // ===========================================================================
 export class HTMLRewriter {
-  rewriter: BaseRewriter;
+  rewriter: Rewriter;
   rule: TextNodeRewriteRule | null = null;
   ruleMatch: RegExpMatchArray | null = null;
   isCharsetUTF8: boolean;
 
-  constructor(rewriter: BaseRewriter, isCharsetUTF8 = false) {
+  constructor(rewriter: Rewriter, isCharsetUTF8 = false) {
     this.rewriter = rewriter;
     this.rule = null;
 
@@ -115,7 +115,7 @@ export class HTMLRewriter {
   rewriteMetaContent(
     attrs: Token.Attribute[],
     attr: Token.Attribute,
-    rewriter: BaseRewriter,
+    rewriter: Rewriter,
   ) {
     let equiv = this.getAttr(attrs, "http-equiv");
     if (equiv) {
@@ -140,7 +140,7 @@ export class HTMLRewriter {
     return attr.value;
   }
 
-  rewriteSrcSet(value: string, rewriter: BaseRewriter) {
+  rewriteSrcSet(value: string, rewriter: Rewriter) {
     const SRCSET_REGEX = /\s*(\S*\s+[\d.]+[wx]),|(?:\s*,(?:\s+|(?=https?:)))/;
 
     const rv: string[] = [];
@@ -160,7 +160,7 @@ export class HTMLRewriter {
   rewriteTagAndAttrs(
     tag: StartTag,
     attrRules: Record<string, string>,
-    rewriter: BaseRewriter,
+    rewriter: Rewriter,
   ) {
     const isUrl = (val: string) => {
       return startsWithAny(val, DATA_RW_PROTOCOLS);
@@ -522,7 +522,7 @@ export class HTMLRewriter {
     return response;
   }
 
-  rewriteUrl(rewriter: BaseRewriter, text: string, forceAbs = false, mod = "") {
+  rewriteUrl(rewriter: Rewriter, text: string, forceAbs = false, mod = "") {
     // if html charset not utf-8, just convert the url to utf-8 for rewriting
     if (!this.isCharsetUTF8) {
       text = decoder.decode(encodeLatin1(text));
@@ -547,7 +547,7 @@ export class HTMLRewriter {
     return text;
   }
 
-  rewriteJSBase64(text: string, rewriter: BaseRewriter) {
+  rewriteJSBase64(text: string, rewriter: Rewriter) {
     const parts = text.split(",");
     // @ts-expect-error [TODO] - TS2769 - No overload matches this call.
     const content = rewriter.rewriteJS(atob(parts[1]), { isModule: false });
@@ -559,7 +559,7 @@ export class HTMLRewriter {
 // ===========================================================================
 export class ProxyHTMLRewriter extends HTMLRewriter {
   override rewriteUrl(
-    rewriter: BaseRewriter,
+    rewriter: Rewriter,
     text: string,
     forceAbs = false,
     mod = "",
