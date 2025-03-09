@@ -15,7 +15,7 @@ import {
 import { RxRewriter } from "./rxrewriter";
 import { JSRewriter } from "./jsrewriter";
 
-import { HTMLRewriter } from "./html";
+import { HTMLRewriter, ProxyHTMLRewriter } from "./html";
 import { type ArchiveRequest } from "../request";
 import { type ArchiveResponse } from "../response";
 
@@ -819,19 +819,17 @@ export class Rewriter extends BaseRewriter {
 }
 
 // ===========================================================================
-export class ProxyRewriter extends BaseRewriter {
+export class ProxyRewriter extends Rewriter {
   proxyOrigin: string;
   localOrigin: string;
 
-  constructor(request: ArchiveRequest, headInsertFunc: InsertFunc) {
-    super();
-    this.url = request.url;
+  constructor(opts: RewriterOpts, request: ArchiveRequest) {
+    super(opts);
     this.proxyOrigin = request.proxyOrigin!;
     this.localOrigin = request.localOrigin!;
-    this.headInsertFunc = headInsertFunc;
   }
 
-  rewriteUrl(urlStr: string): string {
+  override rewriteUrl(urlStr: string): string {
     if (!urlStr.startsWith(this.proxyOrigin)) {
       return urlStr;
     }
@@ -839,25 +837,30 @@ export class ProxyRewriter extends BaseRewriter {
     return this.localOrigin + urlStr.slice(this.proxyOrigin.length);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewriteJS(text: string, _: Record<string, any>): string {
-    return text;
-  }
-
-  rewriteCSS(text: string): string {
-    return text;
+  override async rewriteHtml(response: ArchiveResponse) {
+    const htmlRW = new ProxyHTMLRewriter(this, this.isCharsetUTF8);
+    return htmlRW.rewrite(response);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewriteJSON(text: string, _: Record<string, any>): string {
+  override rewriteJS(text: string, _: Record<string, any>): string {
     return text;
   }
 
-  rewriteImportmap(text: string) {
+  override rewriteCSS(text: string): string {
     return text;
   }
 
-  updateBaseUrl(url: string): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  override rewriteJSON(text: string, _: Record<string, any>): string {
+    return text;
+  }
+
+  override rewriteImportmap(text: string) {
+    return text;
+  }
+
+  override updateBaseUrl(url: string): string {
     return url;
   }
 }
