@@ -105,7 +105,7 @@ test(
 test(
   rewriteHtml,
   '<body x="y"><img src="../img.gif"/><br/></body>',
-  '<body x="y"><img src="http://localhost:8080/prefix/20201226101010mp_/https://example.com/some/img.gif"/><br/></body>',
+  '<body x="y"><img src="http://localhost:8080/prefix/20201226101010im_/https://example.com/some/img.gif"/><br/></body>',
 );
 
 test(
@@ -134,7 +134,7 @@ test(
   "BASE tag",
   rewriteHtml,
   '<base href="//example.com"/><img src="/foo.gif"/>',
-  '<base href="//localhost:8080/prefix/20201226101010mp_///example.com/"/><img src="/prefix/20201226101010mp_/https://example.com/foo.gif"/>',
+  '<base href="//localhost:8080/prefix/20201226101010mp_///example.com/"/><img src="/prefix/20201226101010im_/https://example.com/foo.gif"/>',
 );
 
 test(
