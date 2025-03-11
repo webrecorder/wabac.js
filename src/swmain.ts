@@ -224,28 +224,16 @@ export class SWReplay {
 
     this.proxyOriginMode = !!sp.get("proxyOriginMode");
 
-    this.replayPrefix = this.prefix;
-
-    let replayPrefixPath = "w";
-
     if (this.proxyOriginMode) {
+      this.replayPrefix = this.prefix + "__wb_proxy/";
+      this.staticPrefix = this.replayPrefix + "static/";
       this.proxyPrefix = "https://wab.ac/proxy/";
       this.apiPrefix = "https://wab.ac/api/";
-      replayPrefixPath = "__wb_proxy";
-      this.staticPrefix = this.prefix + "/" + replayPrefixPath + "static/";
     } else {
-      this.replayPrefix = this.prefix;
+      this.replayPrefix = this.prefix + (sp.get("replayPrefix") || "w") + "/";
       this.staticPrefix = this.prefix + "static/";
       this.proxyPrefix = this.staticPrefix + "proxy/";
       this.apiPrefix = this.replayPrefix + "api/";
-
-      if (sp.has("replayPrefix")) {
-        replayPrefixPath = sp.get("replayPrefix")!;
-      }
-    }
-
-    if (replayPrefixPath) {
-      this.replayPrefix += replayPrefixPath + "/";
     }
 
     this.distPrefix = this.prefix + "dist/";
