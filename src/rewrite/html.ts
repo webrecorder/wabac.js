@@ -7,7 +7,11 @@ import {
   MAX_STREAM_CHUNK_SIZE,
   REPLAY_TOP_FRAME_NAME,
 } from "../utils";
-import { type ArchiveResponse, type Rewriter } from "./index.js";
+import {
+  type ProxyRewriter,
+  type ArchiveResponse,
+  type Rewriter,
+} from "./index.js";
 import { type StartTag } from "parse5-sax-parser";
 import { type Token } from "parse5";
 
@@ -568,12 +572,17 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
       return text;
     }
 
+    if (mod === "if_" || mod === "fr_") {
+      return (rewriter as ProxyRewriter).directRewriteUrl(text, forceAbs);
+    }
+
     // if html charset not utf-8, just convert the url to utf-8 for rewriting
     if (!this.isCharsetUTF8) {
       text = decoder.decode(encodeLatin1(text));
     }
 
     const res = rewriter.rewriteUrl(text, forceAbs);
+
     return mod && mod !== defmod && mod !== "ln_"
       ? res.replace(defmod + "/", mod + "/")
       : res;

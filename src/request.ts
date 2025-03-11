@@ -9,6 +9,7 @@ export type ArchiveRequestInitOpts = {
   ts?: string;
   proxyOrigin?: string;
   localOrigin?: string;
+  defaultReplayMode?: boolean;
 };
 
 export class ArchiveRequest {
@@ -41,6 +42,7 @@ export class ArchiveRequest {
       ts = "",
       proxyOrigin = undefined,
       localOrigin = undefined,
+      defaultReplayMode = false,
     }: ArchiveRequestInitOpts = {},
   ) {
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
@@ -66,15 +68,12 @@ export class ArchiveRequest {
       return;
     } else {
       this.pageId = wbUrl[1] || "";
-      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
-      this.timestamp = wbUrl[2];
-      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
-      this.mod = wbUrl[3];
-      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
-      this.url = wbUrl[4];
+      this.timestamp = wbUrl[2] || "";
+      this.mod = wbUrl[3] || "";
+      this.url = wbUrl[4] || "";
     }
 
-    if (proxyOrigin && localOrigin) {
+    if (proxyOrigin && localOrigin && !defaultReplayMode) {
       this.url = resolveProxyOrigin(proxyOrigin, localOrigin, this.url);
       if (this.request.referrer) {
         this._proxyReferrer = resolveProxyOrigin(
@@ -171,9 +170,7 @@ export class ArchiveRequest {
     if (url.startsWith("//") && referrer) {
       try {
         url = new URL(referrer).protocol + url;
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
+      } catch (_) {
         url = "https:" + url;
       }
     }

@@ -817,6 +817,10 @@ export class ProxyRewriter extends Rewriter {
     return this.localOrigin + urlStr.slice(this.proxyOrigin.length);
   }
 
+  directRewriteUrl(urlStr: string, forceAbs = false) {
+    return super.rewriteUrl(urlStr, forceAbs);
+  }
+
   override async rewriteHtml(
     response: ArchiveResponse,
   ): Promise<ArchiveResponse> {

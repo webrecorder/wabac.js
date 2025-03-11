@@ -220,21 +220,34 @@ export class SWReplay {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     this.prefix = self.registration ? self.registration.scope : "";
 
-    this.replayPrefix = this.prefix;
-
     const sp = new URLSearchParams(self.location.search);
+
+    this.proxyOriginMode = !!sp.get("proxyOriginMode");
+
+    this.replayPrefix = this.prefix;
 
     let replayPrefixPath = "w";
 
-    if (sp.has("replayPrefix")) {
-      replayPrefixPath = sp.get("replayPrefix")!;
+    if (this.proxyOriginMode) {
+      this.proxyPrefix = "https://wab.ac/proxy/";
+      this.apiPrefix = "https://wab.ac/api/";
+      replayPrefixPath = "__wb_proxy";
+      this.staticPrefix = this.prefix + "/" + replayPrefixPath + "static/";
+    } else {
+      this.replayPrefix = this.prefix;
+      this.staticPrefix = this.prefix + "static/";
+      this.proxyPrefix = this.staticPrefix + "proxy/";
+      this.apiPrefix = this.replayPrefix + "api/";
+
+      if (sp.has("replayPrefix")) {
+        replayPrefixPath = sp.get("replayPrefix")!;
+      }
     }
 
     if (replayPrefixPath) {
       this.replayPrefix += replayPrefixPath + "/";
     }
 
-    this.staticPrefix = this.prefix + "static/";
     this.distPrefix = this.prefix + "dist/";
 
     this.staticData = staticData || new Map();
@@ -273,16 +286,6 @@ export class SWReplay {
     if (sp.has("adblockUrl")) {
       // @ts-expect-error [TODO] - TS4111 - Property 'adblockUrl' comes from an index signature, so it must be accessed with ['adblockUrl'].
       defaultConfig.adblockUrl = sp.get("adblockUrl");
-    }
-
-    this.proxyOriginMode = !!sp.get("proxyOriginMode");
-
-    if (this.proxyOriginMode) {
-      this.proxyPrefix = "https://wab.ac/proxy/";
-      this.apiPrefix = "https://wab.ac/api/";
-    } else {
-      this.proxyPrefix = this.staticPrefix + "proxy/";
-      this.apiPrefix = this.replayPrefix + "api/";
     }
 
     const prefixes: Prefixes = {
@@ -349,36 +352,38 @@ export class SWReplay {
       if (url.startsWith(this.proxyPrefix)) {
         return this.staticPathProxy(url, event.request);
       }
-      return this.getResponseFor(event.request, event);
-    }
-
-    // if not on our domain, just pass through (loading handled in local worker)
-    if (!url.startsWith(this.prefix)) {
-      if (url === "chrome-extension://invalid/") {
-        return notFound(event.request, "Invalid URL");
+      if (!url.startsWith(this.staticPrefix)) {
+        return this.getResponseFor(event.request, event);
       }
-      return this.defaultFetch(event.request);
-    }
+    } else {
+      // if not on our domain, just pass through (loading handled in local worker)
+      if (!url.startsWith(this.prefix)) {
+        if (url === "chrome-extension://invalid/") {
+          return notFound(event.request, "Invalid URL");
+        }
+        return this.defaultFetch(event.request);
+      }
 
-    // special handling when root collection set: pass through any root files, eg. /index.html
-    if (
-      this.collections.root &&
-      url.slice(this.prefix.length).indexOf("/") < 0
-    ) {
-      return this.defaultFetch(event.request);
-    }
+      // special handling when root collection set: pass through any root files, eg. /index.html
+      if (
+        this.collections.root &&
+        url.slice(this.prefix.length).indexOf("/") < 0
+      ) {
+        return this.defaultFetch(event.request);
+      }
 
-    // JS rewrite on static/external files not from archive
-    if (url.startsWith(this.proxyPrefix)) {
-      return this.staticPathProxy(url, event.request);
-    }
+      // JS rewrite on static/external files not from archive
+      if (url.startsWith(this.proxyPrefix)) {
+        return this.staticPathProxy(url, event.request);
+      }
 
-    // handle replay / api
-    if (
-      url.startsWith(this.replayPrefix) &&
-      !url.startsWith(this.staticPrefix)
-    ) {
-      return this.getResponseFor(event.request, event);
+      // handle replay / api
+      if (
+        url.startsWith(this.replayPrefix) &&
+        !url.startsWith(this.staticPrefix)
+      ) {
+        return this.getResponseFor(event.request, event);
+      }
     }
 
     // current domain, but not replay, check if should cache ourselves or serve static data
@@ -535,15 +540,22 @@ export class SWReplay {
       return notFound(request);
     }
 
-    const wbUrlStr = this.proxyOriginMode
-      ? request.url
-      : request.url.substring(coll.prefix.length);
+    let wbUrlStr;
+    let defaultReplayMode = false;
+
+    if (request.url.startsWith(coll.prefix) || !this.proxyOriginMode) {
+      wbUrlStr = request.url.substring(coll.prefix.length);
+      defaultReplayMode = true;
+    } else {
+      wbUrlStr = request.url;
+    }
 
     const opts: ArchiveRequestInitOpts = {
       isRoot: !!this.collections.root,
+      defaultReplayMode,
     };
 
-    if (this.proxyOriginMode) {
+    if (this.proxyOriginMode && !defaultReplayMode) {
       opts.mod = "id_";
       opts.proxyOrigin = coll.config.extraConfig?.proxyOrigin;
       opts.ts = coll.config.extraConfig?.proxyTs || "";
