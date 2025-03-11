@@ -52,8 +52,7 @@ const rewriteHtml = test.macro({
 // ===========================================================================
 
 // ===========================================================================
-// @ts-expect-error [TODO] - TS7006 - Parameter 'text' implicitly has an 'any' type.
-function wrapScript(text) {
+function wrapScript(text: string) {
   return `\
 var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
 if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
@@ -74,16 +73,14 @@ ${text}
 }`;
 }
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 'text' implicitly has an 'any' type.
-function wrapScriptInline(text) {
+function wrapScriptInline(text: string) {
   return wrapScript(text)
     .replace(/\n/g, " ")
     .replace(/["]/g, "&quot;")
     .replace(/[&][&]/g, "&amp;&amp;");
 }
 
-// @ts-expect-error [TODO] - TS7006 - Parameter 'text' implicitly has an 'any' type.
-function wrapScriptModule(text) {
+function wrapScriptModule(text: string) {
   return `\
 <script type="module">import { window, globalThis, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010mp_/__wb_module_decl.js";
 ${text}</script>`;
