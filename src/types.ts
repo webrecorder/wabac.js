@@ -140,6 +140,11 @@ export type ExtraConfig = {
 
   liveRedirectOnNotFound?: boolean;
   adblockUrl?: string;
+
+  proxyPathOnly?: boolean;
+  archivePrefix?: string;
+  archiveMod?: string;
+  isLive?: boolean;
 };
 
 export type CollConfig = {

@@ -325,7 +325,7 @@ export class CollectionLoader {
         break;
 
       case "live":
-        store = new LiveProxy(config.extraConfig!);
+        store = new LiveProxy(config.extraConfig);
         break;
     }
 
