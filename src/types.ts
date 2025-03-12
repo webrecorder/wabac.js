@@ -144,6 +144,10 @@ export type ExtraConfig = {
   proxyOrigin?: string;
   proxyTs?: string;
   proxyBannerUrl?: string;
+  proxyPathOnly?: boolean;
+  archivePrefix?: string;
+  archiveMod?: string;
+  isLive?: boolean;
 };
 
 export type CollConfig = {
