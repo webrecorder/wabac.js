@@ -96,6 +96,7 @@ export class LiveProxy implements DBStore {
         this.archivePrefix +
         request.timestamp +
         this.archiveMod +
+        "/" +
         url
       );
     }
@@ -162,6 +163,22 @@ export class LiveProxy implements DBStore {
     ) {
       response = getProxyNotFoundResponse(url, response.status);
       noRW = true;
+    }
+
+    try {
+      // was a redirect, issue a redirect to the exact URL
+      const fullFetchURL = new URL(fetchUrl, self.location.href).href;
+
+      if (response.url !== fullFetchURL) {
+        const inx = response.url.indexOf("/http");
+        const actualUrl = response.url.slice(inx + 1);
+        // ensure actual URL is different, not just timestamp
+        if (url !== actualUrl) {
+          response = Response.redirect(actualUrl);
+        }
+      }
+    } catch (_) {
+      // ignore
     }
 
     let clonedResponse: Response | null = null;
