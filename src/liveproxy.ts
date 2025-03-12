@@ -1,7 +1,7 @@
 import { getProxyNotFoundResponse } from "./notfound";
 import { type ArchiveRequest } from "./request";
 import { ArchiveResponse } from "./response";
-import { type DBStore } from "./types";
+import { type ExtraConfig, type DBStore } from "./types";
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -11,6 +11,7 @@ export class LiveProxy implements DBStore {
   proxyPathOnly: boolean;
   isLive: boolean;
   archivePrefix: string;
+  archiveMod: string;
   cloneResponse: boolean;
   allowBody: boolean;
   // [TODO]
@@ -21,23 +22,16 @@ export class LiveProxy implements DBStore {
   messageOnProxyErrors: boolean;
 
   constructor(
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    extraConfig: Record<string, any>,
+    extraConfig?: ExtraConfig,
     { cloneResponse = false, allowBody = false, hostProxyOnly = false } = {},
   ) {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     extraConfig = extraConfig || {};
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
     this.prefix = extraConfig.prefix || "";
-    // @ts-expect-error [TODO] - TS4111 - Property 'proxyPathOnly' comes from an index signature, so it must be accessed with ['proxyPathOnly'].
     this.proxyPathOnly = extraConfig.proxyPathOnly || false;
-    // @ts-expect-error [TODO] - TS4111 - Property 'isLive' comes from an index signature, so it must be accessed with ['isLive']. | TS4111 - Property 'isLive' comes from an index signature, so it must be accessed with ['isLive'].
     this.isLive = extraConfig.isLive !== undefined ? extraConfig.isLive : true;
-    // @ts-expect-error [TODO] - TS4111 - Property 'archivePrefix' comes from an index signature, so it must be accessed with ['archivePrefix'].
     this.archivePrefix = extraConfig.archivePrefix || "";
+    this.archiveMod = extraConfig.archiveMod || "id_";
     this.cloneResponse = cloneResponse;
     this.allowBody = allowBody || this.isLive;
 
@@ -98,7 +92,11 @@ export class LiveProxy implements DBStore {
       return this.prefix + url;
     } else {
       return (
-        this.prefix + this.archivePrefix + request.timestamp + "id_/" + url
+        this.prefix +
+        this.archivePrefix +
+        request.timestamp +
+        this.archiveMod +
+        url
       );
     }
   }
