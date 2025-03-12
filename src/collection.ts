@@ -331,8 +331,7 @@ export class Collection {
   wbinfo.url = "${url}";
   wbinfo.timestamp = "${timestamp}";
   wbinfo.request_ts = "${requestTS}";
-  wbinfo.mod = "id_";
-  wbinfo.coll = "${this.name}";
+  self.__wbinfo = wbinfo;
 </script>
 <script src="${this.proxyPrefix}${this.proxyBannerUrl}"></script>
 <!-- End WB Insert -->
