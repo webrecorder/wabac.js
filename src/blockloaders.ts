@@ -220,7 +220,7 @@ class FetchRangeLoader extends BaseLoader {
           this.length = json.size;
         }
       } catch (e) {
-        console.log("Error fetching from helper: " + e!.toString());
+        console.log("Error fetching from helper: " + e);
       }
     }
 
@@ -780,7 +780,7 @@ class IPFSRangeLoader extends BaseLoader {
     if (tryHead || !this.isValid) {
       body = new Uint8Array([]);
     } else {
-      const iter = autoipfsClient.get(this.url, {
+      const iter: AsyncIterable<Uint8Array> = autoipfsClient.get(this.url, {
         signal,
       });
       body = getReadableStreamFromIter(iter);
@@ -799,7 +799,7 @@ class IPFSRangeLoader extends BaseLoader {
   ) {
     const autoipfsClient = await initAutoIPFS(this.opts);
 
-    const iter = autoipfsClient.get(this.url, {
+    const iter: AsyncIterable<Uint8Array> = autoipfsClient.get(this.url, {
       start: offset,
       end: offset + length - 1,
       signal,

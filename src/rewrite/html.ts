@@ -568,23 +568,19 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
     forceAbs = false,
     mod = "",
   ) {
-    if (!["ln_", "fr_", "if_"].includes(mod)) {
-      return text;
-    }
-
     if (mod === "if_" || mod === "fr_") {
       return (rewriter as ProxyRewriter).directRewriteUrl(text, forceAbs);
     }
 
-    // if html charset not utf-8, just convert the url to utf-8 for rewriting
-    if (!this.isCharsetUTF8) {
-      text = decoder.decode(encodeLatin1(text));
+    if (mod === "ln_") {
+      // if html charset not utf-8, just convert the url to utf-8 for rewriting
+      if (!this.isCharsetUTF8) {
+        text = decoder.decode(encodeLatin1(text));
+      }
+
+      return rewriter.rewriteUrl(text, forceAbs);
     }
 
-    const res = rewriter.rewriteUrl(text, forceAbs);
-
-    return mod && mod !== defmod && mod !== "ln_"
-      ? res.replace(defmod + "/", mod + "/")
-      : res;
+    return text;
   }
 }
