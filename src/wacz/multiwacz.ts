@@ -1406,7 +1406,7 @@ export class MultiWACZ
 
     // finally, fall back to all wacz files if no other choice
     const allFiles = Object.keys(this.waczfiles);
-    if (this.maxFallbackLookups > 0) {
+    if (this.maxFallbackLookups > 0 && this.rootSourceType === "json") {
       return allFiles.slice(0, this.maxFallbackLookups);
     }
     return allFiles;
