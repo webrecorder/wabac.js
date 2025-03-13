@@ -102,6 +102,8 @@ export class MultiWACZ
   referrerMap = new Map<string, string>();
   notAPage = new Set<string>();
 
+  maxFallbackLookups = 3;
+
   totalPages?: number = undefined;
 
   preloadResources: string[] = [];
@@ -1403,7 +1405,11 @@ export class MultiWACZ
     }
 
     // finally, fall back to all wacz files if no other choice
-    return Object.keys(this.waczfiles);
+    const allFiles = Object.keys(this.waczfiles);
+    if (this.maxFallbackLookups > 0) {
+      return allFiles.slice(0, this.maxFallbackLookups);
+    }
+    return allFiles;
   }
 
   async getWACZFilesForPagesQuery(
