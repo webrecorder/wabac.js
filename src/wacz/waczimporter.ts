@@ -163,6 +163,8 @@ export class WACZImporter {
     this.file.markAsMultiWACZ();
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     await this.store.loadWACZFiles(root, this.file);
+
+    this.store.maxFallbackLookups = -1;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return root;
   }
