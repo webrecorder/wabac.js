@@ -1403,7 +1403,7 @@ export class MultiWACZ
     }
 
     // finally, fall back to all wacz files if no other choice
-    return Object.keys(this.waczfiles).slice(0, 3);
+    return Object.keys(this.waczfiles);
   }
 
   async getWACZFilesForPagesQuery(
