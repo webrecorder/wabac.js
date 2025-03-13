@@ -1,4 +1,4 @@
-import { Rewriter } from "./rewrite";
+import { ProxyRewriter, Rewriter } from "./rewrite";
 
 import {
   getTS,
@@ -24,6 +24,8 @@ export type Prefixes = {
   static: string;
   root: string;
   main: string;
+  proxy: string;
+  api: string;
 };
 
 // ===========================================================================
@@ -59,6 +61,9 @@ export class Collection {
   adblockUrl?: string;
 
   staticPrefix: string;
+  proxyPrefix: string;
+
+  proxyBannerUrl = "";
 
   constructor(
     // [TODO]
@@ -104,6 +109,8 @@ export class Collection {
 
     this.prefix = prefixes.main;
 
+    this.proxyBannerUrl = extraConfig.proxyBannerUrl || "";
+
     // support root collection hashtag nav
     if (this.config.root) {
       this.isRoot = true;
@@ -113,6 +120,7 @@ export class Collection {
     }
 
     this.staticPrefix = prefixes.static;
+    this.proxyPrefix = prefixes.proxy;
   }
 
   async handleRequest(request: ArchiveRequest, event: FetchEvent) {
@@ -204,62 +212,22 @@ export class Collection {
     }
 
     if (!response.noRW) {
-      const basePrefix =
-        this.prefix + (request.pageId ? `:${request.pageId}/` : "");
-      const basePrefixTS = basePrefix + requestTS;
-      const arResponse = response;
-
-      const headInsertFunc = (url: string) => {
-        const presetCookie =
-          arResponse.headers.get("x-wabac-preset-cookie") || "";
-        const setCookie = arResponse.headers.get("Set-Cookie");
-        const topUrl = basePrefixTS + (requestTS ? "/" : "") + url;
-        return this.makeHeadInsert(
-          url,
+      if (!request.isProxyOrigin) {
+        response = await this.directRewrite(
+          request,
+          response,
+          baseUrl,
+          requestURL,
           requestTS,
-          arResponse.date,
-          topUrl,
-          basePrefix,
-          presetCookie,
-          setCookie,
-          arResponse.isLive,
-          request.referrer,
-          arResponse.extraOpts,
         );
-      };
-
-      const workerInsertFunc = (text: string) => {
-        return (
-          `
-        (function() { self.importScripts('${this.staticPrefix}wombatWorkers.js');\
-            new WBWombat({'prefix': '${basePrefixTS}/', 'prefixMod': '${basePrefixTS}wkrf_/', 'originalURL': '${requestURL}'});\
-        })();` + text
+      } else {
+        response = await this.proxyRewrite(
+          request,
+          response,
+          baseUrl,
+          requestURL,
+          requestTS,
         );
-      };
-
-      const mod = request.mod;
-
-      const noRewrite = mod === "id_" || mod === "wkrf_";
-
-      const prefix = basePrefixTS + mod + "/";
-
-      const rewriteOpts = {
-        baseUrl,
-        responseUrl: response.url,
-        prefix,
-        headInsertFunc,
-        workerInsertFunc,
-        urlRewrite: !noRewrite,
-        contentRewrite: !noRewrite,
-        decode: this.config.decode,
-      };
-
-      const rewriter = new Rewriter(rewriteOpts);
-
-      response = await rewriter.rewrite(response, request);
-
-      if (mod !== "id_") {
-        response.headers.append("Content-Security-Policy", this.csp);
       }
     }
 
@@ -272,6 +240,122 @@ export class Collection {
     const deleteDisposition =
       request.destination === "iframe" || request.destination === "document";
     return response.makeResponse(this.coHeaders, deleteDisposition);
+  }
+
+  async directRewrite(
+    request: ArchiveRequest,
+    response: ArchiveResponse,
+    baseUrl: string,
+    requestURL: string,
+    requestTS: string,
+  ) {
+    const basePrefix =
+      this.prefix + (request.pageId ? `:${request.pageId}/` : "");
+    const basePrefixTS = basePrefix + requestTS;
+    const arResponse = response;
+
+    const headInsertFunc = (url: string) => {
+      const presetCookie =
+        arResponse.headers.get("x-wabac-preset-cookie") || "";
+      const setCookie = arResponse.headers.get("Set-Cookie");
+      const topUrl = basePrefixTS + (requestTS ? "/" : "") + url;
+      return this.makeHeadInsert(
+        url,
+        requestTS,
+        arResponse.date,
+        topUrl,
+        basePrefix,
+        presetCookie,
+        setCookie,
+        arResponse.isLive,
+        request.referrer,
+        arResponse.extraOpts,
+      );
+    };
+
+    const workerInsertFunc = (text: string) => {
+      return (
+        `
+      (function() { self.importScripts('${this.staticPrefix}wombatWorkers.js');\
+          new WBWombat({'prefix': '${basePrefixTS}/', 'prefixMod': '${basePrefixTS}wkrf_/', 'originalURL': '${requestURL}'});\
+      })();` + text
+      );
+    };
+
+    const mod = request.mod;
+
+    const noRewrite = mod === "id_" || mod === "wkrf_";
+
+    const prefix = basePrefixTS + mod + "/";
+
+    const rewriteOpts = {
+      baseUrl,
+      responseUrl: response.url,
+      prefix,
+      headInsertFunc,
+      workerInsertFunc,
+      urlRewrite: !noRewrite,
+      contentRewrite: !noRewrite,
+      decode: this.config.decode,
+    };
+
+    const rewriter = new Rewriter(rewriteOpts);
+
+    response = await rewriter.rewrite(response, request);
+
+    if (mod !== "id_") {
+      response.headers.append("Content-Security-Policy", this.csp);
+    }
+
+    return response;
+  }
+
+  async proxyRewrite(
+    request: ArchiveRequest,
+    response: ArchiveResponse,
+    baseUrl: string,
+    requestURL: string,
+    requestTS: string,
+  ) {
+    const basePrefix =
+      this.prefix + (request.pageId ? `:${request.pageId}/` : "");
+    const basePrefixTS = basePrefix + requestTS;
+
+    const timestamp = getTS(response.date.toISOString());
+
+    const headInsertFunc = (url: string) => {
+      return `
+<!-- WB Insert -->
+<script>
+  const wbinfo = {};
+  wbinfo.url = "${url}";
+  wbinfo.timestamp = "${timestamp}";
+  wbinfo.request_ts = "${requestTS}";
+  self.__wbinfo = wbinfo;
+</script>
+<script src="${this.proxyPrefix}${this.proxyBannerUrl}"></script>
+<!-- End WB Insert -->
+    `;
+    };
+
+    const prefix = basePrefixTS + "mp_/";
+
+    const rewriteOpts = {
+      baseUrl,
+      responseUrl: response.url,
+      prefix,
+      headInsertFunc,
+      workerInsertFunc: null,
+      urlRewrite: true,
+      contentRewrite: true,
+      decode: this.config.decode,
+    };
+
+    const rewriter = new ProxyRewriter(rewriteOpts, request);
+
+    response = await rewriter.rewrite(response, request);
+
+    return response;
   }
 
   getCanonRedirect(query: ArchiveRequest) {
@@ -599,6 +683,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   }
 </script>
 ${this.injectScripts.map((script) => `<script src='${script}'> </script>`).join("")}
-  `;
+<!-- End WB Insert -->
+`;
   }
 }

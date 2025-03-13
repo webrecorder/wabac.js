@@ -99,6 +99,8 @@ export class MultiWACZ
   fuzzyUrlRules: { match: RegExp; replace: any }[];
 
   pagesQueryUrl = "";
+  referrerMap = new Map<string, string>();
+  notAPage = new Set<string>();
 
   totalPages?: number = undefined;
 
@@ -1192,7 +1194,10 @@ export class MultiWACZ
       return null;
     }
 
-    const foundMap = new Map();
+    const foundMap = new Map<
+      number,
+      { name: string; hash?: string; resp: ArchiveResponse }
+    >();
 
     for (const name of waczFilesToTry) {
       const file = this.waczfiles[name];
@@ -1216,34 +1221,37 @@ export class MultiWACZ
         loadFirst: true,
       });
       if (resp) {
-        if (noRedirect) {
-          return resp;
-        }
-        foundMap.set((resp as ArchiveResponse).date, { name, hash: file.hash });
+        const arResponse = resp as ArchiveResponse;
+        const ts = arResponse.date.getTime();
+        foundMap.set(ts, { name, hash: file.hash, resp: arResponse });
       }
     }
 
     if (foundMap.size > 0) {
       const requestTS = tsToDate(request.timestamp);
       let min = -1;
-      let ts;
+      let timestamp;
       let foundHash;
+      let bestResponse: ArchiveResponse;
 
-      for (const date of foundMap.keys()) {
-        const dist = Math.abs(date.getTime() - requestTS.getTime());
+      for (const ts of foundMap.keys()) {
+        const dist = Math.abs(ts - requestTS.getTime());
         if (min < 0 || dist < min) {
-          const { name, hash } = foundMap.get(date);
+          const { name, hash, resp } = foundMap.get(ts)!;
           waczname = name;
           foundHash = hash;
-          // [TODO]
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          ts = getTS(date.toISOString());
+          timestamp = getTS(resp.date.toISOString());
           min = dist;
+          bestResponse = resp;
         }
       }
 
+      if (noRedirect) {
+        return bestResponse!;
+      }
+
       return Response.redirect(
-        `${prefix}:${foundHash}/${ts}mp_/${request.url}`,
+        `${prefix}:${foundHash}/${timestamp}mp_/${request.url}`,
       );
     }
 
@@ -1348,13 +1356,37 @@ export class MultiWACZ
       if (inx > 0) {
         pageUrl = request.url.slice(inx);
       }
+    } else if (request.isProxyOrigin && request.referrer) {
+      pageUrl = request.referrer;
+      this.referrerMap.set(request.url, pageUrl);
+      let topLevelPage: string | undefined = "";
+      while (pageUrl) {
+        topLevelPage = this.referrerMap.get(pageUrl);
+        if (topLevelPage && topLevelPage !== pageUrl) {
+          pageUrl = topLevelPage;
+        } else {
+          break;
+        }
+      }
     }
 
     if (pageUrl) {
-      const res = await this.getWACZFilesForPagesQuery(pageUrl);
+      let res = await this.getWACZFilesForPagesQuery(pageUrl);
       if (res) {
         names = [...names, ...res];
         return names;
+      }
+
+      if (pageUrl.startsWith("https://www.")) {
+        const url = new URL(pageUrl);
+        if (url.pathname === "/") {
+          url.hostname = url.hostname.replace("www.", "");
+          res = await this.getWACZFilesForPagesQuery(url.href);
+          if (res) {
+            names = [...names, ...res];
+            return names;
+          }
+        }
       }
     }
 
@@ -1365,21 +1397,34 @@ export class MultiWACZ
         const res = this.seedPageWACZs.get(file.crawlId);
         if (res) {
           names = [...names, ...res.values()];
+          return names;
         }
       }
     }
 
-    // finally if 3 or less WACZ files, just try all of them
-    if (!names.length && Object.keys(this.waczfiles).length <= 3) {
-      names = Object.keys(this.waczfiles);
-    }
-
-    return names;
+    // finally, fall back to all wacz files if no other choice
+    return Object.keys(this.waczfiles);
   }
 
   async getWACZFilesForPagesQuery(
     requestUrl: string,
   ): Promise<string[] | null> {
+    const selectFiles = [];
+
+    const pages = await this.getPagesByUrl(requestUrl);
+    for (const page of pages) {
+      if (page.wacz) {
+        selectFiles.push(page.wacz);
+      }
+    }
+    if (selectFiles.length) {
+      return selectFiles;
+    }
+
+    if (this.notAPage.has(requestUrl)) {
+      return null;
+    }
+
     const params = new URLSearchParams();
     const url = new URL(requestUrl);
     url.hash = "";
@@ -1403,7 +1448,6 @@ export class MultiWACZ
       json = await res.json();
     }
     const items: { filename: string; url: string }[] = json.items;
-    const selectFiles = [];
     for (const file of items) {
       if (!file.url.startsWith(url.href)) {
         break;
@@ -1413,8 +1457,14 @@ export class MultiWACZ
       }
     }
     if (!selectFiles.length) {
+      this.notAPage.add(requestUrl);
       return null;
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    this.addInitialPages(json.items).catch((e) =>
+      console.log(e, "additional page add failed"),
+    );
 
     return selectFiles;
   }

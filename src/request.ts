@@ -3,6 +3,15 @@ import { postToGetUrl } from "warcio";
 const REPLAY_REGEX =
   /^(?::([\w-]+)\/)?(\d*)([a-z]+_|[$][a-z0-9:.-]+)?(?:\/|\||%7C|%7c)(.+)/;
 
+export type ArchiveRequestInitOpts = {
+  isRoot?: boolean;
+  mod?: string;
+  ts?: string;
+  proxyOrigin?: string;
+  localOrigin?: string;
+  defaultReplayMode?: boolean;
+};
+
 export class ArchiveRequest {
   url = "";
   timestamp = "";
@@ -12,10 +21,15 @@ export class ArchiveRequest {
   cookie = "";
 
   isProxyOrigin = false;
+  proxyOrigin?: string;
+  localOrigin?: string;
 
   request: Request;
   method: string;
   mode: string;
+
+  // eslint-disable-next-line @typescript-eslint/prefer-readonly
+  private _proxyReferrer = "";
 
   _postToGetConverted = false;
 
@@ -26,9 +40,10 @@ export class ArchiveRequest {
       isRoot = false,
       mod = "",
       ts = "",
-      proxyOrigin = null,
-      localOrigin = null,
-    } = {},
+      proxyOrigin = undefined,
+      localOrigin = undefined,
+      defaultReplayMode = false,
+    }: ArchiveRequestInitOpts = {},
   ) {
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
 
@@ -53,22 +68,23 @@ export class ArchiveRequest {
       return;
     } else {
       this.pageId = wbUrl[1] || "";
-      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
-      this.timestamp = wbUrl[2];
-      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
-      this.mod = wbUrl[3];
-      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
-      this.url = wbUrl[4];
+      this.timestamp = wbUrl[2] || "";
+      this.mod = wbUrl[3] || "";
+      this.url = wbUrl[4] || "";
     }
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (proxyOrigin && localOrigin) {
-      const url = new URL(this.url);
-      if (url.origin === localOrigin) {
-        this.url = proxyOrigin + url.pathname + (url.search ? url.search : "");
+    if (proxyOrigin && localOrigin && !defaultReplayMode) {
+      this.url = resolveProxyOrigin(proxyOrigin, localOrigin, this.url);
+      if (this.request.referrer) {
+        this._proxyReferrer = resolveProxyOrigin(
+          proxyOrigin,
+          localOrigin,
+          this.request.referrer,
+        );
       }
       this.isProxyOrigin = true;
+      this.proxyOrigin = proxyOrigin;
+      this.localOrigin = localOrigin;
     }
 
     const hashIndex = this.url.indexOf("#");
@@ -87,7 +103,7 @@ export class ArchiveRequest {
   }
 
   get referrer() {
-    return this.request.referrer;
+    return this._proxyReferrer || this.request.referrer;
   }
 
   async convertPostToGet() {
@@ -154,9 +170,7 @@ export class ArchiveRequest {
     if (url.startsWith("//") && referrer) {
       try {
         url = new URL(referrer).protocol + url;
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
+      } catch (_) {
         url = "https:" + url;
       }
     }
@@ -168,4 +182,16 @@ export class ArchiveRequest {
     const request = this.request.clone();
     return new Uint8Array(await request.arrayBuffer());
   }
+}
+
+function resolveProxyOrigin(
+  proxyOrigin: string,
+  localOrigin: string,
+  urlStr: string,
+) {
+  const url = new URL(urlStr);
+  if (url.origin === localOrigin) {
+    return proxyOrigin + url.pathname + (url.search ? url.search : "");
+  }
+  return urlStr;
 }

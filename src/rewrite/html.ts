@@ -7,7 +7,11 @@ import {
   MAX_STREAM_CHUNK_SIZE,
   REPLAY_TOP_FRAME_NAME,
 } from "../utils";
-import { type ArchiveResponse, type Rewriter } from "./index.js";
+import {
+  type ProxyRewriter,
+  type ArchiveResponse,
+  type Rewriter,
+} from "./index.js";
 import { type StartTag } from "parse5-sax-parser";
 import { type Token } from "parse5";
 
@@ -24,7 +28,7 @@ const defmod = "mp_";
 const MAX_HTML_REWRITE_SIZE = 50000000;
 
 const rewriteTags: Record<string, Record<string, string>> = {
-  a: { href: defmod },
+  a: { href: "ln_" },
   applet: {
     codebase: "oe_",
     archive: "oe_",
@@ -90,7 +94,7 @@ const TEXT_NODE_REWRITE_RULES: TextNodeRewriteRule[] = [
 ];
 
 // ===========================================================================
-class HTMLRewriter {
+export class HTMLRewriter {
   rewriter: Rewriter;
   rule: TextNodeRewriteRule | null = null;
   ruleMatch: RegExpMatchArray | null = null;
@@ -285,13 +289,27 @@ class HTMLRewriter {
         name === "src" &&
         (tagName === "iframe" || tagName === "frame")
       ) {
-        const mod = attrRules[name];
-        attr.value = this.rewriteUrl(rewriter, attr.value, false, mod);
+        attr.value = this.rewriteUrl(
+          rewriter,
+          attr.value,
+          false,
+          attrRules[name],
+        );
       } else if (name === "href" || name === "src") {
-        attr.value = this.rewriteUrl(rewriter, attr.value);
+        attr.value = this.rewriteUrl(
+          rewriter,
+          attr.value,
+          false,
+          attrRules[name],
+        );
       } else {
         if (attrRules[attr.name]) {
-          attr.value = this.rewriteUrl(rewriter, attr.value);
+          attr.value = this.rewriteUrl(
+            rewriter,
+            attr.value,
+            false,
+            attrRules[name],
+          );
         }
       }
     }
@@ -444,12 +462,8 @@ class HTMLRewriter {
           isTextEmpty = isTextEmpty && textToken.text.trim().length === 0;
 
           if (scriptRw === "js" || isModule) {
-            // [TODO]
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return rewriter.rewriteJS(textToken.text, { isModule, prefix });
           } else if (scriptRw === "json") {
-            // [TODO]
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return rewriter.rewriteJSON(textToken.text, { prefix });
           } else if (scriptRw === "importmap") {
             return rewriter.rewriteImportmap(textToken.text);
@@ -464,8 +478,6 @@ class HTMLRewriter {
       })();
 
       for (let i = 0; i < text.length; i += MAX_STREAM_CHUNK_SIZE) {
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         rwStream.emitRaw(text.slice(i, i + MAX_STREAM_CHUNK_SIZE));
       }
     });
@@ -520,7 +532,9 @@ class HTMLRewriter {
       text = decoder.decode(encodeLatin1(text));
     }
     const res = rewriter.rewriteUrl(text, forceAbs);
-    return mod && mod !== defmod ? res.replace(defmod + "/", mod + "/") : res;
+    return mod && mod !== defmod && mod !== "ln_"
+      ? res.replace(defmod + "/", mod + "/")
+      : res;
   }
 
   rewriteHTMLText(text: string) {
@@ -541,11 +555,32 @@ class HTMLRewriter {
     const parts = text.split(",");
     // @ts-expect-error [TODO] - TS2769 - No overload matches this call.
     const content = rewriter.rewriteJS(atob(parts[1]), { isModule: false });
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     parts[1] = btoa(content);
     return parts.join(",");
   }
 }
 
-export { HTMLRewriter };
+// ===========================================================================
+export class ProxyHTMLRewriter extends HTMLRewriter {
+  override rewriteUrl(
+    rewriter: Rewriter,
+    text: string,
+    forceAbs = false,
+    mod = "",
+  ) {
+    if (mod === "if_" || mod === "fr_") {
+      return (rewriter as ProxyRewriter).directRewriteUrl(text, forceAbs);
+    }
+
+    if (mod === "ln_") {
+      // if html charset not utf-8, just convert the url to utf-8 for rewriting
+      if (!this.isCharsetUTF8) {
+        text = decoder.decode(encodeLatin1(text));
+      }
+
+      return rewriter.rewriteUrl(text, forceAbs);
+    }
+
+    return text;
+  }
+}

@@ -141,6 +141,9 @@ export type ExtraConfig = {
   liveRedirectOnNotFound?: boolean;
   adblockUrl?: string;
 
+  proxyOrigin?: string;
+  proxyTs?: string;
+  proxyBannerUrl?: string;
   proxyPathOnly?: boolean;
   archivePrefix?: string;
   archiveMod?: string;

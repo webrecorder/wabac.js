@@ -15,7 +15,7 @@ import {
 import { RxRewriter } from "./rxrewriter";
 import { JSRewriter } from "./jsrewriter";
 
-import { HTMLRewriter } from "./html";
+import { HTMLRewriter, ProxyHTMLRewriter } from "./html";
 import { type ArchiveRequest } from "../request";
 import { type ArchiveResponse } from "../response";
 
@@ -77,7 +77,7 @@ export class Rewriter {
 
   decode: boolean;
 
-  prefix: string;
+  prefix = "";
   originPrefix = "";
   relPrefix = "";
   schemeRelPrefix = "";
@@ -445,7 +445,7 @@ export class Rewriter {
   }
 
   // HTML
-  async rewriteHtml(response: ArchiveResponse) {
+  async rewriteHtml(response: ArchiveResponse): Promise<ArchiveResponse> {
     const htmlRW = new HTMLRewriter(this, this.isCharsetUTF8);
     return htmlRW.rewrite(response);
   }
@@ -472,7 +472,7 @@ export class Rewriter {
   // JS
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewriteJS(text: string, opts: Record<string, any>) {
+  rewriteJS(text: string, opts: Record<string, any>): string {
     const noUrlProxyRewrite =
       // @ts-expect-error [TODO] - TS4111 - Property 'rewriteUrl' comes from an index signature, so it must be accessed with ['rewriteUrl']. | TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule']. | TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
       // [TODO]
@@ -494,7 +494,7 @@ export class Rewriter {
   // JSON
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewriteJSON(text: string, opts: Record<string, any>) {
+  rewriteJSON(text: string, opts: Record<string, any>): string {
     text = this.rewriteJSONP(text);
 
     const dsRewriter = baseRules.getRewriter(this.baseUrl);
@@ -795,5 +795,58 @@ export class Rewriter {
       console.warn("Error parsing link header: " + value);
       return value;
     }
+  }
+}
+
+// ===========================================================================
+export class ProxyRewriter extends Rewriter {
+  proxyOrigin: string;
+  localOrigin: string;
+
+  constructor(opts: RewriterOpts, request: ArchiveRequest) {
+    super(opts);
+    this.proxyOrigin = request.proxyOrigin!;
+    this.localOrigin = request.localOrigin!;
+  }
+
+  override rewriteUrl(urlStr: string): string {
+    if (!urlStr.startsWith(this.proxyOrigin)) {
+      return urlStr;
+    }
+
+    return this.localOrigin + urlStr.slice(this.proxyOrigin.length);
+  }
+
+  directRewriteUrl(urlStr: string, forceAbs = false) {
+    return super.rewriteUrl(urlStr, forceAbs);
+  }
+
+  override async rewriteHtml(
+    response: ArchiveResponse,
+  ): Promise<ArchiveResponse> {
+    const htmlRW = new ProxyHTMLRewriter(this, this.isCharsetUTF8);
+    return htmlRW.rewrite(response);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  override rewriteJS(text: string, _: Record<string, any>): string {
+    return text;
+  }
+
+  override rewriteCSS(text: string): string {
+    return text;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  override rewriteJSON(text: string, _: Record<string, any>): string {
+    return text;
+  }
+
+  override rewriteImportmap(text: string) {
+    return text;
+  }
+
+  override updateBaseUrl(url: string): string {
+    return url;
   }
 }

@@ -9,7 +9,7 @@ import { API } from "./api";
 import WOMBAT from "../dist-wombat/wombat.txt";
 import WOMBAT_WORKERS from "../dist-wombat/wombatWorkers.txt";
 
-import { ArchiveRequest } from "./request";
+import { ArchiveRequest, type ArchiveRequestInitOpts } from "./request";
 import { type CollMetadata } from "./types";
 
 const CACHE_PREFIX = "wabac-";
@@ -193,6 +193,7 @@ export class SWReplay {
   replayPrefix: string;
   staticPrefix: string;
   distPrefix: string;
+  proxyPrefix: string;
 
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -219,28 +220,23 @@ export class SWReplay {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     this.prefix = self.registration ? self.registration.scope : "";
 
-    this.replayPrefix = this.prefix;
-
     const sp = new URLSearchParams(self.location.search);
 
-    let replayPrefixPath = "w";
+    this.proxyOriginMode = !!sp.get("proxyOriginMode");
 
-    if (sp.has("replayPrefix")) {
-      replayPrefixPath = sp.get("replayPrefix")!;
+    if (this.proxyOriginMode) {
+      this.replayPrefix = this.prefix + "__wb_proxy/";
+      this.staticPrefix = this.replayPrefix + "static/";
+      this.proxyPrefix = "https://wab.ac/proxy/";
+      this.apiPrefix = "https://wab.ac/api/";
+    } else {
+      this.replayPrefix = this.prefix + (sp.get("replayPrefix") || "w") + "/";
+      this.staticPrefix = this.prefix + "static/";
+      this.proxyPrefix = this.staticPrefix + "proxy/";
+      this.apiPrefix = this.replayPrefix + "api/";
     }
 
-    if (replayPrefixPath) {
-      this.replayPrefix += replayPrefixPath + "/";
-    }
-
-    this.staticPrefix = this.prefix + "static/";
     this.distPrefix = this.prefix + "dist/";
-
-    const prefixes: Prefixes = {
-      static: this.staticPrefix,
-      root: this.prefix,
-      main: this.replayPrefix,
-    };
 
     this.staticData = staticData || new Map();
     this.staticData.set(this.staticPrefix + "wombat.js", {
@@ -271,7 +267,7 @@ export class SWReplay {
     if (defaultConfig.injectScripts) {
       // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts']. | TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
       defaultConfig.injectScripts = defaultConfig.injectScripts.map(
-        (url: string) => this.staticPrefix + "proxy/" + url,
+        (url: string) => this.proxyPrefix + url,
       );
     }
 
@@ -279,6 +275,14 @@ export class SWReplay {
       // @ts-expect-error [TODO] - TS4111 - Property 'adblockUrl' comes from an index signature, so it must be accessed with ['adblockUrl'].
       defaultConfig.adblockUrl = sp.get("adblockUrl");
     }
+
+    const prefixes: Prefixes = {
+      static: this.staticPrefix,
+      root: this.prefix,
+      main: this.replayPrefix,
+      proxy: this.proxyPrefix,
+      api: this.apiPrefix,
+    };
 
     this.collections = new CollectionsClass(
       prefixes,
@@ -289,10 +293,7 @@ export class SWReplay {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     this.collections.loadAll(sp.get("dbColl"));
 
-    this.proxyOriginMode = !!sp.get("proxyOriginMode");
-
     this.api = new ApiClass(this.collections);
-    this.apiPrefix = this.replayPrefix + "api/";
 
     this.allowRewrittenCache = sp.get("allowCache") ? true : false;
 
@@ -336,36 +337,41 @@ export class SWReplay {
     const url = event.request.url;
 
     if (this.proxyOriginMode) {
-      return this.getResponseFor(event.request, event);
-    }
-
-    // if not on our domain, just pass through (loading handled in local worker)
-    if (!url.startsWith(this.prefix)) {
-      if (url === "chrome-extension://invalid/") {
-        return notFound(event.request, "Invalid URL");
+      if (url.startsWith(this.proxyPrefix)) {
+        return this.staticPathProxy(url, event.request);
       }
-      return this.defaultFetch(event.request);
-    }
+      if (!url.startsWith(this.staticPrefix)) {
+        return this.getResponseFor(event.request, event);
+      }
+    } else {
+      // if not on our domain, just pass through (loading handled in local worker)
+      if (!url.startsWith(this.prefix)) {
+        if (url === "chrome-extension://invalid/") {
+          return notFound(event.request, "Invalid URL");
+        }
+        return this.defaultFetch(event.request);
+      }
 
-    // special handling when root collection set: pass through any root files, eg. /index.html
-    if (
-      this.collections.root &&
-      url.slice(this.prefix.length).indexOf("/") < 0
-    ) {
-      return this.defaultFetch(event.request);
-    }
+      // special handling when root collection set: pass through any root files, eg. /index.html
+      if (
+        this.collections.root &&
+        url.slice(this.prefix.length).indexOf("/") < 0
+      ) {
+        return this.defaultFetch(event.request);
+      }
 
-    // JS rewrite on static/external files not from archive
-    if (url.startsWith(this.staticPrefix + "proxy/")) {
-      return this.staticPathProxy(url, event.request);
-    }
+      // JS rewrite on static/external files not from archive
+      if (url.startsWith(this.proxyPrefix)) {
+        return this.staticPathProxy(url, event.request);
+      }
 
-    // handle replay / api
-    if (
-      url.startsWith(this.replayPrefix) &&
-      !url.startsWith(this.staticPrefix)
-    ) {
-      return this.getResponseFor(event.request, event);
+      // handle replay / api
+      if (
+        url.startsWith(this.replayPrefix) &&
+        !url.startsWith(this.staticPrefix)
+      ) {
+        return this.getResponseFor(event.request, event);
+      }
     }
 
     // current domain, but not replay, check if should cache ourselves or serve static data
@@ -395,15 +401,20 @@ export class SWReplay {
   }
 
   async staticPathProxy(url: string, request: Request) {
-    url = url.slice((this.staticPrefix + "proxy/").length);
+    url = url.slice(this.proxyPrefix.length);
     url = new URL(url, self.location.href).href;
     request = new Request(url);
-    return this.defaultFetch(request);
+    return this.defaultFetch(request, "no-store");
   }
 
-  async defaultFetch(request: Request) {
+  async defaultFetch(request: Request, cache?: RequestCache) {
     const opts: RequestInit = {};
-    if (request.cache === "only-if-cached" && request.mode !== "same-origin") {
+    if (cache) {
+      opts.cache = cache;
+    } else if (
+      request.cache === "only-if-cached" &&
+      request.mode !== "same-origin"
+    ) {
       opts.cache = "default";
     }
     return self.fetch(request, opts);
@@ -466,7 +477,7 @@ export class SWReplay {
 
   async getResponseFor(request: Request, event: FetchEvent) {
     // API
-    if (!this.proxyOriginMode && request.url.startsWith(this.apiPrefix)) {
+    if (request.url.startsWith(this.apiPrefix)) {
       if (this.stats && request.url.startsWith(this.apiPrefix + "stats.json")) {
         return await this.stats.getStats(event);
       }
@@ -505,6 +516,11 @@ export class SWReplay {
     // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | null' is not assignable to parameter of type 'string'.
     const coll = await this.collections.getColl(collId);
 
+    // proxy origin, but no collection registered, just pass through to ensure setup is completed
+    if (!coll && this.proxyOriginMode) {
+      return this.defaultFetch(request);
+    }
+
     if (
       !coll ||
       (!this.proxyOriginMode && !request.url.startsWith(coll.prefix))
@@ -512,22 +528,25 @@ export class SWReplay {
       return notFound(request);
     }
 
-    const wbUrlStr = this.proxyOriginMode
-      ? request.url
-      : request.url.substring(coll.prefix.length);
+    let wbUrlStr;
+    let defaultReplayMode = false;
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const opts: Record<string, any> = {
+    if (request.url.startsWith(coll.prefix) || !this.proxyOriginMode) {
+      wbUrlStr = request.url.substring(coll.prefix.length);
+      defaultReplayMode = true;
+    } else {
+      wbUrlStr = request.url;
+    }
+
+    const opts: ArchiveRequestInitOpts = {
       isRoot: !!this.collections.root,
+      defaultReplayMode,
     };
 
-    if (this.proxyOriginMode) {
-      // @ts-expect-error [TODO] - TS4111 - Property 'mod' comes from an index signature, so it must be accessed with ['mod'].
+    if (this.proxyOriginMode && !defaultReplayMode) {
       opts.mod = "id_";
-      // @ts-expect-error [TODO] - TS4111 - Property 'proxyOrigin' comes from an index signature, so it must be accessed with ['proxyOrigin']. | TS4111 - Property 'extraConfig' comes from an index signature, so it must be accessed with ['extraConfig'].
-      opts.proxyOrigin = coll.config.extraConfig.proxyOrigin;
-      // @ts-expect-error [TODO] - TS4111 - Property 'localOrigin' comes from an index signature, so it must be accessed with ['localOrigin'].
+      opts.proxyOrigin = coll.config.extraConfig?.proxyOrigin;
+      opts.ts = coll.config.extraConfig?.proxyTs || "";
       opts.localOrigin = self.location.origin;
     }
 
