@@ -546,6 +546,8 @@ export class SWReplay {
     if (this.proxyOriginMode && !defaultReplayMode) {
       opts.mod = "id_";
       opts.proxyOrigin = coll.config.extraConfig?.proxyOrigin;
+      opts.proxyTLD = coll.config.extraConfig?.proxyTLD;
+      opts.localTLD = coll.config.extraConfig?.localTLD;
       opts.ts = coll.config.extraConfig?.proxyTs || "";
       opts.localOrigin = self.location.origin;
     }
