@@ -61,7 +61,10 @@ class ProxyWombatRewrite {
   processChangedNode(target: Node) {
     switch (target.nodeType) {
       case Node.ATTRIBUTE_NODE:
-        if (target.nodeName === "href") {
+        if (
+          target.nodeName === "href" &&
+          target.parentElement?.tagName === "A"
+        ) {
           const url = target.nodeValue;
           if (url) {
             console.log("rewriting " + url);
