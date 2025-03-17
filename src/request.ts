@@ -48,6 +48,7 @@ export class ArchiveRequest {
       proxyOrigin = undefined,
       localOrigin = undefined,
       proxyTLD = undefined,
+      localTLD = undefined,
       defaultReplayMode = false,
     }: ArchiveRequestInitOpts = {},
   ) {
@@ -92,6 +93,7 @@ export class ArchiveRequest {
       this.proxyOrigin = proxyOrigin;
       this.localOrigin = localOrigin;
       this.proxyTLD = proxyTLD || "";
+      this.localTLD = localTLD || "";
     }
 
     const hashIndex = this.url.indexOf("#");

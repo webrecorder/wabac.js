@@ -331,8 +331,13 @@ export class Collection {
   wbinfo.url = "${url}";
   wbinfo.timestamp = "${timestamp}";
   wbinfo.request_ts = "${requestTS}";
+  wbinfo.proxyOrigin = "${request.proxyOrigin || ""}";
+  wbinfo.localOrigin = "${request.localOrigin || ""}";
+  wbinfo.localTLD = "${request.localTLD || ""}";
+  wbinfo.proxyTLD = "${request.proxyTLD || ""}";
   self.__wbinfo = wbinfo;
 </script>
+<script src="${this.staticPrefix}wombatProxy.js"></script>
 <script src="${this.proxyPrefix}${this.proxyBannerUrl}"></script>
 <!-- End WB Insert -->
     `;
