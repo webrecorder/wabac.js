@@ -335,6 +335,7 @@ export class Collection {
   wbinfo.localOrigin = "${request.localOrigin || ""}";
   wbinfo.localTLD = "${request.localTLD || ""}";
   wbinfo.proxyTLD = "${request.proxyTLD || ""}";
+  wbinfo.prefix = "${prefix}";
   self.__wbinfo = wbinfo;
 </script>
 <script src="${this.staticPrefix}wombatProxy.js"></script>

@@ -1,11 +1,14 @@
 type WbInfo = {
+  prefix: string;
   proxyOrigin: string;
   localOrigin: string;
   proxyTLD?: string;
   localTLD?: string;
 };
 
-// Mini Wombat for proxy -- Mutation Observer + window.open override
+// Mini Wombat for proxy, includes:
+// - Mutation Observer for a.href and iframe.src rewriting (direct rewrite)
+// - window.open override
 
 class ProxyWombatRewrite {
   mutationObserver: MutationObserver;
@@ -16,6 +19,10 @@ class ProxyWombatRewrite {
   proxyTLD?: string;
   localTLD?: string;
   localScheme: string;
+
+  prefix: string;
+  relPrefix = "";
+  schemeRelPrefix = "";
 
   constructor() {
     this.mutationObserver = new MutationObserver((changes) =>
@@ -29,7 +36,7 @@ class ProxyWombatRewrite {
       attributeOldValue: false,
       subtree: true,
       childList: true,
-      attributeFilter: ["href"],
+      attributeFilter: ["href", "src"],
     });
 
     this.openOverride();
@@ -44,6 +51,13 @@ class ProxyWombatRewrite {
     this.localTLD = wbinfo.localTLD;
 
     this.localScheme = new URL(this.localOrigin).protocol;
+
+    this.prefix = wbinfo.prefix || "";
+    if (this.prefix) {
+      const parsed = new URL(this.prefix);
+      this.relPrefix = parsed.pathname;
+      this.schemeRelPrefix = this.prefix.slice(parsed.protocol.length);
+    }
   }
 
   observeChange(changes: MutationRecord[]) {
@@ -61,6 +75,7 @@ class ProxyWombatRewrite {
   processChangedNode(target: Node) {
     switch (target.nodeType) {
       case Node.ATTRIBUTE_NODE:
+        // rewrite A hrefs with prefix
         if (
           target.nodeName === "href" &&
           target.parentElement?.tagName === "A"
@@ -68,9 +83,23 @@ class ProxyWombatRewrite {
           const url = target.nodeValue;
           if (url) {
             console.log("rewriting " + url);
-            target.parentElement?.setAttribute(
+            target.parentElement.setAttribute(
               target.nodeName,
               this.rewriteUrl(url),
+            );
+          }
+        }
+        // rewrite IFRAME src with direct replay URL
+        if (
+          target.nodeName === "src" &&
+          target.parentElement?.tagName === "IFRAME"
+        ) {
+          const url = target.nodeValue;
+          if (url) {
+            console.log("rewriting " + url);
+            target.parentElement.setAttribute(
+              target.nodeName,
+              this.directRewriteUrl(url),
             );
           }
         }
@@ -140,6 +169,64 @@ class ProxyWombatRewrite {
     }
 
     return urlStr;
+  }
+
+  directRewriteUrl(url: string) {
+    const origUrl = url;
+
+    url = url.trim();
+
+    if (
+      !url ||
+      !this.isRewritableUrl(url) ||
+      url.startsWith(this.prefix) ||
+      url.startsWith(this.relPrefix)
+    ) {
+      return origUrl;
+    }
+
+    if (
+      url.startsWith("http:") ||
+      url.startsWith("https:") ||
+      url.startsWith("https\\3a/")
+    ) {
+      return this.prefix + url;
+    }
+
+    if (url.startsWith("//") || url.startsWith("\\/\\/")) {
+      return this.schemeRelPrefix + url;
+    }
+
+    if (url.startsWith("/")) {
+      url = new URL(url, document.baseURI).href;
+      return this.relPrefix + url;
+    } else if (url.indexOf("../") >= 0) {
+      url = new URL(url, document.baseURI).href;
+      return this.prefix + url;
+    } else {
+      return origUrl;
+    }
+  }
+
+  isRewritableUrl(url: string) {
+    const NO_REWRITE_URI_PREFIX = [
+      "#",
+      "javascript:",
+      "data:",
+      "mailto:",
+      "about:",
+      "file:",
+      "blob:",
+      "{",
+    ];
+
+    for (const prefix of NO_REWRITE_URI_PREFIX) {
+      if (url.startsWith(prefix)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }
 
