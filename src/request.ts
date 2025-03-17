@@ -9,6 +9,8 @@ export type ArchiveRequestInitOpts = {
   ts?: string;
   proxyOrigin?: string;
   localOrigin?: string;
+  proxyTLD?: string;
+  localTLD?: string;
   defaultReplayMode?: boolean;
 };
 
@@ -23,6 +25,9 @@ export class ArchiveRequest {
   isProxyOrigin = false;
   proxyOrigin?: string;
   localOrigin?: string;
+
+  proxyTLD?: string;
+  localTLD?: string;
 
   request: Request;
   method: string;
@@ -42,6 +47,8 @@ export class ArchiveRequest {
       ts = "",
       proxyOrigin = undefined,
       localOrigin = undefined,
+      proxyTLD = undefined,
+      localTLD = undefined,
       defaultReplayMode = false,
     }: ArchiveRequestInitOpts = {},
   ) {
@@ -85,6 +92,8 @@ export class ArchiveRequest {
       this.isProxyOrigin = true;
       this.proxyOrigin = proxyOrigin;
       this.localOrigin = localOrigin;
+      this.proxyTLD = proxyTLD || "";
+      this.localTLD = localTLD || "";
     }
 
     const hashIndex = this.url.indexOf("#");

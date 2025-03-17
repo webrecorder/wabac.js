@@ -14,6 +14,7 @@ const wombatBuild = {
   entry: {
     wombat: "@webrecorder/wombat/src/wbWombat.js",
     wombatWorkers: "@webrecorder/wombat/src/wombatWorkers.js",
+    wombatProxy: "./src/rewrite/proxyinject.ts"
   },
   output: {
     path: path.join(__dirname, "dist-wombat"),
@@ -29,6 +30,24 @@ const wombatBuild = {
       }),
     ],
   },
+
+  resolve: {
+    extensions: [".ts", ".js"],
+    plugins: [new TsconfigPathsPlugin()],
+  },
+
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        loader: "ts-loader",
+        include: path.resolve(__dirname, "src"),
+        options: {
+          onlyCompileBundledFiles: false,
+        },
+      },
+    ]
+  }
 };
 
 const mainBuild = {
@@ -89,7 +108,7 @@ const mainBuild = {
         },
       },
       {
-        test: /(wombat.txt|wombatWorkers.txt)$/i,
+        test: /(wombat.*txt)$/i,
         use: "raw-loader",
       },
     ],

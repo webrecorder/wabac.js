@@ -803,18 +803,42 @@ export class ProxyRewriter extends Rewriter {
   proxyOrigin: string;
   localOrigin: string;
 
+  proxyTLD: string;
+  localTLD: string;
+
+  localScheme: string;
+
   constructor(opts: RewriterOpts, request: ArchiveRequest) {
     super(opts);
     this.proxyOrigin = request.proxyOrigin!;
     this.localOrigin = request.localOrigin!;
+
+    this.proxyTLD = request.proxyTLD || "";
+    this.localTLD = request.localTLD || "";
+
+    const local = new URL(this.localOrigin);
+
+    this.localScheme = local.protocol;
   }
 
   override rewriteUrl(urlStr: string): string {
-    if (!urlStr.startsWith(this.proxyOrigin)) {
-      return urlStr;
+    if (urlStr.startsWith(this.proxyOrigin)) {
+      return this.localOrigin + urlStr.slice(this.proxyOrigin.length);
     }
 
-    return this.localOrigin + urlStr.slice(this.proxyOrigin.length);
+    if (this.proxyTLD && this.localTLD && urlStr.indexOf(this.proxyTLD) > 0) {
+      const url = new URL(urlStr);
+      if (url.host.endsWith(this.proxyTLD)) {
+        const host =
+          url.host.slice(0, -this.proxyTLD.length).replace(".", "-") +
+          this.localTLD;
+        const newUrl =
+          this.localScheme + "//" + host + url.href.slice(url.origin.length);
+        return newUrl;
+      }
+    }
+
+    return urlStr;
   }
 
   directRewriteUrl(urlStr: string, forceAbs = false) {
