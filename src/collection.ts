@@ -225,7 +225,6 @@ export class Collection {
           request,
           response,
           baseUrl,
-          requestURL,
           requestTS,
         );
       }
@@ -314,14 +313,15 @@ export class Collection {
     request: ArchiveRequest,
     response: ArchiveResponse,
     baseUrl: string,
-    requestURL: string,
     requestTS: string,
   ) {
     const basePrefix =
       this.prefix + (request.pageId ? `:${request.pageId}/` : "");
-    const basePrefixTS = basePrefix + requestTS;
 
     const timestamp = getTS(response.date.toISOString());
+
+    // default to requestTS if any, otherwise us actual ts for iframe rw
+    const basePrefixTS = basePrefix + (requestTS || timestamp);
 
     const headInsertFunc = (url: string) => {
       return `
@@ -329,13 +329,13 @@ export class Collection {
 <script>
   const wbinfo = {};
   wbinfo.url = "${url}";
-  wbinfo.timestamp = "${timestamp}";
   wbinfo.request_ts = "${requestTS}";
+  wbinfo.timestamp = "${timestamp}";
   wbinfo.proxyOrigin = "${request.proxyOrigin || ""}";
   wbinfo.localOrigin = "${request.localOrigin || ""}";
   wbinfo.localTLD = "${request.localTLD || ""}";
   wbinfo.proxyTLD = "${request.proxyTLD || ""}";
-  wbinfo.prefix = "${prefix}";
+  wbinfo.prefix = "${basePrefixTS}";
   self.__wbinfo = wbinfo;
 </script>
 <script src="${this.staticPrefix}wombatProxy.js"></script>

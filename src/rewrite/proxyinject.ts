@@ -6,13 +6,11 @@ type WbInfo = {
   localTLD?: string;
 };
 
-// Mini Wombat for proxy, includes:
-// - Mutation Observer for a.href and iframe.src rewriting (direct rewrite)
-// - window.open override
+// Mini Wombat for proxy replay, includes:
+// - window.open override for rewriting links to subdomain
+// - dom override for rewriting A links to subdomains, IFRAME src to direct replay mode
 
 class ProxyWombatRewrite {
-  mutationObserver: MutationObserver;
-
   proxyOrigin: string;
   localOrigin: string;
 
@@ -25,21 +23,8 @@ class ProxyWombatRewrite {
   schemeRelPrefix = "";
 
   constructor() {
-    this.mutationObserver = new MutationObserver((changes) =>
-      this.observeChange(changes),
-    );
-
-    this.mutationObserver.observe(document.documentElement, {
-      characterData: false,
-      characterDataOldValue: false,
-      attributes: true,
-      attributeOldValue: false,
-      subtree: true,
-      childList: true,
-      attributeFilter: ["href", "src"],
-    });
-
     this.openOverride();
+    this.domOverride();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wbinfo = (self as any).__wbinfo as WbInfo;
@@ -60,51 +45,85 @@ class ProxyWombatRewrite {
     }
   }
 
-  observeChange(changes: MutationRecord[]) {
-    for (const change of changes) {
-      this.processChangedNode(change.target);
+  recurseRewriteElem(curr: Element) {
+    if (!curr.hasChildNodes()) return;
+    const rewriteQ = [curr.childNodes];
 
-      if (change.type === "childList") {
-        for (const node of change.addedNodes) {
-          this.processChangedNode(node);
+    while (rewriteQ.length > 0) {
+      const children = rewriteQ.shift();
+      for (const child of children || []) {
+        if (child.nodeType === Node.ELEMENT_NODE) {
+          const childElem = child as Element;
+          this.rewriteElem(childElem);
+          if (curr.hasChildNodes()) {
+            rewriteQ.push(childElem.childNodes);
+          }
         }
       }
     }
   }
 
-  processChangedNode(target: Node) {
-    switch (target.nodeType) {
-      case Node.ATTRIBUTE_NODE:
-        // rewrite A hrefs with prefix
-        if (
-          target.nodeName === "href" &&
-          target.parentElement?.tagName === "A"
-        ) {
-          const url = target.nodeValue;
-          if (url) {
-            console.log("rewriting " + url);
-            target.parentElement.setAttribute(
-              target.nodeName,
-              this.rewriteUrl(url),
-            );
+  rewriteElem(curr: Element) {
+    switch (curr.tagName) {
+      case "IFRAME":
+        {
+          const src = curr.getAttribute("src");
+          if (src) {
+            curr.setAttribute("src", this.directRewriteUrl(src));
           }
         }
-        // rewrite IFRAME src with direct replay URL
-        if (
-          target.nodeName === "src" &&
-          target.parentElement?.tagName === "IFRAME"
-        ) {
-          const url = target.nodeValue;
-          if (url) {
-            console.log("rewriting " + url);
-            target.parentElement.setAttribute(
-              target.nodeName,
-              this.directRewriteUrl(url),
-            );
+        break;
+
+      case "A":
+        {
+          const href = curr.getAttribute("href");
+          if (href) {
+            curr.setAttribute("href", this.rewriteUrl(href));
           }
         }
         break;
     }
+  }
+
+  domOverride() {
+    const rewriteFunc = (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fnThis: any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      originalFn: any,
+      newNode: Node,
+      oldNode?: Node,
+    ) => {
+      switch (newNode.nodeType) {
+        case Node.ELEMENT_NODE:
+          this.rewriteElem(newNode as Element);
+          break;
+
+        case Node.DOCUMENT_FRAGMENT_NODE:
+          this.recurseRewriteElem(newNode as Element);
+          break;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return originalFn.call(fnThis, newNode, oldNode);
+    };
+
+    const orig_appendChild = Node.prototype.appendChild;
+    Node.prototype.appendChild = function (newNode: Node) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return rewriteFunc(this, orig_appendChild, newNode);
+    };
+
+    const orig_insertBefore = Node.prototype.insertBefore;
+    Node.prototype.insertBefore = function (newNode: Node, refNode: Node) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return rewriteFunc(this, orig_insertBefore, newNode, refNode);
+    };
+
+    const orig_replaceChild = Node.prototype.replaceChild;
+    Node.prototype.replaceChild = function (newNode: Node, oldNode: Node) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return rewriteFunc(this, orig_replaceChild, newNode, oldNode);
+    };
   }
 
   openOverride() {
@@ -171,7 +190,7 @@ class ProxyWombatRewrite {
     return urlStr;
   }
 
-  directRewriteUrl(url: string) {
+  directRewriteUrl(url: string, mod = "if_") {
     const origUrl = url;
 
     url = url.trim();
@@ -190,19 +209,19 @@ class ProxyWombatRewrite {
       url.startsWith("https:") ||
       url.startsWith("https\\3a/")
     ) {
-      return this.prefix + url;
+      return this.prefix + mod + "/" + url;
     }
 
     if (url.startsWith("//") || url.startsWith("\\/\\/")) {
-      return this.schemeRelPrefix + url;
+      return this.schemeRelPrefix + mod + "/" + url;
     }
 
     if (url.startsWith("/")) {
       url = new URL(url, document.baseURI).href;
-      return this.relPrefix + url;
+      return this.relPrefix + mod + "/" + url;
     } else if (url.indexOf("../") >= 0) {
       url = new URL(url, document.baseURI).href;
-      return this.prefix + url;
+      return this.prefix + mod + "/" + url;
     } else {
       return origUrl;
     }
