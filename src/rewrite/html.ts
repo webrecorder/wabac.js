@@ -285,32 +285,13 @@ export class HTMLRewriter {
         ) {
           attr.value = REPLAY_TOP_FRAME_NAME;
         }
-      } else if (
-        name === "src" &&
-        (tagName === "iframe" || tagName === "frame")
-      ) {
+      } else if (attrRules[name] || name === "href" || name === "src") {
         attr.value = this.rewriteUrl(
           rewriter,
           attr.value,
           false,
           attrRules[name],
         );
-      } else if (name === "href" || name === "src") {
-        attr.value = this.rewriteUrl(
-          rewriter,
-          attr.value,
-          false,
-          attrRules[name],
-        );
-      } else {
-        if (attrRules[attr.name]) {
-          attr.value = this.rewriteUrl(
-            rewriter,
-            attr.value,
-            false,
-            attrRules[name],
-          );
-        }
       }
     }
   }
@@ -582,5 +563,27 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
     }
 
     return text;
+  }
+
+  override rewriteTagAndAttrs(
+    tag: StartTag,
+    attrRules: Record<string, string>,
+    rewriter: Rewriter,
+  ) {
+    const tagName = tag.tagName;
+
+    // no attribute rewriting for web-component tags, which must contain a '-'
+    if (tagName.indexOf("-") > 0) {
+      return;
+    }
+
+    for (const attr of tag.attrs) {
+      const name = attr.name || "";
+      const value = attr.value || "";
+
+      if (attrRules[name] || name === "href" || name === "src") {
+        attr.value = this.rewriteUrl(rewriter, value, false, attrRules[name]);
+      }
+    }
   }
 }

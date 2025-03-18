@@ -25,6 +25,7 @@ class ProxyWombatRewrite {
   constructor() {
     this.openOverride();
     this.domOverride();
+    this.overrideInsertAdjacentHTML();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wbinfo = (self as any).__wbinfo as WbInfo;
@@ -124,6 +125,18 @@ class ProxyWombatRewrite {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return rewriteFunc(this, orig_replaceChild, newNode, oldNode);
     };
+
+    const orig_append = DocumentFragment.prototype.append;
+    DocumentFragment.prototype.append = function (newNode: Node) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return rewriteFunc(this, orig_append, newNode);
+    };
+
+    const orig_prepend = DocumentFragment.prototype.prepend;
+    DocumentFragment.prototype.prepend = function (newNode: Node) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return rewriteFunc(this, orig_prepend, newNode);
+    };
   }
 
   openOverride() {
@@ -168,6 +181,40 @@ class ProxyWombatRewrite {
         console.log(e);
       }
     }
+  }
+
+  overrideInsertAdjacentHTML() {
+    const orig = HTMLElement.prototype.insertAdjacentHTML;
+
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const rewriter = this;
+
+    HTMLElement.prototype.insertAdjacentHTML = function (position, text) {
+      text = rewriter.rewriteRxHtml(text);
+      return orig.call(this, position, text);
+    };
+  }
+
+  rewriteRxHtml(text: string) {
+    return text.replace(
+      /<\s*(a|iframe)\s+(?:src|href)[=]"(.*?)"/gi,
+      (match: string, p1: string, p2: string) => {
+        let rw = "";
+        switch (p1) {
+          case "a":
+            rw = this.rewriteUrl(p2);
+            break;
+
+          case "iframe":
+            rw = this.directRewriteUrl(p2);
+            break;
+        }
+        if (rw && rw !== match) {
+          return match.replace(p2, rw);
+        }
+        return match;
+      },
+    );
   }
 
   rewriteUrl(urlStr: string) {
