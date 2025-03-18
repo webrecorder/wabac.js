@@ -87,6 +87,18 @@ class ProxyWombatRewrite {
   }
 
   domOverride() {
+    const rwNode = (node: Node) => {
+      switch (node.nodeType) {
+        case Node.ELEMENT_NODE:
+          this.rewriteElem(node as Element);
+          break;
+
+        case Node.DOCUMENT_FRAGMENT_NODE:
+          this.recurseRewriteElem(node as Element);
+          break;
+      }
+    };
+
     const rewriteFunc = (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fnThis: any,
@@ -95,17 +107,23 @@ class ProxyWombatRewrite {
       newNode: Node,
       oldNode?: Node,
     ) => {
-      switch (newNode.nodeType) {
-        case Node.ELEMENT_NODE:
-          this.rewriteElem(newNode as Element);
-          break;
-
-        case Node.DOCUMENT_FRAGMENT_NODE:
-          this.recurseRewriteElem(newNode as Element);
-          break;
-      }
+      rwNode(newNode);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return originalFn.call(fnThis, newNode, oldNode);
+    };
+
+    const rewriteArrayFunc = (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fnThis: any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      originalFn: any,
+      newNodes: Node[],
+    ) => {
+      for (const node of newNodes) {
+        rwNode(node);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return originalFn.call(fnThis, ...newNodes);
     };
 
     const orig_appendChild = Node.prototype.appendChild;
@@ -127,15 +145,15 @@ class ProxyWombatRewrite {
     };
 
     const orig_append = DocumentFragment.prototype.append;
-    DocumentFragment.prototype.append = function (newNode: Node) {
+    DocumentFragment.prototype.append = function (...newNodes: Node[]) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return rewriteFunc(this, orig_append, newNode);
+      return rewriteArrayFunc(this, orig_append, newNodes);
     };
 
     const orig_prepend = DocumentFragment.prototype.prepend;
-    DocumentFragment.prototype.prepend = function (newNode: Node) {
+    DocumentFragment.prototype.prepend = function (...newNodes: Node[]) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return rewriteFunc(this, orig_prepend, newNode);
+      return rewriteArrayFunc(this, orig_prepend, newNodes);
     };
   }
 
@@ -197,7 +215,7 @@ class ProxyWombatRewrite {
 
   rewriteRxHtml(text: string) {
     return text.replace(
-      /<\s*(a|iframe)\s+(?:src|href)[=]"(.*?)"/gi,
+      /<\s*(a|iframe)\s+(?:src|href)[=]['"](.*?)['"]/gi,
       (match: string, p1: string, p2: string) => {
         let rw = "";
         switch (p1) {
