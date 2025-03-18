@@ -408,7 +408,7 @@ export class SWReplay {
   async staticPathProxy(url: string, request: Request) {
     url = url.slice(this.proxyPrefix.length);
     url = new URL(url, self.location.href).href;
-    request = new Request(url);
+    request = new Request(url, request);
     return this.defaultFetch(request, "no-store");
   }
 
@@ -435,7 +435,7 @@ export class SWReplay {
         continue;
       }
 
-      //console.log(`Auto Cacheing: ${url}`);
+      //console.log(`Auto Caching: ${url}`);
       try {
         response = await this.defaultFetch(new Request(url));
         await cache.put(url, response);
