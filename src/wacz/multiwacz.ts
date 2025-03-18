@@ -1219,8 +1219,7 @@ export class MultiWACZ
       resp = await super.getResource(request, prefix, event, {
         // @ts-expect-error [TODO] - TS2345 - Argument of type '{ waczname: string; noFuzzyCheck: true; loadFirst: boolean; }' is not assignable to parameter of type 'Opts'.
         waczname: name,
-        noFuzzyCheck: true,
-        loadFirst: true,
+        noFuzzyCheck: !request.isProxyOrigin,
       });
       if (resp) {
         const arResponse = resp as ArchiveResponse;

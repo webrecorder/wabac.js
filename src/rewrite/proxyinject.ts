@@ -25,6 +25,7 @@ class ProxyWombatRewrite {
   constructor() {
     this.openOverride();
     this.domOverride();
+    this.overrideInsertAdjacentHTML();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wbinfo = (self as any).__wbinfo as WbInfo;
@@ -86,6 +87,18 @@ class ProxyWombatRewrite {
   }
 
   domOverride() {
+    const rwNode = (node: Node) => {
+      switch (node.nodeType) {
+        case Node.ELEMENT_NODE:
+          this.rewriteElem(node as Element);
+          break;
+
+        case Node.DOCUMENT_FRAGMENT_NODE:
+          this.recurseRewriteElem(node as Element);
+          break;
+      }
+    };
+
     const rewriteFunc = (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fnThis: any,
@@ -94,17 +107,23 @@ class ProxyWombatRewrite {
       newNode: Node,
       oldNode?: Node,
     ) => {
-      switch (newNode.nodeType) {
-        case Node.ELEMENT_NODE:
-          this.rewriteElem(newNode as Element);
-          break;
-
-        case Node.DOCUMENT_FRAGMENT_NODE:
-          this.recurseRewriteElem(newNode as Element);
-          break;
-      }
+      rwNode(newNode);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return originalFn.call(fnThis, newNode, oldNode);
+    };
+
+    const rewriteArrayFunc = (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fnThis: any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      originalFn: any,
+      newNodes: Node[],
+    ) => {
+      for (const node of newNodes) {
+        rwNode(node);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return originalFn.call(fnThis, ...newNodes);
     };
 
     const orig_appendChild = Node.prototype.appendChild;
@@ -123,6 +142,18 @@ class ProxyWombatRewrite {
     Node.prototype.replaceChild = function (newNode: Node, oldNode: Node) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return rewriteFunc(this, orig_replaceChild, newNode, oldNode);
+    };
+
+    const orig_append = DocumentFragment.prototype.append;
+    DocumentFragment.prototype.append = function (...newNodes: Node[]) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return rewriteArrayFunc(this, orig_append, newNodes);
+    };
+
+    const orig_prepend = DocumentFragment.prototype.prepend;
+    DocumentFragment.prototype.prepend = function (...newNodes: Node[]) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return rewriteArrayFunc(this, orig_prepend, newNodes);
     };
   }
 
@@ -168,6 +199,40 @@ class ProxyWombatRewrite {
         console.log(e);
       }
     }
+  }
+
+  overrideInsertAdjacentHTML() {
+    const orig = HTMLElement.prototype.insertAdjacentHTML;
+
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const rewriter = this;
+
+    HTMLElement.prototype.insertAdjacentHTML = function (position, text) {
+      text = rewriter.rewriteRxHtml(text);
+      return orig.call(this, position, text);
+    };
+  }
+
+  rewriteRxHtml(text: string) {
+    return text.replace(
+      /<\s*(a|iframe)\s+(?:src|href)[=]['"](.*?)['"]/gi,
+      (match: string, p1: string, p2: string) => {
+        let rw = "";
+        switch (p1) {
+          case "a":
+            rw = this.rewriteUrl(p2);
+            break;
+
+          case "iframe":
+            rw = this.directRewriteUrl(p2);
+            break;
+        }
+        if (rw && rw !== match) {
+          return match.replace(p2, rw);
+        }
+        return match;
+      },
+    );
   }
 
   rewriteUrl(urlStr: string) {
