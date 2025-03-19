@@ -45,17 +45,15 @@ export class SWCollections extends WorkerLoader {
     this._fileHandles = {};
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  _createCollection(opts: Record<string, any>): Collection {
+  override _createCollection(opts: Record<string, any>): Collection {
     return new Collection(opts, this.prefixes, this.defaultConfig);
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async loadAll(dbColl?: any): Promise<boolean> {
+  override async loadAll(dbColl?: any): Promise<boolean> {
     this.colls = {};
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -70,17 +68,15 @@ export class SWCollections extends WorkerLoader {
     return this.colls[name];
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
-  async reload(name: string) {
+  override async reload(name: string) {
     delete this.colls[name];
 
     await this.getColl(name);
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async addCollection(data: any, progressUpdate: any) {
+  override async addCollection(data: any, progressUpdate: any) {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const opts = await super.addCollection(data, progressUpdate);
@@ -92,8 +88,7 @@ export class SWCollections extends WorkerLoader {
     return opts;
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
-  async deleteColl(name: string, keepFileHandle = false) {
+  override async deleteColl(name: string, keepFileHandle = false) {
     if (this.colls[name]) {
       // [TODO]
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -118,10 +113,13 @@ export class SWCollections extends WorkerLoader {
     return true;
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async initNewColl(metadata: any, extraConfig = {}, type = "archive") {
+  override async initNewColl(
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    metadata: any,
+    extraConfig = {},
+    type = "archive",
+  ) {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const coll = await super.initNewColl(metadata, extraConfig, type);
@@ -133,8 +131,7 @@ export class SWCollections extends WorkerLoader {
     return coll;
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
-  async updateAuth(name: string, headers: Record<string, string>) {
+  override async updateAuth(name: string, headers: Record<string, string>) {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (this.colls[name] && (this.colls[name].store as any).updateHeaders) {
@@ -184,8 +181,11 @@ type SWReplayInitOpts = {
   staticData?: Map<string, any> | null;
   ApiClass?: typeof API;
   // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  defaultConfig?: Record<string, any>;
+  defaultConfig?: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+    injectScripts?: string[];
+  };
   CollectionsClass?: typeof SWCollections;
 };
 
@@ -266,16 +266,12 @@ export class SWReplay {
 
     if (sp.has("injectScripts")) {
       const injectScripts = sp.get("injectScripts")!.split(",");
-      // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts']. | TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
       defaultConfig.injectScripts = defaultConfig.injectScripts
-        ? // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
-          [...injectScripts, ...defaultConfig.injectScripts]
+        ? [...injectScripts, ...defaultConfig.injectScripts]
         : injectScripts;
     }
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
     if (defaultConfig.injectScripts) {
-      // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts']. | TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
       defaultConfig.injectScripts = defaultConfig.injectScripts.map(
         (url: string) => this.proxyPrefix + url,
       );
