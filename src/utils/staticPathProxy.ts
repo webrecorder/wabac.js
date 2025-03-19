@@ -5,7 +5,7 @@ export const staticPathProxy =
     const headers = new Headers(request.headers);
     // Because of CORS restrictions, the request cannot be a ReadableStream, so instead we get it as a string.
     // If in the future we need to support streaming, we can revisit this — there may be a way to get it to work.
-    const body = await request.text();
+    const body = await request.arrayBuffer();
 
     url = url.slice(proxyPrefix.length);
     const urlObj = new URL(url, self.location.href);
@@ -15,7 +15,7 @@ export const staticPathProxy =
       cache: "no-store",
       headers,
       method,
-      ...(body && { body }),
+      ...(method !== "GET" && { body }),
     };
 
     return fetch(url, requestInit);
