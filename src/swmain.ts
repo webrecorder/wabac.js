@@ -12,6 +12,7 @@ import WOMBAT_PROXY from "../dist-wombat/wombatProxy.txt";
 
 import { ArchiveRequest, type ArchiveRequestInitOpts } from "./request";
 import { type CollMetadata } from "./types";
+import { staticPathProxy } from "./utils/staticPathProxy";
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
@@ -211,6 +212,8 @@ export class SWReplay {
 
   stats: StatsTracker | null;
 
+  staticPathProxy: (url: string, request: Request) => Promise<Response>;
+
   constructor({
     staticData = null,
     ApiClass = API,
@@ -258,6 +261,8 @@ export class SWReplay {
       this.staticData.set(this.prefix, indexData);
       this.staticData.set(this.prefix + "index.html", indexData);
     }
+
+    this.staticPathProxy = staticPathProxy(this.proxyPrefix);
 
     if (sp.has("injectScripts")) {
       const injectScripts = sp.get("injectScripts")!.split(",");
@@ -403,13 +408,6 @@ export class SWReplay {
     } else {
       return this.defaultFetch(event.request);
     }
-  }
-
-  async staticPathProxy(url: string, request: Request) {
-    url = url.slice(this.proxyPrefix.length);
-    url = new URL(url, self.location.href).href;
-    request = new Request(url, request);
-    return this.defaultFetch(request, "no-store");
   }
 
   async defaultFetch(request: Request, cache?: RequestCache) {
