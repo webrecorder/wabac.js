@@ -185,6 +185,7 @@ type SWReplayInitOpts = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
     injectScripts?: string[];
+    adblockUrl?: string | null;
   };
   CollectionsClass?: typeof SWCollections;
 };
@@ -278,7 +279,6 @@ export class SWReplay {
     }
 
     if (sp.has("adblockUrl")) {
-      // @ts-expect-error [TODO] - TS4111 - Property 'adblockUrl' comes from an index signature, so it must be accessed with ['adblockUrl'].
       defaultConfig.adblockUrl = sp.get("adblockUrl");
     }
 
@@ -508,11 +508,9 @@ export class SWReplay {
     let collId = this.collections.root;
 
     if (!collId) {
-      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string | null'.
-      collId = request.url.slice(this.replayPrefix.length).split("/", 1)[0];
+      collId = request.url.slice(this.replayPrefix.length).split("/", 1)[0]!;
     }
 
-    // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | null' is not assignable to parameter of type 'string'.
     const coll = await this.collections.getColl(collId);
 
     // proxy origin, but no collection registered, just pass through to ensure setup is completed
