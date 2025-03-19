@@ -262,7 +262,7 @@ export class SWReplay {
       this.staticData.set(this.prefix + "index.html", indexData);
     }
 
-    this.staticPathProxy = staticPathProxy(this.proxyPrefix);
+    this.staticPathProxy = staticPathProxy(this.proxyPrefix, this.defaultFetch);
 
     if (sp.has("injectScripts")) {
       const injectScripts = sp.get("injectScripts")!.split(",");
@@ -410,11 +410,11 @@ export class SWReplay {
     }
   }
 
-  async defaultFetch(request: Request, cache?: RequestCache) {
-    const opts: RequestInit = {};
-    if (cache) {
-      opts.cache = cache;
-    } else if (
+  async defaultFetch(request: RequestInfo | URL, opts: RequestInit = {}) {
+    if (
+      !opts.cache &&
+      typeof request !== "string" &&
+      !(request instanceof URL) &&
       request.cache === "only-if-cached" &&
       request.mode !== "same-origin"
     ) {
