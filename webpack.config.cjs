@@ -3,10 +3,10 @@
 const path = require("path");
 const webpack = require("webpack");
 const TerserPlugin = require("terser-webpack-plugin");
-const CopyPlugin = require("copy-webpack-plugin");
 const package_json = require("./package.json");
 const TsconfigPathsPlugin = require("tsconfig-paths-webpack-plugin");
 
+/** @type {import("webpack").Configuration} */
 const wombatBuild = {
   name: "wombat",
   mode: "production",
@@ -14,7 +14,7 @@ const wombatBuild = {
   entry: {
     wombat: "@webrecorder/wombat/src/wbWombat.js",
     wombatWorkers: "@webrecorder/wombat/src/wombatWorkers.js",
-    wombatProxy: "./src/rewrite/proxyinject.ts"
+    wombatProxy: "./src/rewrite/proxyinject.ts",
   },
   output: {
     path: path.join(__dirname, "dist-wombat"),
@@ -46,8 +46,8 @@ const wombatBuild = {
           onlyCompileBundledFiles: false,
         },
       },
-    ]
-  }
+    ],
+  },
 };
 
 const mainBuild = {

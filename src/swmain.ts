@@ -12,6 +12,7 @@ import WOMBAT_PROXY from "../dist-wombat/wombatProxy.txt";
 
 import { ArchiveRequest, type ArchiveRequestInitOpts } from "./request";
 import { type CollMetadata } from "./types";
+import { staticPathProxy } from "./utils/staticPathProxy";
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
@@ -44,17 +45,15 @@ export class SWCollections extends WorkerLoader {
     this._fileHandles = {};
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  _createCollection(opts: Record<string, any>): Collection {
+  override _createCollection(opts: Record<string, any>): Collection {
     return new Collection(opts, this.prefixes, this.defaultConfig);
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async loadAll(dbColl?: any): Promise<boolean> {
+  override async loadAll(dbColl?: any): Promise<boolean> {
     this.colls = {};
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -69,17 +68,15 @@ export class SWCollections extends WorkerLoader {
     return this.colls[name];
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
-  async reload(name: string) {
+  override async reload(name: string) {
     delete this.colls[name];
 
     await this.getColl(name);
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async addCollection(data: any, progressUpdate: any) {
+  override async addCollection(data: any, progressUpdate: any) {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const opts = await super.addCollection(data, progressUpdate);
@@ -91,8 +88,7 @@ export class SWCollections extends WorkerLoader {
     return opts;
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
-  async deleteColl(name: string, keepFileHandle = false) {
+  override async deleteColl(name: string, keepFileHandle = false) {
     if (this.colls[name]) {
       // [TODO]
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -117,10 +113,13 @@ export class SWCollections extends WorkerLoader {
     return true;
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async initNewColl(metadata: any, extraConfig = {}, type = "archive") {
+  override async initNewColl(
+    // [TODO]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    metadata: any,
+    extraConfig = {},
+    type = "archive",
+  ) {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const coll = await super.initNewColl(metadata, extraConfig, type);
@@ -132,8 +131,7 @@ export class SWCollections extends WorkerLoader {
     return coll;
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WorkerLoader'.
-  async updateAuth(name: string, headers: Record<string, string>) {
+  override async updateAuth(name: string, headers: Record<string, string>) {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (this.colls[name] && (this.colls[name].store as any).updateHeaders) {
@@ -183,8 +181,12 @@ type SWReplayInitOpts = {
   staticData?: Map<string, any> | null;
   ApiClass?: typeof API;
   // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  defaultConfig?: Record<string, any>;
+  defaultConfig?: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+    injectScripts?: string[];
+    adblockUrl?: string | null;
+  };
   CollectionsClass?: typeof SWCollections;
 };
 
@@ -210,6 +212,8 @@ export class SWReplay {
   allowRewrittenCache: boolean;
 
   stats: StatsTracker | null;
+
+  staticPathProxy: (url: string, request: Request) => Promise<Response>;
 
   constructor({
     staticData = null,
@@ -259,25 +263,22 @@ export class SWReplay {
       this.staticData.set(this.prefix + "index.html", indexData);
     }
 
+    this.staticPathProxy = staticPathProxy(this.proxyPrefix, this.defaultFetch);
+
     if (sp.has("injectScripts")) {
       const injectScripts = sp.get("injectScripts")!.split(",");
-      // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts']. | TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
       defaultConfig.injectScripts = defaultConfig.injectScripts
-        ? // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
-          [...injectScripts, ...defaultConfig.injectScripts]
+        ? [...injectScripts, ...defaultConfig.injectScripts]
         : injectScripts;
     }
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
     if (defaultConfig.injectScripts) {
-      // @ts-expect-error [TODO] - TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts']. | TS4111 - Property 'injectScripts' comes from an index signature, so it must be accessed with ['injectScripts'].
       defaultConfig.injectScripts = defaultConfig.injectScripts.map(
         (url: string) => this.proxyPrefix + url,
       );
     }
 
     if (sp.has("adblockUrl")) {
-      // @ts-expect-error [TODO] - TS4111 - Property 'adblockUrl' comes from an index signature, so it must be accessed with ['adblockUrl'].
       defaultConfig.adblockUrl = sp.get("adblockUrl");
     }
 
@@ -405,18 +406,11 @@ export class SWReplay {
     }
   }
 
-  async staticPathProxy(url: string, request: Request) {
-    url = url.slice(this.proxyPrefix.length);
-    url = new URL(url, self.location.href).href;
-    request = new Request(url, request);
-    return this.defaultFetch(request, "no-store");
-  }
-
-  async defaultFetch(request: Request, cache?: RequestCache) {
-    const opts: RequestInit = {};
-    if (cache) {
-      opts.cache = cache;
-    } else if (
+  async defaultFetch(request: RequestInfo | URL, opts: RequestInit = {}) {
+    if (
+      !opts.cache &&
+      typeof request !== "string" &&
+      !(request instanceof URL) &&
       request.cache === "only-if-cached" &&
       request.mode !== "same-origin"
     ) {
@@ -514,11 +508,9 @@ export class SWReplay {
     let collId = this.collections.root;
 
     if (!collId) {
-      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string | null'.
-      collId = request.url.slice(this.replayPrefix.length).split("/", 1)[0];
+      collId = request.url.slice(this.replayPrefix.length).split("/", 1)[0]!;
     }
 
-    // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | null' is not assignable to parameter of type 'string'.
     const coll = await this.collections.getColl(collId);
 
     // proxy origin, but no collection registered, just pass through to ensure setup is completed
