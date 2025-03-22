@@ -24,6 +24,7 @@ export class ArchiveRequest {
 
   isProxyOrigin = false;
   proxyOrigin?: string;
+  proxyScheme = "";
   localOrigin?: string;
 
   proxyTLD?: string;
@@ -91,6 +92,9 @@ export class ArchiveRequest {
       }
       this.isProxyOrigin = true;
       this.proxyOrigin = proxyOrigin;
+      this.proxyScheme = proxyOrigin
+        ? new URL(proxyOrigin).protocol.slice(0, -1)
+        : "";
       this.localOrigin = localOrigin;
       this.proxyTLD = proxyTLD || "";
       this.localTLD = localTLD || "";
