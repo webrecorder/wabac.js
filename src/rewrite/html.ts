@@ -56,7 +56,7 @@ const rewriteTags: Record<string, Record<string, string>> = {
   form: { action: defmod },
   frame: { src: "fr_" },
   link: { href: "oe_" },
-  meta: { content: defmod },
+  meta: { content: "mt_" },
   object: {
     codebase: "oe_",
     data: "oe_",
@@ -132,7 +132,7 @@ export class HTMLRewriter {
       return attr.value.replace(
         META_REFRESH_REGEX,
         (m, p1, p2: string, p3) =>
-          p1 + this.rewriteUrl(rewriter, p2, false, "fr_") + p3,
+          p1 + this.rewriteUrl(rewriter, p2, false, "mt_") + p3,
       );
     } else if (this.getAttr(attrs, "name") === "referrer") {
       return "no-referrer-when-downgrade";
@@ -512,7 +512,7 @@ export class HTMLRewriter {
       text = decoder.decode(encodeLatin1(text));
     }
     const res = rewriter.rewriteUrl(text, forceAbs);
-    return mod && mod !== defmod && mod !== "ln_"
+    return mod && mod !== defmod && mod !== "ln_" && mod !== "mt_"
       ? res.replace(defmod + "/", mod + "/")
       : res;
   }
@@ -548,7 +548,7 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
     forceAbs = false,
     mod = "",
   ) {
-    if (mod === "if_" || mod === "fr_") {
+    if (mod === "if_" || mod === "fr_" || mod === "mt_") {
       return (rewriter as ProxyRewriter).fullRewriteUrl(text, forceAbs);
     }
 
