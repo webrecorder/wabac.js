@@ -801,6 +801,8 @@ export class Rewriter {
 // ===========================================================================
 export class ProxyRewriter extends Rewriter {
   proxyOrigin: string;
+  proxyHost: string;
+
   localOrigin: string;
 
   proxyTLD: string;
@@ -815,6 +817,9 @@ export class ProxyRewriter extends Rewriter {
 
     this.proxyTLD = request.proxyTLD || "";
     this.localTLD = request.localTLD || "";
+
+    const proxy = new URL(this.proxyOrigin);
+    this.proxyHost = proxy.host;
 
     const local = new URL(this.localOrigin);
 
@@ -841,8 +846,26 @@ export class ProxyRewriter extends Rewriter {
     return urlStr;
   }
 
-  directRewriteUrl(urlStr: string, forceAbs = false) {
-    return super.rewriteUrl(urlStr, forceAbs);
+  fullRewriteUrl(urlStr: string, forceAbs = false) {
+    // if local origin, use that still
+    if (urlStr.startsWith(this.proxyOrigin)) {
+      return this.localOrigin + urlStr.slice(this.proxyOrigin.length);
+    }
+
+    if (urlStr.startsWith("//" + this.proxyHost)) {
+      return this.localOrigin + urlStr.slice(this.proxyHost.length + 2);
+    }
+
+    // only rewrite absolute URLs!
+    if (
+      urlStr.startsWith("https://") ||
+      urlStr.startsWith("http://") ||
+      urlStr.startsWith("//")
+    ) {
+      return super.rewriteUrl(urlStr, forceAbs);
+    }
+
+    return urlStr;
   }
 
   override async rewriteHtml(

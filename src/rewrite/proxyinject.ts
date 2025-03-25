@@ -4,6 +4,8 @@ type WbInfo = {
   localOrigin: string;
   proxyTLD?: string;
   localTLD?: string;
+  presetCookie?: string;
+  seconds: string;
 };
 
 // Mini Wombat for proxy replay, includes:
@@ -16,6 +18,7 @@ class ProxyWombatRewrite {
 
   proxyTLD?: string;
   localTLD?: string;
+
   localScheme: string;
 
   prefix: string;
@@ -30,6 +33,8 @@ class ProxyWombatRewrite {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wbinfo = (self as any).__wbinfo as WbInfo;
 
+    this.initDateOverride(wbinfo.seconds);
+
     this.proxyOrigin = wbinfo.proxyOrigin;
     this.localOrigin = wbinfo.localOrigin;
 
@@ -43,6 +48,17 @@ class ProxyWombatRewrite {
       const parsed = new URL(this.prefix);
       this.relPrefix = parsed.pathname;
       this.schemeRelPrefix = this.prefix.slice(parsed.protocol.length);
+    }
+
+    if (wbinfo.presetCookie) {
+      this.initPresetCookie(wbinfo.presetCookie);
+    }
+  }
+
+  initPresetCookie(presetCookie: string) {
+    const splitCookies = presetCookie.split(";");
+    for (const cookie of splitCookies) {
+      document.cookie = cookie.trim();
     }
   }
 
@@ -68,18 +84,24 @@ class ProxyWombatRewrite {
     switch (curr.tagName) {
       case "IFRAME":
         {
-          const src = curr.getAttribute("src");
-          if (src) {
-            curr.setAttribute("src", this.directRewriteUrl(src));
+          const value = curr.getAttribute("src");
+          if (value) {
+            const newValue = this.fullRewriteUrl(value);
+            if (value !== newValue) {
+              curr.setAttribute("src", newValue);
+            }
           }
         }
         break;
 
       case "A":
         {
-          const href = curr.getAttribute("href");
-          if (href) {
-            curr.setAttribute("href", this.rewriteUrl(href));
+          const value = curr.getAttribute("href");
+          if (value) {
+            const newValue = this.rewriteUrl(value);
+            if (value !== newValue) {
+              curr.setAttribute("href", newValue);
+            }
           }
         }
         break;
@@ -224,7 +246,7 @@ class ProxyWombatRewrite {
             break;
 
           case "iframe":
-            rw = this.directRewriteUrl(p2);
+            rw = this.fullRewriteUrl(p2);
             break;
         }
         if (rw && rw !== match) {
@@ -255,8 +277,12 @@ class ProxyWombatRewrite {
     return urlStr;
   }
 
-  directRewriteUrl(url: string, mod = "if_") {
+  fullRewriteUrl(url: string, mod = "if_") {
     const origUrl = url;
+
+    if (this.proxyOrigin && url.startsWith(this.proxyOrigin)) {
+      return this.localOrigin + url.slice(this.proxyOrigin.length);
+    }
 
     url = url.trim();
 
@@ -281,15 +307,7 @@ class ProxyWombatRewrite {
       return this.schemeRelPrefix + mod + "/" + url;
     }
 
-    if (url.startsWith("/")) {
-      url = new URL(url, document.baseURI).href;
-      return this.relPrefix + mod + "/" + url;
-    } else if (url.indexOf("../") >= 0) {
-      url = new URL(url, document.baseURI).href;
-      return this.prefix + mod + "/" + url;
-    } else {
-      return origUrl;
-    }
+    return origUrl;
   }
 
   isRewritableUrl(url: string) {
@@ -311,6 +329,93 @@ class ProxyWombatRewrite {
     }
 
     return true;
+  }
+
+  initDateOverride(timestamp: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((self as any).__wb_Date_now) return;
+    const newTimestamp = parseInt(timestamp) * 1000;
+    // var timezone = new Date().getTimezoneOffset() * 60 * 1000;
+    // Already UTC!
+    const timezone = 0;
+    const start_now = Date.now();
+    const timediff = start_now - (newTimestamp - timezone);
+
+    const orig_date = Date;
+
+    const orig_utc = Date.UTC;
+    const orig_parse = Date.parse;
+    const orig_now = Date.now;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (self as any).__wb_Date_now = orig_now;
+
+    // @ts-ignore old-style override
+    window.Date = (function (Date_) {
+      return function Date(
+        A?: number,
+        B?: number,
+        C?: number,
+        D?: number,
+        E?: number,
+        F?: number,
+        G?: number,
+      ) {
+        // Apply doesn't work for constructors and Date doesn't
+        // seem to like undefined args, so must explicitly
+        // call constructor for each possible args 0..7
+        if (A === undefined) {
+          return new Date_(orig_now() - timediff);
+        } else if (B === undefined) {
+          return new Date_(A);
+        } else if (C === undefined) {
+          return new Date_(A, B);
+        } else if (D === undefined) {
+          return new Date_(A, B, C);
+        } else if (E === undefined) {
+          return new Date_(A, B, C, D);
+        } else if (F === undefined) {
+          return new Date_(A, B, C, D, E);
+        } else if (G === undefined) {
+          return new Date_(A, B, C, D, E, F);
+        } else {
+          return new Date_(A, B, C, D, E, F, G);
+        }
+      };
+    })(Date);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (Date as any).prototype = orig_date.prototype;
+
+    Date.now = function now() {
+      return orig_now() - timediff;
+    };
+
+    Date.UTC = orig_utc;
+    Date.parse = orig_parse;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (Date as any).__WB_timediff = timediff;
+
+    Date.prototype.getTimezoneOffset = function () {
+      return 0;
+    };
+
+    const orig_toString = Date.prototype.toString;
+    Date.prototype.toString = function () {
+      const string = orig_toString.call(this).split(" GMT")[0];
+      return string + " GMT+0000 (GMT)";
+    };
+
+    const orig_toTimeString = Date.prototype.toTimeString;
+    Date.prototype.toTimeString = function () {
+      const string = orig_toTimeString.call(this).split(" GMT")[0];
+      return string + " GMT+0000 (GMT)";
+    };
+
+    Object.defineProperty(Date.prototype, "constructor", {
+      value: Date,
+    });
   }
 }
 

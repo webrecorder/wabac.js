@@ -1371,7 +1371,7 @@ export class MultiWACZ
       }
     }
 
-    if (pageUrl) {
+    if (pageUrl && this.pagesQueryUrl) {
       let res = await this.getWACZFilesForPagesQuery(pageUrl);
       if (res) {
         names = [...names, ...res];
@@ -1419,6 +1419,10 @@ export class MultiWACZ
     requestUrl: string,
   ): Promise<string[] | null> {
     const selectFiles = [];
+
+    if (!this.pagesQueryUrl) {
+      return null;
+    }
 
     const pages = await this.getPagesByUrl(requestUrl);
     for (const page of pages) {

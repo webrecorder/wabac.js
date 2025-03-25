@@ -254,21 +254,15 @@ export class Collection {
     const arResponse = response;
 
     const headInsertFunc = (url: string) => {
-      const presetCookie =
-        arResponse.headers.get("x-wabac-preset-cookie") || "";
-      const setCookie = arResponse.headers.get("Set-Cookie");
       const topUrl = basePrefixTS + (requestTS ? "/" : "") + url;
+
       return this.makeHeadInsert(
         url,
         requestTS,
-        arResponse.date,
         topUrl,
         basePrefix,
-        presetCookie,
-        setCookie,
-        arResponse.isLive,
+        arResponse,
         request.referrer,
-        arResponse.extraOpts,
       );
     };
 
@@ -324,6 +318,13 @@ export class Collection {
     const basePrefixTS = basePrefix + (requestTS || timestamp);
 
     const headInsertFunc = (url: string) => {
+      const presetCookieStr = this.getCookiePreset(
+        response,
+        request.proxyScheme,
+      );
+
+      const seconds = getSecondsStr(response.date);
+
       return `
 <!-- WB Insert -->
 <script>
@@ -336,6 +337,8 @@ export class Collection {
   wbinfo.localTLD = "${request.localTLD || ""}";
   wbinfo.proxyTLD = "${request.proxyTLD || ""}";
   wbinfo.prefix = "${basePrefixTS}";
+  wbinfo.presetCookie = ${presetCookieStr};
+  wbinfo.seconds = "${seconds}";
   self.__wbinfo = wbinfo;
 </script>
 <script src="${this.staticPrefix}wombatProxy.js"></script>
@@ -362,6 +365,15 @@ export class Collection {
     response = await rewriter.rewrite(response, request);
 
     return response;
+  }
+
+  getCookiePreset(response: ArchiveResponse, scheme: string) {
+    let presetCookie = response.headers.get("x-wabac-preset-cookie") || "";
+    const setCookie = response.headers.get("Set-Cookie");
+    if (setCookie) {
+      presetCookie = parseSetCookie(setCookie, scheme) + ";" + presetCookie;
+    }
+    return presetCookie ? JSON.stringify(presetCookie) : '""';
   }
 
   getCanonRedirect(query: ArchiveRequest) {
@@ -578,18 +590,16 @@ window.home = "${this.rootPrefix}";
   makeHeadInsert(
     url: string,
     requestTS: string,
-    date: Date,
     topUrl: string,
     prefix: string,
-    presetCookie: string,
-    setCookie: string | null,
-    isLive: boolean,
+    response: ArchiveResponse,
     referrer: string,
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    extraOpts: Record<string, any> | null,
   ) {
     const coll = this.name;
+
+    const date = response.date;
+    const isLive = response.isLive;
+    const extraOpts = response.extraOpts;
 
     const seconds = getSecondsStr(date);
 
@@ -606,9 +616,7 @@ window.home = "${this.rootPrefix}";
       scheme = urlParsed.protocol.slice(0, -1);
     }
 
-    if (setCookie) {
-      presetCookie = parseSetCookie(setCookie, scheme) + ";" + presetCookie;
-    }
+    const presetCookieStr = this.getCookiePreset(response, scheme);
 
     const pixelRatio =
       // @ts-expect-error [TODO] - TS4111 - Property 'pixelRatio' comes from an index signature, so it must be accessed with ['pixelRatio']. | TS4111 - Property 'pixelRatio' comes from an index signature, so it must be accessed with ['pixelRatio'].
@@ -619,7 +627,6 @@ window.home = "${this.rootPrefix}";
       ? // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
         JSON.stringify(extraOpts.storage)
       : '""';
-    const presetCookieStr = presetCookie ? JSON.stringify(presetCookie) : '""';
     return `
 <!-- WB Insert -->
 ${
