@@ -56,7 +56,7 @@ const rewriteTags: Record<string, Record<string, string>> = {
   form: { action: defmod },
   frame: { src: "fr_" },
   link: { href: "oe_" },
-  meta: { content: defmod },
+  meta: { content: "mt_" },
   object: {
     codebase: "oe_",
     data: "oe_",
@@ -131,9 +131,8 @@ export class HTMLRewriter {
     } else if (equiv === "refresh") {
       return attr.value.replace(
         META_REFRESH_REGEX,
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        (m, p1, p2, p3) => p1 + this.rewriteUrl(rewriter, p2) + p3,
+        (m, p1, p2: string, p3) =>
+          p1 + this.rewriteUrl(rewriter, p2, false, "mt_") + p3,
       );
     } else if (this.getAttr(attrs, "name") === "referrer") {
       return "no-referrer-when-downgrade";
@@ -513,7 +512,7 @@ export class HTMLRewriter {
       text = decoder.decode(encodeLatin1(text));
     }
     const res = rewriter.rewriteUrl(text, forceAbs);
-    return mod && mod !== defmod && mod !== "ln_"
+    return mod && mod !== defmod && mod !== "ln_" && mod !== "mt_"
       ? res.replace(defmod + "/", mod + "/")
       : res;
   }
@@ -549,7 +548,7 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
     forceAbs = false,
     mod = "",
   ) {
-    if (mod === "if_" || mod === "fr_") {
+    if (mod === "if_" || mod === "fr_" || mod === "mt_") {
       return (rewriter as ProxyRewriter).fullRewriteUrl(text, forceAbs);
     }
 
@@ -581,7 +580,9 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
       const name = attr.name || "";
       const value = attr.value || "";
 
-      if (attrRules[name] || name === "href" || name === "src") {
+      if (tagName === "meta" && name === "content") {
+        attr.value = this.rewriteMetaContent(tag.attrs, attr, rewriter);
+      } else if (attrRules[name] || name === "href" || name === "src") {
         attr.value = this.rewriteUrl(rewriter, value, false, attrRules[name]);
       }
     }

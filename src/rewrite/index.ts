@@ -196,9 +196,38 @@ export class Rewriter {
       case "application/dash+xml":
         return "dash";
 
+      case "":
+        if (this.isGuessHtml(request, response)) {
+          return "html";
+        }
+      // fallthrough
+
       default:
         return this.getScriptRewriteMode(mime, url);
     }
+  }
+
+  isGuessHtml(request: ArchiveRequest, response: ArchiveResponse) {
+    if (
+      request.destination &&
+      request.destination !== "document" &&
+      request.destination !== "iframe"
+    ) {
+      return false;
+    }
+
+    if (response.buffer) {
+      try {
+        const start = new TextDecoder().decode(response.buffer.slice(0, 1024));
+        if (/<\s*html/i.exec(start)) {
+          return true;
+        }
+      } catch (_) {
+        return false;
+      }
+    }
+
+    return false;
   }
 
   getScriptRewriteMode(mime: string, url: string, defaultType = "") {
