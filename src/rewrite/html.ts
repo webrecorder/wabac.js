@@ -131,9 +131,8 @@ export class HTMLRewriter {
     } else if (equiv === "refresh") {
       return attr.value.replace(
         META_REFRESH_REGEX,
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        (m, p1, p2, p3) => p1 + this.rewriteUrl(rewriter, p2) + p3,
+        (m, p1, p2: string, p3) =>
+          p1 + this.rewriteUrl(rewriter, p2, false, "fr_") + p3,
       );
     } else if (this.getAttr(attrs, "name") === "referrer") {
       return "no-referrer-when-downgrade";
@@ -581,7 +580,9 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
       const name = attr.name || "";
       const value = attr.value || "";
 
-      if (attrRules[name] || name === "href" || name === "src") {
+      if (tagName === "meta" && name === "content") {
+        attr.value = this.rewriteMetaContent(tag.attrs, attr, rewriter);
+      } else if (attrRules[name] || name === "href" || name === "src") {
         attr.value = this.rewriteUrl(rewriter, value, false, attrRules[name]);
       }
     }

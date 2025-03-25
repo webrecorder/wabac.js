@@ -213,7 +213,7 @@ export class Collection {
 
     if (!response.noRW) {
       if (!request.isProxyOrigin) {
-        response = await this.directRewrite(
+        response = await this.fullRewrite(
           request,
           response,
           baseUrl,
@@ -241,7 +241,7 @@ export class Collection {
     return response.makeResponse(this.coHeaders, deleteDisposition);
   }
 
-  async directRewrite(
+  async fullRewrite(
     request: ArchiveRequest,
     response: ArchiveResponse,
     baseUrl: string,
@@ -312,10 +312,10 @@ export class Collection {
     const basePrefix =
       this.prefix + (request.pageId ? `:${request.pageId}/` : "");
 
-    const timestamp = getTS(response.date.toISOString());
+    const timestamp = response.date.toISOString();
 
     // default to requestTS if any, otherwise us actual ts for iframe rw
-    const basePrefixTS = basePrefix + (requestTS || timestamp);
+    const basePrefixTS = basePrefix + (requestTS || getTS(timestamp));
 
     const headInsertFunc = (url: string) => {
       const presetCookieStr = this.getCookiePreset(
