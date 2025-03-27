@@ -155,7 +155,8 @@ export type ExtraConfig = {
 };
 
 export type CollConfig = {
-  root?: string;
+  root?: boolean;
+
   dbname: string;
 
   ctime?: number;

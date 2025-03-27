@@ -82,6 +82,10 @@ export class SWCollections extends WorkerLoader {
     const opts = await super.addCollection(data, progressUpdate);
 
     if (opts && opts.name) {
+      // if name matches root collection, mark as root
+      if (this.root === opts.name) {
+        opts.config.root = true;
+      }
       this.colls[opts.name] = this._createCollection(opts);
     }
 
@@ -518,9 +522,14 @@ export class SWReplay {
       return this.defaultFetch(request);
     }
 
+    if (!coll) {
+      return notFound(request);
+    }
+
     if (
-      !coll ||
-      (!this.proxyOriginMode && !request.url.startsWith(coll.prefix))
+      !this.collections.root &&
+      !this.proxyOriginMode &&
+      !request.url.startsWith(coll.prefix)
     ) {
       return notFound(request);
     }
