@@ -137,6 +137,7 @@ export type ExtraConfig = {
   baseUrlSourcePrefix?: string;
   baseUrl?: string;
   baseUrlHashReplay?: boolean;
+  baseUrlAppendReplay?: boolean;
 
   liveRedirectOnNotFound?: boolean;
   adblockUrl?: string;
@@ -154,7 +155,8 @@ export type ExtraConfig = {
 };
 
 export type CollConfig = {
-  root?: string;
+  root?: boolean;
+
   dbname: string;
 
   ctime?: number;
