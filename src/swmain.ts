@@ -239,7 +239,7 @@ export class SWReplay {
       this.proxyPrefix = "https://wab.ac/proxy/";
       this.apiPrefix = "https://wab.ac/api/";
     } else {
-      this.replayPrefix = this.prefix + (sp.get("replayPrefix") || "w") + "/";
+      this.replayPrefix = this.prefix + (sp.get("replayPrefix") ?? "w") + "/";
       this.staticPrefix = this.prefix + "static/";
       this.proxyPrefix = this.staticPrefix + "proxy/";
       this.apiPrefix = this.replayPrefix + "api/";
