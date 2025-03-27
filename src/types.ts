@@ -137,6 +137,7 @@ export type ExtraConfig = {
   baseUrlSourcePrefix?: string;
   baseUrl?: string;
   baseUrlHashReplay?: boolean;
+  baseUrlAppendReplay?: boolean;
 
   liveRedirectOnNotFound?: boolean;
   adblockUrl?: string;

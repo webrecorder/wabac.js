@@ -50,6 +50,7 @@ export class Collection {
   baseFramePrefix: string;
   baseFrameUrl: string;
   baseFrameHashReplay = false;
+  baseFrameAppendReplay = false;
 
   liveRedirectOnNotFound = false;
 
@@ -100,6 +101,7 @@ export class Collection {
     this.baseFramePrefix = extraConfig.baseUrlSourcePrefix!;
     this.baseFrameUrl = extraConfig.baseUrl!;
     this.baseFrameHashReplay = extraConfig.baseUrlHashReplay || false;
+    this.baseFrameAppendReplay = extraConfig.baseUrlAppendReplay || false;
 
     this.liveRedirectOnNotFound = extraConfig.liveRedirectOnNotFound || false;
 
@@ -509,7 +511,9 @@ export class Collection {
     }
 
     if (baseUrl) {
-      if (this.baseFrameHashReplay) {
+      if (this.baseFrameAppendReplay) {
+        baseUrl += `${requestTS}/${url}`;
+      } else if (this.baseFrameHashReplay) {
         baseUrl += `#${requestTS}/${url}`;
       } else {
         const locParams = new URLSearchParams({
