@@ -295,7 +295,7 @@ export class FuzzyMatcher {
     const reqArgs: Set<string> | null =
       rule?.args && !rule.fuzzyArgs ? new Set<string>(rule.args[0]) : null;
 
-    let bestTotal = 0;
+    let bestTotal = Number.MIN_SAFE_INTEGER;
     let bestResult = null;
 
     const reqQuery = new URLSearchParams(reqUrl.search);
@@ -321,7 +321,7 @@ export class FuzzyMatcher {
 
       // lower total score for status >200
       if (result.status! > 200) {
-        total *= 10 ** ((200 - result.status!) * 0.0001);
+        total += (200 - result.status!) * 0.1;
       }
 
       //console.log('total: ' + total + ' ' + url.href + ' <=> ' + reqUrl);
