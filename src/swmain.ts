@@ -214,6 +214,7 @@ export class SWReplay {
   apiPrefix: string;
 
   allowRewrittenCache: boolean;
+  topFramePassthrough = false;
 
   stats: StatsTracker | null;
 
@@ -239,7 +240,9 @@ export class SWReplay {
       this.proxyPrefix = "https://wab.ac/proxy/";
       this.apiPrefix = "https://wab.ac/api/";
     } else {
-      this.replayPrefix = this.prefix + (sp.get("replayPrefix") ?? "w") + "/";
+      const suffix = sp.get("replayPrefix") ?? "w";
+      this.topFramePassthrough = !suffix;
+      this.replayPrefix = this.prefix + suffix + (suffix ? "/" : "");
       this.staticPrefix = this.prefix + "static/";
       this.proxyPrefix = this.staticPrefix + "proxy/";
       this.apiPrefix = this.replayPrefix + "api/";
@@ -559,6 +562,12 @@ export class SWReplay {
     }
 
     const archiveRequest = new ArchiveRequest(wbUrlStr, request, opts);
+
+    if (this.topFramePassthrough) {
+      if (!archiveRequest.url || !archiveRequest.mod) {
+        return this.defaultFetch(request);
+      }
+    }
 
     if (!archiveRequest.url) {
       return notFound(request, `Replay URL ${wbUrlStr} not found`);
