@@ -33,7 +33,7 @@ export class LiveProxy implements DBStore {
     this.archivePrefix = extraConfig.archivePrefix || "";
     this.archiveMod = extraConfig.archiveMod || "id_";
     this.cloneResponse = cloneResponse;
-    this.allowBody = allowBody || this.isLive;
+    this.allowBody = allowBody || this.isLive || !!extraConfig.noPostToGet;
 
     // @ts-expect-error [TODO] - TS4111 - Property 'messageOnProxyErrors' comes from an index signature, so it must be accessed with ['messageOnProxyErrors'].
     this.messageOnProxyErrors = extraConfig.messageOnProxyErrors || false;
