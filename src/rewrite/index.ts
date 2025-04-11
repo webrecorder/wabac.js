@@ -843,6 +843,8 @@ export class ProxyRewriter extends Rewriter {
 
   localScheme: string;
 
+  httpToHttps: boolean;
+
   constructor(opts: RewriterOpts, request: ArchiveRequest) {
     super(opts);
     this.proxyOrigin = request.proxyOrigin!;
@@ -857,6 +859,7 @@ export class ProxyRewriter extends Rewriter {
     const local = new URL(this.localOrigin);
 
     this.localScheme = local.protocol;
+    this.httpToHttps = request.httpToHttpsNeeded;
   }
 
   override rewriteUrl(urlStr: string): string {
@@ -874,6 +877,10 @@ export class ProxyRewriter extends Rewriter {
           this.localScheme + "//" + host + url.href.slice(url.origin.length);
         return newUrl;
       }
+    }
+
+    if (this.httpToHttps) {
+      return urlStr.replace("http:", "https:");
     }
 
     return urlStr;
@@ -914,6 +921,9 @@ export class ProxyRewriter extends Rewriter {
   }
 
   override rewriteCSS(text: string): string {
+    if (this.httpToHttps) {
+      return super.rewriteCSS(text);
+    }
     return text;
   }
 
