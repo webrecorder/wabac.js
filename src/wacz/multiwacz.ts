@@ -1357,7 +1357,7 @@ export class MultiWACZ
       if (inx > 0) {
         pageUrl = request.url.slice(inx);
       }
-    } else if (request.isProxyOrigin && request.referrer) {
+    } else if (request.isProxyOrigin && request.referrer && request.destination !== "document") {
       pageUrl = request.referrer;
       this.referrerMap.set(request.url, pageUrl);
       let topLevelPage: string | undefined = "";

@@ -664,6 +664,10 @@ export class ArchiveDB implements DBStore {
       : 0;
     const newOpts = { ...opts, skip };
 
+    if (request.httpToHttpsNeeded) {
+      url = url.slice(url.indexOf("//"));
+    }
+
     if (url.startsWith("//")) {
       let useHttp = false;
       result = await this.lookupUrl("https:" + url, ts, newOpts);

@@ -20,6 +20,8 @@ class ProxyWombatRewrite {
   localTLD?: string;
 
   localScheme: string;
+  proxyScheme: string;
+  httpToHttpsNeeded: boolean;
 
   prefix: string;
   relPrefix = "";
@@ -42,6 +44,9 @@ class ProxyWombatRewrite {
     this.localTLD = wbinfo.localTLD;
 
     this.localScheme = new URL(this.localOrigin).protocol;
+    this.proxyScheme = new URL(this.proxyOrigin).protocol;
+
+    this.httpToHttpsNeeded = this.proxyScheme === "http:" && this.localScheme === "https:";
 
     this.prefix = wbinfo.prefix || "";
     if (this.prefix) {
@@ -101,6 +106,18 @@ class ProxyWombatRewrite {
             const newValue = this.rewriteUrl(value);
             if (value !== newValue) {
               curr.setAttribute("href", newValue);
+            }
+          }
+        }
+        break;
+
+      case "SCRIPT":
+        if (this.httpToHttpsNeeded) {
+          const value = curr.getAttribute("src");
+          if (value) {
+            const newValue = this.rewriteUrl(value);
+            if (value !== newValue) {
+              curr.setAttribute("src", newValue);
             }
           }
         }
@@ -272,6 +289,10 @@ class ProxyWombatRewrite {
           this.localScheme + "//" + host + url.href.slice(url.origin.length);
         return newUrl;
       }
+    }
+
+    if (this.httpToHttpsNeeded) {
+      return urlStr.replace("http:", "https:");
     }
 
     return urlStr;

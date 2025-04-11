@@ -561,6 +561,11 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
       return rewriter.rewriteUrl(text, forceAbs);
     }
 
+    // always rewrite if http->https conversion is needed
+    if ((rewriter as ProxyRewriter).httpToHttps) {
+      return rewriter.rewriteUrl(text, forceAbs);
+    }
+
     return text;
   }
 
@@ -569,6 +574,10 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
     attrRules: Record<string, string>,
     rewriter: Rewriter,
   ) {
+    if ((rewriter as ProxyRewriter).httpToHttps) {
+      return super.rewriteTagAndAttrs(tag, attrRules, rewriter);
+    }
+
     const tagName = tag.tagName;
 
     // no attribute rewriting for web-component tags, which must contain a '-'
