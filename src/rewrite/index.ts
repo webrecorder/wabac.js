@@ -45,7 +45,8 @@ export const baseRules = new DomainSpecificRuleSet(RxRewriter);
 // HTML Rx Rewriter (only used externally for now)
 export const htmlRules = new DomainSpecificRuleSet(RxRewriter, HTML_ONLY_RULES);
 
-type InsertFunc = (url: string) => string;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type InsertFunc = (url: string, opts?: any) => string;
 
 type RewriterOpts = {
   baseUrl: string;
@@ -320,6 +321,9 @@ export class Rewriter {
         break;
 
       case "js-worker":
+        if (request.mod === "wkrm_") {
+          opts.isModule = true;
+        }
         rwFunc = this.workerInsertFunc;
         break;
 

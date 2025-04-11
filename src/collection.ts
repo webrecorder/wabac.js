@@ -268,7 +268,11 @@ export class Collection {
       );
     };
 
-    const workerInsertFunc = (text: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const workerInsertFunc = (text: string, opts?: any) => {
+      if (opts?.isModule) {
+        return text;
+      }
       return (
         `
       (function() { self.importScripts('${this.staticPrefix}wombatWorkers.js');\
