@@ -46,7 +46,8 @@ class ProxyWombatRewrite {
     this.localScheme = new URL(this.localOrigin).protocol;
     this.proxyScheme = new URL(this.proxyOrigin).protocol;
 
-    this.httpToHttpsNeeded = this.proxyScheme === "http:" && this.localScheme === "https:";
+    this.httpToHttpsNeeded =
+      this.proxyScheme === "http:" && this.localScheme === "https:";
 
     this.prefix = wbinfo.prefix || "";
     if (this.prefix) {

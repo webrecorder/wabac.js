@@ -97,7 +97,8 @@ export class ArchiveRequest {
         ? new URL(proxyOrigin).protocol.slice(0, -1)
         : "";
       this.localOrigin = localOrigin;
-      this.httpToHttpsNeeded = this.proxyScheme === "http" && localOrigin.startsWith("https:");
+      this.httpToHttpsNeeded =
+        this.proxyScheme === "http" && localOrigin.startsWith("https:");
       this.proxyTLD = proxyTLD || "";
       this.localTLD = localTLD || "";
     }
