@@ -273,6 +273,9 @@ export class HTMLRewriter {
             }
           }
         }
+      } else if (tagName === "embed") {
+        const type = this.getAttr(tag.attrs, "type");
+        tag.tagName = type?.startsWith("image/") ? "img" : "iframe";
       } else if (name === "target") {
         const target = attr.value;
 
