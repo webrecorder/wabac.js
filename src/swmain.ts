@@ -521,7 +521,7 @@ export class SWReplay {
     const coll = await this.collections.getColl(collId);
 
     // proxy origin, but no collection registered, just pass through to ensure setup is completed
-    if (!coll && this.proxyOriginMode) {
+    if (!coll && (this.proxyOriginMode || this.topFramePassthrough)) {
       return this.defaultFetch(request);
     }
 

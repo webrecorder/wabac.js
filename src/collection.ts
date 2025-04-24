@@ -348,7 +348,12 @@ export class Collection {
   self.__wbinfo = wbinfo;
 </script>
 <script src="${this.staticPrefix}wombatProxy.js"></script>
-<script src="${this.proxyPrefix}${this.proxyBannerUrl}"></script>
+${
+  this.proxyBannerUrl
+    ? `
+<script src="${this.proxyPrefix}${this.proxyBannerUrl}"></script>`
+    : ``
+}
 <!-- End WB Insert -->
     `;
     };
@@ -628,7 +633,7 @@ window.home = "${this.rootPrefix}";
 
     const pixelRatio =
       // @ts-expect-error [TODO] - TS4111 - Property 'pixelRatio' comes from an index signature, so it must be accessed with ['pixelRatio']. | TS4111 - Property 'pixelRatio' comes from an index signature, so it must be accessed with ['pixelRatio'].
-      extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 1;
+      extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 2;
     // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
 
     const storage = extraOpts?.storage
