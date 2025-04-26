@@ -7,6 +7,7 @@ import {
   parseSetCookie,
   handleAuthNeeded,
   REPLAY_TOP_FRAME_NAME,
+  DEFAULT_CSP,
 } from "./utils";
 
 import { ArchiveResponse } from "./response";
@@ -16,9 +17,6 @@ import { notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
 import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
-
-const DEFAULT_CSP =
-  "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 export type Prefixes = {
   static: string;
@@ -302,9 +300,7 @@ export class Collection {
 
     response = await rewriter.rewrite(response, request);
 
-    if (mod !== "id_") {
-      response.headers.append("Content-Security-Policy", this.csp);
-    }
+    response.headers.set("Content-Security-Policy", this.csp);
 
     return response;
   }

@@ -1,7 +1,7 @@
 import { Collection, type Prefixes } from "./collection";
 import { WorkerLoader } from "./loaders";
 
-import { notFound, isAjaxRequest } from "./utils";
+import { notFound, isAjaxRequest, DEFAULT_CSP } from "./utils";
 import { StatsTracker } from "./statstracker";
 
 import { API } from "./api";
@@ -324,7 +324,7 @@ export class SWReplay {
     });
 
     self.addEventListener("fetch", (event) => {
-      event.respondWith(this.handleFetch(event));
+      event.respondWith(this.handleFetchEnsureCSP(event));
     });
 
     self.addEventListener("message", (event) => {
@@ -346,7 +346,28 @@ export class SWReplay {
     </body></html>`;
   }
 
-  handleFetch(event: FetchEvent): Promise<Response> | Response {
+  async handleFetchEnsureCSP(event: FetchEvent): Promise<Response> {
+    const response = await this.handleFetch(event);
+
+    if (
+      !this.proxyOriginMode &&
+      !response.headers.get("Content-Security-Policy")
+    ) {
+      try {
+        response.headers.set("Content-Security-Policy", DEFAULT_CSP);
+        return response;
+      } catch (_) {
+        const headers = new Headers(response.headers);
+        const { status, statusText } = response;
+        headers.set("Content-Security-Policy", DEFAULT_CSP);
+        return new Response(response.body, { status, statusText, headers });
+      }
+    }
+
+    return response;
+  }
+
+  async handleFetch(event: FetchEvent): Promise<Response> {
     const url = event.request.url;
 
     if (this.proxyOriginMode) {
