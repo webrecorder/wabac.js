@@ -368,22 +368,25 @@ export class SWReplay {
   }
 
   async handleFetch(event: FetchEvent): Promise<Response> {
-    const url = event.request.url;
+    const request = event.request;
+    const url = request.url;
 
     if (this.proxyOriginMode) {
       if (url.startsWith(this.proxyPrefix)) {
-        return this.staticPathProxy(url, event.request);
+        return this.staticPathProxy(url, request);
       }
       if (!url.startsWith(this.staticPrefix)) {
-        return this.getResponseFor(event.request, event);
+        return this.getResponseFor(request, event);
       }
     } else {
-      // if not on our domain, just pass through (loading handled in local worker)
+      // if not on our domain, return not found
       if (!url.startsWith(this.prefix)) {
         if (url === "chrome-extension://invalid/") {
-          return notFound(event.request, "Invalid URL");
+          return notFound(request, "Invalid URL");
         }
-        return this.defaultFetch(event.request);
+        return notFound(request);
+        // don't allow passing through for better security
+        //return this.defaultFetch(request);
       }
 
       // special handling when root collection set: pass through any root files, eg. /index.html
@@ -391,12 +394,12 @@ export class SWReplay {
         this.collections.root &&
         url.slice(this.prefix.length).indexOf("/") < 0
       ) {
-        return this.defaultFetch(event.request);
+        return this.defaultFetch(request);
       }
 
       // JS rewrite on static/external files not from archive
       if (url.startsWith(this.proxyPrefix)) {
-        return this.staticPathProxy(url, event.request);
+        return this.staticPathProxy(url, request);
       }
 
       // handle replay / api
@@ -404,7 +407,7 @@ export class SWReplay {
         url.startsWith(this.replayPrefix) &&
         !url.startsWith(this.staticPrefix)
       ) {
-        return this.getResponseFor(event.request, event);
+        return this.getResponseFor(request, event);
       }
     }
 
