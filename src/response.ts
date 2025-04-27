@@ -333,7 +333,11 @@ class ArchiveResponse {
     return false;
   }
 
-  makeResponse(coHeaders = false, overwriteDisposition = false) {
+  makeResponse(
+    coHeaders = false,
+    overwriteDisposition = false,
+    noCSPNeeded = false,
+  ) {
     let body: Uint8Array | ReadableStream | null = null;
     if (!isNullBodyStatus(this.status)) {
       body =
@@ -351,6 +355,10 @@ class ArchiveResponse {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (response as any).date = this.date;
+    if (noCSPNeeded) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (response as any).noCSPNeeded = true;
+    }
     if (coHeaders) {
       response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
       response.headers.set("Cross-Origin-Embedder-Policy", "require-corp");

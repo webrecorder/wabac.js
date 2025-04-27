@@ -123,7 +123,10 @@ export class Collection {
     this.proxyPrefix = prefixes.proxy;
   }
 
-  async handleRequest(request: ArchiveRequest, event: FetchEvent) {
+  async handleRequest(
+    request: ArchiveRequest,
+    event: FetchEvent,
+  ): Promise<Response> {
     // force timestamp for root coll
     //if (!requestTS && this.isRoot) {
     //requestTS = "2";
@@ -211,6 +214,8 @@ export class Collection {
       return response;
     }
 
+    let noCSPNeeded = false;
+
     if (!response.noRW) {
       if (!request.isProxyOrigin) {
         response = await this.fullRewrite(
@@ -227,6 +232,7 @@ export class Collection {
           baseUrl,
           requestTS,
         );
+        noCSPNeeded = true;
       }
     }
 
@@ -238,7 +244,11 @@ export class Collection {
 
     const deleteDisposition =
       request.destination === "iframe" || request.destination === "document";
-    return response.makeResponse(this.coHeaders, deleteDisposition);
+    return response.makeResponse(
+      this.coHeaders,
+      deleteDisposition,
+      noCSPNeeded,
+    );
   }
 
   async fullRewrite(

@@ -349,9 +349,11 @@ export class SWReplay {
   async handleFetchEnsureCSP(event: FetchEvent): Promise<Response> {
     const response = await this.handleFetch(event);
 
+    // Always add csp header, unless noCSPNeeded has been set
     if (
-      !this.proxyOriginMode &&
-      !response.headers.get("Content-Security-Policy")
+      !response.headers.get("Content-Security-Policy") &&
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      !(response as any).noCSPNeeded
     ) {
       try {
         response.headers.set("Content-Security-Policy", DEFAULT_CSP);
@@ -431,9 +433,9 @@ export class SWReplay {
       (parsedUrl.protocol == "http:" || parsedUrl.protocol == "https:") &&
       parsedUrl.pathname.indexOf("/", 1) < 0
     ) {
-      return this.handleOffline(event.request);
+      return this.handleOffline(request);
     } else {
-      return this.defaultFetch(event.request);
+      return this.defaultFetch(request);
     }
   }
 
