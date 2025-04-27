@@ -1,12 +1,16 @@
-import { type ArchiveRequest } from "./request";
-import { getStatusText } from "./utils";
+import { DEFAULT_CSP, getStatusText } from "./utils";
+
+export function notFound(request: Request, msg?: string, status = 404) {
+  return notFoundByTypeResponse(request, request.url, "", false, status, msg);
+}
 
 export function notFoundByTypeResponse(
-  request: ArchiveRequest,
+  request: Request,
   requestURL: string,
   requestTS: string,
   liveRedirectOnNotFound = false,
   status = 404,
+  msg?: string,
 ) {
   let content: string;
   let contentType: string;
@@ -14,17 +18,17 @@ export function notFoundByTypeResponse(
   switch (request.destination as string) {
     case "json":
     case "":
-      content = getJSONNotFound(requestURL, requestTS);
+      content = getJSONNotFound(requestURL, requestTS, msg);
       contentType = "application/json; charset=utf-8";
       break;
 
     case "script":
-      content = getScriptCSSNotFound("Script", requestURL, requestTS);
+      content = getScriptCSSNotFound("Script", requestURL, requestTS, msg);
       contentType = "text/javascript; charset=utf-8";
       break;
 
     case "style":
-      content = getScriptCSSNotFound("CSS", requestURL, requestTS);
+      content = getScriptCSSNotFound("CSS", requestURL, requestTS, msg);
       contentType = "text/css; charset=utf-8";
       break;
 
@@ -38,6 +42,7 @@ export function notFoundByTypeResponse(
         requestURL,
         requestTS,
         liveRedirectOnNotFound,
+        msg,
       );
       contentType = "text/html; charset=utf-8";
   }
@@ -54,6 +59,7 @@ function textToResponse(content: string, contentType: string, status = 200) {
     headers: {
       "Content-Type": contentType,
       "Content-Length": buff.length + "",
+      "Content-Security-Policy": DEFAULT_CSP,
     },
   };
 
@@ -61,10 +67,11 @@ function textToResponse(content: string, contentType: string, status = 200) {
 }
 
 function getHTMLNotFound(
-  request: ArchiveRequest,
+  request: Request,
   requestURL: string,
   requestTS: string,
   liveRedirectOnNotFound: boolean,
+  msg?: string,
 ) {
   return `
   <!doctype html>
@@ -76,7 +83,7 @@ function getHTMLNotFound(
   </head>
   <body style="font-family: sans-serif">
   <h2>Archived Page Not Found</h2>
-  <p>Sorry, this page was not found in this archive:</p>
+  <p>${msg || "Sorry, this page was not found in this archive:"}</p>
   <p><code id="url" style="word-break: break-all; font-size: larger"></code></p>
   ${
     liveRedirectOnNotFound && request.mode === "navigate"
@@ -125,10 +132,11 @@ function getScriptCSSNotFound(
   type: string,
   requestURL: string,
   requestTS: string,
+  msg?: string,
 ) {
   return `\
 /* 
-   ${type} Not Found
+   ${msg ? msg : type + " Not Found"}
    URL: ${requestURL}
    TS: ${requestTS}
 */

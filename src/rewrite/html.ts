@@ -19,7 +19,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 // ===========================================================================
-const META_REFRESH_REGEX = /([\d.]+\s*;\s*url\s*=\s*)['"]?(.+)['"]?(\s*)/im;
+const META_REFRESH_REGEX = /([\d.]+\s*;\s*(?:url\s*=)\s*)['"]?(.+)['"]?(\s*)/im;
 
 const DATA_RW_PROTOCOLS = ["http://", "https://", "//"];
 

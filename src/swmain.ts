@@ -1,7 +1,7 @@
 import { Collection, type Prefixes } from "./collection";
 import { WorkerLoader } from "./loaders";
 
-import { notFound, isAjaxRequest, DEFAULT_CSP } from "./utils";
+import { isAjaxRequest, DEFAULT_CSP } from "./utils";
 import { StatsTracker } from "./statstracker";
 
 import { API } from "./api";
@@ -10,9 +10,14 @@ import WOMBAT from "../dist-wombat/wombat.txt";
 import WOMBAT_WORKERS from "../dist-wombat/wombatWorkers.txt";
 import WOMBAT_PROXY from "../dist-wombat/wombatProxy.txt";
 
-import { ArchiveRequest, type ArchiveRequestInitOpts } from "./request";
+import {
+  ArchiveRequest,
+  resolveFullUrlFromReferrer,
+  type ArchiveRequestInitOpts,
+} from "./request";
 import { type CollMetadata } from "./types";
 import { staticPathProxy } from "./utils/staticPathProxy";
+import { notFound } from "./notfound";
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
@@ -425,6 +430,17 @@ export class SWReplay {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         return new Response(content, { headers: { "Content-Type": type } });
       }
+    }
+
+    // if request is to '<origin>/newPath but referrer is from <origin>/collection/<url>/<path>,
+    // redirect to <origin>/collection/<url>/newPath
+    // correct rewriting should prevent this, but add as secondary fallback
+    if (request.referrer.startsWith(this.replayPrefix)) {
+      const newUrl = resolveFullUrlFromReferrer(url, request.referrer);
+      if (!newUrl) {
+        return notFound(request);
+      }
+      return Response.redirect(newUrl);
     }
 
     // only cache: urls in the root directory (no more slashes)
