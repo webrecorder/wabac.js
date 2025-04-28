@@ -357,7 +357,6 @@ export class SWReplay {
     ) {
       try {
         response.headers.set("Content-Security-Policy", DEFAULT_CSP);
-        return response;
       } catch (_) {
         const headers = new Headers(response.headers);
         const { status, statusText } = response;
