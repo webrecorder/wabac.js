@@ -1,7 +1,7 @@
 import { Collection, type Prefixes } from "./collection";
 import { WorkerLoader } from "./loaders";
 
-import { isAjaxRequest, DEFAULT_CSP } from "./utils";
+import { isAjaxRequest } from "./utils";
 import { StatsTracker } from "./statstracker";
 
 import { API } from "./api";
@@ -329,7 +329,7 @@ export class SWReplay {
     });
 
     self.addEventListener("fetch", (event) => {
-      event.respondWith(this.handleFetchEnsureCSP(event));
+      event.respondWith(this.handleFetch(event));
     });
 
     self.addEventListener("message", (event) => {
@@ -351,26 +351,11 @@ export class SWReplay {
     </body></html>`;
   }
 
-  async handleFetchEnsureCSP(event: FetchEvent): Promise<Response> {
-    const response = await this.handleFetch(event);
-
-    // Always add csp header, unless noCSPNeeded has been set
-    if (
-      !response.headers.get("Content-Security-Policy") &&
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      !(response as any).noCSPNeeded
-    ) {
-      try {
-        response.headers.set("Content-Security-Policy", DEFAULT_CSP);
-      } catch (_) {
-        const headers = new Headers(response.headers);
-        const { status, statusText } = response;
-        headers.set("Content-Security-Policy", DEFAULT_CSP);
-        return new Response(response.body, { status, statusText, headers });
-      }
-    }
-
-    return response;
+  isFromReplay(request: Request) {
+    return (
+      request.url.startsWith(this.replayPrefix) ||
+      request.referrer.startsWith(this.replayPrefix)
+    );
   }
 
   async handleFetch(event: FetchEvent): Promise<Response> {
@@ -390,9 +375,12 @@ export class SWReplay {
         if (url === "chrome-extension://invalid/") {
           return notFound(request, "Invalid URL");
         }
-        return notFound(request);
+
         // don't allow passing through for better security
-        //return this.defaultFetch(request);
+        if (this.isFromReplay(request)) {
+          return notFound(request);
+        }
+        return this.defaultFetch(request);
       }
 
       // special handling when root collection set: pass through any root files, eg. /index.html

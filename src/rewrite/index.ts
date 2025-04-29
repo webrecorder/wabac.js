@@ -679,6 +679,7 @@ export class Rewriter {
       "proxy-authenticate": "keep",
 
       "public-key-pins": "prefix",
+      "referrer-policy": "prefix",
       "retry-after": "prefix",
       server: "prefix",
 
