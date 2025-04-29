@@ -259,36 +259,6 @@ export async function handleAuthNeeded(e: any, config: any) {
   return false;
 }
 
-export function notFound(request: Request, msg?: string, status = 404) {
-  let content;
-  let contentType;
-
-  if (!msg) {
-    msg = "Sorry, this url was not found in the archive.";
-  }
-
-  if (
-    request.destination === "script" ||
-    request.headers.get("x-pywb-requested-with")
-  ) {
-    content = JSON.stringify(msg);
-    contentType = "application/json";
-  } else {
-    content = msg;
-    contentType = "text/html";
-  }
-
-  //console.log(`Not Found ${request.destination} - ${msg}`);
-
-  const initOpt = {
-    status: status,
-    statusText: getStatusText(status),
-    headers: { "Content-Type": contentType },
-  };
-
-  return new Response(content, initOpt);
-}
-
 // [TODO]
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getCollData(coll: any) {

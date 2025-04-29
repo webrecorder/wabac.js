@@ -3,7 +3,6 @@ import { ProxyRewriter, Rewriter } from "./rewrite";
 import {
   getTS,
   getSecondsStr,
-  notFound,
   parseSetCookie,
   handleAuthNeeded,
   REPLAY_TOP_FRAME_NAME,
@@ -13,7 +12,7 @@ import {
 import { ArchiveResponse } from "./response";
 
 import { getAdBlockCSSResponse } from "./adblockcss";
-import { notFoundByTypeResponse } from "./notfound";
+import { notFound, notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
 import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
@@ -204,7 +203,7 @@ export class Collection {
       }
 
       return notFoundByTypeResponse(
-        request,
+        request.request,
         requestURL,
         requestTS,
         this.liveRedirectOnNotFound,

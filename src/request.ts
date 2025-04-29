@@ -211,3 +211,15 @@ function resolveProxyOrigin(
   }
   return urlStr;
 }
+
+export function resolveFullUrlFromReferrer(url: string, referrer: string) {
+  const inx = referrer.indexOf("/http");
+  if (inx < 0) {
+    return null;
+  }
+  const origin = new URL(url).origin;
+  const relUrl = url.slice(origin.length);
+  const baseUrl = referrer.slice(inx + 1);
+  const fullUrl = new URL(relUrl, baseUrl);
+  return referrer.slice(0, inx + 1) + fullUrl.href;
+}
