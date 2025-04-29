@@ -7,6 +7,7 @@ import {
   parseSetCookie,
   handleAuthNeeded,
   REPLAY_TOP_FRAME_NAME,
+  DEFAULT_CSP,
 } from "./utils";
 
 import { ArchiveResponse } from "./response";
@@ -16,9 +17,6 @@ import { notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
 import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
-
-const DEFAULT_CSP =
-  "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
 
 export type Prefixes = {
   static: string;
@@ -125,7 +123,10 @@ export class Collection {
     this.proxyPrefix = prefixes.proxy;
   }
 
-  async handleRequest(request: ArchiveRequest, event: FetchEvent) {
+  async handleRequest(
+    request: ArchiveRequest,
+    event: FetchEvent,
+  ): Promise<Response> {
     // force timestamp for root coll
     //if (!requestTS && this.isRoot) {
     //requestTS = "2";
@@ -213,6 +214,8 @@ export class Collection {
       return response;
     }
 
+    let noCSPNeeded = false;
+
     if (!response.noRW) {
       if (!request.isProxyOrigin) {
         response = await this.fullRewrite(
@@ -229,6 +232,7 @@ export class Collection {
           baseUrl,
           requestTS,
         );
+        noCSPNeeded = true;
       }
     }
 
@@ -240,7 +244,11 @@ export class Collection {
 
     const deleteDisposition =
       request.destination === "iframe" || request.destination === "document";
-    return response.makeResponse(this.coHeaders, deleteDisposition);
+    return response.makeResponse(
+      this.coHeaders,
+      deleteDisposition,
+      noCSPNeeded,
+    );
   }
 
   async fullRewrite(
@@ -302,9 +310,7 @@ export class Collection {
 
     response = await rewriter.rewrite(response, request);
 
-    if (mod !== "id_") {
-      response.headers.append("Content-Security-Policy", this.csp);
-    }
+    response.headers.set("Content-Security-Policy", this.csp);
 
     return response;
   }

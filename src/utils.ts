@@ -18,6 +18,9 @@ export const REPLAY_TOP_FRAME_NAME = "___wb_replay_top_frame";
 
 export const REMOVE_EXPIRES = /Expires=\w{3},\s\d[^;,]+(?:;\s*)?/gi;
 
+export const DEFAULT_CSP =
+  "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
+
 export function startsWithAny(value: string, iter: Iterable<string>) {
   for (const str of iter) {
     if (value.startsWith(str)) {
