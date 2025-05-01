@@ -1,4 +1,4 @@
-import { DEFAULT_CSP, getStatusText } from "./utils";
+import { getCSP, getStatusText } from "./utils";
 
 export function notFound(request: Request, msg?: string, status = 404) {
   return notFoundByTypeResponse(request, request.url, "", false, status, msg);
@@ -59,7 +59,7 @@ function textToResponse(content: string, contentType: string, status = 200) {
     headers: {
       "Content-Type": contentType,
       "Content-Length": buff.length + "",
-      "Content-Security-Policy": DEFAULT_CSP,
+      "Content-Security-Policy": getCSP(),
     },
   };
 

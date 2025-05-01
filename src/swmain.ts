@@ -1,7 +1,7 @@
 import { Collection, type Prefixes } from "./collection";
 import { WorkerLoader } from "./loaders";
 
-import { DEFAULT_CSP, isAjaxRequest, proxyAllowPaths } from "./utils";
+import { getCSP, isAjaxRequest, proxyAllowPaths, updateCSP } from "./utils";
 import { StatsTracker } from "./statstracker";
 
 import { API } from "./api";
@@ -241,6 +241,8 @@ export class SWReplay {
       this.apiPrefix = this.replayPrefix + "api/";
     }
 
+    updateCSP(this.replayPrefix);
+
     this.distPrefix = this.prefix + "dist/";
 
     this.staticData = staticData || new Map();
@@ -400,7 +402,7 @@ export class SWReplay {
         const { content, type } = this.staticData.get(staticPath)!;
         const headers = new Headers({ "Content-Type": type });
         if (this.isFromReplay(request)) {
-          headers.set("Content-Security-Policy", DEFAULT_CSP);
+          headers.set("Content-Security-Policy", getCSP());
         }
         return new Response(content, { headers });
       }
@@ -463,7 +465,7 @@ export class SWReplay {
     }
     const { status, statusText } = resp;
     const headers = new Headers(resp.headers);
-    headers.set("Content-Security-Policy", DEFAULT_CSP);
+    headers.set("Content-Security-Policy", getCSP());
 
     return new Response(resp.body, { status, statusText, headers });
   }

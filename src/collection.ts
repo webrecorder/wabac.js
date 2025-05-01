@@ -6,8 +6,8 @@ import {
   parseSetCookie,
   handleAuthNeeded,
   REPLAY_TOP_FRAME_NAME,
-  DEFAULT_CSP,
   proxyAllowPaths,
+  getCSP,
 } from "./utils";
 
 import { ArchiveResponse } from "./response";
@@ -92,7 +92,7 @@ export class Collection {
 
     this.coHeaders = extraConfig.coHeaders || false;
 
-    this.csp = extraConfig.csp || DEFAULT_CSP;
+    this.csp = extraConfig.csp || getCSP() + this.name + "/";
 
     this.injectRelCanon = extraConfig.injectRelCanon || false;
 

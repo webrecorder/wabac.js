@@ -19,7 +19,17 @@ export const REPLAY_TOP_FRAME_NAME = "___wb_replay_top_frame";
 export const REMOVE_EXPIRES = /Expires=\w{3},\s\d[^;,]+(?:;\s*)?/gi;
 
 export const DEFAULT_CSP =
-  "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self'";
+  "default-src 'unsafe-eval' 'unsafe-inline' 'self' data: blob: mediastream: ws: wss: ; form-action 'self' ; object-src 'none'";
+
+let fullCSP = DEFAULT_CSP;
+
+export function updateCSP(replayPrefix: string) {
+  fullCSP += "; child-src data: about: blob: " + replayPrefix;
+}
+
+export function getCSP() {
+  return fullCSP;
+}
 
 export function startsWithAny(value: string, iter: Iterable<string>) {
   for (const str of iter) {
