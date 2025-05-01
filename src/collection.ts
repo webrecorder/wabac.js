@@ -7,6 +7,7 @@ import {
   handleAuthNeeded,
   REPLAY_TOP_FRAME_NAME,
   DEFAULT_CSP,
+  proxyAllowPaths,
 } from "./utils";
 
 import { ArchiveResponse } from "./response";
@@ -109,6 +110,9 @@ export class Collection {
     this.prefix = prefixes.main;
 
     this.proxyBannerUrl = extraConfig.proxyBannerUrl || "";
+    if (this.proxyBannerUrl) {
+      proxyAllowPaths.add(this.proxyBannerUrl);
+    }
 
     // support root collection hashtag nav
     if (this.config.root) {
@@ -706,7 +710,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
     window._WBWombatInit(wbinfo);
   }
 </script>
-${this.injectScripts.map((script) => `<script src='${script}'> </script>`).join("")}
+${this.injectScripts.map((script) => `<script src='${this.proxyPrefix}${script}'> </script>`).join("")}
 <!-- End WB Insert -->
 `;
   }

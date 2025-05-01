@@ -311,3 +311,5 @@ export class Canceled {}
 export async function sleep(millis: number) {
   return new Promise((resolve) => setTimeout(resolve, millis));
 }
+
+export const proxyAllowPaths = new Set();

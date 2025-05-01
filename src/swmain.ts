@@ -1,7 +1,7 @@
 import { Collection, type Prefixes } from "./collection";
 import { WorkerLoader } from "./loaders";
 
-import { isAjaxRequest } from "./utils";
+import { DEFAULT_CSP, isAjaxRequest, proxyAllowPaths } from "./utils";
 import { StatsTracker } from "./statstracker";
 
 import { API } from "./api";
@@ -15,8 +15,7 @@ import {
   resolveFullUrlFromReferrer,
   type ArchiveRequestInitOpts,
 } from "./request";
-import { type CollMetadata } from "./types";
-import { staticPathProxy } from "./utils/staticPathProxy";
+import { type ExtraConfig, type CollMetadata } from "./types";
 import { notFound } from "./notfound";
 
 const CACHE_PREFIX = "wabac-";
@@ -31,14 +30,13 @@ export class SWCollections extends WorkerLoader {
   inited: Promise<boolean> | null;
 
   override root: string | null;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  defaultConfig: Record<string, any>;
+
+  defaultConfig: ExtraConfig;
 
   constructor(
     prefixes: Prefixes,
     root: string | null = null,
-    defaultConfig = {},
+    defaultConfig: ExtraConfig = {}
   ) {
     super(self);
     this.prefixes = prefixes;
@@ -189,13 +187,7 @@ type SWReplayInitOpts = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   staticData?: Map<string, any> | null;
   ApiClass?: typeof API;
-  // [TODO]
-  defaultConfig?: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
-    injectScripts?: string[];
-    adblockUrl?: string | null;
-  };
+  defaultConfig?: ExtraConfig;
   CollectionsClass?: typeof SWCollections;
 };
 
@@ -222,8 +214,6 @@ export class SWReplay {
   topFramePassthrough = false;
 
   stats: StatsTracker | null;
-
-  staticPathProxy: (url: string, request: Request) => Promise<Response>;
 
   constructor({
     staticData = null,
@@ -275,8 +265,6 @@ export class SWReplay {
       this.staticData.set(this.prefix + "index.html", indexData);
     }
 
-    this.staticPathProxy = staticPathProxy(this.proxyPrefix, this.defaultFetch);
-
     if (sp.has("injectScripts")) {
       const injectScripts = sp.get("injectScripts")!.split(",");
       defaultConfig.injectScripts = defaultConfig.injectScripts
@@ -285,13 +273,11 @@ export class SWReplay {
     }
 
     if (defaultConfig.injectScripts) {
-      defaultConfig.injectScripts = defaultConfig.injectScripts.map(
-        (url: string) => this.proxyPrefix + url,
-      );
+      defaultConfig.injectScripts.forEach(x => proxyAllowPaths.add(x));
     }
 
     if (sp.has("adblockUrl")) {
-      defaultConfig.adblockUrl = sp.get("adblockUrl");
+      defaultConfig.adblockUrl = sp.get("adblockUrl") || "";
     }
 
     const prefixes: Prefixes = {
@@ -416,7 +402,7 @@ export class SWReplay {
         const { content, type } = this.staticData.get(staticPath);
         // [TODO]
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        return new Response(content, { headers: { "Content-Type": type } });
+        return new Response(content, { headers: { "Content-Type": type, "Content-Security-Policy": DEFAULT_CSP } });
       }
     }
 
@@ -441,6 +427,39 @@ export class SWReplay {
       return this.defaultFetch(request);
     }
   }
+
+  async staticPathProxy(url: string, request: Request) {
+    url = url.slice(this.proxyPrefix.length);
+
+    if (!proxyAllowPaths.has(url)) {
+      return notFound(request);
+    }
+
+    const urlObj = new URL(url, self.location.href);
+    url = urlObj.href;
+
+    const {method} = request;
+    // Because of CORS restrictions, the request cannot be a ReadableStream, so instead we get it as a string.
+    // If in the future we need to support streaming, we can revisit this — there may be a way to get it to work.
+    const body = method !== "GET" ? await request.arrayBuffer() : null;
+
+
+    const requestInit: RequestInit = {
+      cache: "no-store",
+      headers: request.headers,
+      method,
+      ...(method !== "GET" && { body }),
+    };
+
+    const resp = await this.defaultFetch(url, requestInit);
+
+    const { status, statusText } = resp;
+    const headers = new Headers(resp.headers);
+    headers.set("Content-Security-Policy", DEFAULT_CSP);
+
+    return new Response(resp.body, {status, statusText, headers });
+  };
+
 
   async defaultFetch(request: RequestInfo | URL, opts: RequestInit = {}) {
     if (
