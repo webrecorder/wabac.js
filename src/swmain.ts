@@ -36,7 +36,7 @@ export class SWCollections extends WorkerLoader {
   constructor(
     prefixes: Prefixes,
     root: string | null = null,
-    defaultConfig: ExtraConfig = {}
+    defaultConfig: ExtraConfig = {},
   ) {
     super(self);
     this.prefixes = prefixes;
@@ -273,7 +273,7 @@ export class SWReplay {
     }
 
     if (defaultConfig.injectScripts) {
-      defaultConfig.injectScripts.forEach(x => proxyAllowPaths.add(x));
+      defaultConfig.injectScripts.forEach((x) => proxyAllowPaths.add(x));
     }
 
     if (sp.has("adblockUrl")) {
@@ -402,7 +402,12 @@ export class SWReplay {
         const { content, type } = this.staticData.get(staticPath);
         // [TODO]
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        return new Response(content, { headers: { "Content-Type": type, "Content-Security-Policy": DEFAULT_CSP } });
+        return new Response(content, {
+          headers: {
+            "Content-Type": type,
+            "Content-Security-Policy": DEFAULT_CSP,
+          },
+        });
       }
     }
 
@@ -438,11 +443,10 @@ export class SWReplay {
     const urlObj = new URL(url, self.location.href);
     url = urlObj.href;
 
-    const {method} = request;
+    const { method } = request;
     // Because of CORS restrictions, the request cannot be a ReadableStream, so instead we get it as a string.
     // If in the future we need to support streaming, we can revisit this — there may be a way to get it to work.
     const body = method !== "GET" ? await request.arrayBuffer() : null;
-
 
     const requestInit: RequestInit = {
       cache: "no-store",
@@ -457,9 +461,8 @@ export class SWReplay {
     const headers = new Headers(resp.headers);
     headers.set("Content-Security-Policy", DEFAULT_CSP);
 
-    return new Response(resp.body, {status, statusText, headers });
-  };
-
+    return new Response(resp.body, { status, statusText, headers });
+  }
 
   async defaultFetch(request: RequestInfo | URL, opts: RequestInit = {}) {
     if (
