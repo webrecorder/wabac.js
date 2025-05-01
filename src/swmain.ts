@@ -199,9 +199,7 @@ export class SWReplay {
   distPrefix: string;
   proxyPrefix: string;
 
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  staticData: Map<string, any>;
+  staticData: Map<string, { type: string; content: string }>;
 
   collections: SWCollections;
 
@@ -399,15 +397,12 @@ export class SWReplay {
 
     for (const staticPath of this.staticData.keys()) {
       if (staticPath === urlOnly) {
-        const { content, type } = this.staticData.get(staticPath);
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        return new Response(content, {
-          headers: {
-            "Content-Type": type,
-            "Content-Security-Policy": DEFAULT_CSP,
-          },
-        });
+        const { content, type } = this.staticData.get(staticPath)!;
+        const headers = new Headers({ "Content-Type": type });
+        if (this.isFromReplay(request)) {
+          headers.set("Content-Security-Policy", DEFAULT_CSP);
+        }
+        return new Response(content, { headers });
       }
     }
 
@@ -427,9 +422,9 @@ export class SWReplay {
       (parsedUrl.protocol == "http:" || parsedUrl.protocol == "https:") &&
       parsedUrl.pathname.indexOf("/", 1) < 0
     ) {
-      return this.handleOffline(request);
+      return this.wrapCSPForFrame(await this.handleOffline(request), request);
     } else {
-      return this.defaultFetch(request);
+      return this.wrapCSPForFrame(await this.defaultFetch(request), request);
     }
   }
 
@@ -457,6 +452,15 @@ export class SWReplay {
 
     const resp = await this.defaultFetch(url, requestInit);
 
+    return this.wrapCSPForFrame(resp, request);
+  }
+
+  async wrapCSPForFrame(resp: Response, request: Request) {
+    // if target is an iframe, ensure CSP headers are added
+    // otherwise, skip as may be loading SW itself
+    if (!request.destination.endsWith("frame")) {
+      return resp;
+    }
     const { status, statusText } = resp;
     const headers = new Headers(resp.headers);
     headers.set("Content-Security-Policy", DEFAULT_CSP);
