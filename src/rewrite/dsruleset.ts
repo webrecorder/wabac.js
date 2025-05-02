@@ -54,7 +54,7 @@ export const DEFAULT_RULES: Rules[] = [
       //[/"dash_/, ruleReplace('"__nodash__')],
       //[/_dash"/, ruleReplace('__nodash__"')],
       //[/_dash_/, ruleReplace("__nodash__")],
-      [/"playlist/, ruleReplace('"__playlist__')],
+      [/"playlist/, ruleReplacePad('"__playlist__')],
       [
         /"debugNoBatching\s?":(?:false|0)/,
         ruleReplacePad('"debugNoBatching":1'),
@@ -63,16 +63,13 @@ export const DEFAULT_RULES: Rules[] = [
         /"bulkRouteFetchBatchSize\s?":(?:[^{},]+)/,
         ruleReplacePad('"bulkRouteFetchBatchSize":1'),
       ],
-      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplace('"maxBatchSize":1')],
+      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplacePad('"maxBatchSize":1')],
     ],
   },
   {
     contains: ["instagram.com/"],
     rxRules: [
-      [
-        /"is_dash_eligible":(?:true|1)/,
-        ruleReplacePad('"is_dash_eligible":0'),
-      ],
+      [/"is_dash_eligible":(?:true|1)/, ruleReplacePad('"is_dash_eligible":0')],
       [
         /"debugNoBatching\s?":(?:false|0)/,
         ruleReplacePad('"debugNoBatching":1'),
@@ -197,8 +194,12 @@ function ruleReplace(str: string) {
 // ===========================================================================
 function ruleReplacePad(replacement: string) {
   return (matched: string) => {
-    return replacement + " ".repeat(Math.min(0, replacement.length - matched.length));
-  }
+    const diff = Math.max(0, matched.length - replacement.length);
+    if (diff) {
+      console.log("replace", matched, replacement);
+    }
+    return replacement + " ".repeat(diff);
+  };
 }
 
 // ===========================================================================
