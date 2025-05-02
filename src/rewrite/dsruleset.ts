@@ -57,11 +57,11 @@ export const DEFAULT_RULES: Rules[] = [
       [/"playlist/, ruleReplace('"__playlist__')],
       [
         /"debugNoBatching\s?":(?:false|0)/,
-        ruleReplace('"debugNoBatching":true'),
+        ruleReplacePad('"debugNoBatching":1'),
       ],
       [
         /"bulkRouteFetchBatchSize\s?":(?:[^{},]+)/,
-        ruleReplace('"bulkRouteFetchBatchSize":1'),
+        ruleReplacePad('"bulkRouteFetchBatchSize":1'),
       ],
       [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplace('"maxBatchSize":1')],
     ],
@@ -71,17 +71,17 @@ export const DEFAULT_RULES: Rules[] = [
     rxRules: [
       [
         /"is_dash_eligible":(?:true|1)/,
-        ruleReplace('"is_dash_eligible":false'),
+        ruleReplacePad('"is_dash_eligible":0'),
       ],
       [
         /"debugNoBatching\s?":(?:false|0)/,
-        ruleReplace('"debugNoBatching":true'),
+        ruleReplacePad('"debugNoBatching":1'),
       ],
       [
         /"bulkRouteFetchBatchSize\s?":(?:[^{},]+)/,
-        ruleReplace('"bulkRouteFetchBatchSize":1'),
+        ruleReplacePad('"bulkRouteFetchBatchSize":1'),
       ],
-      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplace('"maxBatchSize":1')],
+      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplacePad('"maxBatchSize":1')],
     ],
   },
 
@@ -192,6 +192,13 @@ export function ruleRewriteFBDash(text: string, opts: Record<string, any>) {
 // ===========================================================================
 function ruleReplace(str: string) {
   return (x: string) => str.replace("{0}", x);
+}
+
+// ===========================================================================
+function ruleReplacePad(replacement: string) {
+  return (matched: string) => {
+    return replacement + " ".repeat(Math.min(0, replacement.length - matched.length));
+  }
 }
 
 // ===========================================================================
