@@ -1,7 +1,7 @@
 import { Collection, type Prefixes } from "./collection";
 import { WorkerLoader } from "./loaders";
 
-import { isAjaxRequest } from "./utils";
+import { getCSP, isAjaxRequest, proxyAllowPaths, updateCSP } from "./utils";
 import { StatsTracker } from "./statstracker";
 
 import { API } from "./api";
@@ -15,8 +15,7 @@ import {
   resolveFullUrlFromReferrer,
   type ArchiveRequestInitOpts,
 } from "./request";
-import { type CollMetadata } from "./types";
-import { staticPathProxy } from "./utils/staticPathProxy";
+import { type ExtraConfig, type CollMetadata } from "./types";
 import { notFound } from "./notfound";
 
 const CACHE_PREFIX = "wabac-";
@@ -31,14 +30,13 @@ export class SWCollections extends WorkerLoader {
   inited: Promise<boolean> | null;
 
   override root: string | null;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  defaultConfig: Record<string, any>;
+
+  defaultConfig: ExtraConfig;
 
   constructor(
     prefixes: Prefixes,
     root: string | null = null,
-    defaultConfig = {},
+    defaultConfig: ExtraConfig = {},
   ) {
     super(self);
     this.prefixes = prefixes;
@@ -189,13 +187,7 @@ type SWReplayInitOpts = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   staticData?: Map<string, any> | null;
   ApiClass?: typeof API;
-  // [TODO]
-  defaultConfig?: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
-    injectScripts?: string[];
-    adblockUrl?: string | null;
-  };
+  defaultConfig?: ExtraConfig;
   CollectionsClass?: typeof SWCollections;
 };
 
@@ -207,9 +199,7 @@ export class SWReplay {
   distPrefix: string;
   proxyPrefix: string;
 
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  staticData: Map<string, any>;
+  staticData: Map<string, { type: string; content: string }>;
 
   collections: SWCollections;
 
@@ -222,8 +212,6 @@ export class SWReplay {
   topFramePassthrough = false;
 
   stats: StatsTracker | null;
-
-  staticPathProxy: (url: string, request: Request) => Promise<Response>;
 
   constructor({
     staticData = null,
@@ -253,6 +241,8 @@ export class SWReplay {
       this.apiPrefix = this.replayPrefix + "api/";
     }
 
+    updateCSP(this.replayPrefix);
+
     this.distPrefix = this.prefix + "dist/";
 
     this.staticData = staticData || new Map();
@@ -275,8 +265,6 @@ export class SWReplay {
       this.staticData.set(this.prefix + "index.html", indexData);
     }
 
-    this.staticPathProxy = staticPathProxy(this.proxyPrefix, this.defaultFetch);
-
     if (sp.has("injectScripts")) {
       const injectScripts = sp.get("injectScripts")!.split(",");
       defaultConfig.injectScripts = defaultConfig.injectScripts
@@ -285,13 +273,11 @@ export class SWReplay {
     }
 
     if (defaultConfig.injectScripts) {
-      defaultConfig.injectScripts = defaultConfig.injectScripts.map(
-        (url: string) => this.proxyPrefix + url,
-      );
+      defaultConfig.injectScripts.forEach((x) => proxyAllowPaths.add(x));
     }
 
     if (sp.has("adblockUrl")) {
-      defaultConfig.adblockUrl = sp.get("adblockUrl");
+      defaultConfig.adblockUrl = sp.get("adblockUrl") || "";
     }
 
     const prefixes: Prefixes = {
@@ -413,10 +399,12 @@ export class SWReplay {
 
     for (const staticPath of this.staticData.keys()) {
       if (staticPath === urlOnly) {
-        const { content, type } = this.staticData.get(staticPath);
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        return new Response(content, { headers: { "Content-Type": type } });
+        const { content, type } = this.staticData.get(staticPath)!;
+        const headers = new Headers({ "Content-Type": type });
+        if (this.isFromReplay(request)) {
+          headers.set("Content-Security-Policy", getCSP());
+        }
+        return new Response(content, { headers });
       }
     }
 
@@ -436,10 +424,50 @@ export class SWReplay {
       (parsedUrl.protocol == "http:" || parsedUrl.protocol == "https:") &&
       parsedUrl.pathname.indexOf("/", 1) < 0
     ) {
-      return this.handleOffline(request);
+      return this.wrapCSPForFrame(await this.handleOffline(request), request);
     } else {
-      return this.defaultFetch(request);
+      return this.wrapCSPForFrame(await this.defaultFetch(request), request);
     }
+  }
+
+  async staticPathProxy(url: string, request: Request) {
+    url = url.slice(this.proxyPrefix.length);
+
+    if (!proxyAllowPaths.has(url)) {
+      return notFound(request);
+    }
+
+    const urlObj = new URL(url, self.location.href);
+    url = urlObj.href;
+
+    const { method } = request;
+    // Because of CORS restrictions, the request cannot be a ReadableStream, so instead we get it as a string.
+    // If in the future we need to support streaming, we can revisit this — there may be a way to get it to work.
+    const body = method !== "GET" ? await request.arrayBuffer() : null;
+
+    const requestInit: RequestInit = {
+      cache: "no-store",
+      headers: request.headers,
+      method,
+      ...(method !== "GET" && { body }),
+    };
+
+    const resp = await this.defaultFetch(url, requestInit);
+
+    return this.wrapCSPForFrame(resp, request);
+  }
+
+  async wrapCSPForFrame(resp: Response, request: Request) {
+    // if target is an iframe, ensure CSP headers are added
+    // otherwise, skip as may be loading SW itself
+    if (!request.destination.endsWith("frame")) {
+      return resp;
+    }
+    const { status, statusText } = resp;
+    const headers = new Headers(resp.headers);
+    headers.set("Content-Security-Policy", getCSP());
+
+    return new Response(resp.body, { status, statusText, headers });
   }
 
   async defaultFetch(request: RequestInfo | URL, opts: RequestInit = {}) {
