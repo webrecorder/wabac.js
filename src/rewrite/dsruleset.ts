@@ -192,9 +192,6 @@ function ruleReplace(str: string) {
 function ruleReplacePad(replacement: string) {
   return (matched: string) => {
     const diff = Math.max(0, matched.length - replacement.length);
-    if (diff) {
-      console.log("replace", matched, replacement);
-    }
     return replacement + " ".repeat(diff);
   };
 }
