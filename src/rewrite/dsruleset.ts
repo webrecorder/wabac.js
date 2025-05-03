@@ -51,9 +51,6 @@ export const DEFAULT_RULES: Rules[] = [
     contains: ["facebook.com/", "fbsbx.com/"],
     rxRules: [
       [/"dash_manifests.*?,"failure_reason":null}]/, ruleRewriteFBDash],
-      //[/"dash_/, ruleReplace('"__nodash__')],
-      //[/_dash"/, ruleReplace('__nodash__"')],
-      //[/_dash_/, ruleReplace("__nodash__")],
       [/"playlist/, ruleReplacePad('"__playlist__')],
       [
         /"debugNoBatching\s?":(?:false|0)/,
