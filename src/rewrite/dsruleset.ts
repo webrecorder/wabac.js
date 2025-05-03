@@ -51,37 +51,31 @@ export const DEFAULT_RULES: Rules[] = [
     contains: ["facebook.com/", "fbsbx.com/"],
     rxRules: [
       [/"dash_manifests.*?,"failure_reason":null}]/, ruleRewriteFBDash],
-      //[/"dash_/, ruleReplace('"__nodash__')],
-      //[/_dash"/, ruleReplace('__nodash__"')],
-      //[/_dash_/, ruleReplace("__nodash__")],
-      [/"playlist/, ruleReplace('"__playlist__')],
+      [/"playlist/, ruleReplacePad('"__playlist__')],
       [
         /"debugNoBatching\s?":(?:false|0)/,
-        ruleReplace('"debugNoBatching":true'),
+        ruleReplacePad('"debugNoBatching":1'),
       ],
       [
         /"bulkRouteFetchBatchSize\s?":(?:[^{},]+)/,
-        ruleReplace('"bulkRouteFetchBatchSize":1'),
+        ruleReplacePad('"bulkRouteFetchBatchSize":1'),
       ],
-      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplace('"maxBatchSize":1')],
+      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplacePad('"maxBatchSize":1')],
     ],
   },
   {
     contains: ["instagram.com/"],
     rxRules: [
-      [
-        /"is_dash_eligible":(?:true|1)/,
-        ruleReplace('"is_dash_eligible":false'),
-      ],
+      [/"is_dash_eligible":(?:true|1)/, ruleReplacePad('"is_dash_eligible":0')],
       [
         /"debugNoBatching\s?":(?:false|0)/,
-        ruleReplace('"debugNoBatching":true'),
+        ruleReplacePad('"debugNoBatching":1'),
       ],
       [
         /"bulkRouteFetchBatchSize\s?":(?:[^{},]+)/,
-        ruleReplace('"bulkRouteFetchBatchSize":1'),
+        ruleReplacePad('"bulkRouteFetchBatchSize":1'),
       ],
-      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplace('"maxBatchSize":1')],
+      [/"maxBatchSize\s?":(?:[^{},]+)/, ruleReplacePad('"maxBatchSize":1')],
     ],
   },
 
@@ -192,6 +186,14 @@ export function ruleRewriteFBDash(text: string, opts: Record<string, any>) {
 // ===========================================================================
 function ruleReplace(str: string) {
   return (x: string) => str.replace("{0}", x);
+}
+
+// ===========================================================================
+function ruleReplacePad(replacement: string) {
+  return (matched: string) => {
+    const diff = Math.max(0, matched.length - replacement.length);
+    return replacement + " ".repeat(diff);
+  };
 }
 
 // ===========================================================================
