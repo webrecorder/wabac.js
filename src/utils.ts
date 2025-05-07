@@ -322,4 +322,15 @@ export async function sleep(millis: number) {
   return new Promise((resolve) => setTimeout(resolve, millis));
 }
 
-export const proxyAllowPaths = new Set();
+export const proxyAllowPaths = new Set<string>();
+
+export function addProxyAllowPaths(paths: string[]) {
+  for (const path of paths) {
+    try {
+      const absPath = new URL(path, self.location.href);
+      proxyAllowPaths.add(absPath.href);
+    } catch (_) {
+      // ignore
+    }
+  }
+}

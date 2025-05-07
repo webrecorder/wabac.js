@@ -112,6 +112,12 @@ test(
 );
 
 test(
+  rewriteHtml,
+  '<table background="\\path\\img.gif">',
+  '<table background="/prefix/20201226101010mp_/https://example.com/path/img.gif">',
+);
+
+test(
   "A tag with target",
   rewriteHtml,
   '<HTML><A Href="page.html" target="_blank">Text</a></hTmL>',
