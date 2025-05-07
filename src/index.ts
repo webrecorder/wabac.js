@@ -18,6 +18,7 @@ export {
   tsToDate,
   randomId,
   getCollData,
+  addProxyAllowPaths
 } from "./utils";
 
 export { createLoader } from "./blockloaders";
