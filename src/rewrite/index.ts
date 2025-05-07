@@ -444,6 +444,9 @@ export class Rewriter {
     const origUrl = url;
 
     url = url.trim();
+    if (url.startsWith("\\")) {
+      url = url.replace(/\\(?![//])/g, "/");
+    }
 
     if (
       !url ||

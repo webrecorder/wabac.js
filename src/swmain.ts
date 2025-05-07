@@ -1,7 +1,13 @@
 import { Collection, type Prefixes } from "./collection";
 import { WorkerLoader } from "./loaders";
 
-import { getCSP, isAjaxRequest, proxyAllowPaths, updateCSP } from "./utils";
+import {
+  addProxyAllowPaths,
+  getCSP,
+  isAjaxRequest,
+  proxyAllowPaths,
+  updateCSP,
+} from "./utils";
 import { StatsTracker } from "./statstracker";
 
 import { API } from "./api";
@@ -273,7 +279,11 @@ export class SWReplay {
     }
 
     if (defaultConfig.injectScripts) {
-      defaultConfig.injectScripts.forEach((x) => proxyAllowPaths.add(x));
+      addProxyAllowPaths(defaultConfig.injectScripts);
+    }
+
+    if (sp.has("allowProxyPaths")) {
+      addProxyAllowPaths(sp.get("allowProxyPaths")!.split(","));
     }
 
     if (sp.has("adblockUrl")) {
@@ -437,12 +447,21 @@ export class SWReplay {
   async staticPathProxy(url: string, request: Request) {
     url = url.slice(this.proxyPrefix.length);
 
-    if (!proxyAllowPaths.has(url)) {
-      return notFound(request);
-    }
-
     const urlObj = new URL(url, self.location.href);
     url = urlObj.href;
+
+    let allowed = false;
+
+    for (const allow of proxyAllowPaths) {
+      if (url.startsWith(allow)) {
+        allowed = true;
+        break;
+      }
+    }
+
+    if (!allowed) {
+      return notFound(request);
+    }
 
     const { method } = request;
     // Because of CORS restrictions, the request cannot be a ReadableStream, so instead we get it as a string.
