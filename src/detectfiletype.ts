@@ -46,12 +46,14 @@ export function getKnownFileExtension(name: string) {
     ".har",
     ".json",
     ".wacz",
-    ".zip",
   ];
   for (const ext of fileExtensions) {
     if (name.endsWith(ext)) {
       return ext;
     }
+  }
+  if (name.endsWith(".wacz.zip")) {
+    return ".wacz";
   }
   return undefined;
 }
