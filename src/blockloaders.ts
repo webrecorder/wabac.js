@@ -1,4 +1,10 @@
-import { AuthNeededError, AccessDeniedError, RangeError, sleep } from "./utils";
+import {
+  AuthNeededError,
+  AccessDeniedError,
+  RangeError,
+  sleep,
+  MAX_FULL_DOWNLOAD_SIZE,
+} from "./utils";
 
 import { initAutoIPFS } from "./ipfs";
 
@@ -113,6 +119,7 @@ export abstract class BaseLoader {
   ): Promise<Uint8Array | ReadableStream<Uint8Array>> {
     if (!this.canDoNegativeRange) {
       const totalLength = await this.getLength();
+      length = Math.min(length, totalLength);
       return await this.getRange(
         totalLength - length,
         length,
@@ -123,6 +130,10 @@ export abstract class BaseLoader {
       return await this.getRange(0, -length, streaming, signal);
     }
   }
+
+  getFullBuffer(): Uint8Array | null {
+    return null;
+  }
 }
 
 // ===========================================================================
@@ -132,6 +143,7 @@ class FetchRangeLoader extends BaseLoader {
   isValid = false;
   ipfsAPI = null;
   loadingIPFS = null;
+  arrayBuffer: ArrayBufferLoader | null = null;
 
   constructor({
     url,
@@ -226,6 +238,23 @@ class FetchRangeLoader extends BaseLoader {
 
     this.length = Number(this.length || 0);
 
+    // even if no range requests, support buffering small enough files
+    if (
+      !this.canLoadOnDemand &&
+      this.isValid &&
+      this.length > 0 &&
+      this.length <= MAX_FULL_DOWNLOAD_SIZE
+    ) {
+      const resp = await fetch(this.url);
+      if (resp.ok) {
+        this.arrayBuffer = new ArrayBufferLoader(
+          new Uint8Array(await resp.arrayBuffer()),
+        );
+        this.canLoadOnDemand = true;
+        this.canDoNegativeRange = false;
+      }
+    }
+
     return { response: response!, abort };
   }
 
@@ -245,6 +274,9 @@ class FetchRangeLoader extends BaseLoader {
     streaming = false,
     signal: AbortSignal | null = null,
   ): Promise<Uint8Array | ReadableStream<Uint8Array>> {
+    if (this.arrayBuffer) {
+      return await this.arrayBuffer.getRange(offset, length, streaming);
+    }
     const headers = new Headers(this.headers);
     if (length < 0) {
       headers.set("Range", `bytes=${length}`);
@@ -269,6 +301,9 @@ class FetchRangeLoader extends BaseLoader {
       if (length < 0) {
         // attempt to get full length and try non-negative range
         const totalLength = await this.getLength();
+        if (-length > totalLength) {
+          length = -totalLength;
+        }
         return await this.getRange(
           totalLength + length,
           -length,
@@ -320,6 +355,10 @@ class FetchRangeLoader extends BaseLoader {
         this.length = parseInt(rangeParts[1]);
       }
     }
+  }
+
+  override getFullBuffer(): Uint8Array | null {
+    return this.arrayBuffer?.getFullBuffer() ?? null;
   }
 }
 
@@ -539,6 +578,10 @@ class ArrayBufferLoader extends BaseLoader {
     const range = this.arrayBuffer.slice(offset, offset + length);
 
     return streaming ? getReadableStreamFromArray(range) : range;
+  }
+
+  override getFullBuffer(): Uint8Array | null {
+    return this.arrayBuffer;
   }
 }
 
