@@ -24,7 +24,7 @@ export const DEFAULT_CSP =
 let fullCSP = DEFAULT_CSP;
 
 export function updateCSP(replayPrefix: string) {
-  fullCSP += "; child-src data: about: blob: " + replayPrefix;
+  fullCSP += `; frame-src data: about: blob: ${self.location.origin}${self.location.pathname} ${replayPrefix}`;
 }
 
 export function getCSP() {
