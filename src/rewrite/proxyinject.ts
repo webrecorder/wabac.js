@@ -36,6 +36,7 @@ class ProxyWombatRewrite {
     const wbinfo = (self as any).__wbinfo as WbInfo;
 
     this.initDateOverride(wbinfo.seconds);
+    this.initAnchorElemOverride();
 
     this.proxyOrigin = wbinfo.proxyOrigin;
     this.localOrigin = wbinfo.localOrigin;
@@ -275,28 +276,66 @@ class ProxyWombatRewrite {
     );
   }
 
-  rewriteUrl(urlStr: string) {
-    if (this.proxyOrigin && urlStr.startsWith(this.proxyOrigin)) {
-      return this.localOrigin + urlStr.slice(this.proxyOrigin.length);
+  convUrl(
+    urlStr: string,
+    fromOrigin: string,
+    toOrigin: string,
+    fromTLD?: string,
+    toTLD?: string,
+    fromSep?: string,
+    toSep?: string,
+    toScheme?: string,
+    httpToHttpsNeeded = false,
+  ) {
+    if (fromOrigin && urlStr.startsWith(fromOrigin)) {
+      return toOrigin + urlStr.slice(fromOrigin.length);
     }
 
-    if (this.proxyTLD && this.localTLD && urlStr.indexOf(this.proxyTLD) > 0) {
+    if (fromTLD && toTLD && urlStr.indexOf(fromTLD) > 0) {
       const url = new URL(urlStr);
-      if (url.host.endsWith(this.proxyTLD)) {
-        const host =
-          url.host.slice(0, -this.proxyTLD.length).replace(".", "-") +
-          this.localTLD;
+      if (url.host.endsWith(fromTLD)) {
+        let host = url.host.slice(0, -fromTLD.length);
+        if (fromSep && toSep) {
+          host = host.replace(fromSep, toSep);
+        }
         const newUrl =
-          this.localScheme + "//" + host + url.href.slice(url.origin.length);
+          toScheme + "//" + host + toTLD + url.href.slice(url.origin.length);
         return newUrl;
       }
     }
 
-    if (this.httpToHttpsNeeded) {
+    if (httpToHttpsNeeded) {
       return urlStr.replace("http:", "https:");
     }
 
     return urlStr;
+  }
+
+  rewriteUrl(urlStr: string) {
+    return this.convUrl(
+      urlStr,
+      this.proxyOrigin,
+      this.localOrigin,
+      this.proxyTLD,
+      this.localTLD,
+      ".",
+      "-",
+      this.localScheme,
+      this.httpToHttpsNeeded,
+    );
+  }
+
+  unrewriteUrl(urlStr: string): string {
+    return this.convUrl(
+      urlStr,
+      this.localOrigin,
+      this.proxyOrigin,
+      this.localTLD,
+      this.proxyTLD,
+      "-",
+      ".",
+      this.proxyScheme,
+    );
   }
 
   fullRewriteUrl(url: string, mod = "if_") {
@@ -351,6 +390,54 @@ class ProxyWombatRewrite {
     }
 
     return true;
+  }
+
+  initAnchorElemOverride() {
+    const origHref = Object.getOwnPropertyDescriptor(
+      HTMLAnchorElement.prototype,
+      "href",
+    );
+    if (!origHref?.get) {
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const rw = this;
+
+    const origHrefGet = origHref.get;
+
+    const overrideProp = (
+      propName: "href" | "hostname" | "host" | "protocol" | "origin",
+    ) => {
+      const origProp = Object.getOwnPropertyDescriptor(
+        HTMLAnchorElement.prototype,
+        propName,
+      );
+      if (!origProp?.set) {
+        return;
+      }
+
+      const origPropSet = origProp.set;
+
+      Object.defineProperty(HTMLAnchorElement.prototype, propName, {
+        set(v: string) {
+          const url = new URL(rw.rewriteUrl(v));
+          return origPropSet.call(this, url[propName]);
+        },
+        get() {
+          const url = new URL(
+            rw.unrewriteUrl(origHrefGet.call(this) as string),
+          );
+          return url[propName];
+        },
+      });
+    };
+
+    overrideProp("href");
+    overrideProp("hostname");
+    overrideProp("host");
+    overrideProp("protocol");
+    overrideProp("origin");
   }
 
   initDateOverride(timestamp: string) {
