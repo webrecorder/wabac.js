@@ -779,6 +779,12 @@ Make sure this is a valid URL and you have access to this file.`,
           }
           return false;
         }
+
+        // if loader already loaded full buffer, store that
+        const fullBuffer = sourceLoader.getFullBuffer();
+        if (fullBuffer) {
+          config.extra = { arrayBuffer: fullBuffer, ...(config.extra || {}) };
+        }
       } else if (
         stream &&
         (sourceExt === ".warc" || sourceExt === ".warc.gz")
