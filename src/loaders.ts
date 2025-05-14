@@ -113,11 +113,17 @@ export class CollectionLoader {
     try {
       const allColls = await this.listAll();
 
+      const multiWACZs : MultiWACZ[] = [];
+
       // [TODO]
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      const promises = allColls.map(async (data) => this._initColl(data, true));
+      const promises = allColls.map(async (data) => this._initColl(data, multiWACZs));
 
       await Promise.all(promises);
+
+      if (multiWACZs.length) {
+        void this.deleteExpireMultiWACZs(multiWACZs);
+      }
       // [TODO]
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
@@ -177,6 +183,19 @@ export class CollectionLoader {
     await this.colldb!.delete("colls", name);
 
     return true;
+  }
+
+  async deleteExpireMultiWACZs(stores: MultiWACZ[]) {
+    for (const store of stores) {
+      try {
+        await store.checkUpdates();
+      } catch (e) {
+        if (e instanceof DeleteExpiredError) {
+          console.warn("Deleting expired/invalid coll for " + store.config.loadUrl);
+          void this.deleteColl(store.name);
+        }
+      }
+    }
   }
 
   async updateAuth(name: string, newHeaders: Record<string, string>) {
@@ -261,7 +280,7 @@ export class CollectionLoader {
 
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async _initColl(data: LoadColl, deleteInvalid = false): Promise<any> {
+  private async _initColl(data: LoadColl, storeMultiWACZ : MultiWACZ[] | null = null): Promise<any> {
     const store = await this._initStore(data.type || "", data.config);
 
     const name = data.name;
@@ -271,13 +290,8 @@ export class CollectionLoader {
       this.root = name || null;
     }
 
-    if (deleteInvalid && store instanceof MultiWACZ) {
-      store.checkUpdates().catch((e) => {
-        if (e instanceof DeleteExpiredError) {
-          console.warn("Deleting expired/invalid coll for " + config.loadUrl);
-          void this.deleteColl(name);
-        }
-      });
+    if (storeMultiWACZ && store instanceof MultiWACZ) {
+      storeMultiWACZ.push(store);
     }
 
     return this._createCollection({ name, store, config });
