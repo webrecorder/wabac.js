@@ -28,6 +28,7 @@ import {
   MAX_FULL_DOWNLOAD_SIZE,
   randomId,
   AuthNeededError,
+  DeleteExpiredError,
 } from "./utils";
 import { detectFileType, getKnownFileExtension } from "./detectfiletype";
 import {
@@ -261,7 +262,15 @@ export class CollectionLoader {
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async _initColl(data: LoadColl): Promise<any> {
-    const store = await this._initStore(data.type || "", data.config);
+    let store = null;
+    try {
+     store = await this._initStore(data.type || "", data.config);
+    } catch (e) {
+      if (e instanceof DeleteExpiredError) {
+        void this.deleteColl(data.name).finally(() => console.log("Delete expired coll: " + data.name));
+        return null;
+      }
+    }
 
     const name = data.name;
     const config = data.config;

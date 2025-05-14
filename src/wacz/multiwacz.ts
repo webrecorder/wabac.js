@@ -10,6 +10,8 @@ import {
   handleAuthNeeded,
   tsToDate,
   getTS,
+  sleep,
+  DeleteExpiredError,
 } from "../utils";
 import { type AsyncIterReader, getSurt } from "warcio";
 import { LiveProxy } from "../liveproxy";
@@ -160,6 +162,8 @@ export class MultiWACZ
     if (this.sourceLoader) {
       this.sourceLoader.headers = headers;
     }
+
+    void this.checkUpdates().catch(() => console.warn("Error updating JSON even after auth update"));
   }
 
   // @ts-expect-error [TODO @emma-sg] - TS2416 - Property '_initDB' in type 'MultiWACZ' is not assignable to the same property in base type 'RemoteSourceArchiveDB'.
@@ -1487,9 +1491,22 @@ export class MultiWACZ
   }
 
   async checkUpdates() {
-    if (this.rootSourceType === "json") {
-      await this.loadFromJSON();
+    if (this.rootSourceType !== "json") {
+      return;
     }
+
+    let count = 0;
+
+    while (count++ <= 5) {
+      try {
+        await this.loadFromJSON();
+        return;
+      } catch (_) {
+        await sleep(500);
+      }
+    }
+
+    throw new DeleteExpiredError();
   }
 
   async loadFromJSON(response: Response | null = null) {
@@ -1505,7 +1522,7 @@ export class MultiWACZ
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!response || (response.status !== 206 && response.status !== 200)) {
       console.warn("WACZ update failed from: " + this.config.loadUrl);
-      return {};
+      throw new AccessDeniedError();
     }
 
     const data = await response.json();

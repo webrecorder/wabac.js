@@ -245,7 +245,10 @@ class FetchRangeLoader extends BaseLoader {
       this.length > 0 &&
       this.length <= MAX_FULL_DOWNLOAD_SIZE
     ) {
-      const resp = await fetch(this.url);
+      const resp = await this.retryFetch(this.url, {
+        headers,
+        cache: "no-store",
+      });
       if (resp.ok) {
         this.arrayBuffer = new ArrayBufferLoader(
           new Uint8Array(await resp.arrayBuffer()),

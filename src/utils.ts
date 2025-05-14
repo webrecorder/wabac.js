@@ -318,6 +318,8 @@ export class AccessDeniedError extends RangeError {}
 
 export class Canceled {}
 
+export class DeleteExpiredError {}
+
 export async function sleep(millis: number) {
   return new Promise((resolve) => setTimeout(resolve, millis));
 }
