@@ -49,7 +49,7 @@ import {
 
 const MAX_BLOCKS = 3;
 
-const MAX_JSON_LOAD_RETRIES = 3;
+const MAX_FILE_LOAD_RETRIES = 3;
 
 const IS_SURT = /^([\w-]+,)*[\w-]+(:\d+)?,?\)\//;
 
@@ -892,12 +892,18 @@ export class MultiWACZ
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     opts: Record<string, any>,
+    numRetries = 0,
   ): LoadWACZEntry {
     try {
       return await waczfile.loadFile(filename, opts);
     } catch (e) {
-      if (await this.retryLoad(e)) {
-        return await waczfile.loadFile(filename, opts);
+      if (numRetries <= MAX_FILE_LOAD_RETRIES && (await this.retryLoad(e))) {
+        return await this.loadFileFromWACZ(
+          waczfile,
+          filename,
+          opts,
+          numRetries + 1,
+        );
       } else {
         throw e;
       }
@@ -1497,15 +1503,11 @@ export class MultiWACZ
     }
 
     const doUpdate = async () => {
-      let count = 0;
-
-      while (count++ <= MAX_JSON_LOAD_RETRIES) {
-        try {
-          await this.loadFromJSON();
-          return;
-        } catch (_) {
-          await sleep(500);
-        }
+      try {
+        await this.loadFromJSON();
+        return;
+      } catch (_) {
+        await sleep(500);
       }
 
       throw new DeleteExpiredError();
