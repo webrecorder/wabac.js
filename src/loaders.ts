@@ -29,6 +29,7 @@ import {
   randomId,
   AuthNeededError,
   DeleteExpiredError,
+  sleep,
 } from "./utils";
 import { detectFileType, getKnownFileExtension } from "./detectfiletype";
 import {
@@ -116,8 +117,8 @@ export class CollectionLoader {
       const multiWACZs: MultiWACZ[] = [];
 
       // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       const promises = allColls.map(async (data) =>
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         this._initColl(data, multiWACZs),
       );
 
@@ -199,6 +200,8 @@ export class CollectionLoader {
           void this.deleteColl(store.name);
         }
       }
+      // pause for 2 seconds to avoid moving too quickly
+      await sleep(2000);
     }
   }
 
@@ -282,11 +285,10 @@ export class CollectionLoader {
     return coll;
   }
 
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async _initColl(
     data: LoadColl,
     storeMultiWACZ: MultiWACZ[] | null = null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any> {
     const store = await this._initStore(data.type || "", data.config);
 
