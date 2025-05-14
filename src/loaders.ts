@@ -66,6 +66,11 @@ export type CollDB = {
     value: { name: string; type: string; config: CollConfig };
     indexes: { type: string };
   };
+
+  settings: {
+    key: string;
+    value: number;
+  };
 };
 
 // ===========================================================================
@@ -82,11 +87,15 @@ export class CollectionLoader {
   }
 
   async _initDB() {
-    this.colldb = await openDB("collDB", 1, {
-      upgrade: (db /*, oldV, newV, tx*/) => {
-        const collstore = db.createObjectStore("colls", { keyPath: "name" });
+    this.colldb = await openDB("collDB", 2, {
+      upgrade: (db, oldV /* newV, tx*/) => {
+        if (oldV < 1) {
+          const collstore = db.createObjectStore("colls", { keyPath: "name" });
 
-        collstore.createIndex("type", "type");
+          collstore.createIndex("type", "type");
+        }
+
+        db.createObjectStore("settings");
       },
     });
   }
@@ -189,6 +198,14 @@ export class CollectionLoader {
   }
 
   async deleteExpireMultiWACZs(stores: MultiWACZ[]) {
+    const lastCleanupRun = await this.colldb?.get("settings", "lastCleanupRun");
+    if (lastCleanupRun) {
+      if (Date.now() - lastCleanupRun < 24 * 60 * 60 * 1000) {
+        console.log("Skipping cleanup run, ran recently");
+        return;
+      }
+    }
+
     for (const store of stores) {
       try {
         await store.checkUpdates();
@@ -203,6 +220,8 @@ export class CollectionLoader {
       // pause for 2 seconds to avoid moving too quickly
       await sleep(2000);
     }
+
+    await this.colldb!.put("settings", Date.now(), "lastCleanupRun");
   }
 
   async updateAuth(name: string, newHeaders: Record<string, string>) {
