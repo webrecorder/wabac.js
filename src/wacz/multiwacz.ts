@@ -42,6 +42,8 @@ import { type ArchiveResponse } from "../response";
 import { type ArchiveRequest } from "../request";
 import { type LoadWACZEntry } from "./ziprangereader";
 import {
+  type WACZPageEntry,
+  type MultiWACZJsonSpec,
   type PageEntry,
   type RemoteResourceEntry,
   type WACZCollConfig,
@@ -61,11 +63,6 @@ export type IDXLine = {
   length: number;
   digest?: string;
   loaded: boolean;
-};
-
-export type PreloadResources = {
-  name: string;
-  crawlId: string;
 };
 
 interface MDBType extends ADBType {
@@ -138,6 +135,20 @@ export class MultiWACZ
 
     if (config.extraConfig) {
       this.initConfig(config.extraConfig);
+    }
+
+    if (config.metadata) {
+      this.pagesQueryUrl = config.metadata.pagesQueryUrl || "";
+
+      if (config.metadata.preloadResources?.length) {
+        for (const { name } of config.metadata.preloadResources) {
+          this.preloadResources.push(name);
+        }
+      }
+
+      if (typeof config.metadata.totalPages === "number") {
+        this.totalPages = config.metadata.totalPages;
+      }
     }
   }
 
@@ -973,20 +984,7 @@ export class MultiWACZ
     }
   }
 
-  async loadWACZFiles(
-    // [TODO]
-
-    json: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      resources: any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      initialPages: any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      preloadResources: any;
-      totalPages: number;
-    },
-    parent: WACZLoadSource = this,
-  ) {
+  async loadWACZFiles(json: MultiWACZJsonSpec, parent: WACZLoadSource = this) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const promises: Promise<any>[] = [];
 
@@ -1003,22 +1001,18 @@ export class MultiWACZ
       await waczfile.save(this.db, true);
     };
 
-    const files = json.resources.map(
-      (res: { path: string; name: string; hash: string; crawlId?: string }) => {
-        const path = parent.getLoadPath(res.path);
-        const name = parent.getName(res.name);
-        const hash = res.hash;
-        const crawlId = res.crawlId;
-        return { name, hash, path, crawlId };
-      },
-    );
+    const files = json.resources.map((res) => {
+      const path = parent.getLoadPath(res.path);
+      const name = parent.getName(res.name);
+      const hash = res.hash;
+      const crawlId = res.crawlId;
+      return { name, hash, path, crawlId };
+    });
 
     for (const { name, hash, path, crawlId } of files) {
       if (!this.waczfiles[name]) {
         promises.push(this.addNewWACZ({ name, hash, path, parent, crawlId }));
       } else if (this.waczfiles[name].path !== path) {
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         promises.push(update(name, path));
       }
     }
@@ -1027,25 +1021,22 @@ export class MultiWACZ
       await Promise.allSettled(promises);
     }
 
-    if (json.preloadResources) {
+    if (json.preloadResources?.length) {
       for (const { name } of json.preloadResources) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         this.preloadResources.push(name);
       }
     }
 
-    if (json.initialPages) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    if (json.initialPages?.length) {
       await this.addInitialPages(json.initialPages);
     }
 
-    if (!isNaN(json.totalPages)) {
+    if (typeof json.totalPages === "number") {
       this.totalPages = json.totalPages;
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async addInitialPages(pagesImport: Record<string, any>[]) {
+  async addInitialPages(pagesImport: WACZPageEntry[]) {
     const pages: PageEntry[] = [];
     for (const {
       id,
@@ -1077,12 +1068,9 @@ export class MultiWACZ
       });
       if (isSeed) {
         const set: Set<string> =
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          this.seedPageWACZs.get(crawl_id) || new Set<string>();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          this.seedPageWACZs.get(crawl_id || "") || new Set<string>();
         set.add(filename);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        this.seedPageWACZs.set(crawl_id, set);
+        this.seedPageWACZs.set(crawl_id || "", set);
       }
     }
 
@@ -1540,7 +1528,7 @@ export class MultiWACZ
       throw new AccessDeniedError();
     }
 
-    const data = await response.json();
+    const data: MultiWACZJsonSpec = await response.json();
 
     if (data.pagesQueryUrl) {
       this.pagesQueryUrl = data.pagesQueryUrl;
@@ -1549,15 +1537,12 @@ export class MultiWACZ
     switch (data.profile) {
       case "data-package":
       case "wacz-package":
-      //eslint: disable=no-fallthrough
+      //fallthrough
+
       default:
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         await this.loadWACZFiles(data);
     }
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return data;
   }
 

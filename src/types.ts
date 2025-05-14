@@ -188,14 +188,43 @@ export type CollConfig = {
   onDemand?: boolean;
 };
 
+export type PreloadResources = {
+  name: string;
+  crawlId: string;
+};
+
+export type WACZPageEntry = {
+  id: string;
+  url: string;
+  title?: string;
+  ts: number;
+  mime: string;
+  status: number;
+  depth: number;
+  favIconUrl?: string;
+  filename: string;
+  isSeed: boolean;
+  crawl_id?: string;
+};
+
+export type MultiWACZJsonSpec = {
+  resources: { name: string; path: string; hash: string; crawlId?: string }[];
+  profile: string;
+  initialPages?: WACZPageEntry[];
+  preloadResources?: PreloadResources[];
+  totalPages?: number;
+  pagesQueryUrl?: string;
+};
+
 export type WACZCollConfig = CollConfig & {
   dbname: string;
   noCache?: boolean;
   decode?: unknown;
   loadUrl: string;
-  metadata?: CollMetadata & {
-    textIndex?: string;
-  };
+  metadata?: CollMetadata &
+    Partial<MultiWACZJsonSpec> & {
+      textIndex?: string;
+    };
   extraConfig?: ExtraConfig & {
     decodeResponses?: unknown;
     hostProxy?: boolean;
