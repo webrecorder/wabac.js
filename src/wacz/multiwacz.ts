@@ -12,6 +12,7 @@ import {
   getTS,
   sleep,
   DeleteExpiredError,
+  RangeError,
 } from "../utils";
 import { type AsyncIterReader, getSurt } from "warcio";
 import { LiveProxy } from "../liveproxy";
@@ -48,7 +49,7 @@ import {
 
 const MAX_BLOCKS = 3;
 
-const MAX_JSON_LOAD_RETRIES = 5;
+const MAX_JSON_LOAD_RETRIES = 3;
 
 const IS_SURT = /^([\w-]+,)*[\w-]+(:\d+)?,?\)\//;
 
@@ -1286,7 +1287,7 @@ export class MultiWACZ
       return false;
     }
 
-    if (e instanceof AccessDeniedError) {
+    if (e instanceof AccessDeniedError || e instanceof RangeError) {
       try {
         if (!this.updating) {
           this.updating = this.checkUpdates();

@@ -295,8 +295,7 @@ class FetchRangeLoader extends BaseLoader {
 
     try {
       resp = await this.retryFetch(this.url, options);
-    } catch (e) {
-      console.log(e);
+    } catch (_) {
       throw new RangeError(this.url);
     }
 
