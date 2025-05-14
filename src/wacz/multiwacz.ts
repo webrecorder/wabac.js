@@ -92,9 +92,7 @@ export class MultiWACZ
   waczfiles: Record<string, WACZFile>;
   waczNameForHash: Record<string, string>;
   ziploadercache: Record<string, Promise<void>>;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-redundant-type-constituents
-  updating: any | null;
+  updating: Promise<void> | null;
   rootSourceType: "wacz" | "json";
   sourceLoader: BaseLoader | undefined;
   externalSource: LiveProxy | null;
@@ -166,7 +164,9 @@ export class MultiWACZ
       this.sourceLoader.headers = headers;
     }
 
-    void this.checkUpdates().catch(() => console.warn("Error updating JSON even after auth update"));
+    void this.checkUpdates().catch(() =>
+      console.warn("Error updating JSON even after auth update"),
+    );
   }
 
   // @ts-expect-error [TODO @emma-sg] - TS2416 - Property '_initDB' in type 'MultiWACZ' is not assignable to the same property in base type 'RemoteSourceArchiveDB'.
@@ -279,8 +279,6 @@ export class MultiWACZ
         value.loader = this.sourceLoader;
       }
     }
-
-    await this.checkUpdates();
   }
 
   override async close() {
@@ -1289,14 +1287,9 @@ export class MultiWACZ
 
     if (e instanceof AccessDeniedError || e instanceof RangeError) {
       try {
-        if (!this.updating) {
-          this.updating = this.checkUpdates();
-        }
-        await this.updating;
-        this.updating = null;
+        await this.checkUpdates();
         return true;
       } catch (_) {
-        this.updating = null;
         return false;
       }
     } else {
@@ -1503,18 +1496,30 @@ export class MultiWACZ
       return;
     }
 
-    let count = 0;
+    const doUpdate = async () => {
+      let count = 0;
 
-    while (count++ <= MAX_JSON_LOAD_RETRIES) {
-      try {
-        await this.loadFromJSON();
-        return;
-      } catch (_) {
-        await sleep(500);
+      while (count++ <= MAX_JSON_LOAD_RETRIES) {
+        try {
+          await this.loadFromJSON();
+          return;
+        } catch (_) {
+          await sleep(500);
+        }
       }
+
+      throw new DeleteExpiredError();
+    };
+
+    if (!this.updating) {
+      this.updating = doUpdate();
     }
 
-    throw new DeleteExpiredError();
+    try {
+      await this.updating;
+    } finally {
+      this.updating = null;
+    }
   }
 
   async loadFromJSON(response: Response | null = null) {

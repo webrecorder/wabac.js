@@ -115,7 +115,7 @@ export class CollectionLoader {
 
       // [TODO]
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      const promises = allColls.map(async (data) => this._initColl(data));
+      const promises = allColls.map(async (data) => this._initColl(data, true));
 
       await Promise.all(promises);
       // [TODO]
@@ -261,22 +261,23 @@ export class CollectionLoader {
 
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async _initColl(data: LoadColl): Promise<any> {
-    let store = null;
-    try {
-     store = await this._initStore(data.type || "", data.config);
-    } catch (e) {
-      if (e instanceof DeleteExpiredError) {
-        void this.deleteColl(data.name).finally(() => console.log("Delete expired coll: " + data.name));
-        return null;
-      }
-    }
+  private async _initColl(data: LoadColl, deleteInvalid = false): Promise<any> {
+    const store = await this._initStore(data.type || "", data.config);
 
     const name = data.name;
     const config = data.config;
 
     if (data.config.root && !this.root) {
       this.root = name || null;
+    }
+
+    if (deleteInvalid && store instanceof MultiWACZ) {
+      store.checkUpdates().catch((e) => {
+        if (e instanceof DeleteExpiredError) {
+          console.warn("Deleting expired/invalid coll for " + config.loadUrl);
+          void this.deleteColl(name);
+        }
+      });
     }
 
     return this._createCollection({ name, store, config });
