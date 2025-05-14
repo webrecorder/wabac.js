@@ -48,6 +48,8 @@ import {
 
 const MAX_BLOCKS = 3;
 
+const MAX_JSON_LOAD_RETRIES = 5;
+
 const IS_SURT = /^([\w-]+,)*[\w-]+(:\d+)?,?\)\//;
 
 export type IDXLine = {
@@ -1285,12 +1287,17 @@ export class MultiWACZ
     }
 
     if (e instanceof AccessDeniedError) {
-      if (!this.updating) {
-        this.updating = this.checkUpdates();
+      try {
+        if (!this.updating) {
+          this.updating = this.checkUpdates();
+        }
+        await this.updating;
+        this.updating = null;
+        return true;
+      } catch (_) {
+        this.updating = null;
+        return false;
       }
-      await this.updating;
-      this.updating = null;
-      return true;
     } else {
       return await handleAuthNeeded(e, this.config);
     }
@@ -1497,7 +1504,7 @@ export class MultiWACZ
 
     let count = 0;
 
-    while (count++ <= 5) {
+    while (count++ <= MAX_JSON_LOAD_RETRIES) {
       try {
         await this.loadFromJSON();
         return;
