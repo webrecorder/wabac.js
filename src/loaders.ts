@@ -207,13 +207,15 @@ export class CollectionLoader {
     }
 
     for (const store of stores) {
+      const url = store.config.loadUrl || store.config.sourceUrl;
+      if (!url.startsWith("https:") || !url.startsWith("http:")) {
+        continue;
+      }
       try {
         await store.checkUpdates();
       } catch (e) {
         if (e instanceof DeleteExpiredError) {
-          console.warn(
-            "Deleting expired/invalid coll for " + store.config.loadUrl,
-          );
+          console.warn("Deleting expired/invalid coll for " + url);
           void this.deleteColl(store.name);
         }
       }

@@ -1524,7 +1524,10 @@ export class MultiWACZ
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!response || (response.status !== 206 && response.status !== 200)) {
-      console.warn("WACZ update failed from: " + this.config.loadUrl);
+      console.warn(
+        "WACZ update failed from: " +
+          (this.config.loadUrl || this.config.sourceUrl),
+      );
       throw new AccessDeniedError();
     }
 
