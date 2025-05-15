@@ -559,7 +559,7 @@ export class Rewriter {
       const root = JSON.parse(text) as ImportMap;
 
       const imports: Record<string, string> = {};
-      const output : ImportMap = { imports };
+      const output: ImportMap = { imports };
 
       for (const [key, value] of Object.entries(root.imports || {})) {
         imports[rewriteESM(key)] = rewriteESM(value);
