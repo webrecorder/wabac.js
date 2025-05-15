@@ -546,45 +546,35 @@ export class Rewriter {
 
   // Importmap
   rewriteImportmap(text: string) {
+    type ImportMap = {
+      imports?: Record<string, string>;
+      scopes?: Record<string, Record<string, string>>;
+    };
+
+    const rewriteESM = (url: string) => {
+      return this.rewriteUrl(url).replace("mp_/", "esm_/");
+    };
+
     try {
-      const root = JSON.parse(text);
+      const root = JSON.parse(text) as ImportMap;
 
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const imports: Record<string, any> = {};
-      const output = { imports };
+      const imports: Record<string, string> = {};
+      const output : ImportMap = { imports };
 
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       for (const [key, value] of Object.entries(root.imports || {})) {
-        imports[this.rewriteUrl(key).replace("mp_/", "esm_/")] = value;
+        imports[rewriteESM(key)] = rewriteESM(value);
       }
 
       if (root.scopes) {
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const scopes: Record<string, any> = {};
-        for (const [scopeKey, scopeValue] of Object.entries(
-          // [TODO]
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          root.scopes || {},
-        )) {
-          // [TODO]
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const newScope: Record<string, any> = {};
-          for (const [key, value] of Object.entries(
-            // [TODO]
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            scopeValue as Record<string, any>,
-          )) {
-            newScope[this.rewriteUrl(key).replace("mp_/", "esm_/")] = value;
+        const scopes: Record<string, Record<string, string>> = {};
+        for (const [scopeKey, scopeValue] of Object.entries(root.scopes)) {
+          const newScope: Record<string, string> = {};
+          for (const [key, value] of Object.entries(scopeValue)) {
+            newScope[rewriteESM(key)] = rewriteESM(value);
           }
-          scopes[this.rewriteUrl(scopeKey).replace("mp_/", "esm_/")] = newScope;
+          scopes[rewriteESM(scopeKey)] = newScope;
         }
-        // @ts-expect-error [TODO] - TS4111 - Property 'scopes' comes from an index signature, so it must be accessed with ['scopes'].
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (output as Record<string, any>).scopes = scopes;
+        output.scopes = scopes;
       }
 
       return JSON.stringify(output, null, 2);
