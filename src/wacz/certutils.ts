@@ -5,11 +5,11 @@ import {
 import { base16 } from "../utils";
 
 import * as x509 from "@peculiar/x509";
-import { AsnParser } from "@peculiar/asn1-schema";
-import { ECDSASigValue } from "@peculiar/asn1-ecc";
+// import { AsnParser } from "@peculiar/asn1-schema";
+// import { ECDSASigValue } from "@peculiar/asn1-ecc";
 //import { ASN1 } from "asn1-parser";
 
-import { concatChunks } from "warcio";
+//import { concatChunks } from "warcio";
 
 const SPLIT_PEM = /-{5}(BEGIN|END) .*-{5}/gm;
 
@@ -134,25 +134,23 @@ export async function verifyWACZSignature({
   return results;
 }
 
-// [TODO]
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function parseASN1Signature(signature: Uint8Array) {
-  // extract r|s values from asn1
-  try {
-    const sig = AsnParser.parse(signature, ECDSASigValue);
+// function parseASN1Signature(signature: Uint8Array) {
+//   // extract r|s values from asn1
+//   try {
+//     const sig = AsnParser.parse(signature, ECDSASigValue);
 
-    const sigR = sig.r as Uint8Array;
-    const sigS = sig.s as Uint8Array;
+//     const sigR = sig.r as Uint8Array;
+//     const sigS = sig.s as Uint8Array;
 
-    const r = sigR[0] === 0 ? sigR.slice(1) : sigR;
-    const s = sigS[0] === 0 ? sigS.slice(1) : sigS;
-    signature = concatChunks([r, s], r.length + s.length);
-  } catch (se) {
-    console.log(se);
-  }
+//     const r = sigR[0] === 0 ? sigR.slice(1) : sigR;
+//     const s = sigS[0] === 0 ? sigS.slice(1) : sigS;
+//     signature = concatChunks([r, s], r.length + s.length);
+//   } catch (se) {
+//     console.log(se);
+//   }
 
-  return signature;
-}
+//   return signature;
+// }
 
 // function parseSignature2(signature) {
 //   // extract r|s values from asn1

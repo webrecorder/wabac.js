@@ -162,8 +162,12 @@ export class JSONResponseMultiWACZLoader implements ArchiveLoader {
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async load(db: any) {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return await db.loadFromJSON(this.response);
+    try {
+      // [TODO]
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return await db.loadFromJSON(this.response);
+    } catch (_) {
+      return {};
+    }
   }
 }

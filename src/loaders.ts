@@ -28,6 +28,8 @@ import {
   MAX_FULL_DOWNLOAD_SIZE,
   randomId,
   AuthNeededError,
+  DeleteExpiredError,
+  sleep,
 } from "./utils";
 import { detectFileType, getKnownFileExtension } from "./detectfiletype";
 import {
@@ -64,6 +66,11 @@ export type CollDB = {
     value: { name: string; type: string; config: CollConfig };
     indexes: { type: string };
   };
+
+  settings: {
+    key: string;
+    value: number;
+  };
 };
 
 // ===========================================================================
@@ -80,11 +87,15 @@ export class CollectionLoader {
   }
 
   async _initDB() {
-    this.colldb = await openDB("collDB", 1, {
-      upgrade: (db /*, oldV, newV, tx*/) => {
-        const collstore = db.createObjectStore("colls", { keyPath: "name" });
+    this.colldb = await openDB("collDB", 2, {
+      upgrade: (db, oldV /* newV, tx*/) => {
+        if (oldV < 1) {
+          const collstore = db.createObjectStore("colls", { keyPath: "name" });
 
-        collstore.createIndex("type", "type");
+          collstore.createIndex("type", "type");
+        }
+
+        db.createObjectStore("settings");
       },
     });
   }
@@ -112,11 +123,19 @@ export class CollectionLoader {
     try {
       const allColls = await this.listAll();
 
+      const multiWACZs: MultiWACZ[] = [];
+
       // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      const promises = allColls.map(async (data) => this._initColl(data));
+      const promises = allColls.map(async (data) =>
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        this._initColl(data, multiWACZs),
+      );
 
       await Promise.all(promises);
+
+      if (multiWACZs.length) {
+        void this.deleteExpireMultiWACZs(multiWACZs);
+      }
       // [TODO]
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
@@ -176,6 +195,35 @@ export class CollectionLoader {
     await this.colldb!.delete("colls", name);
 
     return true;
+  }
+
+  async deleteExpireMultiWACZs(stores: MultiWACZ[]) {
+    const lastCleanupRun = await this.colldb?.get("settings", "lastCleanupRun");
+    if (lastCleanupRun) {
+      if (Date.now() - lastCleanupRun < 24 * 60 * 60 * 1000) {
+        console.log("Skipping cleanup run, ran recently");
+        return;
+      }
+    }
+
+    for (const store of stores) {
+      const url = store.config.loadUrl || store.config.sourceUrl;
+      if (!url.startsWith("https://") && !url.startsWith("http://")) {
+        continue;
+      }
+      try {
+        await store.checkUpdates();
+      } catch (e) {
+        if (e instanceof DeleteExpiredError) {
+          console.warn("Deleting expired/invalid coll for " + url);
+          void this.deleteColl(store.name);
+        }
+      }
+      // pause for 2 seconds to avoid moving too quickly
+      await sleep(2000);
+    }
+
+    await this.colldb!.put("settings", Date.now(), "lastCleanupRun");
   }
 
   async updateAuth(name: string, newHeaders: Record<string, string>) {
@@ -258,9 +306,11 @@ export class CollectionLoader {
     return coll;
   }
 
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async _initColl(data: LoadColl): Promise<any> {
+  private async _initColl(
+    data: LoadColl,
+    storeMultiWACZ: MultiWACZ[] | null = null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<any> {
     const store = await this._initStore(data.type || "", data.config);
 
     const name = data.name;
@@ -268,6 +318,10 @@ export class CollectionLoader {
 
     if (data.config.root && !this.root) {
       this.root = name || null;
+    }
+
+    if (storeMultiWACZ && store instanceof MultiWACZ) {
+      storeMultiWACZ.push(store);
     }
 
     return this._createCollection({ name, store, config });

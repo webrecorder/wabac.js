@@ -10,6 +10,9 @@ import {
   handleAuthNeeded,
   tsToDate,
   getTS,
+  sleep,
+  DeleteExpiredError,
+  RangeError,
 } from "../utils";
 import { type AsyncIterReader, getSurt } from "warcio";
 import { LiveProxy } from "../liveproxy";
@@ -39,12 +42,16 @@ import { type ArchiveResponse } from "../response";
 import { type ArchiveRequest } from "../request";
 import { type LoadWACZEntry } from "./ziprangereader";
 import {
+  type WACZPageEntry,
+  type MultiWACZJsonSpec,
   type PageEntry,
   type RemoteResourceEntry,
   type WACZCollConfig,
 } from "../types";
 
 const MAX_BLOCKS = 3;
+
+const MAX_FILE_LOAD_RETRIES = 3;
 
 const IS_SURT = /^([\w-]+,)*[\w-]+(:\d+)?,?\)\//;
 
@@ -56,11 +63,6 @@ export type IDXLine = {
   length: number;
   digest?: string;
   loaded: boolean;
-};
-
-export type PreloadResources = {
-  name: string;
-  crawlId: string;
 };
 
 interface MDBType extends ADBType {
@@ -87,9 +89,7 @@ export class MultiWACZ
   waczfiles: Record<string, WACZFile>;
   waczNameForHash: Record<string, string>;
   ziploadercache: Record<string, Promise<void>>;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-redundant-type-constituents
-  updating: any | null;
+  updating: Promise<void> | null;
   rootSourceType: "wacz" | "json";
   sourceLoader: BaseLoader | undefined;
   externalSource: LiveProxy | null;
@@ -136,6 +136,20 @@ export class MultiWACZ
     if (config.extraConfig) {
       this.initConfig(config.extraConfig);
     }
+
+    if (config.metadata) {
+      this.pagesQueryUrl = config.metadata.pagesQueryUrl || "";
+
+      if (config.metadata.preloadResources?.length) {
+        for (const { name } of config.metadata.preloadResources) {
+          this.preloadResources.push(name);
+        }
+      }
+
+      if (typeof config.metadata.totalPages === "number") {
+        this.totalPages = config.metadata.totalPages;
+      }
+    }
   }
 
   initConfig(extraConfig: NonNullable<WACZCollConfig["extraConfig"]>) {
@@ -160,6 +174,10 @@ export class MultiWACZ
     if (this.sourceLoader) {
       this.sourceLoader.headers = headers;
     }
+
+    void this.checkUpdates().catch(() =>
+      console.warn("Error updating JSON even after auth update"),
+    );
   }
 
   // @ts-expect-error [TODO @emma-sg] - TS2416 - Property '_initDB' in type 'MultiWACZ' is not assignable to the same property in base type 'RemoteSourceArchiveDB'.
@@ -272,8 +290,6 @@ export class MultiWACZ
         value.loader = this.sourceLoader;
       }
     }
-
-    await this.checkUpdates();
   }
 
   override async close() {
@@ -887,12 +903,18 @@ export class MultiWACZ
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     opts: Record<string, any>,
+    numRetries = 0,
   ): LoadWACZEntry {
     try {
       return await waczfile.loadFile(filename, opts);
     } catch (e) {
-      if (await this.retryLoad(e)) {
-        return await waczfile.loadFile(filename, opts);
+      if (numRetries <= MAX_FILE_LOAD_RETRIES && (await this.retryLoad(e))) {
+        return await this.loadFileFromWACZ(
+          waczfile,
+          filename,
+          opts,
+          numRetries + 1,
+        );
       } else {
         throw e;
       }
@@ -962,20 +984,7 @@ export class MultiWACZ
     }
   }
 
-  async loadWACZFiles(
-    // [TODO]
-
-    json: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      resources: any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      initialPages: any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      preloadResources: any;
-      totalPages: number;
-    },
-    parent: WACZLoadSource = this,
-  ) {
+  async loadWACZFiles(json: MultiWACZJsonSpec, parent: WACZLoadSource = this) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const promises: Promise<any>[] = [];
 
@@ -992,22 +1001,18 @@ export class MultiWACZ
       await waczfile.save(this.db, true);
     };
 
-    const files = json.resources.map(
-      (res: { path: string; name: string; hash: string; crawlId?: string }) => {
-        const path = parent.getLoadPath(res.path);
-        const name = parent.getName(res.name);
-        const hash = res.hash;
-        const crawlId = res.crawlId;
-        return { name, hash, path, crawlId };
-      },
-    );
+    const files = json.resources.map((res) => {
+      const path = parent.getLoadPath(res.path);
+      const name = parent.getName(res.name);
+      const hash = res.hash;
+      const crawlId = res.crawlId;
+      return { name, hash, path, crawlId };
+    });
 
     for (const { name, hash, path, crawlId } of files) {
       if (!this.waczfiles[name]) {
         promises.push(this.addNewWACZ({ name, hash, path, parent, crawlId }));
       } else if (this.waczfiles[name].path !== path) {
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         promises.push(update(name, path));
       }
     }
@@ -1016,25 +1021,22 @@ export class MultiWACZ
       await Promise.allSettled(promises);
     }
 
-    if (json.preloadResources) {
+    if (json.preloadResources?.length) {
       for (const { name } of json.preloadResources) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         this.preloadResources.push(name);
       }
     }
 
-    if (json.initialPages) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    if (json.initialPages?.length) {
       await this.addInitialPages(json.initialPages);
     }
 
-    if (!isNaN(json.totalPages)) {
+    if (typeof json.totalPages === "number") {
       this.totalPages = json.totalPages;
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async addInitialPages(pagesImport: Record<string, any>[]) {
+  async addInitialPages(pagesImport: WACZPageEntry[]) {
     const pages: PageEntry[] = [];
     for (const {
       id,
@@ -1066,12 +1068,9 @@ export class MultiWACZ
       });
       if (isSeed) {
         const set: Set<string> =
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          this.seedPageWACZs.get(crawl_id) || new Set<string>();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          this.seedPageWACZs.get(crawl_id || "") || new Set<string>();
         set.add(filename);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        this.seedPageWACZs.set(crawl_id, set);
+        this.seedPageWACZs.set(crawl_id || "", set);
       }
     }
 
@@ -1280,13 +1279,13 @@ export class MultiWACZ
       return false;
     }
 
-    if (e instanceof AccessDeniedError) {
-      if (!this.updating) {
-        this.updating = this.checkUpdates();
+    if (e instanceof AccessDeniedError || e instanceof RangeError) {
+      try {
+        await this.checkUpdates();
+        return true;
+      } catch (_) {
+        return false;
       }
-      await this.updating;
-      this.updating = null;
-      return true;
     } else {
       return await handleAuthNeeded(e, this.config);
     }
@@ -1487,8 +1486,29 @@ export class MultiWACZ
   }
 
   async checkUpdates() {
-    if (this.rootSourceType === "json") {
-      await this.loadFromJSON();
+    if (this.rootSourceType !== "json") {
+      return;
+    }
+
+    const doUpdate = async () => {
+      try {
+        await this.loadFromJSON();
+        return;
+      } catch (_) {
+        await sleep(500);
+      }
+
+      throw new DeleteExpiredError();
+    };
+
+    if (!this.updating) {
+      this.updating = doUpdate();
+    }
+
+    try {
+      await this.updating;
+    } finally {
+      this.updating = null;
     }
   }
 
@@ -1504,11 +1524,14 @@ export class MultiWACZ
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!response || (response.status !== 206 && response.status !== 200)) {
-      console.warn("WACZ update failed from: " + this.config.loadUrl);
-      return {};
+      console.warn(
+        "WACZ update failed from: " +
+          (this.config.loadUrl || this.config.sourceUrl),
+      );
+      throw new AccessDeniedError();
     }
 
-    const data = await response.json();
+    const data: MultiWACZJsonSpec = await response.json();
 
     if (data.pagesQueryUrl) {
       this.pagesQueryUrl = data.pagesQueryUrl;
@@ -1517,15 +1540,12 @@ export class MultiWACZ
     switch (data.profile) {
       case "data-package":
       case "wacz-package":
-      //eslint: disable=no-fallthrough
+      //fallthrough
+
       default:
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         await this.loadWACZFiles(data);
     }
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return data;
   }
 
