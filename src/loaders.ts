@@ -87,7 +87,7 @@ export class CollectionLoader {
   }
 
   async _initDB() {
-    this.colldb = await openDB("collDB", 2, {
+    this.colldb = await openDB("collDB", 3, {
       upgrade: (db, oldV /* newV, tx*/) => {
         if (oldV < 1) {
           const collstore = db.createObjectStore("colls", { keyPath: "name" });
@@ -95,7 +95,11 @@ export class CollectionLoader {
           collstore.createIndex("type", "type");
         }
 
-        db.createObjectStore("settings");
+        try {
+          db.createObjectStore("settings");
+        } catch (_) {
+          // ignore if already exists
+        }
       },
     });
   }
