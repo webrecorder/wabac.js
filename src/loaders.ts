@@ -208,7 +208,7 @@ export class CollectionLoader {
 
     for (const store of stores) {
       const url = store.config.loadUrl || store.config.sourceUrl;
-      if (!url.startsWith("https:") || !url.startsWith("http:")) {
+      if (!url.startsWith("https://") && !url.startsWith("http://")) {
         continue;
       }
       try {
