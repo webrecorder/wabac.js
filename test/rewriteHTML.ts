@@ -285,6 +285,13 @@ test(
 );
 
 test(
+  "<meta> tag, no URL=",
+  rewriteHtml,
+  '<meta http-equiv="refresh" content="10;   /abc/def.html">',
+  '<meta http-equiv="refresh" content="10;   /prefix/20201226101010mp_/https://example.com/abc/def.html">',
+);
+
+test(
   "<meta> tag",
   rewriteHtml,
   '<meta http-equiv="Content-type" content="text/html; charset=utf-8" />',
