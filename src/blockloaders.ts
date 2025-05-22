@@ -106,28 +106,27 @@ export abstract class BaseLoader {
   abstract getRange(
     offset: number,
     length: number,
-    streaming: boolean,
     signal?: AbortSignal | null,
-  ): Promise<Uint8Array | ReadableStream<Uint8Array>>;
+  ): Promise<ReadableStream<Uint8Array>>;
+
+  abstract getRangeBuffer(
+    offset: number,
+    length: number,
+    signal?: AbortSignal | null,
+  ): Promise<Uint8Array>;
 
   abstract get isValid(): boolean;
 
   async getRangeFromEnd(
     length: number,
-    streaming: boolean,
     signal?: AbortSignal | null,
-  ): Promise<Uint8Array | ReadableStream<Uint8Array>> {
+  ): Promise<Uint8Array> {
     if (!this.canDoNegativeRange) {
       const totalLength = await this.getLength();
       length = Math.min(length, totalLength);
-      return await this.getRange(
-        totalLength - length,
-        length,
-        streaming,
-        signal,
-      );
+      return await this.getRangeBuffer(totalLength - length, length, signal);
     } else {
-      return await this.getRange(0, -length, streaming, signal);
+      return await this.getRangeBuffer(0, -length, signal);
     }
   }
 
@@ -271,15 +270,37 @@ class FetchRangeLoader extends BaseLoader {
     return this.length || 0;
   }
 
-  async getRange(
+  override async getRange(
     offset: number,
     length: number,
-    streaming = false,
     signal: AbortSignal | null = null,
-  ): Promise<Uint8Array | ReadableStream<Uint8Array>> {
+  ) {
     if (this.arrayBuffer) {
-      return await this.arrayBuffer.getRange(offset, length, streaming);
+      return await this.arrayBuffer.getRange(offset, length);
     }
+
+    const resp = await this.getRangeResponse(offset, length, signal);
+    return resp.body || getReadableStreamFromArray(new Uint8Array());
+  }
+
+  override async getRangeBuffer(
+    offset: number,
+    length: number,
+    signal: AbortSignal | null = null,
+  ) {
+    if (this.arrayBuffer) {
+      return await this.arrayBuffer.getRangeBuffer(offset, length);
+    }
+
+    const resp = await this.getRangeResponse(offset, length, signal);
+    return new Uint8Array(await resp.arrayBuffer());
+  }
+
+  async getRangeResponse(
+    offset: number,
+    length: number,
+    signal: AbortSignal | null = null,
+  ): Promise<Response> {
     const headers = new Headers(this.headers);
     if (length < 0) {
       headers.set("Range", `bytes=${length}`);
@@ -306,10 +327,9 @@ class FetchRangeLoader extends BaseLoader {
         if (-length > totalLength) {
           length = -totalLength;
         }
-        return await this.getRange(
+        return await this.getRangeResponse(
           totalLength + length,
           -length,
-          streaming,
           signal,
         );
       }
@@ -328,11 +348,7 @@ class FetchRangeLoader extends BaseLoader {
       this.parseLengthFromContentRange(resp.headers);
     }
 
-    if (streaming) {
-      return resp.body || new Uint8Array();
-    } else {
-      return new Uint8Array(await resp.arrayBuffer());
-    }
+    return resp;
   }
 
   async retryFetch(url: string, options: RequestInit): Promise<Response> {
@@ -455,11 +471,28 @@ class GoogleDriveLoader extends BaseLoader {
     return result!;
   }
 
-  async getRange(
+  override async getRange(
     offset: number,
     length: number,
-    streaming = false,
-    signal: AbortSignal,
+    signal: AbortSignal | null = null,
+  ) {
+    const resp = await this.getRangeResponse(offset, length, signal);
+    return resp.body || getReadableStreamFromArray(new Uint8Array());
+  }
+
+  override async getRangeBuffer(
+    offset: number,
+    length: number,
+    signal: AbortSignal | null = null,
+  ) {
+    const resp = await this.getRangeResponse(offset, length, signal);
+    return new Uint8Array(await resp.arrayBuffer());
+  }
+
+  async getRangeResponse(
+    offset: number,
+    length: number,
+    signal: AbortSignal | null = null,
   ) {
     let loader: FetchRangeLoader | null = null;
 
@@ -470,7 +503,7 @@ class GoogleDriveLoader extends BaseLoader {
       });
 
       try {
-        return await loader.getRange(offset, length, streaming, signal);
+        return await loader.getRangeResponse(offset, length, signal);
       } catch (_) {
         if (await this.refreshPublicUrl()) {
           loader = new FetchRangeLoader({
@@ -478,7 +511,7 @@ class GoogleDriveLoader extends BaseLoader {
             length: this.length,
           });
           try {
-            return await loader.getRange(offset, length, streaming, signal);
+            return await loader.getRangeResponse(offset, length, signal);
           } catch (_) {
             // ignore fetch failure, considered invalid
           }
@@ -499,7 +532,7 @@ class GoogleDriveLoader extends BaseLoader {
 
     while (backoff < 2000) {
       try {
-        return await loader.getRange(offset, length, streaming, signal);
+        return await loader.getRangeResponse(offset, length, signal);
       } catch (e) {
         if (
           e instanceof AccessDeniedError &&
@@ -572,14 +605,14 @@ class ArrayBufferLoader extends BaseLoader {
     return { response, abort: null };
   }
 
-  async getRange(
-    offset: number,
-    length: number,
-    streaming = false /*, signal*/,
-  ) {
-    const range = this.arrayBuffer.slice(offset, offset + length);
+  async getRange(offset: number, length: number) {
+    return getReadableStreamFromArray(
+      await this.getRangeBuffer(offset, length),
+    );
+  }
 
-    return streaming ? getReadableStreamFromArray(range) : range;
+  async getRangeBuffer(offset: number, length: number) {
+    return this.arrayBuffer.slice(offset, offset + length);
   }
 
   override getFullBuffer(): Uint8Array | null {
@@ -653,18 +686,18 @@ class BlobCacheLoader extends BaseLoader {
     return { response, abort: null };
   }
 
-  async getRange(
-    offset: number,
-    length: number,
-    streaming = false /*, signal*/,
-  ) {
+  async getRange(offset: number, length: number) {
+    return getReadableStreamFromArray(
+      await this.getRangeBuffer(offset, length),
+    );
+  }
+
+  async getRangeBuffer(offset: number, length: number) {
     if (!this.arrayBuffer) {
       await this.doInitialFetch(true);
     }
 
-    const range = this.arrayBuffer!.slice(offset, offset + length);
-
-    return streaming ? getReadableStreamFromArray(range) : range;
+    return this.arrayBuffer!.slice(offset, offset + length);
   }
 
   async _getArrayBuffer(): Promise<ArrayBuffer> {
@@ -753,20 +786,26 @@ class FileHandleLoader extends BaseLoader {
     return { response, abort: null };
   }
 
-  async getRange(
-    offset: number,
-    length: number,
-    streaming = false /*, signal*/,
-  ) {
+  async getRange(offset: number, length: number) {
     if (!this.file) {
       await this.initFileObject();
     }
 
     const fileSlice = this.file!.slice(offset, offset + length);
 
-    return streaming
-      ? fileSlice.stream()
-      : new Uint8Array(await fileSlice.arrayBuffer());
+    return fileSlice.stream();
+  }
+
+  override async getRangeBuffer(
+    offset: number,
+    length: number,
+  ): Promise<Uint8Array> {
+    if (!this.file) {
+      await this.initFileObject();
+    }
+
+    const fileSlice = this.file!.slice(offset, offset + length);
+    return new Uint8Array(await fileSlice.arrayBuffer());
   }
 }
 
@@ -836,33 +875,46 @@ class IPFSRangeLoader extends BaseLoader {
     return { response, abort };
   }
 
-  async getRange(
+  async getRangeIter(
     offset: number,
     length: number,
-    streaming = false,
     signal: AbortSignal | null = null,
   ) {
     const autoipfsClient = await initAutoIPFS(this.opts);
 
-    const iter: AsyncIterable<Uint8Array> = autoipfsClient.get(this.url, {
+    return autoipfsClient.get(this.url, {
       start: offset,
       end: offset + length - 1,
       signal,
     });
+  }
 
-    if (streaming) {
-      return getReadableStreamFromIter(iter);
-    } else {
-      const chunks: Uint8Array[] = [];
-      let size = 0;
+  async getRange(
+    offset: number,
+    length: number,
+    signal: AbortSignal | null = null,
+  ) {
+    return getReadableStreamFromIter(
+      await this.getRangeIter(offset, length, signal),
+    );
+  }
 
-      for await (const chunk of iter) {
-        chunks.push(chunk);
-        size += chunk.byteLength;
-      }
+  async getRangeBuffer(
+    offset: number,
+    length: number,
+    signal: AbortSignal | null = null,
+  ) {
+    const iter = await this.getRangeIter(offset, length, signal);
 
-      return concatChunks(chunks, size);
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+
+    for await (const chunk of iter) {
+      chunks.push(chunk);
+      size += chunk.byteLength;
     }
+
+    return concatChunks(chunks, size);
   }
 }
 

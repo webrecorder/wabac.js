@@ -101,10 +101,7 @@ export class ZipRangeReader {
   async load(always = false): Promise<Record<string, ZipEntry>> {
     if (!this.entries || always) {
       const endChunkOffset = MAX_INT16 + 23;
-      const endChunk = (await this.loader.getRangeFromEnd(
-        endChunkOffset,
-        false,
-      )) as Uint8Array;
+      const endChunk = await this.loader.getRangeFromEnd(endChunkOffset);
 
       const start = Math.max(
         (await this.loader.getLength()) - endChunkOffset,
@@ -115,11 +112,10 @@ export class ZipRangeReader {
         this.entries = this._loadEntries(endChunk, start);
       } catch (e) {
         if (e instanceof LoadMoreException) {
-          const extraChunk = (await this.loader.getRange(
+          const extraChunk = await this.loader.getRangeBuffer(
             e.start,
             e.length,
-            false,
-          )) as Uint8Array;
+          );
           const combinedChunk = concatChunks(
             [extraChunk, endChunk],
             e.length + length,
@@ -339,11 +335,10 @@ export class ZipRangeReader {
     }
 
     if (entry.offset === undefined) {
-      const header = (await this.loader.getRange(
+      const header = await this.loader.getRangeBuffer(
         entry.localEntryOffset,
         30,
-        false,
-      )) as Uint8Array;
+      );
       const view = new DataView(
         header.buffer,
         header.byteOffset,
@@ -365,12 +360,7 @@ export class ZipRangeReader {
 
     offset += entry.offset;
 
-    const body = (await this.loader.getRange(
-      offset,
-      length,
-      true,
-      signal,
-    )) as ReadableStream;
+    const body = await this.loader.getRange(offset, length, signal);
 
     const streamReader: ReadableStreamDefaultReader = body.getReader();
     let hasher: HashingAsyncIterReader | null = null;
@@ -466,12 +456,7 @@ export class ZipBlockLoader extends BaseLoader {
     return this.length || 0;
   }
 
-  async getRange(
-    offset: number,
-    length: number,
-    streaming = false,
-    signal = null,
-  ) {
+  async getRangeReader(offset: number, length: number, signal = null) {
     const { reader } = await this.zipreader.loadFile(this.filename, {
       offset,
       length,
@@ -479,10 +464,18 @@ export class ZipBlockLoader extends BaseLoader {
       unzip: true,
     });
 
-    if (streaming) {
-      return getReadableStreamFromIter(reader);
-    } else {
-      return await reader.readFully();
-    }
+    return reader;
+  }
+
+  async getRange(offset: number, length: number, signal = null) {
+    const reader = await this.getRangeReader(offset, length, signal);
+
+    return getReadableStreamFromIter(reader);
+  }
+
+  async getRangeBuffer(offset: number, length: number, signal = null) {
+    const reader = await this.getRangeReader(offset, length, signal);
+
+    return await reader.readFully();
   }
 }

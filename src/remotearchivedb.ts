@@ -336,11 +336,7 @@ export class RemoteSourceArchiveDB extends SimpleRemoteArchiveDB {
   ): Promise<ReadableStream<Uint8Array>> {
     const { start, length } = source;
 
-    return (await this.loader.getRange(
-      start,
-      length,
-      true,
-    )) as ReadableStream<Uint8Array>;
+    return await this.loader.getRange(start, length);
   }
 }
 
@@ -375,11 +371,7 @@ export class RemotePrefixArchiveDB extends SimpleRemoteArchiveDB {
 
     const loader = await createLoader({ url, headers });
 
-    return (await loader.getRange(
-      start,
-      length,
-      true,
-    )) as ReadableStream<Uint8Array>;
+    return await loader.getRange(start, length);
   }
 }
 
