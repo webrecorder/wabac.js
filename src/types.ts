@@ -32,7 +32,7 @@ export type ExtraOpts = {
   cert?: {
     issuer: string;
     ctc: string;
-  }
+  };
 
   // if content was rewritten
   rewritten?: number;
