@@ -112,8 +112,8 @@ export const DEFAULT_RULES: Rules[] = [
 ];
 
 export const DISABLE_MEDIASOURCE_SCRIPT = `\
-  Object.defineProperty(MediaSource, "isTypeSupported",\
-  {value: () => false, configurable: false, writable: false});</script>`;
+  ;Object.defineProperty(MediaSource, "isTypeSupported",\
+  {value: () => false, configurable: false, writable: false});`;
 
 export const HTML_ONLY_RULES: Rules[] = [
   {
