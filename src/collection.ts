@@ -1,4 +1,5 @@
 import { ProxyRewriter, Rewriter } from "./rewrite";
+import { DISABLE_MEDIASOURCE_SCRIPT } from "./rewrite/dsruleset";
 
 import {
   getTS,
@@ -17,7 +18,6 @@ import { notFound, notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
 import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
-import { DISABLE_MEDIASOURCE_SCRIPT } from "./swlib";
 
 export type Prefixes = {
   static: string;
