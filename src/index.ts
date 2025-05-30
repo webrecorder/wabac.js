@@ -5,7 +5,7 @@ export {
   Rewriter,
 } from "./rewrite";
 
-export { removeRangeAsQuery, hasRangeAsQuery } from "./rewrite/dsruleset";
+export { removeRangeAsQuery, hasRangeAsQuery, DISABLE_MEDIASOURCE_SCRIPT } from "./rewrite/dsruleset";
 
 export { ArchiveRequest } from "./request";
 
