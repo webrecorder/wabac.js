@@ -51,7 +51,7 @@ export const DEFAULT_RULES: Rules[] = [
     contains: ["facebook.com/", "fbsbx.com/"],
     rxRules: [
       [/"dash_manifests.*?,"failure_reason":null}]/, ruleRewriteFBDash],
-      [/"playlist/, ruleReplacePad('"__playlist__')],
+      [/"playlist/, ruleReplacePad('"playli__')],
       [
         /"debugNoBatching\s?":(?:false|0)/,
         ruleReplacePad('"debugNoBatching":1'),
@@ -110,6 +110,10 @@ export const DEFAULT_RULES: Rules[] = [
     ],
   },
 ];
+
+export const DISABLE_MEDIASOURCE_SCRIPT = `\
+  Object.defineProperty(MediaSource, "isTypeSupported",\
+  {value: () => false, configurable: false, writable: false});</script>`;
 
 export const HTML_ONLY_RULES: Rules[] = [
   {
@@ -180,7 +184,10 @@ export function ruleRewriteFBDash(text: string, opts: Record<string, any>) {
 
   rw = JSON.stringify(rw).replaceAll("<", "\\u003C").slice(1, -1);
 
-  return text.slice(0, start) + rw + text.slice(end);
+  const replacement = text.slice(0, start) + rw + text.slice(end);
+
+  const diff = Math.max(0, text.length - replacement.length);
+  return replacement + " ".repeat(diff);
 }
 
 // ===========================================================================
@@ -199,7 +206,7 @@ function ruleReplacePad(replacement: string) {
 // ===========================================================================
 function ruleDisableMediaSourceTypeSupported() {
   return (x: string) => `
-    ${x}<script>window.MediaSource.isTypeSupported = () => false;</script>
+    ${x}<script>${DISABLE_MEDIASOURCE_SCRIPT}</script>
   `;
 }
 
