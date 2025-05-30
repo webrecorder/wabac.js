@@ -76,6 +76,17 @@ export async function createLoader(opts: BlockLoaderOpts): Promise<BaseLoader> {
   try {
     await fetch(`${scheme}://localhost`, { method: "HEAD" });
     // if reached here, scheme is supported, so use fetch loader
+
+    // first, check if URL is valid, if not, check if Windows path-related, and convert
+    try {
+      new URL(url);
+    } catch (_) {
+      // will convert C:\path\to\file -> C//path/to/file to be valid URL
+      let newUrl = url.replace(":\\", "//");
+      newUrl = newUrl.replaceAll("\\", "/");
+      opts.url = newUrl;
+    }
+
     return new FetchRangeLoader(opts);
   } catch (_) {
     // if raised exception, scheme not supported, don't use fetch loader
