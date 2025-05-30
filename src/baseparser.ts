@@ -3,6 +3,7 @@ import {
   type ArchiveLoader,
   type DBStore,
   type PageEntry,
+  type ExtraOpts,
 } from "./types";
 
 const DEFAULT_BATCH_SIZE = 1000;
@@ -21,9 +22,7 @@ export type ResourceEntry = {
   payload?: Uint8Array | null;
   reader?: AsyncIterable<Uint8Array> | Iterable<Uint8Array> | null;
   referrer?: string | null;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extraOpts?: Record<string, any> | null;
+  extraOpts?: ExtraOpts | null;
   pageId?: string | null;
   origURL?: string | null;
   origTS?: number | null;

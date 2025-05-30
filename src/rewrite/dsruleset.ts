@@ -1,3 +1,4 @@
+import { type ArchiveResponse } from "../response";
 import { rewriteDASH } from "./rewriteVideo";
 import { type RxRewriter, type Rule } from "./rxrewriter";
 
@@ -215,7 +216,8 @@ function ruleDisableMediaSourceTypeSupported() {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setMaxBitrate(opts: any) {
   let maxBitrate = MAX_BITRATE;
-  const extraOpts = opts.response?.extraOpts;
+  const response = opts.response as ArchiveResponse | null;
+  const extraOpts = response?.extraOpts;
 
   if (opts.save) {
     opts.save.maxBitrate = maxBitrate;

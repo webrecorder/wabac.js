@@ -334,6 +334,10 @@ export class Collection {
 
       const seconds = getSecondsStr(response.date);
 
+      const extraOpts = response.extraOpts;
+
+      const disableMSE = extraOpts?.disableMSE;
+
       return `
 <!-- WB Insert -->
 <script>
@@ -357,6 +361,7 @@ ${
 <script src="${this.proxyPrefix}${this.proxyBannerUrl}"></script>`
     : ``
 }
+${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
 <!-- End WB Insert -->
     `;
     };
@@ -635,16 +640,12 @@ window.home = "${this.rootPrefix}";
     const presetCookieStr = this.getCookiePreset(response, scheme);
 
     const pixelRatio =
-      // @ts-expect-error [TODO] - TS4111 - Property 'pixelRatio' comes from an index signature, so it must be accessed with ['pixelRatio']. | TS4111 - Property 'pixelRatio' comes from an index signature, so it must be accessed with ['pixelRatio'].
       extraOpts && Number(extraOpts.pixelRatio) ? extraOpts.pixelRatio : 2;
-    // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
 
     const storage = extraOpts?.storage
-      ? // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
-        JSON.stringify(extraOpts.storage)
+      ? JSON.stringify(extraOpts.storage)
       : '""';
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
     const disableMSE = extraOpts?.disableMSE;
 
     return `

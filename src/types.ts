@@ -10,6 +10,37 @@ export type Source = {
   wacz?: string;
 };
 
+// known options that can be included in WARC header as WARC-JSON-Metadata: <extraOpts json>
+export type ExtraOpts = {
+  // Video options
+  maxBitrate?: number;
+  adaptive_max_resolution?: number;
+  maxRes?: number;
+  adaptive_max_bandwidth?: number;
+  maxBand?: number;
+
+  // Pixel Ratio
+  pixelRatio?: number;
+
+  // Local/Session Storage
+  storage?: string;
+
+  // IP Info
+  ipType?: string;
+
+  // Cert Info
+  cert?: {
+    issuer: string;
+    ctc: string;
+  };
+
+  // if content was rewritten
+  rewritten?: number;
+
+  // if disabling media source extensions
+  disableMSE?: number;
+};
+
 export type ResourceEntry = {
   url: string;
   ts: number;
@@ -24,9 +55,7 @@ export type ResourceEntry = {
   payload?: Uint8Array | null;
   reader?: BaseAsyncIterReader | null;
   referrer?: string | null;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extraOpts?: Record<string, any> | null;
+  extraOpts?: ExtraOpts | null;
   pageId?: string | null;
   origURL?: string | null;
   origTS?: number | null;
