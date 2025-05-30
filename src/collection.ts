@@ -1,4 +1,5 @@
 import { ProxyRewriter, Rewriter } from "./rewrite";
+import { DISABLE_MEDIASOURCE_SCRIPT } from "./rewrite/dsruleset";
 
 import {
   getTS,
@@ -642,6 +643,10 @@ window.home = "${this.rootPrefix}";
       ? // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
         JSON.stringify(extraOpts.storage)
       : '""';
+
+    // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
+    const disableMSE = extraOpts?.disableMSE;
+
     return `
 <!-- WB Insert -->
 ${
@@ -709,6 +714,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   if (window && window._WBWombatInit) {
     window._WBWombatInit(wbinfo);
   }
+    ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
 </script>
 ${this.injectScripts.map((script) => `<script src='${this.proxyPrefix}${script}'> </script>`).join("")}
 <!-- End WB Insert -->
