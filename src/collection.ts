@@ -17,6 +17,7 @@ import { notFound, notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
 import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
+import { DISABLE_MEDIASOURCE_SCRIPT } from "./swlib";
 
 export type Prefixes = {
   static: string;
@@ -642,6 +643,10 @@ window.home = "${this.rootPrefix}";
       ? // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
         JSON.stringify(extraOpts.storage)
       : '""';
+
+    // @ts-expect-error [TODO] - TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage']. | TS4111 - Property 'storage' comes from an index signature, so it must be accessed with ['storage'].
+    const disableMSE = extraOpts?.disableMSE;
+
     return `
 <!-- WB Insert -->
 ${
@@ -709,6 +714,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   if (window && window._WBWombatInit) {
     window._WBWombatInit(wbinfo);
   }
+    ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
 </script>
 ${this.injectScripts.map((script) => `<script src='${this.proxyPrefix}${script}'> </script>`).join("")}
 <!-- End WB Insert -->
