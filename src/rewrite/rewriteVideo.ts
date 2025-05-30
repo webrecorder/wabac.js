@@ -1,4 +1,5 @@
 import { XMLParser, XMLBuilder } from "fast-xml-parser";
+import { type ArchiveResponse } from "../response";
 
 // orig pywb defaults
 const OLD_DEFAULT_MAX_BAND = 2000000;
@@ -16,7 +17,8 @@ function getMaxResAndBand(opts: Record<string, any> = {}) {
   let maxRes, maxBand;
 
   // @ts-expect-error [TODO] - TS4111 - Property 'response' comes from an index signature, so it must be accessed with ['response'].
-  const extraOpts = opts.response?.extraOpts;
+  const response = opts.response as ArchiveResponse | null;
+  const extraOpts = response?.extraOpts;
 
   if (extraOpts) {
     maxRes = extraOpts.adaptive_max_resolution || extraOpts.maxRes;

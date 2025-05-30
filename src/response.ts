@@ -9,6 +9,7 @@ import {
   INITIAL_STREAM_CHUNK_SIZE,
 } from "./utils";
 import { Buffer } from "buffer";
+import { type ExtraOpts } from "./types";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -20,9 +21,7 @@ type ArchiveResponseOpts = {
   headers: Headers;
   url: string;
   date: Date;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extraOpts?: Record<string, any> | null;
+  extraOpts?: ExtraOpts | null;
   noRW?: boolean;
   isLive?: boolean;
   updateTS?: string | null;
@@ -128,9 +127,7 @@ class ArchiveResponse {
   statusText: string;
   url: string;
   date: Date;
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extraOpts: Record<string, any> | null;
+  extraOpts: ExtraOpts | null;
   headers: Headers;
   noRW: boolean;
   isLive: boolean;
