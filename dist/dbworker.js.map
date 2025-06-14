@@ -1,1 +1,0 @@
-{"version":3,"file":"dbworker.js","sourceRoot":"","sources":["../src/dbworker.ts"],"names":[],"mappings":"AAAA,YAAY,CAAC;AAIb,OAAO,EAAE,YAAY,EAAE,MAAM,WAAW,CAAC;AAEzC,IAAI,YAAY,CAAC,IAAI,CAAC,CAAC","sourcesContent":["\"use strict\";\n\ndeclare let self: WorkerGlobalScope;\n\nimport { WorkerLoader } from \"./loaders\";\n\nnew WorkerLoader(self);\n"]}
