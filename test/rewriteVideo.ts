@@ -341,3 +341,34 @@ test("Twitter rewrite embedded json", async (t) => {
     t.deepEqual(JSON.parse(result), expected);
   }
 });
+
+test("HLS above min, use first", async (t) => {
+  const content = `\
+#EXTM3U
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=856854,RESOLUTION=1280x720
+https://a.example.com/v1
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=917538,RESOLUTION=1280x720
+https://a.example.com/v2
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1779657,RESOLUTION=1920x1080
+https://a.example.com/v3
+`;
+
+  const contentType = "application/vnd.apple.mpegurl";
+  const url = "http://example.com/path/master.m3u8";
+
+  const { text: result } = await doRewrite({
+    content,
+    contentType,
+    url,
+    isLive: true,
+    isAjax: true,
+  });
+
+  const expected = `\
+#EXTM3U
+#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=856854,RESOLUTION=1280x720
+https://a.example.com/v1`;
+
+  t.is(result, expected);
+});
+
