@@ -30,3 +30,5 @@ export { createLoader } from "./blockloaders";
 export { ZipRangeReader } from "./wacz/ziprangereader";
 
 export { FuzzyMatcher } from "./fuzzymatcher";
+
+export { type ExtraOpts } from "./types";

@@ -1,6 +1,6 @@
 {
   "name": "@webrecorder/wabac",
-  "version": "2.23.2",
+  "version": "2.23.3",
   "main": "index.js",
   "type": "module",
   "exports": {
