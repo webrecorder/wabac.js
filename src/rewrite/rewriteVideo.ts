@@ -66,7 +66,7 @@ export function rewriteHLS(text: string, opts: Record<string, any>) {
   const indexes: number[] = [];
   let count = 0;
 
-  const allEntries: {value: number, index: number}[] = [];
+  const allEntries: { value: number; index: number }[] = [];
 
   const lines = text.trimEnd().split("\n");
 
@@ -90,7 +90,7 @@ export function rewriteHLS(text: string, opts: Record<string, any>) {
     const m2 = line.match(EXT_RESOLUTION);
     const currRes = m2 ? Number(m2[1]) * Number(m2[2]) : 0;
 
-    allEntries.push({value: maxRes ? currRes : currBand, index: count});
+    allEntries.push({ value: maxRes ? currRes : currBand, index: count });
     count += 1;
   }
 

@@ -371,4 +371,3 @@ https://a.example.com/v1`;
 
   t.is(result, expected);
 });
-
