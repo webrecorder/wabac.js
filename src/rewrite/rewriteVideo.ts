@@ -100,14 +100,17 @@ export function rewriteHLS(text: string, opts: Record<string, any>) {
   let bestValue = null;
 
   for (const entry of allEntries) {
+    // stop if max exceeded
     if (entry.value > maxValue) {
       break;
     }
+    // use first best value
     if (bestValue != entry.value) {
       bestValue = entry.value;
       bestIndex = entry.index;
     }
   }
+  // use lowest available if max was exceeded
   if (bestIndex === null && allEntries.length > 0) {
     bestIndex = allEntries[0]!.index;
   }
