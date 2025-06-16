@@ -60,8 +60,8 @@ export class HashingAsyncIterReader extends AsyncIterReader implements GetHash {
     try {
       this.hasher = await createSHA256();
     } catch (e) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       console.warn(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "Hasher init failed, not checking hashes: " + (e as any).toString(),
       );
     } finally {
