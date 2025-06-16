@@ -40,6 +40,14 @@ class LoadMoreException {
 }
 
 // ===========================================================================
+let useHashCheck = false;
+
+export function setUseHashCHeck(use: boolean) {
+  useHashCheck = use
+}
+
+
+// ===========================================================================
 export class HashingAsyncIterReader extends AsyncIterReader implements GetHash {
   hasher: IHasher | null = null;
   hashInited = false;
@@ -53,7 +61,8 @@ export class HashingAsyncIterReader extends AsyncIterReader implements GetHash {
     try {
       this.hasher = await createSHA256();
     } catch (e) {
-      console.warn("Hasher init failed, not hashing", e);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      console.warn("Hasher init failed, not checking hashes: " + (e as any).toString());
     } finally {
       this.hashInited = true;
     }
@@ -66,7 +75,9 @@ export class HashingAsyncIterReader extends AsyncIterReader implements GetHash {
       if (!this.hashInited) {
         await this.initHasher();
       }
-      this.hasher!.update(value);
+      if (this.hasher) {
+        this.hasher.update(value);
+      }
     } else if (this.hasher) {
       this.hash = "sha256:" + this.hasher.digest("hex");
       this.hasher = null;
@@ -83,7 +94,6 @@ export class HashingAsyncIterReader extends AsyncIterReader implements GetHash {
 export class ZipRangeReader {
   loader: BaseLoader;
   entriesUpdated = false;
-  enableHashing = false;
   entries: Record<string, ZipEntry> | null = null;
 
   constructor(
@@ -93,9 +103,6 @@ export class ZipRangeReader {
     this.loader = loader;
     this.entries = entries;
     this.entriesUpdated = false;
-
-    // todo: make configurable
-    this.enableHashing = true;
   }
 
   async load(always = false): Promise<Record<string, ZipEntry>> {
@@ -376,7 +383,7 @@ export class ZipRangeReader {
     let hasher: HashingAsyncIterReader | null = null;
 
     const wrapHasher = (reader: AsyncIterReader): AsyncIterReader => {
-      if (computeHash && this.enableHashing) {
+      if (computeHash && useHashCheck) {
         hasher = new HashingAsyncIterReader(reader);
         return hasher;
       }
