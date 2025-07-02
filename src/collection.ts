@@ -7,8 +7,8 @@ import {
   parseSetCookie,
   handleAuthNeeded,
   REPLAY_TOP_FRAME_NAME,
-  proxyAllowPaths,
   getCSP,
+  addProxyAllowPaths,
 } from "./utils";
 
 import { ArchiveResponse } from "./response";
@@ -112,7 +112,7 @@ export class Collection {
 
     this.proxyBannerUrl = extraConfig.proxyBannerUrl || "";
     if (this.proxyBannerUrl) {
-      proxyAllowPaths.add(this.proxyBannerUrl);
+      addProxyAllowPaths([this.proxyBannerUrl]);
     }
 
     // support root collection hashtag nav

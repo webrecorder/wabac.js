@@ -38,6 +38,8 @@ class ProxyWombatRewrite {
     this.initDateOverride(wbinfo.seconds);
     this.initAnchorElemOverride();
 
+    this.overrideSWAccess();
+
     this.proxyOrigin = wbinfo.proxyOrigin;
     this.localOrigin = wbinfo.localOrigin;
 
@@ -524,6 +526,27 @@ class ProxyWombatRewrite {
 
     Object.defineProperty(Date.prototype, "constructor", {
       value: Date,
+    });
+  }
+
+  overrideSWAccess() {
+    const _WB_wombat_sw = window.navigator.serviceWorker;
+
+    const overrideSW = {
+      controller: null,
+      ready: Promise.resolve({ unregister: function () {} }),
+      register: async () => Promise.reject(),
+      addEventListener: function () {},
+      removeEventListener: function () {},
+      onmessage: null,
+      oncontrollerchange: null,
+      getRegistrations: async () => Promise.resolve([]),
+      getRegistration: async () => Promise.resolve(undefined),
+      startMessages: function () {},
+    };
+
+    Object.defineProperty(window.navigator, "serviceWorker", {
+      get: () => overrideSW,
     });
   }
 }
