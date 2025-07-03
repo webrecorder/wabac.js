@@ -530,7 +530,8 @@ class ProxyWombatRewrite {
   }
 
   overrideSWAccess() {
-    const _WB_wombat_sw = window.navigator.serviceWorker;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (self as any).__WB_wombat_sw = window.navigator.serviceWorker;
 
     const overrideSW = {
       controller: null,

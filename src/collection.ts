@@ -93,8 +93,6 @@ export class Collection {
 
     this.coHeaders = extraConfig.coHeaders || false;
 
-    this.csp = extraConfig.csp || getCSP() + this.name + "/";
-
     this.injectRelCanon = extraConfig.injectRelCanon || false;
 
     this.baseFramePrefix = extraConfig.baseUrlSourcePrefix!;
@@ -118,9 +116,11 @@ export class Collection {
     // support root collection hashtag nav
     if (this.config.root) {
       this.isRoot = true;
+      this.csp = extraConfig.csp || getCSP();
     } else {
       this.prefix += this.name + "/";
       this.isRoot = false;
+      this.csp = extraConfig.csp || getCSP() + this.name + "/";
     }
 
     this.staticPrefix = prefixes.static;
