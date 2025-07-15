@@ -178,11 +178,35 @@ test(
   "location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/",
 );
 
+test(rewriteJSWrapped, 'location => "http://example.com/"');
+
 // acorn fails here, but is ignorable
 test(
   rewriteJSWrapped,
   " location = http://example.com/2",
   " location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/2",
+);
+
+test(
+  rewriteJSWrapped,
+  `
+  class A {}
+  const B = 5;
+  let C = 4;
+  var D = 3;
+
+  location = "http://example.com/2"`,
+
+  `
+  class A {}
+  const B = 5;
+  let C = 4;
+  var D = 3;
+
+  location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = "http://example.com/2"
+;self.A = A;
+self.B = B;
+self.C = C;`,
 );
 
 test(
@@ -222,8 +246,8 @@ test(
 // add global injection
 test(
   rewriteJSWrapped,
-  "let a = document.location.href; var b = 5; const foo = 4;",
-  "let a = document.location.href; var b = 5; const foo = 4;\nself.a = a;\nself.foo = foo;",
+  "let a = document.location.href; var b = 5; const foo = 4",
+  "let a = document.location.href; var b = 5; const foo = 4\n;self.a = a;\nself.foo = foo;",
 );
 
 // import rewrite

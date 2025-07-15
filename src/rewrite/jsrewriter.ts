@@ -150,7 +150,7 @@ const createJSRules: () => Rule[] = () => {
 
     // rewriting 'location = ' to custom expression '(...).href =' assignment
     [
-      /(?:^|[^$.+*/%^-])\s?\blocation\b\s*[=]\s*(?![\s\d=])/,
+      /(?:^|[^$.+*/%^-])\s?\blocation\b\s*[=]\s*(?![\s\d=>])/,
       addSuffix(checkLoc),
     ],
 
@@ -269,6 +269,12 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
             }
           }
         }
+        // Check for class declarations
+      } else if (type === "ClassDeclaration") {
+        if (expr.id && expr.id.type === "Identifier" && expr.id.name) {
+          const name = expr.id.name;
+          names.push(`self.${name} = ${name};`);
+        }
         // Check for document.write() calls
       } else if (!hasDocWrite && type === "ExpressionStatement") {
         const { expression } = expr;
@@ -302,7 +308,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     }
 
     if (names.length) {
-      return "\n" + names.join("\n");
+      return "\n;" + names.join("\n");
     } else {
       return "";
     }
