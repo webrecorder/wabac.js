@@ -178,10 +178,7 @@ test(
   "location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/",
 );
 
-test(
-  rewriteJSWrapped,
-  "location => \"http://example.com/\"",
-);
+test(rewriteJSWrapped, 'location => "http://example.com/"');
 
 // acorn fails here, but is ignorable
 test(
@@ -211,8 +208,6 @@ test(
 self.B = B;
 self.C = C;`,
 );
-
-
 
 test(
   rewriteJS,
