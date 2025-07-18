@@ -1,4 +1,4 @@
-import { ProxyRewriter, Rewriter } from "./rewrite";
+import { ProxyRewriter, Rewriter, TO_MP } from "./rewrite";
 import { DISABLE_MEDIASOURCE_SCRIPT } from "./rewrite/dsruleset";
 
 import {
@@ -286,7 +286,7 @@ export class Collection {
       );
     };
 
-    const mod = request.mod;
+    const mod = TO_MP.includes(request.mod) ? "mp_" : request.mod;
 
     const noRewrite = mod === "id_" || mod === "wkrf_";
 

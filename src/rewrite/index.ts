@@ -45,6 +45,9 @@ export const baseRules = new DomainSpecificRuleSet(RxRewriter);
 // HTML Rx Rewriter (only used externally for now)
 export const htmlRules = new DomainSpecificRuleSet(RxRewriter, HTML_ONLY_RULES);
 
+// convert these mod types back to mp_
+export const TO_MP = ["if_", "fr_", "ln_", "oe_", "mt_"];
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type InsertFunc = (url: string, opts?: any) => string;
 
