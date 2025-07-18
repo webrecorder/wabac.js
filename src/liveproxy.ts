@@ -88,7 +88,7 @@ export class LiveProxy implements DBStore {
         parsedUrl = new URL(url);
       }
       return this.prefix + parsedUrl.pathname + parsedUrl.search;
-    } else if (this.isLive || !request.timestamp) {
+    } else if (this.isLive || (!request.timestamp && !this.archivePrefix)) {
       return this.prefix + url;
     } else {
       return (
