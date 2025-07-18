@@ -25,7 +25,7 @@ export { ArchiveResponse } from "../response";
 export { rewriteDASH, rewriteHLS } from "./rewriteVideo";
 
 // ===========================================================================
-const STYLE_REGEX = /(url\s*\(\s*[\\"']*)([^)'"]+)([\\"']*\s*\))/gi;
+const STYLE_REGEX = /(url\s*\(\s*[\\"']*)([^)'"]+)([\\"']*\s*\)?)/gi;
 
 const IMPORT_REGEX = /(@import\s*[\\"']*)([^)'";]+)([\\"']*\s*;?)/gi;
 
