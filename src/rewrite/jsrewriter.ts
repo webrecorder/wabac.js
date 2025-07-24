@@ -4,11 +4,11 @@ import * as acorn from "acorn";
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
 const EXPORT_RX = /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/m;
 
-const IMPORT_MATCH_RX =
-  /^\s*?import(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s])(?:.*?)['"\s]/;
+const IMPORT_EXPORT_MATCH_RX =
+  /(^|;)\s*?(?:im|ex)port(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s])(?:.*?)['"\s]/;
 
-const IMPORT_HTTP_RX =
-  /(import(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s]))((?:https?|[./]).*?)(['"\s])/;
+const IMPORT_EXPORT_HTTP_RX =
+  /((?:im|ex)port(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s]))((?:https?|[./]).*?)(['"\s])/;
 
 const GLOBAL_OVERRIDES = [
   "window",
@@ -391,7 +391,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
         // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
         const prefix = opts.prefix.replace("mp_/", "esm_/");
 
-        return x.replace(IMPORT_HTTP_RX, (_, g1, g2, g3) => {
+        return x.replace(IMPORT_EXPORT_HTTP_RX, (_, g1, g2, g3) => {
           try {
             // @ts-expect-error [TODO] - TS4111 - Property 'baseUrl' comes from an index signature, so it must be accessed with ['baseUrl'].
             // [TODO]
@@ -411,7 +411,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     }
 
     // match and rewrite import statements
-    return [IMPORT_MATCH_RX, rewriteImport()];
+    return [IMPORT_EXPORT_MATCH_RX, rewriteImport()];
   }
 }
 

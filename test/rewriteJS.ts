@@ -307,6 +307,28 @@ export { a };
 `,
 );
 
+// rewrite import same line
+test(
+  rewriteJSImport,
+  `\
+import{A, B} from "https://example.com/";import{C, D} from "https://example.org"
+`,
+  `\
+import{A, B} from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/";import{C, D} from "http://localhost:8080/prefix/20201226101010esm_/https://example.org/"
+`,
+);
+
+// rewrite import/export same line
+test(
+  rewriteJSImport,
+  `\
+import{A, B} from "https://example.com/";export{C, D} from "/some/path/to/file"
+`,
+  `\
+import{A, B} from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/";export{C, D} from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/some/path/to/file"
+`,
+);
+
 // rewrite ESM module import
 test(
   rewriteJSImport,
