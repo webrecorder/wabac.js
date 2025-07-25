@@ -1,5 +1,3 @@
-import LinkHeader from "http-link-header";
-
 import { isAjaxRequest } from "../utils";
 
 import { decodeResponse } from "./decoder";
@@ -808,23 +806,13 @@ export class Rewriter {
 
   rewriteLinkHeader(value: string) {
     try {
-      const parsed = LinkHeader.parse(value);
-
-      for (const entry of parsed.refs) {
-        if (entry.uri) {
-          entry.uri = this.rewriteUrl(entry.uri);
-        }
-      }
-
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-base-to-string
-      return parsed.toString();
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (e) {
+      value = value.replace(/<(.*?)>/g, (_, uri: string) => {
+        return "<" + this.rewriteUrl(uri) + ">";
+      });
+    } catch (_e) {
       console.warn("Error parsing link header: " + value);
-      return value;
     }
+    return value;
   }
 }
 

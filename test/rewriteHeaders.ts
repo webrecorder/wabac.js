@@ -24,9 +24,7 @@ const rewriteHeaders = test.macro({
     t.is(headers.get(headerName), expected);
   },
 
-  title(providedTitle = "Headers", name, value, expected) {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  title(providedTitle = "Headers", name, value: string, expected: string) {
     return `${providedTitle}: ${value} => ${expected}`.trim();
   },
 });
@@ -35,14 +33,14 @@ test(
   rewriteHeaders,
   "Link",
   '<https://example.com/path/page.html>;rel="preload";as="script"',
-  "<http://localhost:8080/prefix/20201226101010mp_/https://example.com/path/page.html>; rel=preload; as=script",
+  '<http://localhost:8080/prefix/20201226101010mp_/https://example.com/path/page.html>;rel="preload";as="script"',
 );
 
 test(
   rewriteHeaders,
   "Link",
-  '<https://example.com/path/page.html>;rel="preload";as="script", <https://example.com/someotherpath/page%3f.html>;rel="other";as="stylesheet"',
-  "<http://localhost:8080/prefix/20201226101010mp_/https://example.com/path/page.html>; rel=preload; as=script, <http://localhost:8080/prefix/20201226101010mp_/https://example.com/someotherpath/page%3f.html>; rel=other; as=stylesheet",
+  '<https://example.com/path/page.html>; rel="preload"; as="script"; someval, <https://example.com/someotherpath/page%3f.html>; rel=other; as="stylesheet"',
+  '<http://localhost:8080/prefix/20201226101010mp_/https://example.com/path/page.html>; rel="preload"; as="script"; someval, <http://localhost:8080/prefix/20201226101010mp_/https://example.com/someotherpath/page%3f.html>; rel=other; as="stylesheet"',
 );
 
 // Not rewritten if ajax
@@ -59,5 +57,13 @@ test(
   rewriteHeaders,
   "Link",
   '<sometext>; rel="test"; as="script"',
-  "<sometext>; rel=test; as=script",
+  '<sometext>; rel="test"; as="script"',
+);
+
+// Invalid, missing >, leave as is
+test(
+  rewriteHeaders,
+  "Link",
+  '<https://example.com; rel="test"; as="script"',
+  '<https://example.com; rel="test"; as="script"',
 );
