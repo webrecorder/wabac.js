@@ -171,7 +171,7 @@ export class Rewriter {
           return "css";
 
         case "script":
-          return this.getScriptRewriteMode(mime, url, "js");
+          return this.getScriptRewriteMode(mime, url, request.mod, "js");
 
         case "worker":
           return "js-worker";
@@ -205,7 +205,7 @@ export class Rewriter {
       // fallthrough
 
       default:
-        return this.getScriptRewriteMode(mime, url);
+        return this.getScriptRewriteMode(mime, url, request.mod, "");
     }
   }
 
@@ -232,7 +232,7 @@ export class Rewriter {
     return false;
   }
 
-  getScriptRewriteMode(mime: string, url: string, defaultType = "") {
+  getScriptRewriteMode(mime: string, url: string, mod = "", defaultType = "") {
     switch (mime) {
       case "text/javascript":
       case "application/javascript":
@@ -240,7 +240,13 @@ export class Rewriter {
         if (this.parseJSONPCallback(url)) {
           return "jsonp";
         }
-        return url.endsWith(".json") ? "json" : "js";
+        if (url.endsWith(".json")) {
+          return "json";
+        }
+        if (mod === "wkr_") {
+          return "js-worker";
+        }
+        return "js";
 
       case "application/json":
         return "json";
@@ -325,7 +331,7 @@ export class Rewriter {
         if (request.mod === "wkrm_") {
           opts.isModule = true;
         }
-        rwFunc = this.workerInsertFunc;
+        rwFunc = this.rewriteJSWorker;
         break;
 
       case "jsonp":
@@ -526,6 +532,12 @@ export class Rewriter {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return dsRewriter.rewrite(text, opts);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rewriteJSWorker(text: string, opts: Record<string, any>): string {
+    opts["isWorker"] = true;
+    return this.workerInsertFunc!(this.rewriteJS(text, opts), opts);
   }
 
   // JSON

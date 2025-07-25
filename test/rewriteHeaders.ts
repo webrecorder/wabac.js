@@ -24,9 +24,7 @@ const rewriteHeaders = test.macro({
     t.is(headers.get(headerName), expected);
   },
 
-  title(providedTitle = "Headers", name, value, expected) {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+  title(providedTitle = "Headers", name, value: string, expected: string) {
     return `${providedTitle}: ${value} => ${expected}`.trim();
   },
 });

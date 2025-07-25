@@ -280,8 +280,8 @@ export class Collection {
       }
       return (
         `
-      (function() { self.importScripts('${this.staticPrefix}wombatWorkers.js');\
-          new WBWombat({'prefix': '${basePrefixTS}/', 'prefixMod': '${basePrefixTS}wkrf_/', 'originalURL': '${requestURL}'});\
+      (function() { if (self.WBWombat) return; self.__WB_pmw = function() { return this; }; self.importScripts('${this.staticPrefix}wombatWorkers.js'); \
+          new WBWombat({'prefix': '${basePrefixTS}/', 'prefixMod': '${basePrefixTS}wkr_/', 'originalURL': '${requestURL}'});\
       })();` + text
       );
     };

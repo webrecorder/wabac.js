@@ -22,6 +22,12 @@ const GLOBAL_OVERRIDES = [
   "opener",
 ];
 
+// const WORKER_OVERRIDES = [
+//   "globalThis",
+//   "self",
+//   "location"
+// ];
+
 const GLOBALS_CONCAT_STR = GLOBAL_OVERRIDES.map(
   (x) => `(?:^|[^$.])\\b${x}\\b(?:$|[^$])`,
 ).join("|");
@@ -202,7 +208,7 @@ class JSRewriter extends RxRewriter {
     this.lastBuff = "\n\n}";
   }
 
-  initLocalDecl(localDecls: string[]) {
+  initLocalDecl(localDecls: string[], noArgs = false) {
     const assignFunc = "_____WB$wombat$assign$function_____";
 
     let buffer = `\
@@ -214,7 +220,9 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     for (const decl of localDecls) {
       buffer += `let ${decl} = ${assignFunc}("${decl}");\n`;
     }
-    buffer += "let arguments;\n";
+    if (!noArgs) {
+      buffer += "let arguments;\n";
+    }
 
     return buffer + "\n";
   }
@@ -354,14 +362,18 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) + newText;
     }
 
-    const wrapGlobals = GLOBALS_RX.exec(text);
+    const wrapGlobals = !!GLOBALS_RX.exec(text);
 
     // @ts-expect-error [TODO] - TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
     if (opts.inline) {
       newText = newText.replace(/\n/g, " ");
     }
 
-    if (wrapGlobals) {
+    // @ts-expect-error: define isWorker
+    if (wrapGlobals && opts.isWorker) {
+      const firstBuff = `{ const location = self._WB_wombat_location || self.location;\n`;
+      newText = firstBuff + newText + this.lastBuff;
+    } else if (wrapGlobals) {
       let hoistGlobals = "";
       if (newText) {
         try {
