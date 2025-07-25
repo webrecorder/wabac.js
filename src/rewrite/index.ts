@@ -47,14 +47,15 @@ export const htmlRules = new DomainSpecificRuleSet(RxRewriter, HTML_ONLY_RULES);
 export const TO_MP = ["if_", "fr_", "ln_", "oe_", "mt_"];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type InsertFunc = (url: string, opts?: any) => string;
+type HeadInsertFunc = (url: string, opts?: any) => string;
+type WorkerInsertFunc = (isModule: boolean) => string;
 
 type RewriterOpts = {
   baseUrl: string;
   prefix: string;
   responseUrl?: string;
-  workerInsertFunc?: InsertFunc | null;
-  headInsertFunc?: InsertFunc | null;
+  workerInsertFunc?: WorkerInsertFunc | null;
+  headInsertFunc?: HeadInsertFunc | null;
   urlRewrite?: boolean;
   contentRewrite?: boolean;
   decode?: boolean;
@@ -89,8 +90,8 @@ export class Rewriter {
   isCharsetUTF8: boolean;
   isCharsetDetected = false;
 
-  headInsertFunc: InsertFunc | null;
-  workerInsertFunc: InsertFunc | null;
+  headInsertFunc: HeadInsertFunc | null;
+  workerInsertFunc: WorkerInsertFunc | null;
 
   _jsonpCallback: string | boolean | null;
 
@@ -173,7 +174,7 @@ export class Rewriter {
           return "css";
 
         case "script":
-          return this.getScriptRewriteMode(mime, url, "js");
+          return this.getScriptRewriteMode(mime, url, request.mod, "js");
 
         case "worker":
           return "js-worker";
@@ -207,7 +208,7 @@ export class Rewriter {
       // fallthrough
 
       default:
-        return this.getScriptRewriteMode(mime, url);
+        return this.getScriptRewriteMode(mime, url, request.mod, "");
     }
   }
 
@@ -234,7 +235,7 @@ export class Rewriter {
     return false;
   }
 
-  getScriptRewriteMode(mime: string, url: string, defaultType = "") {
+  getScriptRewriteMode(mime: string, url: string, mod = "", defaultType = "") {
     switch (mime) {
       case "text/javascript":
       case "application/javascript":
@@ -242,7 +243,13 @@ export class Rewriter {
         if (this.parseJSONPCallback(url)) {
           return "jsonp";
         }
-        return url.endsWith(".json") ? "json" : "js";
+        if (url.endsWith(".json")) {
+          return "json";
+        }
+        if (mod === "wkr_" || mod === "wkrm_") {
+          return "js-worker";
+        }
+        return "js";
 
       case "application/json":
         return "json";
@@ -324,10 +331,10 @@ export class Rewriter {
         break;
 
       case "js-worker":
-        if (request.mod === "wkrm_") {
+        if (request.mod === "wkrm_" || request.mod === "esm_") {
           opts.isModule = true;
         }
-        rwFunc = this.workerInsertFunc;
+        rwFunc = this.rewriteJSWorker;
         break;
 
       case "jsonp":
@@ -528,6 +535,19 @@ export class Rewriter {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return dsRewriter.rewrite(text, opts);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rewriteJSWorker(text: string, opts: Record<string, any>): string {
+    opts["isWorker"] = true;
+    const isModule = opts["isModule"] as boolean;
+    const moduleInsert = this.workerInsertFunc!(isModule);
+    if (isModule) {
+      opts["moduleInsert"] = moduleInsert;
+      return this.rewriteJS(text, opts);
+    } else {
+      return moduleInsert + this.rewriteJS(text, opts);
+    }
   }
 
   // JSON
