@@ -407,6 +407,10 @@ test(rewriteJS, "this.$eval(a)", "");
 
 test(rewriteJS, "x = $eval; x(a);", "");
 
+test(rewriteJS, "static eval(a,b){ }", "");
+test(rewriteJS, "function eval(a,b){ }", "");
+test(rewriteJS, "} eval(a,b){ }", "");
+
 test(rewriteJSWrapped, "window.eval(a)", "");
 
 test(rewriteJSWrapped, "x = window.eval; x(a);", "");

@@ -136,7 +136,10 @@ const createJSRules: () => Rule[] = () => {
 
   return [
     // rewriting 'eval(...)' - invocation
-    [/(?:^|\s)\beval\s*\(/, replacePrefixFrom(evalStr, "eval")],
+    [
+      /(?<!static|function|})(?:^|\s)\beval\s*\(/,
+      replacePrefixFrom(evalStr, "eval"),
+    ],
 
     [/\([\w]+,\s*eval\)\(/, () => " " + evalStr],
 
