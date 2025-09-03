@@ -37,7 +37,8 @@
     "path-parser": "^6.1.0",
     "process": "^0.11.10",
     "stream-browserify": "^3.0.0",
-    "warcio": "^2.4.3"
+    "warcio": "^2.4.3",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "@swc-node/register": "^1.10.9",
@@ -59,7 +60,7 @@
     "eslint-config-prettier": "^9.1.0",
     "fake-indexeddb": "^4.0.0",
     "globals": "^13.17.0",
-    "prettier": "^3.3.3",
+    "prettier": "^3.6.2",
     "raw-loader": "^4.0.2",
     "serve-static": "^1.15.0",
     "test-listen": "^1.1.0",

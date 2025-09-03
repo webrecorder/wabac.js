@@ -18,6 +18,7 @@ import { notFound, notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
 import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
+import { html } from "./templates";
 
 export type Prefixes = {
   static: string;
@@ -191,10 +192,11 @@ export class Collection {
       if (await handleAuthNeeded(e, this.config)) {
         return notFound(
           request.request,
-          {
-            __unsafeHTML:
-              '<p style="margin: auto">Please wait, this page will reload after authentication...</p>',
-          },
+
+          html`<p style="margin: auto">
+            Please wait, this page will reload after authentication...
+          </p>`,
+
           401,
         );
       }
