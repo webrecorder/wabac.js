@@ -1,6 +1,11 @@
+import { type UnsafeHTML } from "./types";
 import { getCSP, getStatusText } from "./utils";
 
-export function notFound(request: Request, msg?: string, status = 404) {
+export function notFound(
+  request: Request,
+  msg?: string | UnsafeHTML,
+  status = 404,
+) {
   return notFoundByTypeResponse(request, request.url, "", false, status, msg);
 }
 
@@ -10,7 +15,7 @@ export function notFoundByTypeResponse(
   requestTS: string,
   liveRedirectOnNotFound = false,
   status = 404,
-  msg?: string,
+  msg?: string | UnsafeHTML,
 ) {
   let content: string;
   let contentType: string;
@@ -71,19 +76,19 @@ function getHTMLNotFound(
   requestURL: string,
   requestTS: string,
   liveRedirectOnNotFound: boolean,
-  msg?: string,
+  msg?: string | UnsafeHTML,
 ) {
   return `
   <!doctype html>
   <html>
   <head>
   <script>
-  window.requestURL = "${requestURL}";
+  window.requestURL = ${JSON.stringify(requestURL)};
   </script>
   </head>
   <body style="font-family: sans-serif">
   <h2>Archived Page Not Found</h2>
-  <p>${msg || "Sorry, this page was not found in this archive:"}</p>
+  <p>${msg ? (typeof msg === "object" ? msg.__unsafeHTML : msg) : "Sorry, this page was not found in this archive:"}</p>
   <p><code id="url" style="word-break: break-all; font-size: larger"></code></p>
   ${
     liveRedirectOnNotFound && request.mode === "navigate"
@@ -97,7 +102,7 @@ function getHTMLNotFound(
   `
   }
   <p id="goback" style="display: none"><a href="#" onclick="window.history.back()">Go Back</a> to the previous page.</a></p>
-  
+
   <p>
   <a id="livelink" target="_blank" href="">Load the live page</a> in a new tab (or download the file, if this URL points to a file).
   </p>
@@ -119,7 +124,7 @@ function getHTMLNotFound(
     window.parent.postMessage({
       wb_type: "archive-not-found",
       url: window.requestURL,
-      ts: "${requestTS}"
+      ts: ${JSON.stringify(requestTS)}
     }, "*");
   }
   </script>
@@ -132,18 +137,22 @@ function getScriptCSSNotFound(
   type: string,
   requestURL: string,
   requestTS: string,
-  msg?: string,
+  msg?: string | UnsafeHTML,
 ) {
   return `\
-/* 
-   ${msg ? msg : type + " Not Found"}
+/*
+   ${msg ? (typeof msg === "object" ? msg.__unsafeHTML : msg) : type + " Not Found"}
    URL: ${requestURL}
    TS: ${requestTS}
 */
   `;
 }
 
-function getJSONNotFound(URL: string, TS: string, error = "not_found") {
+function getJSONNotFound(
+  URL: string,
+  TS: string,
+  error: string | UnsafeHTML = "not_found",
+) {
   return JSON.stringify({ error, URL, TS });
 }
 
@@ -157,13 +166,13 @@ function getHTMLNotProxyError(requestURL: string, status: number) {
   <html>
   <head>
   <script>
-  window.requestURL = "${requestURL}";
+  window.requestURL = ${JSON.stringify(requestURL)};
   </script>
   </head>
   <body style="font-family: sans-serif">
   <h2>Live page could not be loaded</h2>
   <p>Sorry, this page was could not be loaded through the archiving proxy. Check the URL and try again.</p>
-  <p><code id="url" style="word-break: break-all; font-size: larger">Status Code: ${status}</code></p>
+  <p><code id="url" style="word-break: break-all; font-size: larger">Status Code: ${JSON.stringify(status)}</code></p>
   <p id="goback" style="display: none"><a href="#" onclick="window.history.back()">Go Back</a> to the previous page.</a></p>
 
   <script>
@@ -181,7 +190,7 @@ function getHTMLNotProxyError(requestURL: string, status: number) {
     window.parent.postMessage({
       wb_type: "live-proxy-url-error",
       url: window.requestURL,
-      status: ${status},
+      status: ${JSON.stringify(status)},
     }, "*");
   }
   </script>

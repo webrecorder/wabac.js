@@ -261,3 +261,7 @@ export type WACZCollConfig = CollConfig & {
     textIndex?: string;
   };
 };
+
+export type UnsafeHTML = {
+  readonly __unsafeHTML: string;
+};

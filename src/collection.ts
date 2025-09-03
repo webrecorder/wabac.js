@@ -191,7 +191,10 @@ export class Collection {
       if (await handleAuthNeeded(e, this.config)) {
         return notFound(
           request.request,
-          '<p style="margin: auto">Please wait, this page will reload after authentication...</p>',
+          {
+            __unsafeHTML:
+              '<p style="margin: auto">Please wait, this page will reload after authentication...</p>',
+          },
           401,
         );
       }
