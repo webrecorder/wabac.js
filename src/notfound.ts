@@ -78,58 +78,75 @@ function getHTMLNotFound(
   liveRedirectOnNotFound: boolean,
   msg?: string | UnsafeHTML,
 ) {
-  return `
-  <!doctype html>
-  <html>
-  <head>
-  <script>
-  window.requestURL = ${JSON.stringify(requestURL)};
-  </script>
-  </head>
-  <body style="font-family: sans-serif">
-  <h2>Archived Page Not Found</h2>
-  <p>${msg ? (typeof msg === "object" ? msg.__unsafeHTML : msg) : "Sorry, this page was not found in this archive:"}</p>
-  <p><code id="url" style="word-break: break-all; font-size: larger"></code></p>
-  ${
-    liveRedirectOnNotFound && request.mode === "navigate"
-      ? `
-  <p>Redirecting to live page now... (If this URL is a file download, the download should have started).</p>
-  <script>
-  window.top.location.href = window.requestURL;
-  </script>
-  `
-      : `
-  `
-  }
-  <p id="goback" style="display: none"><a href="#" onclick="window.history.back()">Go Back</a> to the previous page.</a></p>
+  return /* HTML */ `
+    <!doctype html>
+    <html>
+      <head>
+        <script>
+          window.requestURL = ${JSON.stringify(requestURL)};
+        </script>
+      </head>
+      <body style="font-family: sans-serif">
+        <h2>Archived Page Not Found</h2>
+        <p>
+          ${msg
+            ? typeof msg === "object"
+              ? msg.__unsafeHTML
+              : msg
+            : "Sorry, this page was not found in this archive:"}
+        </p>
+        <p>
+          <code
+            id="url"
+            style="word-break: break-all; font-size: larger"
+          ></code>
+        </p>
+        ${liveRedirectOnNotFound && request.mode === "navigate"
+          ? /* HTML */ `
+              <p>
+                Redirecting to live page now... (If this URL is a file download,
+                the download should have started).
+              </p>
+              <script>
+                window.top.location.href = window.requestURL;
+              </script>
+            `
+          : `
+  `}
+        <p id="goback" style="display: none">
+          <a href="#" onclick="window.history.back()">Go Back</a> to the
+          previous page.
+        </p>
 
-  <p>
-  <a id="livelink" target="_blank" href="">Load the live page</a> in a new tab (or download the file, if this URL points to a file).
-  </p>
+        <p>
+          <a id="livelink" target="_blank" href="">Load the live page</a> in a
+          new tab (or download the file, if this URL points to a file).
+        </p>
 
-  <script>
-  document.querySelector("#url").innerText = window.requestURL;
-  document.querySelector("#livelink").href = window.requestURL;
-  let isTop = true;
-  try {
-    if (window.parent._WB_wombat_location) {
-      isTop = false;
-    }
-  } catch (e) {
+        <script>
+          document.querySelector("#url").innerText = window.requestURL;
+          document.querySelector("#livelink").href = window.requestURL;
+          let isTop = true;
+          try {
+            if (window.parent._WB_wombat_location) {
+              isTop = false;
+            }
+          } catch (e) {}
+          if (isTop) {
+            document.querySelector("#goback").style.display = "";
 
-  }
-  if (isTop) {
-    document.querySelector("#goback").style.display = "";
-
-    window.parent.postMessage({
-      wb_type: "archive-not-found",
-      url: window.requestURL,
-      ts: ${JSON.stringify(requestTS)}
-    }, "*");
-  }
-  </script>
-  </body>
-  </html>
+            window.parent.postMessage(
+              {
+                wb_type: "archive-not-found",
+                url: window.requestURL,
+                ts: ${JSON.stringify(requestTS)},
+              },
+              "*",
+            );
+          }
+        </script>
+      </body>
+    </html>
   `;
 }
 
@@ -161,40 +178,51 @@ export function getProxyNotFoundResponse(url: string, status: number) {
 }
 
 function getHTMLNotProxyError(requestURL: string, status: number) {
-  return `
-  <!doctype html>
-  <html>
-  <head>
-  <script>
-  window.requestURL = ${JSON.stringify(requestURL)};
-  </script>
-  </head>
-  <body style="font-family: sans-serif">
-  <h2>Live page could not be loaded</h2>
-  <p>Sorry, this page was could not be loaded through the archiving proxy. Check the URL and try again.</p>
-  <p><code id="url" style="word-break: break-all; font-size: larger">Status Code: ${JSON.stringify(status)}</code></p>
-  <p id="goback" style="display: none"><a href="#" onclick="window.history.back()">Go Back</a> to the previous page.</a></p>
+  return /* HTML */ `
+    <!doctype html>
+    <html>
+      <head>
+        <script>
+          window.requestURL = ${JSON.stringify(requestURL)};
+        </script>
+      </head>
+      <body style="font-family: sans-serif">
+        <h2>Live page could not be loaded</h2>
+        <p>
+          Sorry, this page was could not be loaded through the archiving proxy.
+          Check the URL and try again.
+        </p>
+        <p>
+          <code id="url" style="word-break: break-all; font-size: larger"
+            >Status Code: ${JSON.stringify(status)}</code
+          >
+        </p>
+        <p id="goback" style="display: none">
+          <a href="#" onclick="window.history.back()">Go Back</a> to the
+          previous page.
+        </p>
 
-  <script>
-  let isTop = true;
-  try {
-    if (window.parent._WB_wombat_location) {
-      isTop = false;
-    }
-  } catch (e) {
+        <script>
+          let isTop = true;
+          try {
+            if (window.parent._WB_wombat_location) {
+              isTop = false;
+            }
+          } catch (e) {}
+          if (isTop) {
+            document.querySelector("#goback").style.display = "";
 
-  }
-  if (isTop) {
-    document.querySelector("#goback").style.display = "";
-
-    window.parent.postMessage({
-      wb_type: "live-proxy-url-error",
-      url: window.requestURL,
-      status: ${JSON.stringify(status)},
-    }, "*");
-  }
-  </script>
-  </body>
-  </html>
+            window.parent.postMessage(
+              {
+                wb_type: "live-proxy-url-error",
+                url: window.requestURL,
+                status: ${JSON.stringify(status)},
+              },
+              "*",
+            );
+          }
+        </script>
+      </body>
+    </html>
   `;
 }
