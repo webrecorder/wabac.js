@@ -73,58 +73,72 @@ function getHTMLNotFound(
   liveRedirectOnNotFound: boolean,
   msg?: string,
 ) {
-  return `
-  <!doctype html>
-  <html>
-  <head>
-  <script>
-  window.requestURL = "${requestURL}";
-  </script>
-  </head>
-  <body style="font-family: sans-serif">
-  <h2>Archived Page Not Found</h2>
-  <p>${msg || "Sorry, this page was not found in this archive:"}</p>
-  <p><code id="url" style="word-break: break-all; font-size: larger"></code></p>
-  ${
-    liveRedirectOnNotFound && request.mode === "navigate"
-      ? `
-  <p>Redirecting to live page now... (If this URL is a file download, the download should have started).</p>
-  <script>
-  window.top.location.href = window.requestURL;
-  </script>
-  `
-      : `
-  `
-  }
-  <p id="goback" style="display: none"><a href="#" onclick="window.history.back()">Go Back</a> to the previous page.</a></p>
-  
-  <p>
-  <a id="livelink" target="_blank" href="">Load the live page</a> in a new tab (or download the file, if this URL points to a file).
-  </p>
+  return /* HTML */ `
+    <!doctype html>
+    <html>
+      <head>
+        <script>
+          window.requestURL = ${JSON.stringify(requestURL)};
+        </script>
+      </head>
+      <body style="font-family: sans-serif">
+        <h2>Archived Page Not Found</h2>
+        <p id="msg"></p>
+        <p>
+          <code
+            id="url"
+            style="word-break: break-all; font-size: larger"
+          ></code>
+        </p>
+        ${liveRedirectOnNotFound && request.mode === "navigate"
+          ? /* HTML */ `
+              <p>
+                Redirecting to live page now... (If this URL is a file download,
+                the download should have started).
+              </p>
+              <script>
+                window.top.location.href = window.requestURL;
+              </script>
+            `
+          : `
+  `}
+        <p id="goback" style="display: none">
+          <a href="#" onclick="window.history.back()">Go Back</a> to the
+          previous page.
+        </p>
 
-  <script>
-  document.querySelector("#url").innerText = window.requestURL;
-  document.querySelector("#livelink").href = window.requestURL;
-  let isTop = true;
-  try {
-    if (window.parent._WB_wombat_location) {
-      isTop = false;
-    }
-  } catch (e) {
+        <p>
+          <a id="livelink" target="_blank" href="">Load the live page</a> in a
+          new tab (or download the file, if this URL points to a file).
+        </p>
 
-  }
-  if (isTop) {
-    document.querySelector("#goback").style.display = "";
+        <script>
+          document.querySelector("#url").innerText = window.requestURL;
+          document.querySelector("#msg").innerText = ${JSON.stringify(
+            msg || "Sorry, this page was not found in this archive:",
+          )};
+          document.querySelector("#livelink").href = window.requestURL;
+          let isTop = true;
+          try {
+            if (window.parent._WB_wombat_location) {
+              isTop = false;
+            }
+          } catch (e) {}
+          if (isTop) {
+            document.querySelector("#goback").style.display = "";
 
-    window.parent.postMessage({
-      wb_type: "archive-not-found",
-      url: window.requestURL,
-      ts: "${requestTS}"
-    }, "*");
-  }
-  </script>
-  </body>
-  </html>
+            window.parent.postMessage(
+              {
+                wb_type: "archive-not-found",
+                url: window.requestURL,
+                ts: ${JSON.stringify(requestTS)},
+              },
+              "*",
+            );
+          }
+        </script>
+      </body>
+    </html>
   `;
 }
 
@@ -135,8 +149,8 @@ function getScriptCSSNotFound(
   msg?: string,
 ) {
   return `\
-/* 
-   ${msg ? msg : type + " Not Found"}
+/*
+   ${msg || type + " Not Found"}
    URL: ${requestURL}
    TS: ${requestTS}
 */
@@ -152,40 +166,55 @@ export function getProxyNotFoundResponse(url: string, status: number) {
 }
 
 function getHTMLNotProxyError(requestURL: string, status: number) {
-  return `
-  <!doctype html>
-  <html>
-  <head>
-  <script>
-  window.requestURL = "${requestURL}";
-  </script>
-  </head>
-  <body style="font-family: sans-serif">
-  <h2>Live page could not be loaded</h2>
-  <p>Sorry, this page was could not be loaded through the archiving proxy. Check the URL and try again.</p>
-  <p><code id="url" style="word-break: break-all; font-size: larger">Status Code: ${status}</code></p>
-  <p id="goback" style="display: none"><a href="#" onclick="window.history.back()">Go Back</a> to the previous page.</a></p>
+  return /* HTML */ `
+    <!doctype html>
+    <html>
+      <head>
+        <script>
+          window.requestURL = ${JSON.stringify(requestURL)};
+        </script>
+      </head>
+      <body style="font-family: sans-serif">
+        <h2>Live page could not be loaded</h2>
+        <p>
+          Sorry, this page was could not be loaded through the archiving proxy.
+          Check the URL and try again.
+        </p>
+        <p>
+          <code
+            id="url"
+            style="word-break: break-all; font-size: larger"
+          ></code>
+        </p>
+        <p id="goback" style="display: none">
+          <a href="#" onclick="window.history.back()">Go Back</a> to the
+          previous page.
+        </p>
 
-  <script>
-  let isTop = true;
-  try {
-    if (window.parent._WB_wombat_location) {
-      isTop = false;
-    }
-  } catch (e) {
+        <script>
+          document.getElementById("url").innerText = ${JSON.stringify(
+            `Status Code: ${status}`,
+          )};
+          let isTop = true;
+          try {
+            if (window.parent._WB_wombat_location) {
+              isTop = false;
+            }
+          } catch (e) {}
+          if (isTop) {
+            document.querySelector("#goback").style.display = "";
 
-  }
-  if (isTop) {
-    document.querySelector("#goback").style.display = "";
-
-    window.parent.postMessage({
-      wb_type: "live-proxy-url-error",
-      url: window.requestURL,
-      status: ${status},
-    }, "*");
-  }
-  </script>
-  </body>
-  </html>
+            window.parent.postMessage(
+              {
+                wb_type: "live-proxy-url-error",
+                url: window.requestURL,
+                status: ${JSON.stringify(status)},
+              },
+              "*",
+            );
+          }
+        </script>
+      </body>
+    </html>
   `;
 }
