@@ -1,6 +1,6 @@
 {
   "name": "@webrecorder/wabac",
-  "version": "2.23.10",
+  "version": "2.23.11",
   "main": "index.js",
   "type": "module",
   "exports": {
@@ -37,7 +37,7 @@
     "path-parser": "^6.1.0",
     "process": "^0.11.10",
     "stream-browserify": "^3.0.0",
-    "warcio": "^2.4.3"
+    "warcio": "^2.4.5"
   },
   "devDependencies": {
     "@swc-node/register": "^1.10.9",
