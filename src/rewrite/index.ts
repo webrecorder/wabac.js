@@ -16,6 +16,7 @@ import { JSRewriter } from "./jsrewriter";
 import { HTMLRewriter, ProxyHTMLRewriter } from "./html";
 import { type ArchiveRequest } from "../request";
 import { type ArchiveResponse } from "../response";
+import { detect } from "../utils/charset";
 
 // keep for backwards compatibility with RWP and AWP
 export { ArchiveResponse } from "../response";
@@ -254,6 +255,11 @@ export class Rewriter {
     response: ArchiveResponse,
     request: ArchiveRequest,
   ): Promise<ArchiveResponse> {
+    const charset = detect(response.buffer || new Uint8Array());
+    if (charset === "UTF-8") {
+      this.isCharsetUTF8 = true;
+    }
+    // TODO: if encoding is something other than UTF-8 or latin1, we should probably reencode it as utf-8?
     const rewriteMode = this.contentRewrite
       ? this.getRewriteMode(request, response, this.baseUrl)
       : null;
