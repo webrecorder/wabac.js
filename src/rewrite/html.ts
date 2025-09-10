@@ -101,7 +101,7 @@ export class HTMLRewriter {
   ruleMatch: RegExpMatchArray | null = null;
   isCharsetUTF8: boolean;
 
-  constructor(rewriter: Rewriter, isCharsetUTF8 = false) {
+  constructor(rewriter: Rewriter) {
     this.rewriter = rewriter;
     this.rule = null;
 
@@ -114,7 +114,35 @@ export class HTMLRewriter {
       }
     }
 
-    this.isCharsetUTF8 = isCharsetUTF8;
+    this.isCharsetUTF8 = rewriter.isCharsetUTF8;
+  }
+
+  detectMetaCharset(buffer: Uint8Array): string {
+    // only look at first bytes
+    const CHARSET_PEEK_SIZE = 1024;
+    const META_CHARSET_REGEX =
+      /<meta[^>]*charset\s*=\s*["']?([^"'\s>/]+)["']?[^>]*>/i;
+    const META_CHARSET_HTTP_EQUIV =
+      /<meta[^>]*http-equiv\s*=\s*["']?content-type["']?[^>]*content\s*=\s*["']?[^"']*charset\s*=\s*([^"'\s>/;]+)[^>]*>/i;
+
+    if (buffer.length > CHARSET_PEEK_SIZE) {
+      buffer = buffer.slice(0, CHARSET_PEEK_SIZE);
+    }
+    const text = new TextDecoder("latin1").decode(buffer);
+
+    // Look for meta charset attribute
+    const charsetMatch = text.match(META_CHARSET_REGEX);
+    if (charsetMatch?.[1]) {
+      return charsetMatch[1].toLowerCase().replace("-", "");
+    }
+
+    // Look for meta http-equiv with charset in content
+    const httpEquivMatch = text.match(META_CHARSET_HTTP_EQUIV);
+    if (httpEquivMatch?.[1]) {
+      return httpEquivMatch[1].toLowerCase().replace("-", "");
+    }
+
+    return "";
   }
 
   rewriteMetaContent(
@@ -332,16 +360,27 @@ export class HTMLRewriter {
   }
 
   async rewrite(response: ArchiveResponse) {
-    if (!response.buffer && !response.reader) {
-      //console.warn("Missing response body for: " + response.url);
+    let buffer = await response.getBuffer();
+    if (!buffer) {
       return response;
     }
 
-    if (response.expectedLength() > MAX_HTML_REWRITE_SIZE) {
-      console.warn(
-        "Skipping rewriting, HTML file too big: " + response.expectedLength(),
-      );
+    if (buffer.length > MAX_HTML_REWRITE_SIZE) {
+      console.warn("Skipping rewriting, HTML file too big: " + buffer.length);
       return response;
+    }
+
+    const { bomFound, text } = await response.getText(this.isCharsetUTF8, true);
+    if (bomFound) {
+      // make new buffer in UTF-8 with no BOM
+      buffer = new TextEncoder().encode(text);
+    }
+
+    // don't try to detect if already detected via headers
+    if (!this.rewriter.isCharsetDetected) {
+      if (this.detectMetaCharset(buffer) === "utf8") {
+        this.isCharsetUTF8 = true;
+      }
     }
 
     const rewriter = this.rewriter;
@@ -376,7 +415,10 @@ export class HTMLRewriter {
 
       this.rewriteTagAndAttrs(startTag, tagRules || {}, rewriter);
 
-      if (!insertAdded && !["head", "html"].includes(startTag.tagName)) {
+      if (
+        !insertAdded &&
+        !["head", "html", "meta"].includes(startTag.tagName)
+      ) {
         addInsert();
       }
 
@@ -466,7 +508,7 @@ export class HTMLRewriter {
       }
     });
 
-    const sourceGen = response.createIter();
+    const sourceGen = [buffer];
     let hasData = false;
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias

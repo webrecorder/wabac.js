@@ -87,6 +87,7 @@ export class Rewriter {
   url: string;
   responseUrl: string;
   isCharsetUTF8: boolean;
+  isCharsetDetected = false;
 
   headInsertFunc: InsertFunc | null;
   workerInsertFunc: InsertFunc | null;
@@ -156,6 +157,7 @@ export class Rewriter {
             .toLowerCase()
             .replace("charset=", "")
             .replace("-", "") === "utf8";
+        this.isCharsetDetected = true;
       }
     }
     mime = mime.toLowerCase();
@@ -483,7 +485,7 @@ export class Rewriter {
 
   // HTML
   async rewriteHtml(response: ArchiveResponse): Promise<ArchiveResponse> {
-    const htmlRW = new HTMLRewriter(this, this.isCharsetUTF8);
+    const htmlRW = new HTMLRewriter(this);
     return htmlRW.rewrite(response);
   }
 
@@ -896,7 +898,7 @@ export class ProxyRewriter extends Rewriter {
   override async rewriteHtml(
     response: ArchiveResponse,
   ): Promise<ArchiveResponse> {
-    const htmlRW = new ProxyHTMLRewriter(this, this.isCharsetUTF8);
+    const htmlRW = new ProxyHTMLRewriter(this);
     return htmlRW.rewrite(response);
   }
 
