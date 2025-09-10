@@ -513,8 +513,6 @@ export class HTMLRewriter {
       }
     });
 
-    let hasData = false;
-
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const htmlrewriter = this;
 
