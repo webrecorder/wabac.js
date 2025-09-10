@@ -377,10 +377,11 @@ export class HTMLRewriter {
     if (bomFound) {
       // make new buffer in UTF-8 with no BOM
       buffer = new TextEncoder().encode(text);
+      this.isCharsetUTF8 = true;
     }
 
-    // don't try to detect if already detected via headers
-    if (!this.rewriter.isCharsetDetected) {
+    // don't try to detect if already detected as UTF-8 or detected a charset via headers
+    if (!this.isCharsetUTF8 && !this.rewriter.isCharsetDetected) {
       this.detectedCharset = this.detectMetaCharset(buffer);
       if (UTF_MATCH.includes(this.detectedCharset)) {
         this.isCharsetUTF8 = true;
