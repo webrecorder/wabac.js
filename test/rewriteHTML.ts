@@ -310,7 +310,7 @@ test(
   rewriteHtml,
   '<html><head><title>test</title><meta charset="utf-8"/></head>Some Content ― испытание</html>',
   '<html><head><title>test</title><meta charset="utf-8"/></head>Some Content ― испытание</html>',
-  {contentType: "text/html", encoding: "utf8"}
+  { contentType: "text/html", encoding: "utf8" },
 );
 
 test(
@@ -318,7 +318,7 @@ test(
   rewriteHtml,
   '<html><head><title>test</title><meta http-equiv="refresh" content="text/html; charset=utf-8"/></head>Some Content ― испытание</html>',
   '<html><head><title>test</title><meta http-equiv="refresh" content="text/html; charset=utf-8"/></head>Some Content ― испытание</html>',
-  {contentType: "text/html", encoding: "utf8"}
+  { contentType: "text/html", encoding: "utf8" },
 );
 
 test(
