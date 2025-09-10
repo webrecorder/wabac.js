@@ -9,9 +9,7 @@ import { ArchiveRequest } from "../../src/request";
 import { encodeLatin1 } from "../../src/utils";
 
 export async function doRewrite({
-  // @ts-expect-error [TODO] - TS7031 - Binding element 'content' implicitly has an 'any' type.
   content,
-  // @ts-expect-error [TODO] - TS7031 - Binding element 'contentType' implicitly has an 'any' type.
   contentType,
   url = "https://example.com/some/path/index.html",
   useBaseRules = true,

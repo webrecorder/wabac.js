@@ -10,6 +10,7 @@ import {
 } from "./utils";
 import { Buffer } from "buffer";
 import { type ExtraOpts } from "./types";
+import { detect, detectBom } from "./utils/charset";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -169,6 +170,7 @@ class ArchiveResponse {
 
   async getText(isUTF8 = false): Promise<{ bomFound: boolean; text: string }> {
     const buff = await this.getBuffer();
+    isUTF8 ||= detect(buff) === "UTF-8";
     if (typeof buff === "string") {
       return { bomFound: false, text: buff };
     }
@@ -176,19 +178,23 @@ class ArchiveResponse {
       return { bomFound: false, text: "" };
     }
 
+    const typeFromBOM = detectBom(buff);
+
     // Check for BOMs -- since we're removing BOM, set 'bomFound'
     // to re-encode as UTF-8 without BOM
     // UTF-8
-    if (buff[0] === 0xef && buff[1] === 0xbb && buff[2] === 0xbf) {
+    if (typeFromBOM === "UTF-8") {
       return { bomFound: true, text: decoder.decode(buff.slice(3)) };
       // UTF-16BE -- convert to buffer, swap, and decode LE
-    } else if (buff[0] === 0xfe && buff[1] === 0xff) {
+    } else if (typeFromBOM === "UTF-16BE") {
+      debugger;
       return {
         bomFound: true,
         text: Buffer.from(buff.slice(2)).swap16().toString("utf16le"),
       };
       // UTF-16LE -- convert to buffer, decode LE
-    } else if (buff[0] === 0xff && buff[1] === 0xfe) {
+    } else if (typeFromBOM === "UTF-16LE") {
+      debugger;
       return {
         bomFound: true,
         text: Buffer.from(buff.slice(2)).toString("utf16le"),

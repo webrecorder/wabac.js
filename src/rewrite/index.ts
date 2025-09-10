@@ -140,7 +140,7 @@ export class Rewriter {
     request: ArchiveRequest,
     response: ArchiveResponse,
     url = "",
-    mime = "",
+    mime = ""
   ) {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -253,13 +253,13 @@ export class Rewriter {
 
   async rewrite(
     response: ArchiveResponse,
-    request: ArchiveRequest,
+    request: ArchiveRequest
   ): Promise<ArchiveResponse> {
-    const charset = detect(response.buffer || new Uint8Array());
+    const charset = detect(response.buffer);
     if (charset === "UTF-8") {
       this.isCharsetUTF8 = true;
     }
-    // TODO: if encoding is something other than UTF-8 or latin1, we should probably reencode it as utf-8?
+    // TODO: if encoding is something other than UTF-8 or latin1, we should probably re-encode it as utf-8?
     const rewriteMode = this.contentRewrite
       ? this.getRewriteMode(request, response, this.baseUrl)
       : null;
@@ -272,7 +272,7 @@ export class Rewriter {
       response.headers,
       this.urlRewrite,
       !!rewriteMode,
-      isAjax,
+      isAjax
     );
 
     const encoding = response.headers.get("content-encoding");
@@ -287,7 +287,7 @@ export class Rewriter {
         response,
         encoding,
         te,
-        rewriteMode === null,
+        rewriteMode === null
       );
     }
 
@@ -357,7 +357,7 @@ export class Rewriter {
       let { bomFound, text } = await response.getText(this.isCharsetUTF8);
       text = rwFunc.call(this, text, opts);
       // if BOM found and not already UTF-8, add charset explicitly
-      if (bomFound && !this.isCharsetUTF8) {
+      if (bomFound || this.isCharsetUTF8) {
         let mime = headers.get("Content-Type") || "";
         const parts = mime.split(";");
         // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
@@ -630,7 +630,7 @@ export class Rewriter {
     headers: Headers,
     urlRewrite: boolean,
     contentRewrite: boolean,
-    isAjax: boolean,
+    isAjax: boolean
   ) {
     const headerRules: Record<string, string> = {
       "access-control-allow-origin": "prefix-if-url-rewrite",
@@ -900,7 +900,7 @@ export class ProxyRewriter extends Rewriter {
   }
 
   override async rewriteHtml(
-    response: ArchiveResponse,
+    response: ArchiveResponse
   ): Promise<ArchiveResponse> {
     const htmlRW = new ProxyHTMLRewriter(this, this.isCharsetUTF8);
     return htmlRW.rewrite(response);

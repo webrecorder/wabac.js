@@ -28,7 +28,10 @@ export type EncodingName =
  * @param fragment - The HTML fragment as Uint8Array
  * @returns The detected encoding name or null if not detected
  */
-export function detect(fragment: Uint8Array): EncodingName | null {
+export function detect(fragment: Uint8Array | null): EncodingName | null {
+  if (!fragment) {
+    return null;
+  }
   // Try BOM detection first
   const bomResult = detectBom(fragment);
   if (bomResult) {
@@ -53,7 +56,7 @@ export function detect(fragment: Uint8Array): EncodingName | null {
  * @param fragment - The HTML fragment as Uint8Array
  * @returns The detected encoding name or null if no valid BOM found
  */
-function detectBom(fragment: Uint8Array): EncodingName | null {
+export function detectBom(fragment: Uint8Array): EncodingName | null {
   if (fragment.length < 2) {
     return null;
   }
