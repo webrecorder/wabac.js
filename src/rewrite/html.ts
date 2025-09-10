@@ -28,6 +28,8 @@ const defmod = "mp_";
 
 const MAX_HTML_REWRITE_SIZE = 50000000;
 
+const UTF_MATCH = ["utf-8", "utf8"];
+
 const rewriteTags: Record<string, Record<string, string>> = {
   a: { href: "ln_" },
   applet: {
@@ -100,6 +102,7 @@ export class HTMLRewriter {
   rule: TextNodeRewriteRule | null = null;
   ruleMatch: RegExpMatchArray | null = null;
   isCharsetUTF8: boolean;
+  detectedCharset = "";
 
   constructor(rewriter: Rewriter) {
     this.rewriter = rewriter;
@@ -133,13 +136,13 @@ export class HTMLRewriter {
     // Look for meta charset attribute
     const charsetMatch = text.match(META_CHARSET_REGEX);
     if (charsetMatch?.[1]) {
-      return charsetMatch[1].toLowerCase().replace("-", "");
+      return charsetMatch[1].toLowerCase();
     }
 
     // Look for meta http-equiv with charset in content
     const httpEquivMatch = text.match(META_CHARSET_HTTP_EQUIV);
     if (httpEquivMatch?.[1]) {
-      return httpEquivMatch[1].toLowerCase().replace("-", "");
+      return httpEquivMatch[1].toLowerCase();
     }
 
     return "";
@@ -244,7 +247,7 @@ export class HTMLRewriter {
       } else if (tagName === "meta" && name === "content") {
         attr.value = this.rewriteMetaContent(tag.attrs, attr, rewriter);
       } else if (tagName === "meta" && name === "charset") {
-        if (value && ["utf8", "utf-8"].includes(value.toLowerCase())) {
+        if (value && UTF_MATCH.includes(value.toLowerCase())) {
           this.isCharsetUTF8 = true;
         }
       } else if (tagName === "param" && isUrl(value)) {
@@ -378,7 +381,8 @@ export class HTMLRewriter {
 
     // don't try to detect if already detected via headers
     if (!this.rewriter.isCharsetDetected) {
-      if (this.detectMetaCharset(buffer) === "utf8") {
+      this.detectedCharset = this.detectMetaCharset(buffer);
+      if (UTF_MATCH.includes(this.detectedCharset)) {
         this.isCharsetUTF8 = true;
       }
     }
@@ -400,6 +404,10 @@ export class HTMLRewriter {
 
     const addInsert = () => {
       if (!insertAdded && rewriter.headInsertFunc) {
+        // emit charset before rest of head insert to ensure its in the first 1024 bytes
+        if (this.detectedCharset) {
+          rwStream.emitRaw(`<meta charset="${this.detectedCharset}"/>`);
+        }
         const headInsert = rewriter.headInsertFunc(rewriter.url);
         if (headInsert) {
           rwStream.emitRaw(headInsert);
@@ -415,10 +423,7 @@ export class HTMLRewriter {
 
       this.rewriteTagAndAttrs(startTag, tagRules || {}, rewriter);
 
-      if (
-        !insertAdded &&
-        !["head", "html", "meta"].includes(startTag.tagName)
-      ) {
+      if (!insertAdded && !["head", "html"].includes(startTag.tagName)) {
         addInsert();
       }
 
@@ -508,7 +513,6 @@ export class HTMLRewriter {
       }
     });
 
-    const sourceGen = [buffer];
     let hasData = false;
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -532,17 +536,12 @@ export class HTMLRewriter {
             controller.close();
           });
 
-          for await (const chunk of sourceGen) {
-            if (htmlrewriter.isCharsetUTF8) {
-              rwStream.write(decoder.decode(chunk), "utf8");
-            } else {
-              rwStream.write(decodeLatin1(chunk), "latin1");
-            }
-            hasData = true;
+          if (htmlrewriter.isCharsetUTF8) {
+            rwStream.write(decoder.decode(buffer), "utf8");
+          } else {
+            rwStream.write(decodeLatin1(buffer), "latin1");
           }
-          if (hasData) {
-            addInsert();
-          }
+          addInsert();
 
           rwStream.end();
         },
