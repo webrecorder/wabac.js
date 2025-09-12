@@ -240,19 +240,25 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return false;
   }
 
-  parseGlobals(text: string, overrides: string[]) {
+  parseGlobals(
+    text: string,
+    overrides: string[],
+  ): { names: { name: string; kind: string }[]; letOffsets: number[] } {
     const res = acorn.parse(text, { ecmaVersion: "latest" });
 
     let hasDocWrite = false;
 
-    const names: string[] = [];
+    const names: { name: string; kind: string }[] = [];
 
     const excludeOverrides = new Set();
+
+    const letOffsets: number[] = [];
+    let lastStart = -1;
 
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const expr of (res as any).body) {
-      const { type } = expr;
+      const { type, start } = expr;
       // Check global variable declarations
       if (type === "VariableDeclaration") {
         const { kind, declarations } = expr;
@@ -270,7 +276,13 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
             if (overrides.includes(name)) {
               excludeOverrides.add(name);
             } else if (kind === "const" || kind === "let") {
-              names.push(`self.${name} = ${name};`);
+              names.push({ name, kind });
+              if (kind === "let") {
+                if (lastStart !== start) {
+                  letOffsets.unshift(start as number);
+                }
+                lastStart = start;
+              }
             }
           }
         }
@@ -278,7 +290,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       } else if (type === "ClassDeclaration") {
         if (expr.id && expr.id.type === "Identifier" && expr.id.name) {
           const name = expr.id.name;
-          names.push(`self.${name} = ${name};`);
+          names.push({ name, kind: "const" });
         }
         // Check for document.write() calls
       } else if (!hasDocWrite && type === "ExpressionStatement") {
@@ -312,11 +324,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       this.lastBuff = ";document.close();" + this.lastBuff;
     }
 
-    if (names.length) {
-      return "\n;" + names.join("\n");
-    } else {
-      return "";
-    }
+    return { names, letOffsets };
   }
 
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'RxRewriter'.
@@ -371,7 +379,9 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     }
 
     // @ts-expect-error ignore
-    if (opts.isWorker) {
+    const isWorker = opts.isWorker;
+
+    if (isWorker) {
       // only do further rewriting if "location" is used in the worker script
       if (text.indexOf("location") === -1) {
         return newText;
@@ -382,22 +392,56 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       let firstBuff = this.firstBuff;
       let overrides = GLOBAL_OVERRIDES;
 
-      // @ts-expect-error ignore
-      if (opts.isWorker) {
+      if (isWorker) {
         firstBuff = `{ const location = self._WB_wombat_location || self.location;\n`;
         overrides = WORKER_GLOBAL_OVERRIDES;
       }
-      let hoistGlobals = "";
+      let preScopeGlobals = "";
+      let inScopeGlobals = "";
+      let postScopeGlobals = "";
       if (newText) {
         try {
-          hoistGlobals = this.parseGlobals(newText, overrides);
+          const { names: globalNames, letOffsets } = this.parseGlobals(
+            newText,
+            overrides,
+          );
+
+          for (const value of letOffsets) {
+            // remove "let" at each index
+            newText = newText.slice(0, value) + newText.slice(value + 3);
+          }
+
+          // set directly on global scope to avoid discrepancies between 'const X' and 'self.X' checks
+          for (const { name, kind } of globalNames) {
+            if (kind === "const") {
+              const varname = `self.___WB_const_${name}`;
+              inScopeGlobals += `${varname} = ${name};\n`;
+              postScopeGlobals += `${kind} ${name} = ${varname}; delete ${varname};\n`;
+            } else if (kind === "let") {
+              preScopeGlobals += `let ${name};\n`;
+              //newText = newText.replace(new RegExp("let\\s+" + name + "\\b"), name);
+            }
+          }
+          if (inScopeGlobals) {
+            inScopeGlobals = "\n;" + inScopeGlobals;
+          }
+          if (postScopeGlobals) {
+            postScopeGlobals = "\n" + postScopeGlobals;
+          }
           // [TODO]
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           console.warn(`acorn parsing failed, script len ${newText.length}`);
         }
       }
-      newText = firstBuff + newText + hoistGlobals + this.lastBuff;
+
+      newText =
+        preScopeGlobals +
+        firstBuff +
+        newText +
+        inScopeGlobals +
+        this.lastBuff +
+        postScopeGlobals;
       // @ts-expect-error [TODO] - TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
       if (opts.inline) {
         newText = newText.replace(/\n/g, " ");
