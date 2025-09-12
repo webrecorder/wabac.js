@@ -24,7 +24,7 @@ jobs:
           allowUpdates: true
           draft: true
           generateReleaseNotes: true
-          name: wombat ${{ env.version }}
+          name: wabac.js v${{ env.version }}
           skipIfReleaseExists: true
           tag: v${{ env.version }}
           updateOnlyUnreleased: true
