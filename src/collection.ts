@@ -273,17 +273,20 @@ export class Collection {
       );
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const workerInsertFunc = (text: string, opts?: any) => {
-      if (opts?.isModule) {
-        return text;
+    const workerInsertFunc = (isModule: boolean) => {
+      const newWBWombat = `new WBWombat(
+        {"prefix": "${basePrefixTS}",
+         "mod": "wkr_",
+         "originalURL": "${requestURL}"
+        })`;
+
+      if (isModule) {
+        return `import '${this.staticPrefix}wombatWorkers.js'; if (!self.__wb_wombat) { self.__wb_wombat = ${newWBWombat} }`;
       }
-      return (
-        `
-      (function() { self.importScripts('${this.staticPrefix}wombatWorkers.js');\
-          new WBWombat({'prefix': '${basePrefixTS}/', 'prefixMod': '${basePrefixTS}wkrf_/', 'originalURL': '${requestURL}'});\
-      })();` + text
-      );
+      return `
+      { if (!self.__wb_wombat) { self.importScripts('${this.staticPrefix}wombatWorkers.js'); \
+        self.__wb_wombat = ${newWBWombat};}\
+      }`;
     };
 
     const mod = TO_MP.includes(request.mod) ? "mp_" : request.mod;

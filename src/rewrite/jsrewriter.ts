@@ -22,6 +22,8 @@ const GLOBAL_OVERRIDES = [
   "opener",
 ];
 
+const WORKER_GLOBAL_OVERRIDES = ["globalThis", "self", "location"];
+
 const GLOBALS_CONCAT_STR = GLOBAL_OVERRIDES.map(
   (x) => `(?:^|[^$.])\\b${x}\\b(?:$|[^$])`,
 ).join("|");
@@ -238,7 +240,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return false;
   }
 
-  parseGlobals(text: string) {
+  parseGlobals(text: string, overrides: string[]) {
     const res = acorn.parse(text, { ecmaVersion: "latest" });
 
     let hasDocWrite = false;
@@ -265,7 +267,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
             // [TODO]
             // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            if (GLOBAL_OVERRIDES.includes(name)) {
+            if (overrides.includes(name)) {
               excludeOverrides.add(name);
             } else if (kind === "const" || kind === "let") {
               names.push(`self.${name} = ${name};`);
@@ -351,31 +353,51 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
     if (opts.isModule) {
-      // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      return this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) + newText;
+      return (
+        // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) +
+        // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['moduleInsert'].
+        (opts.moduleInsert || "") +
+        newText
+      );
     }
 
-    const wrapGlobals = GLOBALS_RX.exec(text);
+    const wrapGlobals = !!GLOBALS_RX.exec(text);
 
     // @ts-expect-error [TODO] - TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
     if (opts.inline) {
       newText = newText.replace(/\n/g, " ");
     }
 
+    // @ts-expect-error ignore
+    if (opts.isWorker) {
+      // only do further rewriting if "location" is used in the worker script
+      if (text.indexOf("location") === -1) {
+        return newText;
+      }
+    }
+
     if (wrapGlobals) {
+      let firstBuff = this.firstBuff;
+      let overrides = GLOBAL_OVERRIDES;
+
+      // @ts-expect-error ignore
+      if (opts.isWorker) {
+        firstBuff = `{ const location = self._WB_wombat_location || self.location;\n`;
+        overrides = WORKER_GLOBAL_OVERRIDES;
+      }
       let hoistGlobals = "";
       if (newText) {
         try {
-          hoistGlobals = this.parseGlobals(newText);
+          hoistGlobals = this.parseGlobals(newText, overrides);
           // [TODO]
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (e) {
           console.warn(`acorn parsing failed, script len ${newText.length}`);
         }
       }
-      newText = this.firstBuff + newText + hoistGlobals + this.lastBuff;
+      newText = firstBuff + newText + hoistGlobals + this.lastBuff;
       // @ts-expect-error [TODO] - TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
       if (opts.inline) {
         newText = newText.replace(/\n/g, " ");
