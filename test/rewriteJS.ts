@@ -82,7 +82,7 @@ const rewriteJSImport = test.macro({
   },
 });
 
-function wrapScript(text: string) {
+function wrapScriptOpen(text: string) {
   return (
     `\
 var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
@@ -98,10 +98,12 @@ let parent = _____WB$wombat$assign$function_____("parent");
 let frames = _____WB$wombat$assign$function_____("frames");
 let opener = _____WB$wombat$assign$function_____("opener");
 let arguments;
-\n` +
-    text +
-    "\n\n}"
+\n` + text
   );
+}
+
+function wrapScript(text: string) {
+  return wrapScriptOpen(text) + "\n\n}";
 }
 
 function wrapImport(text: string) {
@@ -188,7 +190,7 @@ test(
 );
 
 test(
-  rewriteJSWrapped,
+  rewriteJS,
   `
   class A {}
   const B = 5;
@@ -197,16 +199,22 @@ test(
 
   location = "http://example.com/2"`,
 
-  `
+  `let C;
+${wrapScriptOpen(`
   class A {}
   const B = 5;
-  let C = 4;
+   C = 4;
   var D = 3;
 
-  location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = "http://example.com/2"
-;self.A = A;
-self.B = B;
-self.C = C;`,
+  location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = "http://example.com/2"`)}
+;self.___WB_const_A = A;
+self.___WB_const_B = B;
+
+
+}
+const A = self.___WB_const_A; delete self.___WB_const_A;
+const B = self.___WB_const_B; delete self.___WB_const_B;
+`,
 );
 
 test(
@@ -245,9 +253,17 @@ test(
 
 // add global injection
 test(
-  rewriteJSWrapped,
+  rewriteJS,
   "let a = document.location.href; var b = 5; const foo = 4",
-  "let a = document.location.href; var b = 5; const foo = 4\n;self.a = a;\nself.foo = foo;",
+  `let a;\n${wrapScriptOpen(
+    ` a = document.location.href; var b = 5; const foo = 4`,
+  )}
+;self.___WB_const_foo = foo;
+
+
+}
+const foo = self.___WB_const_foo; delete self.___WB_const_foo;
+`,
 );
 
 // import rewrite
