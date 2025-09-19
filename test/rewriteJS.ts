@@ -266,6 +266,30 @@ const foo = self.___WB_const_foo; delete self.___WB_const_foo;
 `,
 );
 
+// multiple globals on same line
+test(
+  rewriteJS,
+  `\
+let a = document.location.href, b = 1, c = 2;
+const foo = 4, bar = 5`,
+
+  `let a;
+let b;
+let c;
+${wrapScriptOpen(
+  ` a = document.location.href, b = 1, c = 2;
+const foo = 4, bar = 5`,
+)}
+;self.___WB_const_foo = foo;
+self.___WB_const_bar = bar;
+
+
+}
+const foo = self.___WB_const_foo; delete self.___WB_const_foo;
+const bar = self.___WB_const_bar; delete self.___WB_const_bar;
+`,
+);
+
 // import rewrite
 test(
   rewriteJSImport,
