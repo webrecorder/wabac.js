@@ -623,6 +623,20 @@ test(
 );
 
 test(
+  "embed image",
+  rewriteHtml,
+  '<embed type="image/svg+xml" src="https://example.com/some/file.svg">',
+  '<img type="image/svg+xml" src="http://localhost:8080/prefix/20201226101010mp_/https://example.com/some/file.svg">',
+);
+
+test(
+  "embed other",
+  rewriteHtml,
+  '<embed src="https://example.com/some/file.pdf">',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf">',
+);
+
+test(
   "textarea text",
   rewriteHtml,
   "<textarea>&quot;loadOrderID&#x3d;0&amp;&quot;</textarea>",

@@ -305,9 +305,16 @@ export class HTMLRewriter {
             }
           }
         }
-      } else if (tagName === "embed") {
+      } else if (tagName === "embed" && name === "src") {
         const type = this.getAttr(tag.attrs, "type");
-        tag.tagName = type?.startsWith("image/") ? "img" : "iframe";
+        const isImg = type?.startsWith("image/");
+        tag.tagName = isImg ? "img" : "iframe";
+        attr.value = this.rewriteUrl(
+          rewriter,
+          value,
+          false,
+          isImg ? "mp_" : "if_",
+        );
       } else if (name === "target") {
         const target = attr.value;
 
