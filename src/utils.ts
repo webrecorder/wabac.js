@@ -2,6 +2,7 @@ declare let self: ServiceWorkerGlobalScope;
 
 import { getReasonPhrase } from "http-status-codes";
 import { type ArchiveRequest } from "./request";
+import { type HeadersMultiMap } from "warcio";
 
 // Threshold size for switching to range requests
 export const MAX_FULL_DOWNLOAD_SIZE = 25000000;
@@ -119,7 +120,10 @@ export async function digestMessage(
 ) {
   const msgUint8 =
     typeof message === "string" ? new TextEncoder().encode(message) : message;
-  const hashBuffer = await crypto.subtle.digest(hashtype, msgUint8);
+  const hashBuffer = await crypto.subtle.digest(
+    hashtype,
+    msgUint8 as BufferSource,
+  );
   if (prefix === "") {
     return base16(hashBuffer);
   }
@@ -154,7 +158,7 @@ export function randomId() {
 }
 
 export function makeHeaders(
-  headers: Headers | Record<string, string> | Map<string, string>,
+  headers: Headers | Record<string, string> | HeadersMultiMap,
 ) {
   try {
     return new Headers(headers as Headers);
