@@ -14,7 +14,7 @@ import {
   DeleteExpiredError,
   RangeError,
 } from "../utils";
-import { type AsyncIterReader, getSurt } from "warcio";
+import { AsyncIterReader, getSurt } from "warcio";
 import { LiveProxy } from "../liveproxy";
 
 import { type IDBPTransaction, type IDBPDatabase } from "idb";
@@ -25,6 +25,7 @@ import {
   INDEX_NOT_LOADED,
   type IndexType,
   NO_LOAD_WACZ,
+  DEFAULT_WACZ,
   WACZFile,
   type WACZFileInitOptions,
   type WACZFileOptions,
@@ -47,6 +48,7 @@ import {
   type PageEntry,
   type RemoteResourceEntry,
   type WACZCollConfig,
+  type LoadRangeOpts,
 } from "../types";
 
 const MAX_BLOCKS = 3;
@@ -90,7 +92,7 @@ export class MultiWACZ
   waczNameForHash: Record<string, string>;
   ziploadercache: Record<string, Promise<void>>;
   updating: Promise<void> | null;
-  rootSourceType: "wacz" | "json";
+  rootSourceType: "wacz" | "json" | "idx";
   sourceLoader: BaseLoader | undefined;
   externalSource: LiveProxy | null;
   textIndex: string;
@@ -112,7 +114,7 @@ export class MultiWACZ
   constructor(
     config: WACZCollConfig,
     sourceLoader: BaseLoader,
-    rootSourceType: "wacz" | "json" = "wacz",
+    rootSourceType: "wacz" | "json" | "idx" = "wacz",
   ) {
     super(config.dbname, config.noCache);
 
@@ -265,6 +267,11 @@ export class MultiWACZ
   override async init() {
     await super.init();
 
+    if (this.rootSourceType === "idx") {
+      this.initIDX();
+      return;
+    }
+
     // @ts-expect-error [TODO] - TS2345 - Argument of type '"waczfiles"' is not assignable to parameter of type 'StoreNames<DBType>'.
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -285,7 +292,7 @@ export class MultiWACZ
         const parent = this.waczfiles[parentName];
         // @ts-expect-error [TODO] - TS2322 - Type 'WACZFile | undefined' is not assignable to type 'WACZLoadSource | null'.
         value.parent = parent;
-      } else if (this.rootSourceType !== "json") {
+      } else if (this.rootSourceType === "wacz") {
         // @ts-expect-error [TODO] - TS2322 - Type 'BaseLoader | undefined' is not assignable to type 'BaseLoader | null'.
         value.loader = this.sourceLoader;
       }
@@ -422,16 +429,22 @@ export class MultiWACZ
     const params = { offset: start, length, unzip: true, computeHash: true };
     const waczname = wacz!;
 
+    let isArc = false;
+
     const { reader, hasher } = await this.loadFileFromNamedWACZ(
       waczname,
       "archive/" + path,
       params,
     );
 
-    const loader = new SingleRecordWARCLoader(reader);
+    if (this.rootSourceType === "idx") {
+      isArc = !!path.match(/\.arc(?:.gz)?(?:[?].*)$/);
+    } else {
+      // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
+      await this.waczfiles[waczname].save(this.db);
+    }
 
-    // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
-    await this.waczfiles[waczname].save(this.db);
+    const loader = new SingleRecordWARCLoader(reader, isArc);
 
     const remote = await loader.load();
 
@@ -443,6 +456,10 @@ export class MultiWACZ
   }
 
   async loadIndex(waczname: string) {
+    if (this.rootSourceType === "idx") {
+      return { indexType: INDEX_IDX, isNew: false };
+    }
+
     if (!this.waczfiles[waczname]) {
       throw new Error("unknown waczfile: " + waczname);
     }
@@ -527,7 +544,52 @@ export class MultiWACZ
       { computeHash: true },
     );
 
-    const batch: IDXLine[] = [];
+    return await this.loadIDXDirect(
+      reader,
+      waczname,
+      progressUpdate,
+      total,
+      hasher,
+      filename,
+    );
+  }
+
+  async loadIDXDirect(
+    reader: AsyncIterReader,
+    waczname: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    progressUpdate: any,
+    total?: number,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    hasher?: any,
+    filename?: string,
+  ) {
+    let batch: IDXLine[] = [];
+
+    const flushBatch = async () => {
+      if (!batch.length) {
+        return;
+      }
+
+      // @ts-expect-error [TODO] - TS2769 - No overload matches this call.
+      const tx = this.db!.transaction("ziplines", "readwrite");
+
+      for (const entry of batch) {
+        // @ts-expect-error [TODO] - TS2345 - Argument of type 'IDXLine' is not assignable to parameter of type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; } | null'.
+        // [TODO]
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        tx.store.put(entry);
+      }
+
+      try {
+        await tx.done;
+      } catch (e) {
+        console.log("Error loading ziplines index: ", e);
+      }
+
+      batch = [];
+    };
+
     let defaultFilename = "";
 
     // start out as non surt, if surt detected, set to false
@@ -599,36 +661,26 @@ export class MultiWACZ
         };
       }
 
-      if (progressUpdate && total) {
-        progressUpdate(currOffset / total, currOffset, total);
-      }
-
       batch.push(entry);
+
+      if (batch.length >= 1000) {
+        await flushBatch();
+
+        if (progressUpdate && total) {
+          progressUpdate(currOffset / total, "", currOffset, total);
+        }
+      }
     }
 
-    if (hasher) {
+    await flushBatch();
+
+    if (hasher && filename) {
       const expected = await this.getVerifyExpected(filename);
       if (expected) {
         // [TODO]
         // eslint-disable-next-line @typescript-eslint/no-floating-promises, @typescript-eslint/no-unsafe-argument
         this.addVerifyData(waczname, filename, expected, hasher.getHash());
       }
-    }
-
-    // @ts-expect-error [TODO] - TS2769 - No overload matches this call.
-    const tx = this.db!.transaction("ziplines", "readwrite");
-
-    for (const entry of batch) {
-      // @ts-expect-error [TODO] - TS2345 - Argument of type 'IDXLine' is not assignable to parameter of type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; } | null'.
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      tx.store.put(entry);
-    }
-
-    try {
-      await tx.done;
-    } catch (e) {
-      console.log("Error loading ziplines index: ", e);
     }
 
     // set only if nonSurt is true (defaults to false)
@@ -900,9 +952,7 @@ export class MultiWACZ
   async loadFileFromWACZ(
     waczfile: WACZFile,
     filename: string,
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    opts: Record<string, any>,
+    opts: LoadRangeOpts,
     numRetries = 0,
   ): LoadWACZEntry {
     try {
@@ -924,10 +974,29 @@ export class MultiWACZ
   async loadFileFromNamedWACZ(
     waczname: string,
     filename: string,
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    opts: Record<string, any>,
+    opts: LoadRangeOpts,
   ): LoadWACZEntry {
+    if (this.rootSourceType === "idx") {
+      let path;
+      if (filename.startsWith("indexes/")) {
+        path = filename.slice("indexes/".length);
+      } else if (filename.startsWith("archive/")) {
+        path = filename.slice("archive".length);
+      } else {
+        path = filename;
+      }
+      const url = new URL(path, this.config.loadUrl).href;
+      const blockLoader = await createLoader({ url });
+      const resp = await blockLoader.getRange(
+        opts.offset || 0,
+        opts.length || -1,
+        true,
+      );
+      return {
+        reader: new AsyncIterReader(resp as ReadableStream<Uint8Array>),
+      };
+    }
+
     const waczfile = this.waczfiles[waczname];
 
     if (!waczfile) {
@@ -1166,6 +1235,13 @@ export class MultiWACZ
       if (res) {
         return res;
       }
+    }
+
+    if (this.rootSourceType === "idx") {
+      return await super.getResource(request, prefix, event, {
+        // @ts-expect-error [TODO] - TS2345 - Argument of type '{ waczname: string; }' is not assignable to parameter of type 'Opts'.
+        waczname: DEFAULT_WACZ,
+      });
     }
 
     const hash = pageId;
@@ -1547,6 +1623,16 @@ export class MultiWACZ
     }
 
     return data;
+  }
+
+  initIDX() {
+    this.addWACZFile({
+      waczname: DEFAULT_WACZ,
+      hash: "",
+      fileType: "idx-only",
+    });
+    this.waczfiles[DEFAULT_WACZ]!.indexType = INDEX_IDX;
+    return {};
   }
 
   getLoadPath(path: string) {

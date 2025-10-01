@@ -1,10 +1,14 @@
 import { makeHeaders, Canceled, tsToDate } from "./utils";
 
 import {
+  AsyncIterReader,
   type BaseAsyncIterReader,
+  HeadersMultiMap,
   type Source,
+  StatusAndHeaders,
+  StatusAndHeadersParser,
   WARCParser,
-  type WARCRecord,
+  WARCRecord,
   postToGetUrl,
 } from "warcio";
 
@@ -435,7 +439,7 @@ class WARCLoader extends BaseParser {
     return entry;
   }
 
-  isFullRangeRequest(headers: Headers | Map<string, string>) {
+  isFullRangeRequest(headers: Headers | HeadersMultiMap) {
     const range = headers.get("content-range");
 
     const cl = parseInt(headers.get("content-length") || "0");
@@ -470,6 +474,7 @@ class WARCLoader extends BaseParser {
       for await (const record of parser) {
         count++;
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (!record.warcType) {
           console.log("skip empty record");
           continue;
@@ -643,9 +648,12 @@ function isPage(url: string, status: number, mime: string) {
 
 // ===========================================================================
 class SingleRecordWARCLoader extends WARCLoader {
-  constructor(reader: Source) {
+  isArc = false;
+
+  constructor(reader: Source, isArc = false) {
     super(reader);
     this.detectPages = false;
+    this.isArc = isArc;
   }
 
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WARCLoader'.
@@ -653,7 +661,9 @@ class SingleRecordWARCLoader extends WARCLoader {
 
   // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'WARCLoader'.
   async load() {
-    const record = await new WARCParser(this.reader).parse();
+    const record = !this.isArc
+      ? await new WARCParser(this.reader).parse()
+      : await new ARCParser().parse(this.reader);
 
     if (!record) {
       return null;
@@ -678,6 +688,59 @@ class WARCInfoOnlyWARCLoader extends WARCLoader {
     }
 
     return null;
+  }
+}
+
+// ===========================================================================
+export class ARCParser {
+  ARC_TO_WARC_HEADERS = [
+    "WARC-Target-URI",
+    "WARC-IP-Address",
+    "WARC-Date",
+    "Content-Type",
+    "Content-Length",
+  ];
+
+  async parse(readerOrStream: Source) {
+    let reader: AsyncIterReader;
+
+    if (!(readerOrStream instanceof AsyncIterReader)) {
+      reader = new AsyncIterReader(readerOrStream);
+    } else {
+      reader = readerOrStream;
+    }
+    let line = await reader.readline();
+
+    if (line.startsWith("filedesc://")) {
+      line = await reader.readline();
+      line = await reader.readline();
+    }
+
+    const parts = line.split(" ");
+    if (parts.length !== this.ARC_TO_WARC_HEADERS.length) {
+      return null;
+    }
+
+    const headers = new HeadersMultiMap();
+
+    headers.set("WARC-Target-URI", parts[0]!);
+    headers.set("WARC-Date", tsToDate(parts[2]!).toISOString());
+    headers.set("WARC-IP-Address", parts[1]!);
+    headers.set("WARC-Type", "response");
+    headers.set("Content-Type", "application/http;msgtype=response");
+    headers.set("Content-Length", parts[4]!);
+
+    const httpHeaersParser = new StatusAndHeadersParser();
+    const httpHeaders = await httpHeaersParser.parse(reader);
+    const warcHeaders = new StatusAndHeaders({
+      statusline: "WARC/1.0",
+      headers,
+    });
+
+    const warcRecord = new WARCRecord({ warcHeaders, reader });
+    warcRecord.httpHeaders = httpHeaders;
+
+    return warcRecord;
   }
 }
 

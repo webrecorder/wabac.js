@@ -46,6 +46,8 @@ export function getKnownFileExtension(name: string) {
     ".har",
     ".json",
     ".wacz",
+    ".idx",
+    ".summary",
   ];
   for (const ext of fileExtensions) {
     if (name.endsWith(ext)) {

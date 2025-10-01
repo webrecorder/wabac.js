@@ -236,6 +236,14 @@ export type WACZPageEntry = {
   crawl_id?: string;
 };
 
+export type LoadRangeOpts = {
+  offset?: number;
+  length?: number;
+  unzip?: boolean;
+  computeHash?: boolean;
+  signal?: AbortSignal | null;
+};
+
 export type MultiWACZJsonSpec = {
   resources: { name: string; path: string; hash: string; crawlId?: string }[];
   profile: string;

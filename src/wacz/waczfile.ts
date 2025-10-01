@@ -1,4 +1,5 @@
 import { type BaseLoader } from "../blockloaders";
+import { type LoadRangeOpts } from "../types";
 import {
   type LoadWACZEntry,
   ZipBlockLoader,
@@ -13,7 +14,7 @@ export const INDEX_NOT_LOADED = 0;
 export const INDEX_CDX = 1;
 export const INDEX_IDX = 2;
 
-export type WACZType = "wacz" | "multi-wacz";
+export type WACZType = "wacz" | "multi-wacz" | "idx-only";
 export const WACZ_LEAF = "wacz";
 export const MULTI_WACZ = "multi-wacz";
 
@@ -124,9 +125,7 @@ export class WACZFile implements WACZLoadSource {
     return this.entries;
   }
 
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async loadFile(filename: string, opts: Record<string, any>): LoadWACZEntry {
+  async loadFile(filename: string, opts: LoadRangeOpts): LoadWACZEntry {
     if (!this.zipreader) {
       await this.init();
     }

@@ -2,6 +2,7 @@ import { AsyncIterReader, concatChunks } from "warcio";
 import { createSHA256 } from "hash-wasm";
 import { BaseLoader, getReadableStreamFromIter } from "../blockloaders";
 import { type IHasher } from "hash-wasm/dist/lib/WASMInterface.js";
+import { type LoadRangeOpts } from "../types";
 
 // ===========================================================================
 const MAX_INT32 = 0xffffffff;
@@ -321,16 +322,10 @@ export class ZipRangeReader {
     {
       offset = 0,
       length = -1,
-      signal = null,
+      signal = undefined,
       unzip = false,
       computeHash = false,
-    }: {
-      offset?: number;
-      length?: number;
-      signal?: AbortSignal | null;
-      unzip?: boolean;
-      computeHash?: boolean;
-    } = {},
+    }: LoadRangeOpts = {},
   ): Promise<ReaderAndHasher> {
     if (this.entries === null) {
       await this.load();
