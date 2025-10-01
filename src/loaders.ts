@@ -14,6 +14,7 @@ import {
   SingleWACZLoader,
   SingleWACZFullImportLoader,
   JSONResponseMultiWACZLoader,
+  IDXDirectMultiWACZLoader,
 } from "./wacz/waczloader";
 import { MultiWACZ } from "./wacz/multiwacz";
 
@@ -363,6 +364,7 @@ export class CollectionLoader {
       case "wacz":
       case "remotezip":
       case "multiwacz":
+      case "idx":
         sourceLoader = await createLoader({
           url: config.loadUrl || config.sourceUrl,
           headers: config.headers,
@@ -371,7 +373,7 @@ export class CollectionLoader {
         store = new MultiWACZ(
           config as WACZCollConfig,
           sourceLoader,
-          type === "multiwacz" ? "json" : "wacz",
+          type === "multiwacz" ? "json" : type === "idx" ? "idx" : "wacz",
         );
         break;
 
@@ -884,6 +886,11 @@ Make sure this is a valid URL and you have access to this file.`,
         db = new MultiWACZ(config, sourceLoader, "json");
         loader = new JSONResponseMultiWACZLoader(response);
         type = "multiwacz";
+      } else if (sourceExt === ".idx" || sourceExt === ".summary") {
+        // @ts-expect-error [TODO] - TS2345 - Argument of type 'Record<string, any>' is not assignable to parameter of type 'Config'.
+        db = new MultiWACZ(config, sourceLoader, "idx");
+        loader = new IDXDirectMultiWACZLoader(stream!);
+        type = "idx";
       }
 
       if (!loader) {

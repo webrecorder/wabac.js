@@ -1,8 +1,10 @@
+import { AsyncIterReader } from "warcio";
 import { type BaseLoader } from "../blockloaders";
 import { type CollConfig, type ArchiveLoader } from "../types";
 import { MAX_FULL_DOWNLOAD_SIZE } from "../utils";
 
 import { WARCLoader } from "../warcloader";
+import { type MultiWACZ } from "./multiwacz";
 
 import { DEFAULT_WACZ, WACZFile } from "./waczfile";
 import { WACZImporter } from "./waczimporter";
@@ -166,6 +168,28 @@ export class JSONResponseMultiWACZLoader implements ArchiveLoader {
       // [TODO]
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return await db.loadFromJSON(this.response);
+    } catch (_) {
+      return {};
+    }
+  }
+}
+
+// ==========================================================================
+export class IDXDirectMultiWACZLoader implements ArchiveLoader {
+  reader: AsyncIterReader;
+
+  constructor(stream: ReadableStream<Uint8Array>) {
+    this.reader = new AsyncIterReader(stream);
+  }
+
+  // [TODO]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async load(db: any, progressUpdate: any, total?: number) {
+    try {
+      const zdb = db as MultiWACZ;
+      zdb.initIDX();
+      await zdb.loadIDXDirect(this.reader, DEFAULT_WACZ, progressUpdate, total);
+      return {};
     } catch (_) {
       return {};
     }
