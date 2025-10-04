@@ -169,7 +169,7 @@ export class LiveProxy implements DBStore {
       // was a redirect, issue a redirect to the exact URL
       const fullFetchURL = new URL(fetchUrl, self.location.href).href;
 
-      if (response.url !== fullFetchURL) {
+      if (response.ok && response.url && response.url !== fullFetchURL) {
         const inx = response.url.indexOf("/http");
         const actualUrl = response.url.slice(inx + 1);
         // ensure actual URL is different, not just timestamp
