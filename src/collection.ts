@@ -16,7 +16,7 @@ import { ArchiveResponse } from "./response";
 import { getAdBlockCSSResponse } from "./adblockcss";
 import { notFound, notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
-import { type ArchiveRequest } from "./request";
+import { resolveProxyOrigin, type ArchiveRequest } from "./request";
 import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
 import { getDownloadAttachmentFilename } from "./detectfiletype";
 
@@ -528,6 +528,12 @@ ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
     const opts = { pageId: query.pageId, noRedirect: query.isProxyOrigin };
 
     response = await this.store.getResource(query, this.prefix, event, opts);
+
+    if (!response && query.isProxyOrigin && query.proxyOrigin && query.altProxyOrigin && query.url.startsWith(query.proxyOrigin)) {
+      query.url = query.url.replace(query.proxyOrigin, query.altProxyOrigin);
+      console.log("try new origin", query.url);
+      response = await this.store.getResource(query, this.prefix, event, opts);
+    }
 
     return response;
   }

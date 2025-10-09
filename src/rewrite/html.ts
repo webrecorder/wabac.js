@@ -664,6 +664,10 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
 
     const tagName = tag.tagName;
 
+    if (tagName === "embed" || tagName === "object") {
+      return super.rewriteTagAndAttrs(tag, attrRules, rewriter);
+    }
+
     // no attribute rewriting for web-component tags, which must contain a '-'
     if (tagName.indexOf("-") > 0) {
       return "";

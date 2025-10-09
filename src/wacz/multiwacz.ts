@@ -1386,6 +1386,15 @@ export class MultiWACZ
       let res = await this.getWACZFilesForPagesQuery(pageUrl);
       if (res) {
         names = [...names, ...res];
+      }
+      if (request.altProxyOrigin && request.proxyOrigin) {
+        const altReferrer = pageUrl.replace(request.proxyOrigin, request.altProxyOrigin);
+        const res = await this.getWACZFilesForPagesQuery(altReferrer);
+        if (res) {
+          names = [...names, ...res];
+        }
+      }
+      if (names.length) {
         return names;
       }
 
@@ -1393,7 +1402,7 @@ export class MultiWACZ
         const url = new URL(pageUrl);
         if (url.pathname === "/") {
           url.hostname = url.hostname.replace("www.", "");
-          res = await this.getWACZFilesForPagesQuery(url.href);
+          const res = await this.getWACZFilesForPagesQuery(url.href);
           if (res) {
             names = [...names, ...res];
             return names;

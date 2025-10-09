@@ -771,8 +771,11 @@ export class ArchiveDB implements DBStore {
     return result.payload || null;
   }
 
-  isSelfRedirect(url: string, result: ResourceEntry | undefined) {
+  shouldSkipResult(url: string, result: ResourceEntry | undefined) {
     try {
+      if (result?.status && result.status >= 500) {
+        return true;
+      }
       if (
         result?.respHeaders &&
         result.status &&
@@ -804,7 +807,7 @@ export class ArchiveDB implements DBStore {
       if (!opts.noRevisits && !opts.pageId) {
         const result = await tx.store.get(range);
 
-        if (result && this.isSelfRedirect(url, result)) {
+        if (result && this.shouldSkipResult(url, result)) {
           // assume the self-redirect URL is later then current URL
           // allowing looking up ts + 10 seconds to match redirected to URL
           ts += 1000 * 10;
@@ -826,7 +829,7 @@ export class ArchiveDB implements DBStore {
             continue;
           }
 
-          if (this.isSelfRedirect(url, result)) {
+          if (this.shouldSkipResult(url, result)) {
             continue;
           }
 
@@ -849,7 +852,7 @@ export class ArchiveDB implements DBStore {
         continue;
       }
 
-      if (this.isSelfRedirect(url, result)) {
+      if (this.shouldSkipResult(url, result)) {
         continue;
       }
 
