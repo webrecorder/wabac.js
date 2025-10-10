@@ -233,6 +233,10 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       return true;
     }
 
+    if (text.startsWith(`"use strict";(`)) {
+      return false;
+    }
+
     if (text.indexOf("export") >= 0 && text.match(EXPORT_RX)) {
       return true;
     }
