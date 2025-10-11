@@ -720,6 +720,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   }
     ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
 </script>
+<script>window.RufflePlayer=window.RufflePlayer||{};window.RufflePlayer.config={upgradeToHttps:false,autoplay:"on",unmuteOverlay:"hidden",showSwfDownload:true};</script>
 ${this.injectScripts.map((script) => `<script src='${this.proxyPrefix}${script}'> </script>`).join("")}
 <!-- End WB Insert -->
 `;
