@@ -438,7 +438,7 @@ export class MultiWACZ
     );
 
     if (this.rootSourceType === "idx") {
-      isArc = !!path.match(/\.arc(?:.gz)?(?:[?].*)$/);
+      isArc = !!path.match(/\.arc(?:.gz)(?:[?].*)?$/);
     } else {
       // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
       await this.waczfiles[waczname].save(this.db);
