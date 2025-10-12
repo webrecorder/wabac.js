@@ -811,8 +811,8 @@ export class Rewriter {
           break;
 
         case "link":
-          if (urlRewrite && !isAjax) {
-            new_headers.append(key, this.rewriteLinkHeader(value));
+          if (urlRewrite) {
+            new_headers.append(key, this.rewriteLinkHeader(value, isAjax));
           } else {
             new_headers.append(key, value);
           }
@@ -826,11 +826,16 @@ export class Rewriter {
     return new_headers;
   }
 
-  rewriteLinkHeader(value: string) {
+  rewriteLinkHeader(value: string, preloadOnly = false) {
     try {
-      value = value.replace(/<(.*?)>/g, (_, uri: string) => {
-        return "<" + this.rewriteUrl(uri) + ">";
-      });
+      value = value.replace(
+        preloadOnly
+          ? /<(.*?)>(?=[^,]+rel=["']?(?:preload|modulepreload|stylesheet))/g
+          : /<(.*?)>/g,
+        (_, uri: string) => {
+          return "<" + this.rewriteUrl(uri) + ">";
+        },
+      );
     } catch (_e) {
       console.warn("Error parsing link header: " + value);
     }

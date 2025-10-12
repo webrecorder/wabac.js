@@ -36,6 +36,7 @@ test(
   '<http://localhost:8080/prefix/20201226101010mp_/https://example.com/path/page.html>;rel="preload";as="script"',
 );
 
+// Rewrite multiple headers
 test(
   rewriteHeaders,
   "Link",
@@ -43,12 +44,21 @@ test(
   '<http://localhost:8080/prefix/20201226101010mp_/https://example.com/path/page.html>; rel="preload"; as="script"; someval, <http://localhost:8080/prefix/20201226101010mp_/https://example.com/someotherpath/page%3f.html>; rel=other; as="stylesheet"',
 );
 
-// Not rewritten if ajax
+// If ajax, rel=preload rewritten, rel=other is not
 test(
   rewriteHeaders,
   "Link",
-  '<https://example.com/path/page.html>;rel="preload";as="script"',
-  '<https://example.com/path/page.html>;rel="preload";as="script"',
+  '<https://example.com/path/page.html>; rel="preload"; as="script"; someval, <https://example.com/someotherpath/page%3f.html>; rel=other; as="stylesheet"',
+  '<http://localhost:8080/prefix/20201226101010mp_/https://example.com/path/page.html>; rel="preload"; as="script"; someval, <https://example.com/someotherpath/page%3f.html>; rel=other; as="stylesheet"',
+  true,
+);
+
+// If ajax, also rewrite rel=modulepreload and rel=stylesheet
+test(
+  rewriteHeaders,
+  "Link",
+  '<https://example.com/path/module.js>; rel="modulepreload", <https://example.com/someotherpath/file.css>; rel=stylesheet, <https://example.com/someotherpath/file.html> rel=other',
+  '<http://localhost:8080/prefix/20201226101010mp_/https://example.com/path/module.js>; rel="modulepreload", <http://localhost:8080/prefix/20201226101010mp_/https://example.com/someotherpath/file.css>; rel=stylesheet, <https://example.com/someotherpath/file.html> rel=other',
   true,
 );
 

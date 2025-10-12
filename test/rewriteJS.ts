@@ -533,5 +533,16 @@ export{ a, $ as b };
   "",
 );
 
+test(
+  rewriteJS,
+  `"use strict";(function() {
+    const text = \`
+export { a };
+\`;
+  })
+`,
+  "",
+);
+
 // no wrap, no global injection
 test(rewriteJS, "let a = 7; var b = 5; const foo = 4;\n\n", "");
