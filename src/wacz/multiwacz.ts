@@ -661,18 +661,18 @@ export class MultiWACZ
 
     const values: IDXLine[] = [];
 
+    const surtNoQuery = surt.split("?")[0]!;
+
     for await (const cursor of tx.store.iterate(key, "prev")) {
+      const value = cursor.value as IDXLine | null;
       // restrict to specific waczname
-      // @ts-expect-error [TODO] - TS2531 - Object is possibly 'null'. | TS2339 - Property 'waczname' does not exist on type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; }'.
-      if (cursor.value.waczname !== waczname) {
+      if (!value || value.waczname !== waczname) {
         break;
       }
 
       // add to beginning as processing entries in reverse here
-      // @ts-expect-error [TODO] - TS2345 - Argument of type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; } | null' is not assignable to parameter of type 'IDXLine'.
-      values.unshift(cursor.value);
-      // @ts-expect-error [TODO] - TS2531 - Object is possibly 'null'. | TS2339 - Property 'prefix' does not exist on type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; }'.
-      if (!cursor.value.prefix.split(" ")[0].startsWith(surt)) {
+      values.unshift(value);
+      if (!value.prefix.split(" ")[0]!.startsWith(surtNoQuery)) {
         break;
       }
     }
