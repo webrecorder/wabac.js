@@ -829,7 +829,9 @@ export class Rewriter {
   rewriteLinkHeader(value: string, preloadOnly = false) {
     try {
       value = value.replace(
-        preloadOnly ? /<(.*?)>(?=[^,]+rel=["']?(?:preload|modulepreload|stylesheet))/g : /<(.*?)>/g,
+        preloadOnly
+          ? /<(.*?)>(?=[^,]+rel=["']?(?:preload|modulepreload|stylesheet))/g
+          : /<(.*?)>/g,
         (_, uri: string) => {
           return "<" + this.rewriteUrl(uri) + ">";
         },

@@ -62,8 +62,6 @@ test(
   true,
 );
 
-
-
 // Not rewritten, not a url
 test(
   rewriteHeaders,

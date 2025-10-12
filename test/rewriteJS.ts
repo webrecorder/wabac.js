@@ -533,14 +533,15 @@ export{ a, $ as b };
   "",
 );
 
-test(rewriteJS,
+test(
+  rewriteJS,
   `"use strict";(function() {
     const text = \`
 export { a };
 \`;
   })
 `,
-  ""
+  "",
 );
 
 // no wrap, no global injection
