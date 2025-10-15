@@ -178,8 +178,8 @@ export class JSONResponseMultiWACZLoader implements ArchiveLoader {
 export class IDXDirectMultiWACZLoader implements ArchiveLoader {
   reader: AsyncIterReader;
 
-  constructor(stream: ReadableStream<Uint8Array>) {
-    this.reader = new AsyncIterReader(stream);
+  constructor(stream: ReadableStream<Uint8Array>, gzip: boolean) {
+    this.reader = new AsyncIterReader(stream, gzip ? "gzip" : null);
   }
 
   // [TODO]

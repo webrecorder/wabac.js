@@ -58,6 +58,8 @@ export function getKnownFileExtension(name: string) {
     ".wacz",
     ".idx",
     ".summary",
+    ".idx.gz",
+    ".summary.gz"
   ];
   for (const ext of fileExtensions) {
     if (name.endsWith(ext)) {
