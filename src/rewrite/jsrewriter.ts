@@ -1,5 +1,5 @@
 import { type Rule, RxRewriter } from "./rxrewriter";
-import * as acorn from "acorn";
+import * as acorn from "acorn-loose";
 
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
 const EXPORT_RX = /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/m;
