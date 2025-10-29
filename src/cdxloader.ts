@@ -1,3 +1,4 @@
+import { MAX_ARG_LEN } from "./fuzzymatcher";
 import { type ResourceEntry } from "./types";
 import { tsToDate } from "./utils";
 import { WARCLoader } from "./warcloader";
@@ -12,6 +13,15 @@ import {
 } from "warcio";
 
 export const CDX_COOKIE = "req.http:cookie";
+
+export const LONG_POST_MIMES = [
+  "text/javascript",
+  "application/javascript",
+  "application/x-javascript",
+  "application/json",
+  "application/octet-stream",
+  "text/html",
+];
 
 type WARCRecordWithPage = WARCRecord & {
   _isPage: boolean;
@@ -204,6 +214,17 @@ class CDXFromWARCLoader extends WARCLoader {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         cdx.method,
       );
+      let maxSize;
+      // for JS/JSON responses, allow slightly larger POST methods
+      // otherwise limit to 512 as likely POST will be completely ignored
+      if (mime && LONG_POST_MIMES.includes(mime as string)) {
+        maxSize = MAX_ARG_LEN * 8;
+      } else {
+        maxSize = MAX_ARG_LEN / 2;
+      }
+      if (entry.url.length > maxSize) {
+        entry.url = entry.url.slice(0, maxSize);
+      }
     }
 
     this.addResource(entry);

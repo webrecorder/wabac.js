@@ -35,7 +35,7 @@ function joinRx(rxStr: string[]) {
   );
 }
 
-const MAX_ARG_LEN = 1024;
+export const MAX_ARG_LEN = 1024;
 
 const SPLIT_BASE_RX = /\[\d]+/;
 
