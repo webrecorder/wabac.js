@@ -310,16 +310,29 @@ export class HTMLRewriter {
         let newTag;
         let newMod;
         if (type.startsWith("image/")) {
-          newTag = "img";
-          newMod = "mp_";
-        } else if (type === "application/pdf") {
-          newTag = "iframe";
-          newMod = "if_";
+          tag.tagName = "img";
+          attr.value = this.rewriteUrl(rewriter, value, false, "mp_");
+        } else if (
+          type === "application/pdf" ||
+          !type.startsWith("application/")
+        ) {
+          tag.tagName = "iframe";
+          attr.value = this.rewriteUrl(rewriter, value, false, "if_");
+          if (type !== "application/pdf") {
+            // add sandbox to prevent downloads from unknown types
+            tag.attrs.push({
+              name: "sandbox",
+              value: "allow-same-origin allow-scripts",
+            });
+          }
         } else if (!type.startsWith("application/")) {
           newTag = "iframe";
           newMod = "if_";
           // add sandbox to prevent downloads from unknown types
-          tag.attrs.push({ name: "sandbox", value: "allow-same-origin allow-scripts" });
+          tag.attrs.push({
+            name: "sandbox",
+            value: "allow-same-origin allow-scripts",
+          });
         }
         if (newTag && newMod) {
           tag.tagName = newTag;

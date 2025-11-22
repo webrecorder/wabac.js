@@ -654,7 +654,7 @@ test(
   "embed flash, ignored",
   rewriteHtml,
   '<embed src="https://example.com/some/file.swf" type="application/x-shockwave-flash">',
-  '<embed src="https://example.com/some/file.swf" type="application/x-shockwave-flash">'
+  '<embed src="https://example.com/some/file.swf" type="application/x-shockwave-flash">',
 );
 
 test(
