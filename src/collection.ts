@@ -18,6 +18,7 @@ import { notFound, notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
 import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
+import { getDownloadAttachmentFilename } from "./detectfiletype";
 
 export type Prefixes = {
   static: string;
@@ -243,8 +244,16 @@ export class Collection {
       response.setRange(range);
     }
 
-    const deleteDisposition =
-      request.destination === "iframe" || request.destination === "document";
+    let deleteDisposition = false;
+
+    // add content-disposition header to always download
+    if (request.mod === "dl_") {
+      const value = await getDownloadAttachmentFilename(request, response);
+      response.headers.set("Content-Disposition", `attachment; ${value}`);
+    } else {
+      deleteDisposition =
+        request.destination === "iframe" || request.destination === "document";
+    }
     return response.makeResponse(this.coHeaders, deleteDisposition);
   }
 
@@ -291,7 +300,7 @@ export class Collection {
 
     const mod = TO_MP.includes(request.mod) ? "mp_" : request.mod;
 
-    const noRewrite = mod === "id_" || mod === "wkrf_";
+    const noRewrite = mod === "id_" || mod === "wkrf_" || mod === "dl_";
 
     const prefix = basePrefixTS + mod + "/";
 

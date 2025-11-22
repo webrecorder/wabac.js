@@ -1,3 +1,6 @@
+import { type ArchiveRequest } from "./request";
+import { type ArchiveResponse } from "./response";
+
 // https://en.wikipedia.org/wiki/List_of_file_signatures
 const zipMagicBytes = [0x50, 0x4b, 0x03, 0x04];
 const isZipFile = hasMagicBytes(zipMagicBytes);
@@ -58,7 +61,6 @@ export function getKnownFileExtension(name: string) {
   return undefined;
 }
 
-// @ts-expect-error [TODO] - TS7030 - Not all code paths return a value.
 export function checkMagicBytes(fileBytes: Uint8Array) {
   // todo: add additional detection for WACZ besides just zip
   if (isZipFile(fileBytes)) {
@@ -72,6 +74,8 @@ export function checkMagicBytes(fileBytes: Uint8Array) {
   if (isGzFile(fileBytes)) {
     return ".warc.gz";
   }
+
+  return "";
 }
 
 export async function detectFileType(response: Response) {
@@ -85,9 +89,35 @@ export async function detectFileType(response: Response) {
     }
   }
   if (!done) {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    reader.cancel();
+    reader.cancel().catch(() => {});
   }
   return fileType;
+}
+
+export async function getDownloadAttachmentFilename(
+  request: ArchiveRequest,
+  response: ArchiveResponse,
+) {
+  let filename = "";
+  try {
+    const url = new URL(request.url);
+    filename = url.pathname.slice(url.pathname.lastIndexOf("/") + 1);
+  } catch (_) {
+    //ignore
+  }
+  if (!filename) {
+    filename = "index";
+    let mime = (response.headers.get("content-type") || "").split(";")[0];
+    if (mime) {
+      mime = mime.split("/")[1];
+    }
+    filename += "." + (mime || "html");
+  }
+
+  const encoded = encodeURIComponent(filename);
+  if (encoded !== filename) {
+    return `filename*=UTF-8''${encoded}`;
+  } else {
+    return `filename="${filename}"`;
+  }
 }
