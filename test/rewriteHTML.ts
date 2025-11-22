@@ -640,14 +640,21 @@ test(
   "embed other, add sandbox",
   rewriteHtml,
   '<embed src="https://example.com/some/file.mp3" type="audio/mpeg">',
-  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.mp3" type="audio/mpeg" sandbox="allow-same-origin">',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.mp3" type="audio/mpeg" sandbox="allow-same-origin allow-scripts">',
 );
 
 test(
   "embed other, no type, add sandbox",
   rewriteHtml,
   '<embed src="https://example.com/some/file.pdf">',
-  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" sandbox="allow-same-origin">',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" sandbox="allow-same-origin allow-scripts">',
+);
+
+test(
+  "embed flash, ignored",
+  rewriteHtml,
+  '<embed src="https://example.com/some/file.swf" type="application/x-shockwave-flash">',
+  '<embed src="https://example.com/some/file.swf" type="application/x-shockwave-flash">'
 );
 
 test(

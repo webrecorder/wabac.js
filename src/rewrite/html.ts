@@ -319,7 +319,7 @@ export class HTMLRewriter {
           newTag = "iframe";
           newMod = "if_";
           // add sandbox to prevent downloads from unknown types
-          tag.attrs.push({ name: "sandbox", value: "allow-same-origin" });
+          tag.attrs.push({ name: "sandbox", value: "allow-same-origin allow-scripts" });
         }
         if (newTag && newMod) {
           tag.tagName = newTag;
