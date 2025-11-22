@@ -630,10 +630,24 @@ test(
 );
 
 test(
-  "embed other",
+  "embed PDF",
+  rewriteHtml,
+  '<embed src="https://example.com/some/file.pdf" type="application/pdf">',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" type="application/pdf">',
+);
+
+test(
+  "embed other, add sandbox",
+  rewriteHtml,
+  '<embed src="https://example.com/some/file.mp3" type="audio/mpeg">',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.mp3" type="audio/mpeg" sandbox="allow-same-origin">',
+);
+
+test(
+  "embed other, no type, add sandbox",
   rewriteHtml,
   '<embed src="https://example.com/some/file.pdf">',
-  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf">',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" sandbox="allow-same-origin">',
 );
 
 test(

@@ -306,15 +306,25 @@ export class HTMLRewriter {
           }
         }
       } else if (tagName === "embed" && name === "src") {
-        const type = this.getAttr(tag.attrs, "type");
-        const isImg = type?.startsWith("image/");
-        tag.tagName = isImg ? "img" : "iframe";
-        attr.value = this.rewriteUrl(
-          rewriter,
-          value,
-          false,
-          isImg ? "mp_" : "if_",
-        );
+        const type = this.getAttr(tag.attrs, "type") || "";
+        let newTag;
+        let newMod;
+        if (type.startsWith("image/")) {
+          newTag = "img";
+          newMod = "mp_";
+        } else if (type === "application/pdf") {
+          newTag = "iframe";
+          newMod = "if_";
+        } else if (!type.startsWith("application/")) {
+          newTag = "iframe";
+          newMod = "if_";
+          // add sandbox to prevent downloads from unknown types
+          tag.attrs.push({ name: "sandbox", value: "allow-same-origin" });
+        }
+        if (newTag && newMod) {
+          tag.tagName = newTag;
+          attr.value = this.rewriteUrl(rewriter, value, false, newMod);
+        }
       } else if (name === "target") {
         const target = attr.value;
 
