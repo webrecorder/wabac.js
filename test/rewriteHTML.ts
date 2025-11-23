@@ -602,10 +602,10 @@ test(
 );
 
 test(
-  "object pdf",
+  "object pdf, add close tag",
   rewriteHtml,
-  '<object type="application/pdf" data="https://example.com/some/file.pdf">',
-  '<iframe type="application/pdf" src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf">',
+  '<object type="application/pdf" data="https://example.com/some/file.pdf"/>',
+  '<iframe type="application/pdf" src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf"></iframe>',
 );
 
 test(
@@ -630,10 +630,10 @@ test(
 );
 
 test(
-  "embed PDF",
+  "embed PDF, add close tag",
   rewriteHtml,
-  '<embed src="https://example.com/some/file.pdf" type="application/pdf">',
-  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" type="application/pdf">',
+  '<embed src="https://example.com/some/file.pdf" type="application/pdf"/><br/>',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" type="application/pdf"></iframe><br/>',
 );
 
 test(
@@ -644,10 +644,10 @@ test(
 );
 
 test(
-  "embed other, no type, add sandbox",
+  "embed other, no type, add sandbox, add close tag",
   rewriteHtml,
-  '<embed src="https://example.com/some/file.pdf">',
-  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" sandbox="allow-same-origin allow-scripts">',
+  '<embed src="https://example.com/some/file.pdf"/>',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" sandbox="allow-same-origin allow-scripts"></iframe>',
 );
 
 test(

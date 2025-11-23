@@ -196,7 +196,7 @@ export class HTMLRewriter {
     tag: StartTag,
     attrRules: Record<string, string>,
     rewriter: Rewriter,
-  ) {
+  ): string {
     const isUrl = (val: string) => {
       return startsWithAny(val, DATA_RW_PROTOCOLS);
     };
@@ -204,8 +204,18 @@ export class HTMLRewriter {
 
     // no attribute rewriting for web-component tags, which must contain a '-'
     if (tagName.indexOf("-") > 0) {
-      return;
+      return "";
     }
+
+    let addCloseTag = "";
+
+    const replaceTag = (newTag: string) => {
+      if (newTag === "iframe" && tag.selfClosing) {
+        tag.selfClosing = false;
+        addCloseTag = newTag;
+      }
+      tag.tagName = newTag;
+    };
 
     for (const attr of tag.attrs) {
       const name = attr.name || "";
@@ -289,18 +299,18 @@ export class HTMLRewriter {
         if (type === "application/pdf") {
           attr.name = "src";
           attr.value = this.rewriteUrl(rewriter, attr.value, false, "if_");
-          tag.tagName = "iframe";
+          replaceTag("iframe");
         } else if (type === "image/svg+xml") {
           attr.name = "src";
           attr.value = this.rewriteUrl(rewriter, attr.value);
-          tag.tagName = "img";
+          replaceTag("img");
         } else if (type === "application/x-shockwave-flash") {
           for (const rule of OBJECT_FLASH_DATA_RX) {
             const value = attr.value.replace(rule.match, rule.replace);
             if (value !== attr.value) {
               attr.name = "src";
               attr.value = this.rewriteUrl(rewriter, value, false, "if_");
-              tag.tagName = "iframe";
+              replaceTag("iframe");
               break;
             }
           }
@@ -308,13 +318,13 @@ export class HTMLRewriter {
       } else if (tagName === "embed" && name === "src") {
         const type = this.getAttr(tag.attrs, "type") || "";
         if (type.startsWith("image/")) {
-          tag.tagName = "img";
+          replaceTag("img");
           attr.value = this.rewriteUrl(rewriter, value, false, "mp_");
         } else if (
           type === "application/pdf" ||
           !type.startsWith("application/")
         ) {
-          tag.tagName = "iframe";
+          replaceTag("iframe");
           attr.value = this.rewriteUrl(rewriter, value, false, "if_");
           if (type !== "application/pdf") {
             // add sandbox to prevent downloads from unknown types
@@ -344,6 +354,8 @@ export class HTMLRewriter {
         );
       }
     }
+
+    return addCloseTag;
   }
 
   getAttr(attrs: Token.Attribute[], name: string) {
@@ -438,13 +450,22 @@ export class HTMLRewriter {
 
       const original = startTag.tagName;
 
-      this.rewriteTagAndAttrs(startTag, tagRules || {}, rewriter);
+      const addCloseTag = this.rewriteTagAndAttrs(
+        startTag,
+        tagRules || {},
+        rewriter,
+      );
 
       if (!insertAdded && !["head", "html"].includes(startTag.tagName)) {
         addInsert();
       }
 
       rwStream.emitStartTag(startTag);
+
+      // if tag is changed, eg. to iframe, need to add closing tag
+      if (addCloseTag) {
+        rwStream.emitEndTag({ tagName: addCloseTag });
+      }
 
       switch (startTag.tagName) {
         case "script": {
@@ -633,7 +654,7 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
     tag: StartTag,
     attrRules: Record<string, string>,
     rewriter: Rewriter,
-  ) {
+  ): string {
     if ((rewriter as ProxyRewriter).httpToHttps) {
       return super.rewriteTagAndAttrs(tag, attrRules, rewriter);
     }
@@ -642,7 +663,7 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
 
     // no attribute rewriting for web-component tags, which must contain a '-'
     if (tagName.indexOf("-") > 0) {
-      return;
+      return "";
     }
 
     for (const attr of tag.attrs) {
@@ -655,5 +676,7 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
         attr.value = this.rewriteUrl(rewriter, value, false, attrRules[name]);
       }
     }
+
+    return "";
   }
 }
