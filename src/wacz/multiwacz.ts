@@ -1251,7 +1251,7 @@ export class MultiWACZ
       }
 
       return Response.redirect(
-        `${prefix}:${foundHash}/${timestamp}mp_/${request.url}`,
+        `${prefix}:${foundHash}/${timestamp}${request.mod}/${request.url}`,
       );
     }
 
