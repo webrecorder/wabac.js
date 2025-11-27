@@ -100,7 +100,9 @@ export async function getDownloadAttachmentFilename(
 ) {
   let filename = "";
   try {
-    const url = new URL(request.url);
+    const url = new URL(
+      request.url.startsWith("//") ? "https:" + request.url : request.url,
+    );
     filename = url.pathname.slice(url.pathname.lastIndexOf("/") + 1);
   } catch (_) {
     //ignore
