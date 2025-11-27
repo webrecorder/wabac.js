@@ -605,7 +605,7 @@ test(
   "object pdf, add close tag",
   rewriteHtml,
   '<object type="application/pdf" data="https://example.com/some/file.pdf"/>',
-  '<iframe type="application/pdf" src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf"></iframe>',
+  '<iframe type="application/pdf" src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" style="border: none"></iframe>',
 );
 
 test(
@@ -633,21 +633,21 @@ test(
   "embed PDF, add close tag",
   rewriteHtml,
   '<embed src="https://example.com/some/file.pdf" type="application/pdf"/><br/>',
-  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" type="application/pdf"></iframe><br/>',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" type="application/pdf" style="border: none"></iframe><br/>',
 );
 
 test(
   "embed other, add sandbox",
   rewriteHtml,
   '<embed src="https://example.com/some/file.mp3" type="audio/mpeg">',
-  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.mp3" type="audio/mpeg" sandbox="allow-same-origin allow-scripts">',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.mp3" type="audio/mpeg" style="border: none" sandbox="allow-same-origin allow-scripts">',
 );
 
 test(
   "embed other, no type, add sandbox, add close tag",
   rewriteHtml,
   '<embed src="https://example.com/some/file.pdf"/>',
-  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" sandbox="allow-same-origin allow-scripts"></iframe>',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" style="border: none" sandbox="allow-same-origin allow-scripts"></iframe>',
 );
 
 test(
