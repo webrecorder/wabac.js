@@ -16,6 +16,7 @@ import { JSRewriter } from "./jsrewriter";
 import { HTMLRewriter, ProxyHTMLRewriter } from "./html";
 import { type ArchiveRequest } from "../request";
 import { type ArchiveResponse } from "../response";
+import { type RWOpts } from "../types";
 
 // keep for backwards compatibility with RWP and AWP
 export { ArchiveResponse } from "../response";
@@ -294,17 +295,13 @@ export class Rewriter {
       );
     }
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const opts: any = {
+    const opts: RWOpts = {
       response,
       prefix: this.prefix,
       baseUrl: this.baseUrl,
     };
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let rwFunc: ((x: string, opts: any) => string) | null = null;
+    let rwFunc: ((x: string, opts: RWOpts) => string) | null = null;
 
     switch (rewriteMode) {
       case "html":
@@ -516,13 +513,8 @@ export class Rewriter {
   }
 
   // JS
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewriteJS(text: string, opts: Record<string, any>): string {
+  rewriteJS(text: string, opts?: RWOpts): string {
     const noUrlProxyRewrite =
-      // @ts-expect-error [TODO] - TS4111 - Property 'rewriteUrl' comes from an index signature, so it must be accessed with ['rewriteUrl']. | TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule']. | TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       opts && !opts.rewriteUrl && opts.isModule === undefined && !opts.inline;
     const dsRules = noUrlProxyRewrite ? baseRules : this.dsRules;
     const dsRewriter = dsRules.getRewriter(this.baseUrl);
@@ -537,13 +529,11 @@ export class Rewriter {
     return dsRewriter.rewrite(text, opts);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewriteJSWorker(text: string, opts: Record<string, any>): string {
-    opts["isWorker"] = true;
-    const isModule = opts["isModule"] as boolean;
-    const moduleInsert = this.workerInsertFunc!(isModule);
-    if (isModule) {
-      opts["moduleInsert"] = moduleInsert;
+  rewriteJSWorker(text: string, opts: RWOpts): string {
+    opts.isWorker = true;
+    const moduleInsert = this.workerInsertFunc!(opts.isModule ?? false);
+    if (opts.isModule) {
+      opts.moduleInsert = moduleInsert;
       return this.rewriteJS(text, opts);
     } else {
       return moduleInsert + this.rewriteJS(text, opts);
@@ -551,9 +541,7 @@ export class Rewriter {
   }
 
   // JSON
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewriteJSON(text: string, opts: Record<string, any>): string {
+  rewriteJSON(text: string, opts: RWOpts): string {
     text = this.rewriteJSONP(text);
 
     const dsRewriter = baseRules.getRewriter(this.baseUrl);
@@ -927,8 +915,7 @@ export class ProxyRewriter extends Rewriter {
     return htmlRW.rewrite(response);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  override rewriteJS(text: string, _: Record<string, any>): string {
+  override rewriteJS(text: string, _: RWOpts): string {
     return text;
   }
 
@@ -939,8 +926,7 @@ export class ProxyRewriter extends Rewriter {
     return text;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  override rewriteJSON(text: string, _: Record<string, any>): string {
+  override rewriteJSON(text: string, _: RWOpts): string {
     return text;
   }
 

@@ -1,3 +1,4 @@
+import { type RWOpts } from "../types";
 import { type Rule, RxRewriter } from "./rxrewriter";
 import * as acorn from "acorn";
 
@@ -35,7 +36,7 @@ const createJSRules: () => Rule[] = () => {
   const thisRw = "_____WB$wombat$check$this$function_____(this)";
 
   const checkLoc =
-    "((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = ";
+    "((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).maybeHref = ";
 
   const evalStr =
     "WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),";
@@ -55,6 +56,22 @@ const createJSRules: () => Rule[] = () => {
     return false;
   }
 
+  function removeArgsIfStrict(
+    target: string,
+    opts: RWOpts,
+    offset: number,
+    fullString: string,
+  ) {
+    if (opts.isStrict === undefined) {
+      // mark as strict if has a class, not 100%, but probably good enough here
+      opts.isStrict = fullString.slice(0, offset).indexOf("class ") >= 0;
+    }
+    if (opts.isStrict) {
+      return target.replace("arguments", "[]");
+    }
+    return target;
+  }
+
   function addPrefix(prefix: string) {
     return (x: string) => prefix + x;
   }
@@ -71,28 +88,19 @@ const createJSRules: () => Rule[] = () => {
   }
 
   function addSuffix(suffix: string) {
-    return (
-      x: string,
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      _opts: Record<string, any>,
-      offset: number,
-      str: string,
-    ) => {
+    return (x: string, opts: RWOpts, offset: number, fullString: string) => {
       if (offset > 0) {
-        const prev = str[offset - 1];
+        const prev = fullString[offset - 1];
         if (prev === "." || prev === "$") {
           return x;
         }
       }
-      return x + suffix;
+      return x + removeArgsIfStrict(suffix, opts, offset, fullString);
     };
   }
 
   function replaceThis() {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (x: string, _opts: any, offset: number, fullString: string) => {
+    return (x: string, _opts: RWOpts, offset: number, fullString: string) => {
       if (isInString(fullString, offset)) {
         return x;
       }
@@ -105,14 +113,7 @@ const createJSRules: () => Rule[] = () => {
   }
 
   function replaceThisProp() {
-    return (
-      x: string,
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      _opts: Record<string, any>,
-      offset: number,
-      str: string,
-    ) => {
+    return (x: string, _opts: RWOpts, offset: number, str: string) => {
       const firstChar = str[offset];
       if (firstChar === "\n") {
         return x.replace("this", ";" + thisRw);
@@ -125,12 +126,9 @@ const createJSRules: () => Rule[] = () => {
   }
 
   function replaceImport(src: string, target: string) {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (x: string, opts: Record<string, any>) => {
+    return (x: string, opts: RWOpts) => {
       let res = x.replace(src, target);
       // if not module, add empty string, otherwise, import.meta.url
-      // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
       res += opts.isModule ? "import.meta.url, " : "null, ";
       return res;
     };
@@ -199,7 +197,7 @@ class JSRewriter extends RxRewriter {
   firstBuff: string;
   lastBuff: string;
 
-  constructor(extraRules: Rule[]) {
+  constructor(extraRules: Rule[] = []) {
     super();
     this.extraRules = extraRules;
 
@@ -228,20 +226,20 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return `import { ${localDecls.join(", ")} } from "${prefix}__wb_module_decl.js";\n`;
   }
 
-  detectIsModule(text: string) {
+  detectModuleOrStrict(text: string): "module" | "strict" | "lax" {
     if (text.indexOf("import") >= 0 && text.match(IMPORT_RX)) {
-      return true;
+      return "module";
     }
 
-    if (text.startsWith(`"use strict";(`)) {
-      return false;
+    if (text.indexOf(`"use strict";`) >= 0) {
+      return "strict";
     }
 
     if (text.indexOf("export") >= 0 && text.match(EXPORT_RX)) {
-      return true;
+      return "module";
     }
 
-    return false;
+    return "lax";
   }
 
   parseGlobals(
@@ -259,31 +257,22 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     const letOffsets: number[] = [];
     let lastStart = -1;
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const expr of (res as any).body) {
+    for (const expr of res.body) {
       const { type, start } = expr;
       // Check global variable declarations
       if (type === "VariableDeclaration") {
         const { kind, declarations } = expr;
         for (const decl of declarations) {
-          if (
-            decl &&
-            decl.type === "VariableDeclarator" &&
-            decl.id &&
-            decl.id.type === "Identifier"
-          ) {
+          if (decl.id.type === "Identifier") {
             const name = decl.id.name;
 
-            // [TODO]
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             if (overrides.includes(name)) {
               excludeOverrides.add(name);
             } else if (kind === "const" || kind === "let") {
               names.push({ name, kind });
               if (kind === "let") {
                 if (lastStart !== start) {
-                  letOffsets.unshift(start as number);
+                  letOffsets.unshift(start);
                 }
                 lastStart = start;
               }
@@ -292,16 +281,16 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
         }
         // Check for class declarations
       } else if (type === "ClassDeclaration") {
-        if (expr.id && expr.id.type === "Identifier" && expr.id.name) {
+        if (expr.id.name) {
           const name = expr.id.name;
           names.push({ name, kind: "const" });
         }
         // Check for document.write() calls
       } else if (!hasDocWrite && type === "ExpressionStatement") {
         const { expression } = expr;
-        if (expression && expression.type === "CallExpression") {
+        if (expression.type === "CallExpression") {
           const { callee } = expression;
-          if (callee && callee.type === "MemberExpression") {
+          if (callee.type === "MemberExpression") {
             const { object, property } = callee;
             if (
               object.type === "Identifier" &&
@@ -331,29 +320,33 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     return { names, letOffsets };
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'RxRewriter'.
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rewrite(text: string, opts: Record<string, any>) {
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    opts = opts || {};
-    // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule']. | TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
-    if (opts.isModule === undefined || opts.isModule === null) {
-      // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
-      opts.isModule = this.detectIsModule(text);
+  override rewrite(text: string, opts: RWOpts) {
+    if (opts.isModule === undefined) {
+      switch (this.detectModuleOrStrict(text)) {
+        case "module":
+          opts.isModule = true;
+          opts.isStrict = true;
+          break;
+
+        case "strict":
+          opts.isModule = false;
+          opts.isStrict = true;
+          break;
+
+        default:
+          break;
+      }
+    } else if (opts.isModule) {
+      opts.isStrict = true;
     }
 
     let rules = DEFAULT_RULES;
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
     if (opts.isModule) {
       rules = [...rules, this.getESMImportRule()];
     }
 
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/prefer-optional-chain
-    if (this.extraRules && this.extraRules.length) {
+    if (this.extraRules.length) {
       this.rules = [...rules, ...this.extraRules];
     } else {
       this.rules = rules;
@@ -363,13 +356,9 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     let newText = super.rewrite(text, opts);
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'isModule' comes from an index signature, so it must be accessed with ['isModule'].
     if (opts.isModule) {
       return (
-        // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix) +
-        // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['moduleInsert'].
+        this.getModuleDecl(GLOBAL_OVERRIDES, opts.prefix || "") +
         (opts.moduleInsert || "") +
         newText
       );
@@ -377,12 +366,10 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     const wrapGlobals = !!GLOBALS_RX.exec(text);
 
-    // @ts-expect-error [TODO] - TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
     if (opts.inline) {
       newText = newText.replace(/\n/g, " ");
     }
 
-    // @ts-expect-error ignore
     const isWorker = opts.isWorker;
 
     if (isWorker) {
@@ -432,9 +419,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
           if (postScopeGlobals) {
             postScopeGlobals = "\n" + postScopeGlobals;
           }
-          // [TODO]
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        } catch (e) {
+        } catch (_) {
           console.warn(`acorn parsing failed, script len ${newText.length}`);
         }
       }
@@ -446,7 +431,6 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
         inScopeGlobals +
         this.lastBuff +
         postScopeGlobals;
-      // @ts-expect-error [TODO] - TS4111 - Property 'inline' comes from an index signature, so it must be accessed with ['inline'].
       if (opts.inline) {
         newText = newText.replace(/\n/g, " ");
       }
@@ -458,28 +442,21 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
   getESMImportRule(): Rule {
     // mark as module side-effect + rewrite if http[s] url
     function rewriteImport() {
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (x: string, opts: Record<string, any>) => {
-        // @ts-expect-error [TODO] - TS4111 - Property 'prefix' comes from an index signature, so it must be accessed with ['prefix'].
-        const prefix = opts.prefix.replace("mp_/", "esm_/");
+      return (x: string, opts: RWOpts) => {
+        const prefix = (opts.prefix || "").replace("mp_/", "esm_/");
 
-        return x.replace(IMPORT_EXPORT_HTTP_RX, (_, g1, g2, g3) => {
-          try {
-            // @ts-expect-error [TODO] - TS4111 - Property 'baseUrl' comes from an index signature, so it must be accessed with ['baseUrl'].
-            // [TODO]
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            g2 = new URL(g2, opts.baseUrl).href;
-            g2 = prefix + g2;
-            // [TODO]
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          } catch (e) {
-            // ignore, keep same url
-          }
-          // [TODO]
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-          return g1 + g2 + g3;
-        });
+        return x.replace(
+          IMPORT_EXPORT_HTTP_RX,
+          (_, g1: string, g2: string, g3: string) => {
+            try {
+              g2 = new URL(g2, opts.baseUrl).href;
+              g2 = prefix + g2;
+            } catch (_) {
+              // ignore, keep same url
+            }
+            return g1 + g2 + g3;
+          },
+        );
       };
     }
 

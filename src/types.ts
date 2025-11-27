@@ -217,6 +217,22 @@ export type CollConfig = {
   onDemand?: boolean;
 };
 
+export type RWOpts = {
+  response?: ArchiveResponse;
+  prefix?: string;
+  baseUrl?: string;
+
+  isModule?: boolean;
+  isStrict?: boolean;
+  inline?: boolean;
+  isWorker?: boolean;
+  moduleInsert?: string;
+
+  rewriteUrl?: (url: string) => string;
+
+  save?: ExtraOpts;
+};
+
 export type PreloadResources = {
   name: string;
   crawlId: string;
