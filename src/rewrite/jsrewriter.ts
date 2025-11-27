@@ -36,7 +36,7 @@ const createJSRules: () => Rule[] = () => {
   const thisRw = "_____WB$wombat$check$this$function_____(this)";
 
   const checkLoc =
-    "((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).maybeHref =  ";
+    "((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).maybeHref = ";
 
   const evalStr =
     "WB_wombat_runEval2((_______eval_arg, isGlobal) => { var ge = eval; return isGlobal ? ge(_______eval_arg) : eval(_______eval_arg); }).eval(this, (function() { return arguments })(),";

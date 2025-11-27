@@ -177,7 +177,7 @@ test(rewriteJS, `const a = "{\\"some data\\": \\"foo = this\\"};"`, "");
 test(
   rewriteJSWrapped,
   "location = http://example.com/",
-  "location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/",
+  "location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).maybeHref = http://example.com/",
 );
 
 test(rewriteJSWrapped, 'location => "http://example.com/"');
@@ -186,7 +186,7 @@ test(rewriteJSWrapped, 'location => "http://example.com/"');
 test(
   rewriteJSWrapped,
   " location = http://example.com/2",
-  " location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = http://example.com/2",
+  " location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).maybeHref = http://example.com/2",
 );
 
 test(
@@ -206,7 +206,7 @@ ${wrapScriptOpen(`
    C = 4;
   var D = 3;
 
-  location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).href = "http://example.com/2"`)}
+  location = ((self.__WB_check_loc && self.__WB_check_loc(location, [])) || {}).maybeHref = "http://example.com/2"`)}
 ;self.___WB_const_A = A;
 self.___WB_const_B = B;
 
