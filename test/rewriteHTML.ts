@@ -602,10 +602,10 @@ test(
 );
 
 test(
-  "object pdf",
+  "object pdf, add close tag",
   rewriteHtml,
-  '<object type="application/pdf" data="https://example.com/some/file.pdf">',
-  '<iframe type="application/pdf" src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf">',
+  '<object type="application/pdf" data="https://example.com/some/file.pdf"/>',
+  '<iframe type="application/pdf" src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" style="border: none"></iframe>',
 );
 
 test(
@@ -630,10 +630,31 @@ test(
 );
 
 test(
-  "embed other",
+  "embed PDF, add close tag",
   rewriteHtml,
-  '<embed src="https://example.com/some/file.pdf">',
-  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf">',
+  '<embed src="https://example.com/some/file.pdf" type="application/pdf"/><br/>',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" type="application/pdf" style="border: none"></iframe><br/>',
+);
+
+test(
+  "embed other, add sandbox",
+  rewriteHtml,
+  '<embed src="https://example.com/some/file.mp3" type="audio/mpeg">',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.mp3" type="audio/mpeg" style="border: none" sandbox="allow-same-origin allow-scripts">',
+);
+
+test(
+  "embed other, no type, add sandbox, add close tag",
+  rewriteHtml,
+  '<embed src="https://example.com/some/file.pdf"/>',
+  '<iframe src="http://localhost:8080/prefix/20201226101010if_/https://example.com/some/file.pdf" style="border: none" sandbox="allow-same-origin allow-scripts"></iframe>',
+);
+
+test(
+  "embed flash, ignored",
+  rewriteHtml,
+  '<embed src="https://example.com/some/file.swf" type="application/x-shockwave-flash">',
+  '<embed src="https://example.com/some/file.swf" type="application/x-shockwave-flash">',
 );
 
 test(
