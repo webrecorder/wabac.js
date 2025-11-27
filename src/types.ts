@@ -229,6 +229,8 @@ export type RWOpts = {
   moduleInsert?: string;
 
   rewriteUrl?: (url: string) => string;
+
+  save?: ExtraOpts;
 };
 
 export type PreloadResources = {

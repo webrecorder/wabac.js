@@ -36,11 +36,8 @@ function getMaxResAndBand(opts: RWOpts) {
     res = { maxRes: OLD_DEFAULT_MAX_RES, maxBand: OLD_DEFAULT_MAX_BAND };
   }
 
-  // @ts-expect-error [TODO] - TS4111 - Property 'save' comes from an index signature, so it must be accessed with ['save'].
   if (opts.save) {
-    // @ts-expect-error [TODO] - TS4111 - Property 'save' comes from an index signature, so it must be accessed with ['save'].
     opts.save.maxRes = res.maxRes;
-    // @ts-expect-error [TODO] - TS4111 - Property 'save' comes from an index signature, so it must be accessed with ['save'].
     opts.save.maxBand = res.maxBand;
   }
 
