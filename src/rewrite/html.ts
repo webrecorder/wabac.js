@@ -210,9 +210,12 @@ export class HTMLRewriter {
     let addCloseTag = "";
 
     const replaceTag = (newTag: string) => {
-      if (newTag === "iframe" && tag.selfClosing) {
-        tag.selfClosing = false;
-        addCloseTag = newTag;
+      if (newTag === "iframe") {
+        if (tag.selfClosing) {
+          tag.selfClosing = false;
+          addCloseTag = newTag;
+        }
+        tag.attrs.push({ name: "style", value: "border: none" });
       }
       tag.tagName = newTag;
     };
