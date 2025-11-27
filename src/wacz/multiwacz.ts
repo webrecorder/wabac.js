@@ -1375,6 +1375,11 @@ export class MultiWACZ
     }
 
     if (pageUrl && this.pagesQueryUrl) {
+      if (pageUrl.startsWith("//")) {
+        const scheme = request.referrer && request.referrer.indexOf("/http:") > 0 ? "http:" : "https:";
+        pageUrl = scheme + pageUrl;
+      }
+
       let res = await this.getWACZFilesForPagesQuery(pageUrl);
       if (res) {
         names = [...names, ...res];
