@@ -109,6 +109,9 @@ export async function getDownloadAttachmentFilename(
   }
   if (!filename) {
     filename = "index";
+  }
+
+  if (filename.indexOf(".") === -1) {
     let mime = (response.headers.get("content-type") || "").split(";")[0];
     if (mime) {
       mime = mime.split("/")[1];

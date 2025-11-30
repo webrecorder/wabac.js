@@ -248,8 +248,11 @@ export class Collection {
 
     // add content-disposition header to always download
     if (request.mod === "dl_") {
-      const value = await getDownloadAttachmentFilename(request, response);
-      response.headers.set("Content-Disposition", `attachment; ${value}`);
+      const orig = response.headers.get("Content-Disposition");
+      if (!orig || orig.indexOf("attachment;") === -1) {
+        const value = await getDownloadAttachmentFilename(request, response);
+        response.headers.set("Content-Disposition", `attachment; ${value}`);
+      }
     } else {
       deleteDisposition =
         request.destination === "iframe" || request.destination === "document";
