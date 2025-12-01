@@ -1,5 +1,7 @@
 import { type ArchiveRequest } from "./request";
 import { type ArchiveResponse } from "./response";
+import { Mime } from "mime/lite";
+import standardTypes from "mime/types/standard.js";
 
 // https://en.wikipedia.org/wiki/List_of_file_signatures
 const zipMagicBytes = [0x50, 0x4b, 0x03, 0x04];
@@ -13,6 +15,11 @@ const warcMagicBytes = [0x57, 0x41, 0x52, 0x43];
 const isWarcFile = hasMagicBytes(warcMagicBytes);
 
 const PEEK_BYTES = 4;
+
+// Add x-javascript
+const mimelib = new Mime()
+  .define(standardTypes)
+  .define({ "application/x-javascript": [".js"] });
 
 // todo: improve this to do full detection of different text types
 // @ts-expect-error [TODO] - TS7030 - Not all code paths return a value.
@@ -109,11 +116,14 @@ export async function getDownloadAttachmentFilename(
   }
   if (!filename) {
     filename = "index";
-    let mime = (response.headers.get("content-type") || "").split(";")[0];
-    if (mime) {
-      mime = mime.split("/")[1];
+  }
+
+  if (filename.indexOf(".") === -1) {
+    const mime = response.headers.get("content-type");
+    const ext = mime ? mimelib.getExtension(mime) : "";
+    if (ext) {
+      filename += "." + ext;
     }
-    filename += "." + (mime || "html");
   }
 
   const encoded = encodeURIComponent(filename);
