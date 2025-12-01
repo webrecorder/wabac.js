@@ -1,5 +1,6 @@
 import { type ArchiveRequest } from "./request";
 import { type ArchiveResponse } from "./response";
+import mimelib from "mime/lite";
 
 // https://en.wikipedia.org/wiki/List_of_file_signatures
 const zipMagicBytes = [0x50, 0x4b, 0x03, 0x04];
@@ -112,11 +113,11 @@ export async function getDownloadAttachmentFilename(
   }
 
   if (filename.indexOf(".") === -1) {
-    let mime = (response.headers.get("content-type") || "").split(";")[0];
-    if (mime) {
-      mime = mime.split("/")[1];
+    const mime = response.headers.get("content-type");
+    const ext = mime ? mimelib.getExtension(mime) : "";
+    if (ext) {
+      filename += "." + ext;
     }
-    filename += "." + (mime || "html");
   }
 
   const encoded = encodeURIComponent(filename);
