@@ -1,6 +1,7 @@
 import { type ArchiveRequest } from "./request";
 import { type ArchiveResponse } from "./response";
-import mimelib from "mime/lite";
+import { Mime } from "mime/lite";
+import standardTypes from "mime/types/standard.js";
 
 // https://en.wikipedia.org/wiki/List_of_file_signatures
 const zipMagicBytes = [0x50, 0x4b, 0x03, 0x04];
@@ -14,6 +15,11 @@ const warcMagicBytes = [0x57, 0x41, 0x52, 0x43];
 const isWarcFile = hasMagicBytes(warcMagicBytes);
 
 const PEEK_BYTES = 4;
+
+// Add x-javascript
+const mimelib = new Mime()
+  .define(standardTypes)
+  .define({ "application/x-javascript": [".js"] });
 
 // todo: improve this to do full detection of different text types
 // @ts-expect-error [TODO] - TS7030 - Not all code paths return a value.

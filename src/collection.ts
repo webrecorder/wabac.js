@@ -249,7 +249,7 @@ export class Collection {
     // add content-disposition header to always download
     if (request.mod === "dl_") {
       const orig = response.headers.get("Content-Disposition");
-      if (!orig || orig.indexOf("attachment;") === -1) {
+      if (!orig?.match(/^attachment\s*;/i)) {
         const value = await getDownloadAttachmentFilename(request, response);
         response.headers.set("Content-Disposition", `attachment; ${value}`);
       }
