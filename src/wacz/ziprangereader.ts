@@ -130,7 +130,7 @@ export class ZipRangeReader {
           )) as Uint8Array;
           const combinedChunk = concatChunks(
             [extraChunk, endChunk],
-            e.length + length,
+            e.length + endChunk.length,
           );
           this.entries = this._loadEntries(combinedChunk, e.start);
         }
