@@ -175,7 +175,7 @@ export type ExtraConfig = {
   localTLD?: string;
 
   proxyOrigin?: string;
-  altProxyOrigin?: string;
+  altProxyOrigins?: string[];
   proxyTs?: string;
   proxyBannerUrl?: string;
   proxyPathOnly?: boolean;

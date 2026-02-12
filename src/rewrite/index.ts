@@ -835,7 +835,7 @@ export class Rewriter {
 export class ProxyRewriter extends Rewriter {
   proxyOrigin: string;
   proxyHost: string;
-  altProxyOrigin?: string;
+  altProxyOrigins?: string[];
 
   localOrigin: string;
 
@@ -850,7 +850,7 @@ export class ProxyRewriter extends Rewriter {
     super(opts);
     this.proxyOrigin = request.proxyOrigin!;
     this.localOrigin = request.localOrigin!;
-    this.altProxyOrigin = request.altProxyOrigin;
+    this.altProxyOrigins = request.altProxyOrigins;
 
     this.proxyTLD = request.proxyTLD || "";
     this.localTLD = request.localTLD || "";
@@ -869,8 +869,12 @@ export class ProxyRewriter extends Rewriter {
       return this.localOrigin + urlStr.slice(this.proxyOrigin.length);
     }
 
-    if (this.altProxyOrigin && urlStr.startsWith(this.altProxyOrigin)) {
-      return this.localOrigin + urlStr.slice(this.altProxyOrigin.length);
+    if (this.altProxyOrigins) {
+      for (const altOrigin of this.altProxyOrigins) {
+        if (urlStr.startsWith(altOrigin)) {
+          return this.localOrigin + urlStr.slice(altOrigin.length);
+        }
+      }
     }
 
     if (this.proxyTLD && this.localTLD && urlStr.indexOf(this.proxyTLD) > 0) {

@@ -16,7 +16,7 @@ import { ArchiveResponse } from "./response";
 import { getAdBlockCSSResponse } from "./adblockcss";
 import { notFound, notFoundByTypeResponse } from "./notfound";
 import { type ArchiveDB } from "./archivedb";
-import { resolveProxyOrigin, type ArchiveRequest } from "./request";
+import { type ArchiveRequest } from "./request";
 import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
 import { getDownloadAttachmentFilename } from "./detectfiletype";
 
@@ -529,10 +529,15 @@ ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
 
     response = await this.store.getResource(query, this.prefix, event, opts);
 
-    if (!response && query.isProxyOrigin && query.proxyOrigin && query.altProxyOrigin && query.url.startsWith(query.proxyOrigin)) {
-      query.url = query.url.replace(query.proxyOrigin, query.altProxyOrigin);
-      console.log("try new origin", query.url);
-      response = await this.store.getResource(query, this.prefix, event, opts);
+    if (!response && query.altProxyOrigins && query.isProxyOrigin && query.proxyOrigin && query.url.startsWith(query.proxyOrigin)) {
+      const orig = query.url;
+      for (const altOrigin of query.altProxyOrigins) {
+        query.url = orig.replace(query.proxyOrigin, altOrigin);
+        response = await this.store.getResource(query, this.prefix, event, opts);
+        if (response) {
+          break;
+        }
+      }
     }
 
     return response;

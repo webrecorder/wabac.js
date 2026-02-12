@@ -8,7 +8,7 @@ export type ArchiveRequestInitOpts = {
   mod?: string;
   ts?: string;
   proxyOrigin?: string;
-  altProxyOrigin?: string;
+  altProxyOrigins?: string[];
   localOrigin?: string;
   proxyTLD?: string;
   localTLD?: string;
@@ -29,7 +29,7 @@ export class ArchiveRequest {
   localOrigin?: string;
   httpToHttpsNeeded = false;
 
-  altProxyOrigin?: string;
+  altProxyOrigins?: string[];
 
   proxyTLD?: string;
   localTLD?: string;
@@ -55,7 +55,7 @@ export class ArchiveRequest {
       proxyTLD = undefined,
       localTLD = undefined,
       defaultReplayMode = false,
-      altProxyOrigin = undefined
+      altProxyOrigins = undefined
     }: ArchiveRequestInitOpts = {},
   ) {
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
@@ -97,7 +97,7 @@ export class ArchiveRequest {
       }
       this.isProxyOrigin = true;
       this.proxyOrigin = proxyOrigin;
-      this.altProxyOrigin = altProxyOrigin;
+      this.altProxyOrigins = altProxyOrigins;
       this.proxyScheme = proxyOrigin
         ? new URL(proxyOrigin).protocol.slice(0, -1)
         : "";
