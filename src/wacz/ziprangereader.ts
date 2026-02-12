@@ -69,8 +69,7 @@ export class HashingAsyncIterReader extends AsyncIterReader implements GetHash {
     }
   }
 
-  // @ts-expect-error [TODO] - TS4114 - This member must have an 'override' modifier because it overrides a member in the base class 'AsyncIterReader'.
-  async _loadNext() {
+  override async _loadNext() {
     const value = await super._loadNext();
     if (value) {
       if (!this.hashInited) {
@@ -130,7 +129,7 @@ export class ZipRangeReader {
           )) as Uint8Array;
           const combinedChunk = concatChunks(
             [extraChunk, endChunk],
-            e.length + length,
+            e.length + endChunk.length,
           );
           this.entries = this._loadEntries(combinedChunk, e.start);
         }
