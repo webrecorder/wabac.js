@@ -13,6 +13,10 @@
       "default": "./dist/swlib.js"
     }
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webrecorder/wabac.js"
+  },
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@peculiar/asn1-ecc": "^2.3.4",
