@@ -810,13 +810,12 @@ export class MultiWACZ
 
       // If found a revisit, and have dependency crawls, continue looking in the dependencies
       if (
-        result &&
-        result.mime === "warc/revisit" &&
-        this.waczfiles[waczname]?.reqFiles.length
+        this.waczfiles[waczname]?.reqFiles.length &&
+        (!result || result.mime === "warc/revisit")
       ) {
-        const newOpts = { ...opts, noRevisits: true };
+        opts = { ...opts, noRevisits: true };
         for (const name of this.waczfiles[waczname].reqFiles) {
-          result = await this.lookupUrlForWACZ(name, url, datetime, newOpts);
+          result = await this.lookupUrlForWACZ(name, url, datetime, opts);
           if (result) {
             return result;
           }
