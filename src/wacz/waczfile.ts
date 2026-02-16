@@ -127,7 +127,7 @@ export class WACZFile implements WACZLoadSource {
         this.reqFiles = reqFiles;
       }
     } catch (e) {
-      console.warn("Error parsing reqCrawls", e);
+      console.warn("Error parsing reqFiles", e);
     }
 
     return this.entries!;
