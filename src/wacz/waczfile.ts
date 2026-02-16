@@ -105,13 +105,13 @@ export class WACZFile implements WACZLoadSource {
     }
     if (this.loader) {
       await this.initFromLoader(this.loader);
-    }
-    if (!this.parent) {
+    } else if (this.parent) {
+      const loader = await this.parent.createLoader({ url: this.path });
+
+      await this.initFromLoader(loader);
+    } else {
       throw new Error("must have either loader or parent");
     }
-    const loader = await this.parent.createLoader({ url: this.path });
-
-    await this.initFromLoader(loader);
 
     if (!this.zipreader) {
       return {};
