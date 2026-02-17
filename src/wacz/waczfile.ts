@@ -1,4 +1,5 @@
 import { type BaseLoader } from "../blockloaders";
+import { type DataPackageWithRelation } from "../types";
 import {
   type LoadWACZEntry,
   ZipBlockLoader,
@@ -59,6 +60,7 @@ export class WACZFile implements WACZLoadSource {
   parent: WACZLoadSource | null;
   fileType: WACZType;
   indexType: IndexType;
+  reqFiles: string[] = [];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   entries: Record<string, any> | null;
@@ -102,14 +104,33 @@ export class WACZFile implements WACZLoadSource {
       this.path = path;
     }
     if (this.loader) {
-      return await this.initFromLoader(this.loader);
-    }
-    if (!this.parent) {
+      await this.initFromLoader(this.loader);
+    } else if (this.parent) {
+      const loader = await this.parent.createLoader({ url: this.path });
+
+      await this.initFromLoader(loader);
+    } else {
       throw new Error("must have either loader or parent");
     }
-    const loader = await this.parent.createLoader({ url: this.path });
 
-    return await this.initFromLoader(loader);
+    if (!this.zipreader) {
+      return {};
+    }
+
+    try {
+      const { reader } = await this.zipreader.loadFile("datapackage.json");
+      const text = new TextDecoder().decode(await reader.readFully());
+
+      const res: DataPackageWithRelation = JSON.parse(text);
+      if (res.relation?.requires) {
+        const reqFiles = res.relation.requires.map((x) => x.filename);
+        this.reqFiles = reqFiles;
+      }
+    } catch (e) {
+      console.warn("Error parsing reqFiles", e);
+    }
+
+    return this.entries!;
   }
 
   private async initFromLoader(loader: BaseLoader) {
@@ -151,6 +172,7 @@ export class WACZFile implements WACZLoadSource {
       entries: this.entries,
       indexType: this.indexType,
       nonSurt: this.nonSurt,
+      reqFiles: this.reqFiles,
     };
   }
 

@@ -261,6 +261,12 @@ export type MultiWACZJsonSpec = {
   pagesQueryUrl?: string;
 };
 
+export type DataPackageWithRelation = {
+  relation?: {
+    requires: { filename: string; hash: string; crawlId?: string }[];
+  };
+};
+
 export type WACZCollConfig = CollConfig & {
   dbname: string;
   noCache?: boolean;

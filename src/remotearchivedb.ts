@@ -99,10 +99,12 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
       return null;
     }
 
-    if (remote.ts !== cdx.ts) {
+    const origTS = cdx.origTS || cdx.ts;
+
+    if (remote.ts !== origTS) {
       const rounded = Math.floor(remote.ts / 1000) * 1000;
-      if (rounded !== cdx.ts) {
-        console.log(`Wrong timestamp: expected ${cdx.ts}, got ${remote.ts}`);
+      if (rounded !== origTS) {
+        console.log(`Wrong timestamp: expected ${origTS}, got ${remote.ts}`);
         return null;
       }
     }
@@ -183,7 +185,16 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
         cdx.respHeaders = origResult.respHeaders;
       }
 
+      // resolve revisit to point to original
       cdx.mime = origResult.mime;
+
+      // store orig URL and TS for matching
+      cdx.origTS = origResult.ts;
+      cdx.origURL = origResult.url;
+
+      // ensure can load directly w/o looking up original
+      cdx.source = origResult.source;
+
       // ensure digest is set to original (usually same but may have different prefix)
       // to ensure proper lookup from cache
       cdx.digest = origResult.digest;

@@ -808,6 +808,20 @@ export class MultiWACZ
         result = await this.lookupUrlForWACZ(waczname, url, datetime, opts);
       }
 
+      // If found a revisit, and have dependency crawls, continue looking in the dependencies
+      if (
+        this.waczfiles[waczname]?.reqFiles.length &&
+        (!result || result.mime === "warc/revisit")
+      ) {
+        opts = { ...opts, noRevisits: true };
+        for (const name of this.waczfiles[waczname].reqFiles) {
+          result = await this.lookupUrlForWACZ(name, url, datetime, opts);
+          if (result) {
+            return result;
+          }
+        }
+      }
+
       // @ts-expect-error [TODO] - TS4111 - Property 'noRevisits' comes from an index signature, so it must be accessed with ['noRevisits'].
       if (result && (!opts.noRevisits || result.mime !== "warc/revisit")) {
         return result;
@@ -969,19 +983,18 @@ export class MultiWACZ
       loader,
     });
 
+    let res = {};
+
     if (!this.pagesQueryUrl) {
       await file.init();
+
+      const importer = new WACZImporter(this, file, !parent);
+      res = await importer.load();
     }
 
     await file.save(this.db, true);
 
-    if (!this.pagesQueryUrl) {
-      const importer = new WACZImporter(this, file, !parent);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return await importer.load();
-    } else {
-      return {};
-    }
+    return res;
   }
 
   async loadWACZFiles(json: MultiWACZJsonSpec, parent: WACZLoadSource = this) {
