@@ -639,11 +639,13 @@ export class SWReplay {
 
     if (this.proxyOriginMode && !defaultReplayMode) {
       opts.mod = "id_";
-      opts.proxyOrigin = coll.config.extraConfig?.proxyOrigin;
-      opts.altProxyOrigins = coll.config.extraConfig?.altProxyOrigins;
-      opts.proxyTLD = coll.config.extraConfig?.proxyTLD;
-      opts.localTLD = coll.config.extraConfig?.localTLD;
-      opts.ts = coll.config.extraConfig?.proxyTs || "";
+      const extraConfig = coll.config.extraConfig || {};
+      opts.proxyOrigin = extraConfig.proxyOrigin;
+      opts.altProxyOrigins = extraConfig.altProxyOrigins;
+      opts.proxyRewriteRelCanonical = extraConfig.proxyRewriteRelCanonical;
+      opts.proxyTLD = extraConfig.proxyTLD;
+      opts.localTLD = extraConfig.localTLD;
+      opts.ts = extraConfig.proxyTs || "";
       opts.localOrigin = self.location.origin;
     }
 

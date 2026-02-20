@@ -13,6 +13,7 @@ export type ArchiveRequestInitOpts = {
   proxyTLD?: string;
   localTLD?: string;
   defaultReplayMode?: boolean;
+  proxyRewriteRelCanonical?: boolean;
 };
 
 export class ArchiveRequest {
@@ -30,6 +31,8 @@ export class ArchiveRequest {
   httpToHttpsNeeded = false;
 
   altProxyOrigins?: string[];
+
+  proxyRewriteRelCanonical?: boolean;
 
   proxyTLD?: string;
   localTLD?: string;
@@ -55,7 +58,8 @@ export class ArchiveRequest {
       proxyTLD = undefined,
       localTLD = undefined,
       defaultReplayMode = false,
-      altProxyOrigins = undefined
+      altProxyOrigins = undefined,
+      proxyRewriteRelCanonical = false
     }: ArchiveRequestInitOpts = {},
   ) {
     const wbUrl = REPLAY_REGEX.exec(wbUrlStr);
@@ -106,6 +110,7 @@ export class ArchiveRequest {
         this.proxyScheme === "http" && localOrigin.startsWith("https:");
       this.proxyTLD = proxyTLD || "";
       this.localTLD = localTLD || "";
+      this.proxyRewriteRelCanonical = proxyRewriteRelCanonical;
     }
 
     const hashIndex = this.url.indexOf("#");
