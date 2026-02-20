@@ -571,6 +571,22 @@ test(
   '<script src="http://localhost:8080/prefix/20201226101010esm_/https://example.com/some/path/js/func.js" type="module" __wb_orig_src="js/func.js"></script>',
 );
 
+// Script tag with module -- absolute path resolve
+test(
+  "script",
+  rewriteHtml,
+  `<script type="module">
+    import A from "/fileA.js";
+    import B from "../fileB.js";
+    import C from "./fileC.js";
+   </script>`,
+  wrapScriptModule(`
+    import A from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/fileA.js";
+    import B from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/some/fileB.js";
+    import C from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/some/path/fileC.js";
+   `),
+);
+
 // eval in script
 test(
   "script",

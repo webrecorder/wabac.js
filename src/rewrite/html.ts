@@ -14,6 +14,7 @@ import {
 } from "./index.js";
 import { type StartTag } from "parse5-sax-parser";
 import { type Token } from "parse5";
+import { type RWOpts } from "../types";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -103,10 +104,12 @@ export class HTMLRewriter {
   ruleMatch: RegExpMatchArray | null = null;
   isCharsetUTF8: boolean;
   detectedCharset = "";
+  jsOpts: RWOpts;
 
   constructor(rewriter: Rewriter) {
     this.rewriter = rewriter;
     this.rule = null;
+    this.jsOpts = { baseUrl: rewriter.baseUrl, prefix: rewriter.prefix };
 
     for (const rule of TEXT_NODE_REWRITE_RULES) {
       const m = this.rewriter.url.match(rule.urlMatch);
@@ -230,10 +233,14 @@ export class HTMLRewriter {
           "javascript:" +
           rewriter.rewriteJS(value.slice("javascript:".length), {
             inline: true,
+            ...this.jsOpts,
           });
       } else if (name.startsWith("on") && name.slice(2, 3) != "-") {
         // js attrs
-        attr.value = rewriter.rewriteJS(value, { inline: true });
+        attr.value = rewriter.rewriteJS(value, {
+          inline: true,
+          ...this.jsOpts,
+        });
         // css attrs
       } else if (name === "style") {
         attr.value = rewriter.rewriteCSS(attr.value);
@@ -528,15 +535,20 @@ export class HTMLRewriter {
     rwStream.on("text", (textToken, raw) => {
       const text = (() => {
         if (context === "script") {
-          const prefix = rewriter.prefix;
           const isModule = scriptRw === "module";
 
           isTextEmpty = isTextEmpty && textToken.text.trim().length === 0;
 
           if (scriptRw === "js" || isModule) {
-            return rewriter.rewriteJS(textToken.text, { isModule, prefix });
+            return rewriter.rewriteJS(textToken.text, {
+              isModule,
+              ...this.jsOpts,
+            });
           } else if (scriptRw === "json") {
-            return rewriter.rewriteJSON(textToken.text, { prefix });
+            return rewriter.rewriteJSON(textToken.text, {
+              isModule,
+              ...this.jsOpts,
+            });
           } else if (scriptRw === "importmap") {
             return rewriter.rewriteImportmap(textToken.text);
           } else {
@@ -618,7 +630,10 @@ export class HTMLRewriter {
   rewriteJSBase64(text: string, rewriter: Rewriter) {
     const parts = text.split(",");
     // @ts-expect-error [TODO] - TS2769 - No overload matches this call.
-    const content = rewriter.rewriteJS(atob(parts[1]), { isModule: false });
+    const content = rewriter.rewriteJS(atob(parts[1]), {
+      isModule: false,
+      ...this.jsOpts,
+    });
     parts[1] = btoa(content);
     return parts.join(",");
   }
