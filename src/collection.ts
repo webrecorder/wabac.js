@@ -394,7 +394,9 @@ ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
       decode: this.config.decode,
     };
 
-    const rewriter = new ProxyRewriter(rewriteOpts, request);
+    const extraConfig = this.config.extraConfig || {}
+
+    const rewriter = new ProxyRewriter(rewriteOpts, request, {rewriteRelCanonical: extraConfig.proxyRewriteRelCanonical});
 
     response = await rewriter.rewrite(response, request);
 

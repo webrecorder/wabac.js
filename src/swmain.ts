@@ -642,7 +642,6 @@ export class SWReplay {
       const extraConfig = coll.config.extraConfig || {};
       opts.proxyOrigin = extraConfig.proxyOrigin;
       opts.altProxyOrigins = extraConfig.altProxyOrigins;
-      opts.proxyRewriteRelCanonical = extraConfig.proxyRewriteRelCanonical;
       opts.proxyTLD = extraConfig.proxyTLD;
       opts.localTLD = extraConfig.localTLD;
       opts.ts = extraConfig.proxyTs || "";

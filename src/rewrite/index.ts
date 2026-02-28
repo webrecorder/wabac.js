@@ -848,7 +848,7 @@ export class ProxyRewriter extends Rewriter {
 
   rewriteRelCanonical: boolean;
 
-  constructor(opts: RewriterOpts, request: ArchiveRequest) {
+  constructor(opts: RewriterOpts, request: ArchiveRequest, {rewriteRelCanonical = false} : { rewriteRelCanonical?: boolean}) {
     super(opts);
     this.proxyOrigin = request.proxyOrigin!;
     this.localOrigin = request.localOrigin!;
@@ -864,7 +864,7 @@ export class ProxyRewriter extends Rewriter {
 
     this.localScheme = local.protocol;
     this.httpToHttps = request.httpToHttpsNeeded;
-    this.rewriteRelCanonical = request.proxyRewriteRelCanonical || false;
+    this.rewriteRelCanonical = rewriteRelCanonical;
   }
 
   override rewriteUrl(urlStr: string): string {
