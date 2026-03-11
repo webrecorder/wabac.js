@@ -848,7 +848,11 @@ export class ProxyRewriter extends Rewriter {
 
   rewriteRelCanonical: boolean;
 
-  constructor(opts: RewriterOpts, request: ArchiveRequest, {rewriteRelCanonical = false} : { rewriteRelCanonical?: boolean}) {
+  constructor(
+    opts: RewriterOpts,
+    request: ArchiveRequest,
+    { rewriteRelCanonical = false }: { rewriteRelCanonical?: boolean },
+  ) {
     super(opts);
     this.proxyOrigin = request.proxyOrigin!;
     this.localOrigin = request.localOrigin!;
@@ -872,6 +876,7 @@ export class ProxyRewriter extends Rewriter {
       return this.localOrigin + urlStr.slice(this.proxyOrigin.length);
     }
 
+    // if one of the alt origins, rewrite to local origin
     if (this.altProxyOrigins) {
       for (const altOrigin of this.altProxyOrigins) {
         if (urlStr.startsWith(altOrigin)) {

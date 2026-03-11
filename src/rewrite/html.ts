@@ -673,7 +673,7 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
     attrRules: Record<string, string>,
     rewriter: Rewriter,
   ): string {
-    const proxyRewriter = (rewriter as ProxyRewriter);
+    const proxyRewriter = rewriter as ProxyRewriter;
     if (proxyRewriter.httpToHttps) {
       return super.rewriteTagAndAttrs(tag, attrRules, rewriter);
     }
@@ -699,7 +699,12 @@ export class ProxyHTMLRewriter extends HTMLRewriter {
         attr.value = this.rewriteUrl(rewriter, value, false, attrRules[name]);
       }
 
-      if (proxyRewriter.rewriteRelCanonical && tagName === "link" && name === "href" && value) {
+      if (
+        proxyRewriter.rewriteRelCanonical &&
+        tagName === "link" &&
+        name === "href" &&
+        value
+      ) {
         if (this.getAttr(tag.attrs, "rel") === "canonical") {
           attr.value = proxyRewriter.rewriteUrl(attr.value);
         }

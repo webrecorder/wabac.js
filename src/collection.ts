@@ -394,9 +394,11 @@ ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
       decode: this.config.decode,
     };
 
-    const extraConfig = this.config.extraConfig || {}
+    const extraConfig = this.config.extraConfig || {};
 
-    const rewriter = new ProxyRewriter(rewriteOpts, request, {rewriteRelCanonical: extraConfig.proxyRewriteRelCanonical});
+    const rewriter = new ProxyRewriter(rewriteOpts, request, {
+      rewriteRelCanonical: extraConfig.proxyRewriteRelCanonical,
+    });
 
     response = await rewriter.rewrite(response, request);
 
@@ -531,11 +533,23 @@ ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
 
     response = await this.store.getResource(query, this.prefix, event, opts);
 
-    if (!response && query.altProxyOrigins && query.isProxyOrigin && query.proxyOrigin && query.url.startsWith(query.proxyOrigin)) {
+    // if proxy rewrite mode, and alt origins provided, support looking up URL from one of the alt origins
+    if (
+      !response &&
+      query.altProxyOrigins &&
+      query.isProxyOrigin &&
+      query.proxyOrigin &&
+      query.url.startsWith(query.proxyOrigin)
+    ) {
       const orig = query.url;
       for (const altOrigin of query.altProxyOrigins) {
         query.url = orig.replace(query.proxyOrigin, altOrigin);
-        response = await this.store.getResource(query, this.prefix, event, opts);
+        response = await this.store.getResource(
+          query,
+          this.prefix,
+          event,
+          opts,
+        );
         if (response) {
           break;
         }

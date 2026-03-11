@@ -1114,7 +1114,7 @@ export class MultiWACZ
           unzip: true,
           offset: 0,
           // read a max of 1M of text index
-          length: MAX_TEXT_INDEX
+          length: MAX_TEXT_INDEX,
         });
         // [TODO]
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1128,7 +1128,8 @@ export class MultiWACZ
       const size = this.waczfiles[waczname].getSizeOf(this.textIndex);
 
       if (size > 0) {
-        headers["Content-Length"] = "" + Math.min(size as number, MAX_TEXT_INDEX);
+        headers["Content-Length"] =
+          "" + Math.min(size as number, MAX_TEXT_INDEX);
       }
 
       return new Response(reader.getReadableStream(), { headers });
@@ -1401,18 +1402,9 @@ export class MultiWACZ
         pageUrl = scheme + pageUrl;
       }
 
-      const res = await this.getWACZFilesForPagesQuery(pageUrl);
+      let res = await this.getWACZFilesForPagesQuery(pageUrl);
       if (res) {
         names = [...names, ...res];
-      }
-      // if (request.altProxyOrigin && request.proxyOrigin) {
-      //   const altReferrer = pageUrl.replace(request.proxyOrigin, request.altProxyOrigin);
-      //   const res = await this.getWACZFilesForPagesQuery(altReferrer);
-      //   if (res) {
-      //     names = [...names, ...res];
-      //   }
-      // }
-      if (names.length) {
         return names;
       }
 
@@ -1420,7 +1412,7 @@ export class MultiWACZ
         const url = new URL(pageUrl);
         if (url.pathname === "/") {
           url.hostname = url.hostname.replace("www.", "");
-          const res = await this.getWACZFilesForPagesQuery(url.href);
+          res = await this.getWACZFilesForPagesQuery(url.href);
           if (res) {
             names = [...names, ...res];
             return names;
