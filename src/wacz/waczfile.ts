@@ -1,5 +1,5 @@
 import { type BaseLoader } from "../blockloaders";
-import { type DataPackageWithRelation, LoadRangeOpts } from "../types";
+import { type DataPackageWithRelation, type LoadRangeOpts } from "../types";
 import {
   type LoadWACZEntry,
   ZipBlockLoader,
