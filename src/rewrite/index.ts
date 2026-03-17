@@ -835,6 +835,7 @@ export class Rewriter {
 export class ProxyRewriter extends Rewriter {
   proxyOrigin: string;
   proxyHost: string;
+  altProxyOrigins?: string[];
 
   localOrigin: string;
 
@@ -845,10 +846,17 @@ export class ProxyRewriter extends Rewriter {
 
   httpToHttps: boolean;
 
-  constructor(opts: RewriterOpts, request: ArchiveRequest) {
+  rewriteRelCanonical: boolean;
+
+  constructor(
+    opts: RewriterOpts,
+    request: ArchiveRequest,
+    { rewriteRelCanonical = false }: { rewriteRelCanonical?: boolean },
+  ) {
     super(opts);
     this.proxyOrigin = request.proxyOrigin!;
     this.localOrigin = request.localOrigin!;
+    this.altProxyOrigins = request.altProxyOrigins;
 
     this.proxyTLD = request.proxyTLD || "";
     this.localTLD = request.localTLD || "";
@@ -860,11 +868,21 @@ export class ProxyRewriter extends Rewriter {
 
     this.localScheme = local.protocol;
     this.httpToHttps = request.httpToHttpsNeeded;
+    this.rewriteRelCanonical = rewriteRelCanonical;
   }
 
   override rewriteUrl(urlStr: string): string {
     if (urlStr.startsWith(this.proxyOrigin)) {
       return this.localOrigin + urlStr.slice(this.proxyOrigin.length);
+    }
+
+    // if one of the alt origins, rewrite to local origin
+    if (this.altProxyOrigins) {
+      for (const altOrigin of this.altProxyOrigins) {
+        if (urlStr.startsWith(altOrigin)) {
+          return this.localOrigin + urlStr.slice(altOrigin.length);
+        }
+      }
     }
 
     if (this.proxyTLD && this.localTLD && urlStr.indexOf(this.proxyTLD) > 0) {

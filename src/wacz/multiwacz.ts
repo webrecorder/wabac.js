@@ -31,7 +31,7 @@ import {
   type WACZLoadSource,
   WACZ_LEAF,
 } from "./waczfile";
-import { type ADBType } from "../archivedb";
+import { type ADBOpts, type ADBType } from "../archivedb";
 import { EXTRA_PAGES_JSON, WACZImporter } from "./waczimporter";
 import {
   type BaseLoader,
@@ -793,9 +793,7 @@ export class MultiWACZ
   override async lookupUrl(
     url: string,
     datetime: number,
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    opts: Record<string, any> = {},
+    opts: ADBOpts & { waczname: string } = { waczname: "" },
   ) {
     try {
       const { waczname } = opts;
@@ -803,8 +801,6 @@ export class MultiWACZ
       let result;
 
       if (waczname && waczname !== NO_LOAD_WACZ) {
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         result = await this.lookupUrlForWACZ(waczname, url, datetime, opts);
       }
 
@@ -822,7 +818,6 @@ export class MultiWACZ
         }
       }
 
-      // @ts-expect-error [TODO] - TS4111 - Property 'noRevisits' comes from an index signature, so it must be accessed with ['noRevisits'].
       if (result && (!opts.noRevisits || result.mime !== "warc/revisit")) {
         return result;
       }
@@ -840,9 +835,7 @@ export class MultiWACZ
     waczname: string,
     url: string,
     datetime: number,
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    opts: Record<string, any>,
+    opts: ADBOpts,
   ) {
     const { indexType, isNew } = await this.loadIndex(waczname);
 
@@ -1101,6 +1094,8 @@ export class MultiWACZ
       return new Response("", { headers });
     }
 
+    const MAX_TEXT_INDEX = 1024 * 1024;
+
     if (keys.length === 1) {
       const waczname = keys[0];
 
@@ -1110,6 +1105,9 @@ export class MultiWACZ
         // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
         result = await this.loadFileFromNamedWACZ(waczname, this.textIndex, {
           unzip: true,
+          offset: 0,
+          // read a max of 1M of text index
+          length: MAX_TEXT_INDEX,
         });
         // [TODO]
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1123,7 +1121,8 @@ export class MultiWACZ
       const size = this.waczfiles[waczname].getSizeOf(this.textIndex);
 
       if (size > 0) {
-        headers["Content-Length"] = "" + size;
+        headers["Content-Length"] =
+          "" + Math.min(size as number, MAX_TEXT_INDEX);
       }
 
       return new Response(reader.getReadableStream(), { headers });
@@ -1168,9 +1167,7 @@ export class MultiWACZ
     request: ArchiveRequest,
     prefix: string,
     event: FetchEvent,
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    { pageId, noRedirect }: Record<string, any> = {},
+    { pageId, noRedirect }: ADBOpts = {},
   ): Promise<ArchiveResponse | Response | null> {
     await this.initing;
 
@@ -1192,8 +1189,10 @@ export class MultiWACZ
       if (!waczname) {
         return null;
       }
-      // @ts-expect-error [TODO] - TS2345 - Argument of type '{ waczname: string; }' is not assignable to parameter of type 'Opts'.
-      resp = await super.getResource(request, prefix, event, { waczname });
+      resp = await super.getResource(request, prefix, event, {
+        waczname,
+        skip5xx: request.isProxyOrigin,
+      });
       if (resp) {
         return resp;
       }
@@ -1229,9 +1228,9 @@ export class MultiWACZ
       }
 
       resp = await super.getResource(request, prefix, event, {
-        // @ts-expect-error [TODO] - TS2345 - Argument of type '{ waczname: string; noFuzzyCheck: true; loadFirst: boolean; }' is not assignable to parameter of type 'Opts'.
         waczname: name,
         noFuzzyCheck: !request.isProxyOrigin,
+        skip5xx: request.isProxyOrigin,
       });
       if (resp) {
         const arResponse = resp as ArchiveResponse;
