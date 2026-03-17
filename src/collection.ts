@@ -414,10 +414,10 @@ ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
     return presetCookie ? JSON.stringify(presetCookie) : '""';
   }
 
-  getCanonRedirect(query: ArchiveRequest) {
+  getCanonRedirect(request: ArchiveRequest) {
     // [TODO]
     // eslint-disable-next-line prefer-const
-    let { url, timestamp, mod, referrer } = query;
+    let { url, timestamp, mod, referrer } = request;
     const schemeRel = url.startsWith("//");
 
     if (schemeRel) {
@@ -438,7 +438,7 @@ ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
           return Response.redirect(redirectUrl, 301);
           // if different due to canonical URL included, just update the URL
         } else if ((!schemeRel && url.indexOf(":443")) || url.indexOf(":80")) {
-          query.url = parsed.href;
+          request.url = parsed.href;
         }
       }
       // [TODO]
@@ -519,33 +519,33 @@ ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
   }
 
   async getReplayResponse(
-    query: ArchiveRequest,
+    request: ArchiveRequest,
     event: FetchEvent,
   ): Promise<Response | ArchiveResponse | null> {
     let response: Response | ArchiveResponse | null =
-      this.getCanonRedirect(query);
+      this.getCanonRedirect(request);
 
     if (response) {
       return response;
     }
 
-    const opts = { pageId: query.pageId, noRedirect: query.isProxyOrigin };
+    const opts = { pageId: request.pageId, noRedirect: request.isProxyOrigin };
 
-    response = await this.store.getResource(query, this.prefix, event, opts);
+    response = await this.store.getResource(request, this.prefix, event, opts);
 
     // if proxy rewrite mode, and alt origins provided, support looking up URL from one of the alt origins
     if (
       !response &&
-      query.altProxyOrigins &&
-      query.isProxyOrigin &&
-      query.proxyOrigin &&
-      query.url.startsWith(query.proxyOrigin)
+      request.altProxyOrigins &&
+      request.isProxyOrigin &&
+      request.proxyOrigin &&
+      request.url.startsWith(request.proxyOrigin)
     ) {
-      const orig = query.url;
-      for (const altOrigin of query.altProxyOrigins) {
-        query.url = orig.replace(query.proxyOrigin, altOrigin);
+      const orig = request.url;
+      for (const altOrigin of request.altProxyOrigins) {
+        request.url = orig.replace(request.proxyOrigin, altOrigin);
         response = await this.store.getResource(
-          query,
+          request,
           this.prefix,
           event,
           opts,
