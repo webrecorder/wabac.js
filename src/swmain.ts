@@ -22,7 +22,7 @@ import {
   type ArchiveRequestInitOpts,
 } from "./request";
 import { type ExtraConfig, type CollMetadata } from "./types";
-import { notFound } from "./notfound";
+import { notFound, setNotFoundTemplate } from "./notfound";
 import { setUseHashCHeck } from "./wacz/ziprangereader";
 
 const CACHE_PREFIX = "wabac-";
@@ -293,6 +293,10 @@ export class SWReplay {
 
     if (sp.get("useHashCheck") === "1") {
       setUseHashCHeck(true);
+    }
+
+    if (sp.has("notFoundTemplateUrl")) {
+      void setNotFoundTemplate(sp.get("notFoundTemplateUrl")!);
     }
 
     const prefixes: Prefixes = {

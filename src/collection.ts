@@ -14,7 +14,11 @@ import {
 import { ArchiveResponse } from "./response";
 
 import { getAdBlockCSSResponse } from "./adblockcss";
-import { notFound, notFoundByTypeResponse } from "./notfound";
+import {
+  notFound,
+  notFoundByTypeResponse,
+  setNotFoundTemplate,
+} from "./notfound";
 import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
 import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
