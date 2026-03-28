@@ -146,10 +146,15 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
         return new Uint8Array([]);
       }
 
+      const newOpts = { ...opts, noRevisits: true };
+      if (cdx.origSource) {
+        newOpts.waczname = cdx.origSource;
+      }
+
       const origResult = await this.lookupUrl(
         remote.origURL,
         remote.origTS || 0,
-        { ...opts, noRevisits: true },
+        newOpts,
       );
       if (!origResult) {
         return null;
