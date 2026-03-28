@@ -1,5 +1,18 @@
 import { getCSP, getStatusText } from "./utils";
 
+import DEFAULT_ERROR_HTML from "./templates/notFound.html";
+
+let notFoundHtml = "";
+
+export async function setNotFoundTemplate(url: string) {
+  try {
+    const resp = await fetch(url);
+    notFoundHtml = await resp.text();
+  } catch (e) {
+    console.error("not found template fetch failed", e);
+  }
+}
+
 export function notFound(request: Request, msg?: string, status = 404) {
   return notFoundByTypeResponse(request, request.url, "", false, status, msg);
 }
@@ -73,73 +86,18 @@ function getHTMLNotFound(
   liveRedirectOnNotFound: boolean,
   msg?: string,
 ) {
-  return /* HTML */ `
-    <!doctype html>
-    <html>
-      <head>
-        <script>
-          window.requestURL = ${JSON.stringify(requestURL)};
-        </script>
-      </head>
-      <body style="font-family: sans-serif">
-        <h2>Archived Page Not Found</h2>
-        <p id="msg"></p>
-        <p>
-          <code
-            id="url"
-            style="word-break: break-all; font-size: larger"
-          ></code>
-        </p>
-        ${liveRedirectOnNotFound && request.mode === "navigate"
-          ? /* HTML */ `
-              <p>
-                Redirecting to live page now... (If this URL is a file download,
-                the download should have started).
-              </p>
-              <script>
-                window.top.location.href = window.requestURL;
-              </script>
-            `
-          : `
-  `}
-        <p id="goback" style="display: none">
-          <a href="#" onclick="window.history.back()">Go Back</a> to the
-          previous page.
-        </p>
-
-        <p>
-          <a id="livelink" target="_blank" href="">Load the live page</a> in a
-          new tab (or download the file, if this URL points to a file).
-        </p>
-
-        <script>
-          document.querySelector("#url").innerText = window.requestURL;
-          document.querySelector("#msg").innerText = ${JSON.stringify(
-            msg || "Sorry, this page was not found in this archive:",
-          )};
-          document.querySelector("#livelink").href = window.requestURL;
-          let isTop = true;
-          try {
-            if (window.parent._WB_wombat_location) {
-              isTop = false;
-            }
-          } catch (e) {}
-          if (isTop) {
-            document.querySelector("#goback").style.display = "";
-
-            window.parent.postMessage(
-              {
-                wb_type: "archive-not-found",
-                url: window.requestURL,
-                ts: ${JSON.stringify(requestTS)},
-              },
-              "*",
-            );
-          }
-        </script>
-      </body>
-    </html>
-  `;
+  let html = notFoundHtml || DEFAULT_ERROR_HTML;
+  html = html.replaceAll("$REQUEST_URL", JSON.stringify(requestURL));
+  html = html.replaceAll("$REQUEST_TS", JSON.stringify(requestTS));
+  html = html.replaceAll(
+    "$REDIRECT_NOT_FOUND",
+    liveRedirectOnNotFound && request.mode === "navigate" ? "1" : "0",
+  );
+  html = html.replaceAll(
+    "$REQUEST_ERR_MSG",
+    JSON.stringify(msg || "Sorry, this page was not found in this archive:"),
+  );
+  return html;
 }
 
 function getScriptCSSNotFound(

@@ -111,6 +111,11 @@ const mainBuild = {
         test: /(wombat.*txt)$/i,
         use: "raw-loader",
       },
+      {
+        test: /templates\/.*html$/i,
+        use: "raw-loader"
+      }
+
     ],
   },
 
