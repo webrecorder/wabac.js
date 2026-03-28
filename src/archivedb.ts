@@ -49,6 +49,7 @@ export type ADBOpts = {
   pageId?: string;
   skip5xx?: boolean;
   waczname?: string;
+  isPage?: boolean;
 };
 
 export type ADBType = {

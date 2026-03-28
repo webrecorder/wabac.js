@@ -197,6 +197,10 @@ class CDXFromWARCLoader extends WARCLoader {
       entry[CDX_COOKIE] = cdx[CDX_COOKIE];
     }
 
+    if (cdx["origSource"]) {
+      entry.origSource = cdx["origSource"];
+    }
+
     // url with post query appended
     // @ts-expect-error [TODO] - TS4111 - Property 'method' comes from an index signature, so it must be accessed with ['method']. | TS4111 - Property 'method' comes from an index signature, so it must be accessed with ['method'].
     if (cdx.method && cdx.method !== "GET") {

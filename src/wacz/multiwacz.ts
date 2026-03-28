@@ -49,9 +49,11 @@ import {
   type WACZCollConfig,
 } from "../types";
 
-const MAX_BLOCKS = 3;
+const MAX_BLOCKS = 6;
 
 const MAX_FILE_LOAD_RETRIES = 3;
+
+const MAX_ITER_DEPEND_FILES = 12;
 
 const IS_SURT = /^([\w-]+,)*[\w-]+(:\d+)?,?\)\//;
 
@@ -646,6 +648,7 @@ export class MultiWACZ
     url: string,
     datetime = 0,
     isPrefix = false,
+    useExactQuery = false,
   ) {
     //const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
 
@@ -663,6 +666,8 @@ export class MultiWACZ
 
     const surtNoQuery = surt.split("?")[0]!;
 
+    const matchKey = useExactQuery ? surt : surtNoQuery;
+
     for await (const cursor of tx.store.iterate(key, "prev")) {
       const value = cursor.value as IDXLine | null;
       // restrict to specific waczname
@@ -670,9 +675,12 @@ export class MultiWACZ
         break;
       }
 
+      const surtKey = value.prefix.split(" ")[0]!;
+
       // add to beginning as processing entries in reverse here
       values.unshift(value);
-      if (!value.prefix.split(" ")[0]!.startsWith(surtNoQuery)) {
+
+      if (!surtKey.startsWith(matchKey)) {
         break;
       }
     }
@@ -681,7 +689,7 @@ export class MultiWACZ
 
     const cdxloaders: Promise<void>[] = [];
 
-    if (values.length > MAX_BLOCKS && datetime) {
+    if (matchKey === surt && values.length > MAX_BLOCKS && datetime) {
       values.sort((a, b) => {
         const ts1 = a.prefix.split(" ")[1];
         const ts2 = b.prefix.split(" ")[1];
@@ -795,69 +803,78 @@ export class MultiWACZ
     datetime: number,
     opts: ADBOpts & { waczname: string } = { waczname: "" },
   ) {
-    try {
-      const { waczname } = opts;
+    const { waczname, noRevisits, isPage } = opts;
 
-      let result;
+    const useExactQuery = noRevisits || isPage || false;
 
-      if (waczname && waczname !== NO_LOAD_WACZ) {
-        result = await this.lookupUrlForWACZ(waczname, url, datetime, opts);
-      }
+    if (waczname && waczname !== NO_LOAD_WACZ) {
+      await this.preloadUrlFromWACZ(waczname, url, datetime, useExactQuery);
+    }
 
-      // If found a revisit, and have dependency crawls, continue looking in the dependencies
-      if (
-        this.waczfiles[waczname]?.reqFiles.length &&
-        (!result || result.mime === "warc/revisit")
-      ) {
-        opts = { ...opts, noRevisits: true };
-        for (const name of this.waczfiles[waczname].reqFiles) {
-          result = await this.lookupUrlForWACZ(name, url, datetime, opts);
+    let result = await super.lookupUrl(url, datetime, opts);
+
+    let count = 0;
+
+    // if revisit lookup, attempt fallback brute force search through dependency WACZ list
+    if (
+      !result &&
+      opts.noRevisits &&
+      this.waczfiles[waczname]?.reqFiles.length
+    ) {
+      for (const name of this.waczfiles[waczname].reqFiles) {
+        if (await this.preloadUrlFromWACZ(name, url, datetime, useExactQuery)) {
+          result = await super.lookupUrl(url, datetime, opts);
           if (result) {
             return result;
           }
+          if (count++ >= MAX_ITER_DEPEND_FILES) {
+            break;
+          }
         }
       }
-
-      if (result && (!opts.noRevisits || result.mime !== "warc/revisit")) {
-        return result;
-      }
-
-      result = await super.lookupUrl(url, datetime, opts);
-
-      return result;
-    } catch (e) {
-      console.warn(e);
-      return null;
     }
+
+    return result;
   }
 
-  async lookupUrlForWACZ(
+  async preloadUrlFromWACZ(
     waczname: string,
     url: string,
     datetime: number,
-    opts: ADBOpts,
-  ) {
-    const { indexType, isNew } = await this.loadIndex(waczname);
+    useExactQuery: boolean,
+  ): Promise<boolean> {
+    try {
+      const { indexType, isNew } = await this.loadIndex(waczname);
 
-    switch (indexType) {
-      case INDEX_IDX:
-        if (!(await this.loadCDXFromIDX(waczname, url, datetime, false))) {
-          // no new idx lines loaded
-          return null;
-        }
-        break;
+      switch (indexType) {
+        case INDEX_IDX:
+          if (
+            !(await this.loadCDXFromIDX(
+              waczname,
+              url,
+              datetime,
+              false,
+              useExactQuery,
+            ))
+          ) {
+            // no new idx lines loaded
+            return false;
+          }
+          break;
 
-      case INDEX_CDX:
-        if (!isNew) {
-          return null;
-        }
-        break;
+        case INDEX_CDX:
+          if (!isNew) {
+            return false;
+          }
+          break;
 
-      default:
-        return null;
+        default:
+          return false;
+      }
+      return true;
+    } catch (_) {
+      return false;
     }
-
-    return await super.lookupUrl(url, datetime, opts);
   }
 
   override async resourcesByUrlAndMime(
@@ -1178,6 +1195,9 @@ export class MultiWACZ
       }
     }
 
+    const isPage =
+      request.destination === "document" || request.destination === "iframe";
+
     const hash = pageId;
     let waczname: string | null = null;
 
@@ -1192,6 +1212,7 @@ export class MultiWACZ
       resp = await super.getResource(request, prefix, event, {
         waczname,
         skip5xx: request.isProxyOrigin,
+        isPage,
       });
       if (resp) {
         return resp;
@@ -1231,6 +1252,7 @@ export class MultiWACZ
         waczname: name,
         noFuzzyCheck: !request.isProxyOrigin,
         skip5xx: request.isProxyOrigin,
+        isPage,
       });
       if (resp) {
         const arResponse = resp as ArchiveResponse;

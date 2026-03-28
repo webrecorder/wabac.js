@@ -66,6 +66,8 @@ export type ResourceEntry = {
   loaded?: boolean;
   statusText?: string;
 
+  origSource?: string;
+
   "req.http:cookie"?: string;
 };
 
