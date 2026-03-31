@@ -162,7 +162,7 @@ class WARCLoader extends BaseParser {
     record: WARCRecord,
     reqRecord: WARCRecord | null,
   ): ResourceEntry | null {
-    const url = record.warcTargetURI!.split("#")[0];
+    const url = record.warcTargetURI!.split("#")[0]!;
     const date = record.warcDate;
     const ts = date ? new Date(date).getTime() : Date.now();
 
@@ -171,7 +171,6 @@ class WARCLoader extends BaseParser {
     let status: number | undefined;
 
     if (record.httpHeaders) {
-      // @ts-expect-error [TODO] - TS2345 - Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
       const parsed = this.parseResponseHttpHeaders(record, url, reqRecord);
       if (parsed) {
         respHeaders = Object.fromEntries(parsed.headers.entries());
@@ -182,6 +181,11 @@ class WARCLoader extends BaseParser {
     const origURL = record.warcRefersToTargetURI;
     const origTS = new Date(record.warcRefersToDate!).getTime();
 
+    let origContainer = record.warcHeader("WARC-Refers-To-Container");
+    if (origContainer?.startsWith("file://")) {
+      origContainer = origContainer.slice("file://".length);
+    }
+
     // self-revisit, skip
     if (origURL === url && origTS === ts) {
       return null;
@@ -190,11 +194,11 @@ class WARCLoader extends BaseParser {
     const digest = record.warcPayloadDigest || null;
 
     return {
-      // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
       url,
       ts,
       origURL,
       origTS,
+      origContainer,
       digest,
       pageId: null,
       respHeaders,
