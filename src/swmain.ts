@@ -474,12 +474,7 @@ export class SWReplay {
     url = urlObj.href;
 
     const resp = await this.doLiveProxy(url, request);
-
-    if (!resp) {
-      return notFound(request);
-    }
-
-    return resp;
+    return resp ? resp : notFound(request);
   }
 
   private async doLiveProxy(
