@@ -65,6 +65,7 @@ export class Collection {
   proxyPrefix: string;
 
   proxyBannerUrl = "";
+  proxyCustomInsert = "";
 
   constructor(
     // [TODO]
@@ -113,6 +114,7 @@ export class Collection {
     if (this.proxyBannerUrl) {
       addProxyAllowPaths([this.proxyBannerUrl]);
     }
+    this.proxyCustomInsert = extraConfig.proxyCustomInsert || "";
 
     // support root collection hashtag nav
     if (this.config.root) {
@@ -376,6 +378,7 @@ ${
 <script src="${this.proxyPrefix}${this.proxyBannerUrl}"></script>`
     : ``
 }
+${this.proxyCustomInsert ? this.proxyCustomInsert : ""}
 ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
 <!-- End WB Insert -->
     `;

@@ -218,6 +218,8 @@ export class SWReplay {
   allowRewrittenCache: boolean;
   topFramePassthrough = false;
 
+  allowProxyPassthrough = false;
+
   stats: StatsTracker | null;
 
   constructor({
@@ -285,6 +287,10 @@ export class SWReplay {
 
     if (sp.has("allowProxyPaths")) {
       addProxyAllowPaths(sp.get("allowProxyPaths")!.split(","));
+    }
+
+    if (sp.get("allowProxyPassthrough")) {
+      this.allowProxyPassthrough = true;
     }
 
     if (sp.has("adblockUrl")) {
@@ -370,6 +376,14 @@ export class SWReplay {
     if (this.proxyOriginMode) {
       if (url.startsWith(this.proxyPrefix)) {
         return this.staticPathProxy(url, request);
+      }
+      // if direct passthrough allowed, see if URL is in the allowlist
+      // and then 'passthrough' to live web
+      if (proxyAllowPaths.size && this.allowProxyPassthrough) {
+        const resp = await this.doLiveProxy(url, request);
+        if (resp) {
+          return resp;
+        }
       }
       if (!url.startsWith(this.staticPrefix)) {
         return this.getResponseFor(request, event);
@@ -459,6 +473,14 @@ export class SWReplay {
     const urlObj = new URL(url, self.location.href);
     url = urlObj.href;
 
+    const resp = await this.doLiveProxy(url, request);
+    return resp ? resp : notFound(request);
+  }
+
+  private async doLiveProxy(
+    url: string,
+    request: Request,
+  ): Promise<Response | null> {
     let allowed = false;
 
     for (const allow of proxyAllowPaths) {
@@ -469,7 +491,7 @@ export class SWReplay {
     }
 
     if (!allowed) {
-      return notFound(request);
+      return null;
     }
 
     const { method } = request;
@@ -481,6 +503,7 @@ export class SWReplay {
       cache: "no-store",
       headers: request.headers,
       method,
+      mode: "no-cors",
       ...(method !== "GET" && { body }),
     };
 
