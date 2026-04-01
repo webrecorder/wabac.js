@@ -59,14 +59,13 @@ export type ResourceEntry = {
   pageId?: string | null;
   origURL?: string | null;
   origTS?: number | null;
+  origWACZ?: string | null;
   source?: Source;
   requestUrl?: string | null;
   method?: string | null;
   requestBody?: Uint8Array;
   loaded?: boolean;
   statusText?: string;
-
-  origSource?: string;
 
   "req.http:cookie"?: string;
 };
