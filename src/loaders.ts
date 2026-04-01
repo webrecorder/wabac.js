@@ -215,12 +215,15 @@ export class CollectionLoader {
       if (!url.startsWith("https://") && !url.startsWith("http://")) {
         continue;
       }
+      const id = store.name.startsWith("db:")
+        ? store.name.slice("db:".length)
+        : store.name;
       try {
         await store.checkUpdates();
       } catch (e) {
         if (e instanceof DeleteExpiredError) {
           console.warn("Deleting expired/invalid coll for " + url);
-          void this.deleteColl(store.name);
+          void this.deleteColl(id);
         }
       }
       // pause for 2 seconds to avoid moving too quickly
