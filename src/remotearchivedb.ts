@@ -147,8 +147,8 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
       }
 
       const newOpts = { ...opts, noRevisits: true };
-      if (remote.origContainer) {
-        newOpts.waczname = remote.origContainer;
+      if (remote.origWACZ) {
+        newOpts.waczname = remote.origWACZ;
       }
 
       const origResult = await this.lookupUrl(

@@ -59,7 +59,7 @@ export type ResourceEntry = {
   pageId?: string | null;
   origURL?: string | null;
   origTS?: number | null;
-  origContainer?: string | null;
+  origWACZ?: string | null;
   source?: Source;
   requestUrl?: string | null;
   method?: string | null;

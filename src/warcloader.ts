@@ -180,10 +180,15 @@ class WARCLoader extends BaseParser {
 
     const origURL = record.warcRefersToTargetURI;
     const origTS = new Date(record.warcRefersToDate!).getTime();
+    const origContainer = record.warcHeader("WARC-Refers-To-Container");
 
-    let origContainer = record.warcHeader("WARC-Refers-To-Container");
-    if (origContainer?.startsWith("file://")) {
-      origContainer = origContainer.slice("file://".length);
+    let origWACZ = "";
+
+    if (origContainer?.endsWith(".wacz")) {
+      origWACZ = origContainer;
+      if (origContainer.startsWith("file://")) {
+        origWACZ = origWACZ.slice("file://".length);
+      }
     }
 
     // self-revisit, skip
@@ -198,7 +203,7 @@ class WARCLoader extends BaseParser {
       ts,
       origURL,
       origTS,
-      origContainer,
+      origWACZ,
       digest,
       pageId: null,
       respHeaders,
