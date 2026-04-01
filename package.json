@@ -1,6 +1,6 @@
 {
   "name": "@webrecorder/wabac",
-  "version": "2.26.0-beta.0",
+  "version": "2.26.0",
   "main": "index.js",
   "type": "module",
   "exports": {
@@ -23,7 +23,7 @@
     "@peculiar/asn1-schema": "^2.3.3",
     "@peculiar/x509": "^1.9.2",
     "@types/js-levenshtein": "^1.1.3",
-    "@webrecorder/wombat": "^3.10.3",
+    "@webrecorder/wombat": "^3.10.4",
     "acorn": "^8.15.0",
     "auto-js-ipfs": "^2.1.1",
     "base64-js": "^1.5.1",
@@ -42,7 +42,7 @@
     "path-parser": "^6.1.0",
     "process": "^0.11.10",
     "stream-browserify": "^3.0.0",
-    "warcio": "^2.4.7"
+    "warcio": "^2.4.10"
   },
   "devDependencies": {
     "@swc-node/register": "^1.10.9",
