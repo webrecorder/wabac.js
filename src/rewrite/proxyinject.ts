@@ -72,7 +72,10 @@ class ProxyWombatRewrite {
   }
 
   recurseRewriteElem(curr: Element) {
-    if (!curr.hasChildNodes()) return;
+    this.rewriteElem(curr);
+    if (!curr.hasChildNodes()) {
+      return;
+    }
     const rewriteQ = [curr.childNodes];
 
     while (rewriteQ.length > 0) {
@@ -133,9 +136,6 @@ class ProxyWombatRewrite {
     const rwNode = (node: Node) => {
       switch (node.nodeType) {
         case Node.ELEMENT_NODE:
-          this.rewriteElem(node as Element);
-          break;
-
         case Node.DOCUMENT_FRAGMENT_NODE:
           this.recurseRewriteElem(node as Element);
           break;
@@ -185,6 +185,12 @@ class ProxyWombatRewrite {
     Node.prototype.replaceChild = function (newNode: Node, oldNode: Node) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return rewriteFunc(this, orig_replaceChild, newNode, oldNode);
+    };
+
+    const orig_replaceWith = Element.prototype.replaceWith;
+    Element.prototype.replaceWith = function (...newNodes: Node[]) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return rewriteArrayFunc(this, orig_replaceWith, newNodes);
     };
 
     const orig_append = DocumentFragment.prototype.append;
