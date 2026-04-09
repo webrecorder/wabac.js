@@ -72,7 +72,10 @@ class ProxyWombatRewrite {
   }
 
   recurseRewriteElem(curr: Element) {
-    if (!curr.hasChildNodes()) return;
+    this.rewriteElem(curr);
+    if (!curr.hasChildNodes()) {
+      return;
+    }
     const rewriteQ = [curr.childNodes];
 
     while (rewriteQ.length > 0) {
