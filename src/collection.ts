@@ -61,11 +61,15 @@ export class Collection {
 
   adblockUrl?: string;
 
+  excludeUrlPaths?: string[];
+
   staticPrefix: string;
   proxyPrefix: string;
 
   proxyBannerUrl = "";
   proxyCustomInsert = "";
+
+  proxyHomePageUrl?: string;
 
   constructor(
     // [TODO]
@@ -106,7 +110,11 @@ export class Collection {
 
     this.rootPrefix = prefixes.root || prefixes.main;
 
+    this.proxyHomePageUrl = extraConfig.proxyHomePageUrl;
+
     this.adblockUrl = extraConfig.adblockUrl;
+
+    this.excludeUrlPaths = extraConfig.excludeUrlPaths;
 
     this.prefix = prefixes.main;
 
@@ -147,6 +155,26 @@ export class Collection {
 
     if (!this.noPostToGet) {
       requestURL = await request.convertPostToGet();
+    }
+
+    if (
+      request.isProxyOrigin &&
+      this.proxyHomePageUrl &&
+      request.proxyOrigin &&
+      requestURL.startsWith(request.proxyOrigin)
+    ) {
+      const url = new URL(requestURL);
+      if (url.pathname === "/") {
+        return fetch(this.proxyHomePageUrl, { mode: "no-cors" });
+      }
+    }
+
+    if (this.excludeUrlPaths?.length) {
+      for (const exclude of this.excludeUrlPaths) {
+        if (requestURL.startsWith(exclude)) {
+          return notFound(request.request);
+        }
+      }
     }
 
     // exact or fuzzy match
