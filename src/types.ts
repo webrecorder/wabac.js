@@ -171,6 +171,7 @@ export type ExtraConfig = {
 
   liveRedirectOnNotFound?: boolean;
   adblockUrl?: string;
+  excludeUrlPaths?: string[];
 
   proxyTLD?: string;
   localTLD?: string;
@@ -185,6 +186,8 @@ export type ExtraConfig = {
   archivePrefix?: string;
   archiveMod?: string;
   isLive?: boolean;
+
+  proxyHomePageUrl?: string;
 };
 
 export type CollConfig = {
