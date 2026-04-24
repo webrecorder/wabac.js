@@ -214,16 +214,25 @@ class CDXFromWARCLoader extends WARCLoader {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         cdx.method,
       );
-      let maxSize;
       // for JS/JSON responses, allow slightly larger POST methods
-      // otherwise limit to 512 as likely POST will be completely ignored
+      // truncate individual URL query values to 1024
+      // otherwise, limit query string to 512 as likely POST will be completely ignored
       if (mime && LONG_POST_MIMES.includes(mime as string)) {
-        maxSize = MAX_ARG_LEN * 8;
+        try {
+          const parsedUrl = new URL(entry.url);
+          for (const [key, value] of parsedUrl.searchParams) {
+            if (value.length > MAX_ARG_LEN) {
+              parsedUrl.searchParams.set(key, value.slice(0, MAX_ARG_LEN));
+            }
+          }
+          entry.url = parsedUrl.href;
+        } catch (_) {
+          entry.url = entry.url.slice(0, MAX_ARG_LEN * 8);
+        }
       } else {
-        maxSize = MAX_ARG_LEN / 2;
-      }
-      if (entry.url.length > maxSize) {
-        entry.url = entry.url.slice(0, maxSize);
+        if (entry.url.length > MAX_ARG_LEN / 2) {
+          entry.url = entry.url.slice(0, MAX_ARG_LEN / 2);
+        }
       }
     }
 
