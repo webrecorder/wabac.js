@@ -429,12 +429,13 @@ class ProxyWombatRewrite {
 
       Object.defineProperty(HTMLAnchorElement.prototype, propName, {
         set(v: string) {
-          const url = new URL(rw.rewriteUrl(v));
+          const url = new URL(rw.rewriteUrl(v), rw.proxyOrigin);
           return origPropSet.call(this, url[propName]);
         },
         get() {
           const url = new URL(
             rw.unrewriteUrl(origHrefGet.call(this) as string),
+            rw.proxyOrigin,
           );
           return url[propName];
         },
