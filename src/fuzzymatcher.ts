@@ -301,8 +301,8 @@ export class FuzzyMatcher {
     const reqQuery = new URLSearchParams(reqUrl.search);
 
     for (const result of results) {
-      // skip 204s and 304s from fuzzy matching (todo: reexamine)
-      if (result.status === 204 || result.status === 304) {
+      // skip 304s from fuzzy matching (todo: reexamine)
+      if (result.status === 304) {
         continue;
       }
 
