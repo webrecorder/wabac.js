@@ -113,8 +113,38 @@ export const DEFAULT_RULES: Rules[] = [
 ];
 
 export const DISABLE_MEDIASOURCE_SCRIPT = `\
-  ;Object.defineProperty(MediaSource, "isTypeSupported",\
-  {value: () => false, configurable: false, writable: false});`;
+  ;Object.defineProperty(MediaSource, "isTypeSupported", {
+    value: () => false,
+    configurable: false,
+    writable: false,
+  });
+  const canPlayType = HTMLMediaElement.prototype.canPlayType;
+  Object.defineProperty(HTMLMediaElement.prototype, "canPlayType", {
+    value: (type) => {
+      if (/av01/.test(type)) {
+        return "";
+      } else {
+        return canPlayType.call(this, type);
+      }
+    },
+    configurable: false,
+    writable: false,
+  });
+  const decodingInfo = navigator.mediaCapabilities.decodingInfo;
+  Object.defineProperty(navigator.mediaCapabilities, "decodingInfo", {
+    value: async (configuration) => {
+      if (
+        configuration.video &&
+        /av01/.test(configuration.video.contentType)
+      ) {
+        return { supported: false, smooth: false, powerEfficient: false };
+      } else {
+        return decodingInfo.call(this, configuration);
+      }
+    },
+    configurable: false,
+    writable: false,
+  });`;
 
 export const HTML_ONLY_RULES: Rules[] = [
   {
