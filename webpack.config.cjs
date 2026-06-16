@@ -84,14 +84,6 @@ const mainBuild = {
     outputModule: true,
   },
 
-  devServer: {
-    compress: true,
-    port: 9990,
-    headers: { "Service-Worker-Allowed": "/" },
-    open: false,
-    //publicPath: "/dist/"
-  },
-
   resolve: {
     extensions: [".ts", ".js"],
     plugins: [new TsconfigPathsPlugin()],
