@@ -3,6 +3,7 @@ import { getCollData } from "./utils";
 import { type SWCollections } from "./swmain";
 import { MultiWACZ } from "./wacz/multiwacz";
 import { ArchiveDB } from "./archivedb";
+import { PageEntry } from "./types";
 
 // [TODO]
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -304,7 +305,7 @@ class API {
           return { error: "collection_not_found" };
         }
         let total = undefined;
-        let pages = undefined;
+        let pages : PageEntry[] = [];
         if (coll.store instanceof MultiWACZ) {
           // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
           const search = params._query.get("search");
