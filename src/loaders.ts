@@ -38,6 +38,7 @@ import {
   type DBStore,
   type WACZCollConfig,
   type CollMetadata,
+  type LoadColl,
 } from "./types";
 
 // [TODO]
@@ -52,13 +53,6 @@ const interruptLoads: Record<string, () => void> = {};
 // [TODO]
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).interruptLoads = interruptLoads;
-
-export type LoadColl = {
-  name: string;
-  type: string;
-  config: CollConfig;
-  store?: DBStore;
-};
 
 export type CollDB = {
   colls: {
@@ -129,7 +123,6 @@ export class CollectionLoader {
 
       const multiWACZs: MultiWACZ[] = [];
 
-      // [TODO]
       const promises = allColls.map(async (data) =>
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         this._initColl(data, multiWACZs),
@@ -954,10 +947,8 @@ Make sure this is a valid URL and you have access to this file.`,
       delete this._fileHandles[config.sourceUrl];
     }
 
-    const collData = { name, type, config };
+    const collData = { name, type, config, store: generalDB };
     await this.colldb!.add("colls", collData);
-    // @ts-expect-error [TODO] - TS4111 - Property 'store' comes from an index signature, so it must be accessed with ['store'].
-    collData.store = generalDB;
     return collData as LoadColl;
   }
 }

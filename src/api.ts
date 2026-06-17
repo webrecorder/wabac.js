@@ -2,6 +2,7 @@ import { Path } from "path-parser";
 import { getCollData } from "./utils";
 import { type SWCollections } from "./swmain";
 import { MultiWACZ } from "./wacz/multiwacz";
+import { ArchiveDB } from "./archivedb";
 
 // [TODO]
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -121,12 +122,16 @@ class API {
         }
         const data = getCollData(coll);
 
+        const store = coll.store instanceof ArchiveDB ? coll.store : null;
+
+        const db = store?.db;
+
         // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         if (params._query.get("all") === "1") {
-          if (coll.store.db) {
-            data.pages = await coll.store.getAllPages();
-            data.lists = await coll.store.db.getAll("pageLists");
-            data.curatedPages = await coll.store.db.getAll("curatedPages");
+          if (db) {
+            data.pages = await store.getAllPages();
+            data.lists = await db.getAll("pageLists");
+            data.curatedPages = await db.getAll("curatedPages");
             if (coll.store instanceof MultiWACZ) {
               data.canQueryPages = !!coll.store.pagesQueryUrl;
             }
@@ -136,10 +141,10 @@ class API {
             data.curatedPages = [];
           }
 
-          data.verify = await coll.store.getVerifyInfo();
-        } else if (coll.store.db) {
-          data.numLists = await coll.store.db.count("pageLists");
-          data.numPages = await coll.store.db.count("pages");
+          data.verify = await store?.getVerifyInfo();
+        } else if (db) {
+          data.numLists = await db.count("pageLists");
+          data.numPages = await db.count("pages");
         } else {
           data.numLists = 0;
           data.numPages = 0;
@@ -224,16 +229,16 @@ class API {
         // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const fromStatus = Number(params._query.get("fromStatus") || 0);
 
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (!coll.store.resourcesByMime) {
+        const store = coll.store instanceof ArchiveDB ? coll.store : null;
+
+        if (!store) {
           return { urls: [] };
         }
 
         let urls;
 
         if (url) {
-          urls = await coll.store.resourcesByUrlAndMime(
+          urls = await store.resourcesByUrlAndMime(
             // [TODO]
             // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             url,
@@ -250,7 +255,7 @@ class API {
             fromTs,
           );
         } else {
-          urls = await coll.store.resourcesByMime(
+          urls = await store.resourcesByMime(
             // [TODO]
             // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             mime,
@@ -282,9 +287,10 @@ class API {
         }
         // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
         const url = params._query.get("url");
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        const timestamps = await coll.store.getTimestampsByURL(url);
+
+        const store = coll.store instanceof ArchiveDB ? coll.store : null;
+
+        const timestamps = await store?.getTimestampsByURL(url as string);
 
         return { timestamps: timestamps };
       }
@@ -298,6 +304,7 @@ class API {
           return { error: "collection_not_found" };
         }
         let total = undefined;
+        let pages = undefined;
         if (coll.store instanceof MultiWACZ) {
           // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
           const search = params._query.get("search");
@@ -317,7 +324,9 @@ class API {
             total = coll.store.totalPages;
           }
         }
-        const pages = await coll.store.getAllPages();
+        if (coll.store instanceof ArchiveDB) {
+          pages = await coll.store.getAllPages();
+        }
         return { pages, total };
       }
 
@@ -350,10 +359,11 @@ class API {
         }
         // @ts-expect-error [TODO] - TS4111 - Property 'list' comes from an index signature, so it must be accessed with ['list'].
         const list = Number(params.list);
-        if (!coll.store.db) {
+        const store = coll.store instanceof ArchiveDB ? coll.store : null;
+        if (!store?.db) {
           return { curated: [] };
         }
-        const curated = await coll.store.db.getAllFromIndex(
+        const curated = await store.db.getAllFromIndex(
           "curatedPages",
           "listPages",
           IDBKeyRange.bound([list], [list + 1]),
@@ -369,7 +379,11 @@ class API {
         if (!coll) {
           return { error: "collection_not_found" };
         }
-        const { pageSize, dedupSize } = await coll.store.deletePage(
+        const store = coll.store instanceof ArchiveDB ? coll.store : null;
+        if (!store) {
+          return { pageSize: 0, dedupSize: 0 };
+        }
+        const { pageSize, dedupSize } = await store.deletePage(
           // @ts-expect-error [TODO] - TS4111 - Property 'page' comes from an index signature, so it must be accessed with ['page'].
           // [TODO]
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument

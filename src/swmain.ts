@@ -21,7 +21,7 @@ import {
   resolveFullUrlFromReferrer,
   type ArchiveRequestInitOpts,
 } from "./request";
-import { type ExtraConfig, type CollMetadata } from "./types";
+import { type ExtraConfig, type CollMetadata, type LoadColl } from "./types";
 import { notFound, setNotFoundTemplate } from "./notfound";
 import { setUseHashCHeck } from "./wacz/ziprangereader";
 
@@ -55,9 +55,7 @@ export class SWCollections extends WorkerLoader {
     this._fileHandles = {};
   }
 
-  // [TODO]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  override _createCollection(opts: Record<string, any>): Collection {
+  override _createCollection(opts: LoadColl): Collection {
     return new Collection(opts, this.prefixes, this.defaultConfig);
   }
 
@@ -104,8 +102,6 @@ export class SWCollections extends WorkerLoader {
 
   override async deleteColl(name: string, keepFileHandle = false) {
     if (this.colls[name]) {
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (this.colls[name].store) {
         await this.colls[name].store.delete();
       }

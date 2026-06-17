@@ -15,9 +15,14 @@ import { ArchiveResponse } from "./response";
 
 import { getAdBlockCSSResponse } from "./adblockcss";
 import { notFound, notFoundByTypeResponse } from "./notfound";
-import { type ArchiveDB } from "./archivedb";
 import { type ArchiveRequest } from "./request";
-import { type CollMetadata, type CollConfig, type ExtraConfig } from "./types";
+import {
+  type CollMetadata,
+  type CollConfig,
+  type ExtraConfig,
+  type DBStore,
+  type LoadColl,
+} from "./types";
 import { getDownloadAttachmentFilename } from "./detectfiletype";
 
 export type Prefixes = {
@@ -31,7 +36,7 @@ export type Prefixes = {
 // ===========================================================================
 export class Collection {
   name: string;
-  store: ArchiveDB;
+  store: DBStore | null;
 
   config: CollConfig;
   metadata: CollMetadata;
@@ -71,17 +76,11 @@ export class Collection {
 
   proxyHomePageUrl?: string;
 
-  constructor(
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    opts: Record<string, any>,
-    prefixes: Prefixes,
-    defaultConfig = {},
-  ) {
+  constructor(opts: LoadColl, prefixes: Prefixes, defaultConfig = {}) {
     const { name, store, config } = opts;
 
     this.name = name;
-    this.store = store;
+    this.store = store || null;
     this.config = config;
     this.metadata = this.config.metadata ? this.config.metadata : {};
 
@@ -561,6 +560,10 @@ ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
     }
 
     const opts = { pageId: request.pageId, noRedirect: request.isProxyOrigin };
+
+    if (!this.store) {
+      return null;
+    }
 
     response = await this.store.getResource(request, this.prefix, event, opts);
 

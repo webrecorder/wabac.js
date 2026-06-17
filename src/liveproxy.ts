@@ -222,4 +222,8 @@ export class LiveProxy implements DBStore {
       }
     }
   }
+
+  async delete(): Promise<void> {
+    // nop
+  }
 }
