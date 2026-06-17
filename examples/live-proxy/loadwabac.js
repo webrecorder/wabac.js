@@ -50,10 +50,10 @@ class WabacLiveProxy {
       name: this.collName,
       type: "live",
       file: { sourceUrl: `proxy:${proxyPrefix}` },
-      skipExisting: false,
+      skipExisting: true,
       extraConfig: {
         prefix: proxyPrefix,
-        isLive: false,
+        isLive: true,
         baseUrl: baseUrl.href,
         baseUrlHashReplay: true,
         noPostToGet: true,
