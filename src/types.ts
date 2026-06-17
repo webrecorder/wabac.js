@@ -230,7 +230,11 @@ export type LoadColl = {
   name: string;
   type: string;
   config: CollConfig;
-  store?: DBStore | null;
+  store?: DBStore;
+};
+
+export type InitColl = LoadColl & {
+  store: DBStore;
 };
 
 export type RWOpts = {

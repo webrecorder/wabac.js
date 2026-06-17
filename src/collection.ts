@@ -21,7 +21,7 @@ import {
   type CollConfig,
   type ExtraConfig,
   type DBStore,
-  type LoadColl,
+  type InitColl,
 } from "./types";
 import { getDownloadAttachmentFilename } from "./detectfiletype";
 
@@ -36,7 +36,7 @@ export type Prefixes = {
 // ===========================================================================
 export class Collection {
   name: string;
-  store: DBStore | null;
+  store: DBStore;
 
   config: CollConfig;
   metadata: CollMetadata;
@@ -76,11 +76,11 @@ export class Collection {
 
   proxyHomePageUrl?: string;
 
-  constructor(opts: LoadColl, prefixes: Prefixes, defaultConfig = {}) {
+  constructor(opts: InitColl, prefixes: Prefixes, defaultConfig = {}) {
     const { name, store, config } = opts;
 
     this.name = name;
-    this.store = store || null;
+    this.store = store;
     this.config = config;
     this.metadata = this.config.metadata ? this.config.metadata : {};
 
@@ -560,10 +560,6 @@ ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
     }
 
     const opts = { pageId: request.pageId, noRedirect: request.isProxyOrigin };
-
-    if (!this.store) {
-      return null;
-    }
 
     response = await this.store.getResource(request, this.prefix, event, opts);
 
