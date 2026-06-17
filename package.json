@@ -64,6 +64,7 @@
     "eslint-config-prettier": "^9.1.0",
     "fake-indexeddb": "^4.0.0",
     "globals": "^13.17.0",
+    "http-server": "^14.1.1",
     "prettier": "^3.3.3",
     "raw-loader": "^4.0.2",
     "serve-static": "^1.15.0",
