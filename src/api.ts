@@ -3,7 +3,7 @@ import { getCollData } from "./utils";
 import { type SWCollections } from "./swmain";
 import { MultiWACZ } from "./wacz/multiwacz";
 import { ArchiveDB } from "./archivedb";
-import { PageEntry } from "./types";
+import { type PageEntry } from "./types";
 
 // [TODO]
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
