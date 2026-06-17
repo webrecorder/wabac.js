@@ -305,7 +305,7 @@ class API {
           return { error: "collection_not_found" };
         }
         let total = undefined;
-        let pages : PageEntry[] = [];
+        let pages: PageEntry[] = [];
         if (coll.store instanceof MultiWACZ) {
           // @ts-expect-error [TODO] - TS4111 - Property '_query' comes from an index signature, so it must be accessed with ['_query'].
           const search = params._query.get("search");
