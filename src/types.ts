@@ -128,6 +128,8 @@ export interface DBStore {
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getAllPages: () => Promise<any[]>;
+
+  delete: () => Promise<void>;
 }
 
 export interface ArchiveLoader {
@@ -222,6 +224,17 @@ export type CollConfig = {
   sourceName?: string;
 
   onDemand?: boolean;
+};
+
+export type LoadColl = {
+  name: string;
+  type: string;
+  config: CollConfig;
+  store?: DBStore;
+};
+
+export type InitColl = LoadColl & {
+  store: DBStore;
 };
 
 export type RWOpts = {

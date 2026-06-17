@@ -38,6 +38,8 @@ import {
   type DBStore,
   type WACZCollConfig,
   type CollMetadata,
+  type LoadColl,
+  type InitColl,
 } from "./types";
 
 // [TODO]
@@ -52,13 +54,6 @@ const interruptLoads: Record<string, () => void> = {};
 // [TODO]
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (self as any).interruptLoads = interruptLoads;
-
-export type LoadColl = {
-  name: string;
-  type: string;
-  config: CollConfig;
-  store?: DBStore;
-};
 
 export type CollDB = {
   colls: {
@@ -129,7 +124,6 @@ export class CollectionLoader {
 
       const multiWACZs: MultiWACZ[] = [];
 
-      // [TODO]
       const promises = allColls.map(async (data) =>
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         this._initColl(data, multiWACZs),
@@ -334,7 +328,7 @@ export class CollectionLoader {
     return this._createCollection({ name, store, config });
   }
 
-  async _initStore(type: string, config: CollConfig) {
+  async _initStore(type: string, config: CollConfig): Promise<DBStore> {
     let sourceLoader: BaseLoader;
     let store: DBStore | null = null;
 
@@ -391,8 +385,7 @@ export class CollectionLoader {
     }
 
     if (!store) {
-      console.log("no store found: " + type);
-      return null;
+      throw new Error("no store found: " + type);
     }
 
     // [TODO]
@@ -625,14 +618,14 @@ export class WorkerLoader extends CollectionLoader {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     progressUpdate: any,
-  ): Promise<LoadColl | false> {
+  ): Promise<InitColl | false> {
     // @ts-expect-error [TODO] - TS4111 - Property 'name' comes from an index signature, so it must be accessed with ['name'].
     let name: string = data.name;
 
     let type = "";
     // @ts-expect-error [TODO] - TS4111 - Property 'root' comes from an index signature, so it must be accessed with ['root'].
     const config: CollConfig = { root: data.root || false };
-    let generalDB: DBStore | null = null;
+    let generalDB: DBStore;
 
     let updateExistingConfig: CollConfig | null = null;
 
@@ -930,7 +923,7 @@ Make sure this is a valid URL and you have access to this file.`,
           contentLength,
           updateExistingConfig.decode,
         );
-        return { config: updateExistingConfig, type: "", name: "" };
+        return { config: updateExistingConfig, type: "", name: "", store: db };
       }
 
       // @ts-expect-error [TODO] - TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
@@ -956,8 +949,6 @@ Make sure this is a valid URL and you have access to this file.`,
 
     const collData = { name, type, config };
     await this.colldb!.add("colls", collData);
-    // @ts-expect-error [TODO] - TS4111 - Property 'store' comes from an index signature, so it must be accessed with ['store'].
-    collData.store = generalDB;
-    return collData as LoadColl;
+    return { ...collData, store: generalDB };
   }
 }

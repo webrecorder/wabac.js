@@ -204,4 +204,8 @@ export class RemoteWARCProxy implements DBStore {
 
     return { encodedUrl, headers, date, status, statusText, hasPayload };
   }
+
+  async delete(): Promise<void> {
+    //nop
+  }
 }
