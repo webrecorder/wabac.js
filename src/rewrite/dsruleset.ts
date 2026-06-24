@@ -112,9 +112,19 @@ export const DEFAULT_RULES: Rules[] = [
   },
 ];
 
-export const DISABLE_MEDIASOURCE_SCRIPT = `\
-  ;Object.defineProperty(MediaSource, "isTypeSupported",\
-  {value: () => false, configurable: false, writable: false});`;
+export const DISABLE_MEDIASOURCE_SCRIPT = `
+  ;const isTypeSupported = MediaSource.isTypeSupported.bind(MediaSource);
+  Object.defineProperty(MediaSource, "isTypeSupported", {
+    value: (type) => {
+      if (/av01/.test(type)) {
+        return false;
+      } else {
+        return isTypeSupported.call(MediaSource, type);
+      }
+    },
+    configurable: false,
+    writable: false,
+  });`;
 
 export const HTML_ONLY_RULES: Rules[] = [
   {
