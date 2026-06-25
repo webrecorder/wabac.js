@@ -13,6 +13,8 @@ import { concatChunks } from "warcio";
 // todo: make configurable
 const HELPER_PROXY = "https://helper-proxy.webrecorder.workers.dev";
 
+const REFRESH_TIMEOUT_MS = 10_000;
+
 export type ResponseAbort = {
   response: Response;
   abort: AbortController | null;
@@ -30,6 +32,8 @@ export type BlockLoaderOpts = {
   extra?: BlockLoaderExtra;
   size?: number;
   blob?: Blob;
+  // endpoint returning {url} to re-resolve an expired signed URL
+  refreshUrlEndpoint?: string;
 };
 
 // ===========================================================================
@@ -155,17 +159,21 @@ class FetchRangeLoader extends BaseLoader {
   ipfsAPI = null;
   loadingIPFS = null;
   arrayBuffer: ArrayBufferLoader | null = null;
+  refreshUrlEndpoint?: string;
+  refreshing: Promise<boolean> | null = null;
 
   constructor({
     url,
     headers,
     length = null,
     canLoadOnDemand = false,
+    refreshUrlEndpoint,
   }: {
     url: string;
     headers?: Record<string, string> | Headers;
     length?: number | null;
     canLoadOnDemand?: boolean;
+    refreshUrlEndpoint?: string;
   }) {
     super(canLoadOnDemand);
 
@@ -174,6 +182,45 @@ class FetchRangeLoader extends BaseLoader {
     this.length = length;
     this.canLoadOnDemand = canLoadOnDemand;
     this.canDoNegativeRange = true;
+    this.refreshUrlEndpoint = refreshUrlEndpoint;
+  }
+
+  /**
+   * Attempt to re-resolve the source URL when access has been lost (e.g. an
+   * expired signed URL returning 403). Fetches a fresh URL from the refresh
+   * endpoint, updates this.url, and returns true on success; returns false
+   * when no `refreshUrlEndpoint` is configured or the refresh fails.
+   */
+  async refreshUrl(): Promise<boolean> {
+    // coalesce concurrent refreshes
+    this.refreshing ??= this.doRefreshUrl().finally(() => {
+      this.refreshing = null;
+    });
+    return this.refreshing;
+  }
+
+  async doRefreshUrl(): Promise<boolean> {
+    if (!this.refreshUrlEndpoint) {
+      return false;
+    }
+    try {
+      const resp = await fetch(this.refreshUrlEndpoint, {
+        credentials: "include",
+        cache: "no-store",
+        signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
+      });
+      if (!resp.ok) {
+        return false;
+      }
+      const json = await resp.json();
+      if (json.url) {
+        this.url = json.url;
+        return true;
+      }
+    } catch (_) {
+      // ignore, treat as failed refresh
+    }
+    return false;
   }
 
   override async doInitialFetch(
@@ -288,6 +335,23 @@ class FetchRangeLoader extends BaseLoader {
     streaming = false,
     signal: AbortSignal | null = null,
   ): Promise<Uint8Array | ReadableStream<Uint8Array>> {
+    try {
+      return await this._getRange(offset, length, streaming, signal);
+    } catch (e) {
+      // expired signed URL surfaces as AccessDeniedError; re-resolve once and retry
+      if (e instanceof AccessDeniedError && (await this.refreshUrl())) {
+        return await this._getRange(offset, length, streaming, signal);
+      }
+      throw e;
+    }
+  }
+
+  async _getRange(
+    offset: number,
+    length: number,
+    streaming = false,
+    signal: AbortSignal | null = null,
+  ): Promise<Uint8Array | ReadableStream<Uint8Array>> {
     if (this.arrayBuffer) {
       return await this.arrayBuffer.getRange(offset, length, streaming);
     }
@@ -306,7 +370,25 @@ class FetchRangeLoader extends BaseLoader {
 
     try {
       resp = await this.retryFetch(this.url, options);
-    } catch (_) {
+    } catch (e) {
+      // An expired signed URL can be unreadable cross-origin: R2 returns the
+      // auth/expiry error (403 ExpiredRequest) with no Access-Control-Allow-Origin
+      // header, so the browser blocks it and fetch() rejects with an
+      // opaque TypeError instead of resolving with a readable 403. Exclude the
+      // cases that definitely are not an expired URL before treating it as
+      // access-denied and letting getRange() re-sign + retry once:
+      //   - aborts: the caller cancelled, never re-sign/retry
+      //   - retryFetch's 429/503-exhaustion throws a plain Error, not a
+      //     TypeError, so a rate-limit storm falls through to RangeError
+      if (
+        signal?.aborted ||
+        (e instanceof DOMException && e.name === "AbortError")
+      ) {
+        throw e;
+      }
+      if (this.refreshUrlEndpoint && e instanceof TypeError) {
+        throw new AccessDeniedError({ url: this.url, status: 403 });
+      }
       throw new RangeError(this.url);
     }
 

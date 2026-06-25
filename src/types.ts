@@ -190,6 +190,9 @@ export type ExtraConfig = {
   isLive?: boolean;
 
   proxyHomePageUrl?: string;
+
+  // endpoint returning {url} to re-resolve an expired signed source URL
+  refreshUrlEndpoint?: string;
 };
 
 export type CollConfig = {
