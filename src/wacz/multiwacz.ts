@@ -1600,6 +1600,9 @@ export class MultiWACZ
   }
 
   async createLoader(opts: BlockLoaderOpts): Promise<BaseLoader> {
-    return await createLoader(opts);
+    return await createLoader({
+      refreshUrlEndpoint: this.config.extraConfig?.refreshUrlEndpoint,
+      ...opts,
+    });
   }
 }
