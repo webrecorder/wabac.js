@@ -180,6 +180,10 @@ test(
   "location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).maybeHref = http://example.com/",
 );
 
+// Ensure these *don't* get rewritten
+test(rewriteJSWrapped, "const location = http://example.com/");
+test(rewriteJSWrapped, "let location = http://example.com/");
+
 test(rewriteJSWrapped, 'location => "http://example.com/"');
 
 // acorn fails here, but is ignorable

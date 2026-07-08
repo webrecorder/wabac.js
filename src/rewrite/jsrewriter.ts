@@ -151,6 +151,11 @@ const createJSRules: () => Rule[] = () => {
     // rewriting .postMessage -> __WB_pmw(self).postMessage
     [/\.postMessage\b\(/, addPrefix(".__WB_pmw(self)")],
 
+    // Avoid doing the below rewrite for `let/const` assignments,
+    // which will break the scoping
+    // See: https://github.com/webrecorder/wabac.js/issues/336
+    [/(?:let|const)\s+location\s*=/, (x: string) => x],
+
     // rewriting 'location = ' to custom expression '(...).href =' assignment
     [
       /(?:^|[^$.+*/%^-])\s?\blocation\b\s*[=]\s*(?![\s\d=>])/,
