@@ -9,3 +9,4 @@
 .tsimp
 coverage
 dist-wombat
+/.yarn/install-state.gz

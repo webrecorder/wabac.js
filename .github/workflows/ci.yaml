@@ -6,6 +6,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: corepack
+        run: corepack enable yarn
+      
       - name: Install Node.js, NPM and Yarn
         uses: actions/setup-node@v4
         with:
