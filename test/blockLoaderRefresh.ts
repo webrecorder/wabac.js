@@ -8,6 +8,25 @@ const NEW_URL = "https://r2.example/coll.wacz?sig=fresh";
 const REFRESH_ENDPOINT = "https://app.example/resign";
 const PAYLOAD = new Uint8Array([1, 2, 3]);
 
+// a second file in the same collection, sharing one refresh endpoint
+const OLD_URL_B = "https://r2.example/other.wacz?sig=expired";
+const NEW_URL_B = "https://r2.example/other.wacz?sig=fresh";
+const PAYLOAD_B = new Uint8Array([4, 5, 6]);
+
+// what the endpoint hands back for each expiring URL it's asked about
+const RESIGNED: Record<string, string> = {
+  [OLD_URL]: NEW_URL,
+  [OLD_URL_B]: NEW_URL_B,
+};
+const FRESH_BYTES: Record<string, Uint8Array> = {
+  [NEW_URL]: PAYLOAD,
+  [NEW_URL_B]: PAYLOAD_B,
+};
+
+// the refresh endpoint as actually hit: the expiring URL rides along as ?url=
+const resignCall = (expiring: string) =>
+  `${REFRESH_ENDPOINT}?url=${encodeURIComponent(expiring)}`;
+
 type FetchCall = { url: string; range: string | null };
 
 // How the expired (old) URL fails when fetched:
@@ -41,16 +60,22 @@ function installFetchStub({
       throw new DOMException("The operation was aborted.", "AbortError");
     }
 
-    if (url === REFRESH_ENDPOINT) {
+    if (url.startsWith(REFRESH_ENDPOINT)) {
       if (refreshFails) {
         throw new DOMException("The operation timed out.", "TimeoutError");
       }
-      return new Response(JSON.stringify({ url: NEW_URL }), {
+      // re-sign only the object the caller named, as a real endpoint would
+      const expiring = new URL(url).searchParams.get("url");
+      const fresh = expiring ? RESIGNED[expiring] : undefined;
+      if (!fresh) {
+        return new Response(null, { status: 400 });
+      }
+      return new Response(JSON.stringify({ url: fresh }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     }
-    if (url === OLD_URL) {
+    if (url === OLD_URL || url === OLD_URL_B) {
       switch (oldUrl) {
         case "rejectTypeError":
           throw new TypeError("Failed to fetch");
@@ -60,8 +85,9 @@ function installFetchStub({
           return new Response(null, { status: 403 });
       }
     }
-    if (url === NEW_URL) {
-      return new Response(PAYLOAD, {
+    const bytes = FRESH_BYTES[url];
+    if (bytes) {
+      return new Response(bytes, {
         status: 206,
         headers: { "Content-Range": `bytes 0-2/3` },
       });
@@ -88,7 +114,7 @@ test.serial(
 
       const urls = calls.map((c) => c.url);
       // expired URL tried first, then the refresh endpoint, then the fresh URL
-      t.deepEqual(urls, [OLD_URL, REFRESH_ENDPOINT, NEW_URL]);
+      t.deepEqual(urls, [OLD_URL, resignCall(OLD_URL), NEW_URL]);
     } finally {
       restore();
     }
@@ -112,7 +138,7 @@ test.serial(
       t.deepEqual(Array.from(res), [1, 2, 3]);
       t.deepEqual(
         calls.map((c) => c.url),
-        [OLD_URL, REFRESH_ENDPOINT, NEW_URL],
+        [OLD_URL, resignCall(OLD_URL), NEW_URL],
       );
     } finally {
       restore();
@@ -143,7 +169,7 @@ test.serial(
       // the abort is surfaced unchanged, not masked as access-denied...
       t.true(caught instanceof DOMException && caught.name === "AbortError");
       // ...and no re-sign was attempted
-      t.false(calls.some((c) => c.url === REFRESH_ENDPOINT));
+      t.false(calls.some((c) => c.url.startsWith(REFRESH_ENDPOINT)));
     } finally {
       restore();
     }
@@ -171,7 +197,7 @@ test.serial(
 
       t.true(caught instanceof RangeError);
       t.false(caught instanceof AccessDeniedError);
-      t.false(calls.some((c) => c.url === REFRESH_ENDPOINT));
+      t.false(calls.some((c) => c.url.startsWith(REFRESH_ENDPOINT)));
     } finally {
       restore();
     }
@@ -207,6 +233,42 @@ test.serial(
 );
 
 test.serial(
+  "each file in a multi-WACZ collection re-signs its own URL, not a sibling's",
+  async (t) => {
+    // MultiWACZ gives every inner file's loader the same refreshUrlEndpoint, so
+    // the endpoint only knows which object to re-sign because the expiring URL
+    // is passed to it. Without that, one file could adopt another file's bytes.
+    const { calls, restore } = installFetchStub({ oldUrl: "rejectTypeError" });
+    try {
+      const [loaderA, loaderB] = await Promise.all([
+        createLoader({ url: OLD_URL, refreshUrlEndpoint: REFRESH_ENDPOINT }),
+        createLoader({ url: OLD_URL_B, refreshUrlEndpoint: REFRESH_ENDPOINT }),
+      ]);
+
+      const [resA, resB] = (await Promise.all([
+        loaderA.getRange(0, 3, false),
+        loaderB.getRange(0, 3, false),
+      ])) as Uint8Array[];
+
+      // each loader ends up with its own file's bytes
+      t.deepEqual(Array.from(resA), [1, 2, 3]);
+      t.deepEqual(Array.from(resB), [4, 5, 6]);
+
+      // and each asked the shared endpoint about its own expiring URL
+      const resigns = calls
+        .map((c) => c.url)
+        .filter((u) => u.startsWith(REFRESH_ENDPOINT));
+      t.deepEqual(
+        resigns.sort(),
+        [resignCall(OLD_URL), resignCall(OLD_URL_B)].sort(),
+      );
+    } finally {
+      restore();
+    }
+  },
+);
+
+test.serial(
   "getRange surfaces the original error when the refresh endpoint fails",
   async (t) => {
     // A hung endpoint rejects via AbortSignal.timeout; the failed refresh must
@@ -232,7 +294,7 @@ test.serial(
       // refresh was attempted but the fresh URL was never fetched
       t.deepEqual(
         calls.map((c) => c.url),
-        [OLD_URL, REFRESH_ENDPOINT],
+        [OLD_URL, resignCall(OLD_URL)],
       );
     } finally {
       restore();

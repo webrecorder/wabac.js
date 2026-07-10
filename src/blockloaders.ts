@@ -32,7 +32,8 @@ export type BlockLoaderOpts = {
   extra?: BlockLoaderExtra;
   size?: number;
   blob?: Blob;
-  // endpoint returning {url} to re-resolve an expired signed URL
+  // endpoint returning {url} to re-resolve an expired signed URL, given the
+  // expiring URL as a `url` query param
   refreshUrlEndpoint?: string;
 };
 
@@ -188,8 +189,9 @@ class FetchRangeLoader extends BaseLoader {
   /**
    * Attempt to re-resolve the source URL when access has been lost (e.g. an
    * expired signed URL returning 403). Fetches a fresh URL from the refresh
-   * endpoint, updates this.url, and returns true on success; returns false
-   * when no `refreshUrlEndpoint` is configured or the refresh fails.
+   * endpoint, passing the expiring URL as a `url` query param so the right
+   * object is re-signed, updates this.url, and returns true on success;
+   * returns false when no `refreshUrlEndpoint` is configured or it fails.
    */
   async refreshUrl(): Promise<boolean> {
     // coalesce concurrent refreshes
@@ -204,7 +206,16 @@ class FetchRangeLoader extends BaseLoader {
       return false;
     }
     try {
-      const resp = await fetch(this.refreshUrlEndpoint, {
+      // Identify which object to re-sign: a multi-WACZ collection attaches the
+      // same endpoint to every file's loader, so the endpoint can't know which
+      // file expired unless it's told.
+      // `location` is typed as always-present but is absent outside a
+      // worker/window, so a relative endpoint only resolves in one.
+      const base = (globalThis as { location?: { href: string } }).location
+        ?.href;
+      const endpoint = new URL(this.refreshUrlEndpoint, base);
+      endpoint.searchParams.set("url", this.url);
+      const resp = await fetch(endpoint.href, {
         credentials: "include",
         cache: "no-store",
         signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
