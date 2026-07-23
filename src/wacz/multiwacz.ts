@@ -685,6 +685,23 @@ export class MultiWACZ
       }
     }
 
+    // Add one more value from the surt
+    for await (const cursor of tx.store.iterate(
+      IDBKeyRange.lowerBound([waczname, surt]),
+      "next",
+    )) {
+      const value = cursor.value as IDXLine | null;
+
+      if (!value || value.waczname !== waczname) {
+        break;
+      }
+
+      if (values.indexOf(value) === -1) {
+        values.push(value);
+      }
+      break;
+    }
+
     await tx.done;
 
     const cdxloaders: Promise<void>[] = [];
