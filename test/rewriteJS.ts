@@ -180,7 +180,29 @@ test(
   "location = ((self.__WB_check_loc && self.__WB_check_loc(location, arguments)) || {}).maybeHref = http://example.com/",
 );
 
-test(rewriteJSWrapped, 'location => "http://example.com/"');
+// Ensure these *don't* get rewritten
+test(
+  rewriteJSWrapped,
+  'function() { const location = "http://example.com/" }',
+  "",
+);
+test(
+  rewriteJSWrapped,
+  'function() { let location = "http://example.com/"; }',
+  "",
+);
+
+test(rewriteJSWrapped, "function() { const location = foo.location }", "");
+test(rewriteJSWrapped, "function() { const location = window.location }", "");
+
+// this. is still rewritten
+test(
+  rewriteJSWrapped,
+  "function() { const location = this.location; }",
+  "function() { const location = _____WB$wombat$check$this$function_____(this).location; }",
+);
+
+test(rewriteJSWrapped, 'location => "http://example.com/"', "");
 
 // acorn fails here, but is ignorable
 test(
