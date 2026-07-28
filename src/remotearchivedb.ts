@@ -26,6 +26,16 @@ export type Opts = ADBOpts & {
   depth?: number;
 };
 
+export class OriginalRecordMissingException extends Error {
+  cdx: ResourceEntry;
+
+  constructor(msg: string, cdx: ResourceEntry) {
+    super(msg);
+
+    this.cdx = cdx;
+  }
+}
+
 // ===========================================================================
 export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
   noCache: boolean;
@@ -156,8 +166,13 @@ export abstract class OnDemandPayloadArchiveDB extends ArchiveDB {
         remote.origTS || 0,
         newOpts,
       );
+      // This case can occur if we're missing the original record,
+      // for example if we've loaded a WACZ without its dependencies.
       if (!origResult) {
-        return null;
+        throw new OriginalRecordMissingException(
+          `Encountered revisit record but unable to locate original record for ${remote.origURL}`,
+          cdx,
+        );
       }
 
       const depth = opts.depth || 0;
