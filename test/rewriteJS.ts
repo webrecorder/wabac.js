@@ -106,6 +106,28 @@ function wrapScript(text: string) {
   return wrapScriptOpen(text) + "\n\n}";
 }
 
+function wrapScriptNoLocationOverride(text: string) {
+  // same as above but no: let location = _____WB$wombat$assign$function_____("location");
+  return (
+    `\
+var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
+if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
+{
+let window = _____WB$wombat$assign$function_____("window");
+let globalThis = _____WB$wombat$assign$function_____("globalThis");
+let self = _____WB$wombat$assign$function_____("self");
+let document = _____WB$wombat$assign$function_____("document");
+let top = _____WB$wombat$assign$function_____("top");
+let parent = _____WB$wombat$assign$function_____("parent");
+let frames = _____WB$wombat$assign$function_____("frames");
+let opener = _____WB$wombat$assign$function_____("opener");
+let arguments;
+\n` +
+    text +
+    "\n\n}"
+  );
+}
+
 function wrapImport(text: string) {
   return `\
 import { window, globalThis, self, document, location, top, parent, frames, opener } from "http://localhost:8080/prefix/20201226101010mp_/__wb_module_decl.js";
@@ -190,6 +212,19 @@ test(
   rewriteJSWrapped,
   'function() { let location = "http://example.com/"; }',
   "",
+);
+
+// no location override, since global location is being assigned to
+test(
+  rewriteJS,
+  "const location = foo.location",
+  wrapScriptNoLocationOverride("const location = foo.location"),
+);
+
+test(
+  rewriteJS,
+  "let location = window.location",
+  wrapScriptNoLocationOverride("let location = window.location"),
 );
 
 test(rewriteJSWrapped, "function() { const location = foo.location }", "");
@@ -288,6 +323,13 @@ const foo = self.___WB_const_foo; delete self.___WB_const_foo;
 `,
 );
 
+// document.write + document.close append
+test(
+  rewriteJS,
+  `document.write(x);`,
+  wrapScript("document.write(x);" + ";document.close();"),
+);
+
 // multiple globals on same line
 test(
   rewriteJS,
@@ -309,6 +351,26 @@ self.___WB_const_bar = bar;
 }
 const foo = self.___WB_const_foo; delete self.___WB_const_foo;
 const bar = self.___WB_const_bar; delete self.___WB_const_bar;
+`,
+);
+
+// global + document.close append
+test(
+  rewriteJS,
+  `
+
+const y = document.location;
+document.write(x);`,
+
+  `${wrapScriptOpen(`
+
+const y = document.location;
+document.write(x);`)}
+;self.___WB_const_y = y;
+;document.close();
+
+}
+const y = self.___WB_const_y; delete self.___WB_const_y;
 `,
 );
 

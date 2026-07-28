@@ -198,9 +198,9 @@ const DEFAULT_RULES = createJSRules();
 
 // ===========================================================================
 class JSRewriter extends RxRewriter {
-  extraRules: Rule[];
-  firstBuff: string;
-  lastBuff: string;
+  readonly extraRules: Rule[];
+  readonly firstBuff: string;
+  readonly lastBuff: string;
 
   constructor(extraRules: Rule[] = []) {
     super();
@@ -250,7 +250,12 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
   parseGlobals(
     text: string,
     overrides: string[],
-  ): { names: { name: string; kind: string }[]; letOffsets: number[] } {
+  ): {
+    names: { name: string; kind: string }[];
+    letOffsets: number[];
+    firstBuff: string;
+    lastBuff: string;
+  } {
     const res = acorn.parse(text, { ecmaVersion: "latest" });
 
     let hasDocWrite = false;
@@ -310,19 +315,21 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       }
     }
 
+    let firstBuff = this.firstBuff;
+
     if (excludeOverrides.size) {
-      const filteredGlobals = GLOBAL_OVERRIDES.filter(
-        (x) => !excludeOverrides.has(x),
-      );
-      this.firstBuff = this.initLocalDecl(filteredGlobals);
+      const filteredGlobals = overrides.filter((x) => !excludeOverrides.has(x));
+      firstBuff = this.initLocalDecl(filteredGlobals);
     }
+
+    let lastBuff = this.lastBuff;
 
     // top-level document.write(), add document.close()
     if (hasDocWrite) {
-      this.lastBuff = ";document.close();" + this.lastBuff;
+      lastBuff = ";document.close();" + this.lastBuff;
     }
 
-    return { names, letOffsets };
+    return { names, letOffsets, firstBuff, lastBuff };
   }
 
   override rewrite(text: string, opts: RWOpts) {
@@ -386,6 +393,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     if (wrapGlobals) {
       let firstBuff = this.firstBuff;
+      let lastBuff = this.lastBuff;
       let overrides = GLOBAL_OVERRIDES;
 
       if (isWorker) {
@@ -397,10 +405,12 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
       let postScopeGlobals = "";
       if (newText) {
         try {
-          const { names: globalNames, letOffsets } = this.parseGlobals(
-            newText,
-            overrides,
-          );
+          const result = this.parseGlobals(newText, overrides);
+
+          const { names: globalNames, letOffsets } = result;
+          // override firstBuff and lastBuff, may have been updated
+          firstBuff = result.firstBuff;
+          lastBuff = result.lastBuff;
 
           for (const value of letOffsets) {
             // remove "let" at each index
@@ -434,7 +444,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
         firstBuff +
         newText +
         inScopeGlobals +
-        this.lastBuff +
+        lastBuff +
         postScopeGlobals;
       if (opts.inline) {
         newText = newText.replace(/\n/g, " ");
