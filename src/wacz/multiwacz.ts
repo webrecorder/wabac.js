@@ -685,7 +685,7 @@ export class MultiWACZ
       }
     }
 
-    // Added to mitigate issue from off-by-1 error in some WACZ CDX, 
+    // Added to mitigate issue from off-by-1 error in some WACZ CDX,
     // (https://github.com/webrecorder/browsertrix-crawler/issues/1121)
     // in rare circumstances, requires reading the next block to obtain the CDX.
     for await (const cursor of tx.store.iterate(
