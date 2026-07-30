@@ -924,10 +924,10 @@
   resolved "https://registry.yarnpkg.com/@webpack-cli/serve/-/serve-1.5.2.tgz#ea584b637ff63c5a477f6f21604b5a205b72c9ec"
   integrity sha512-vgJ5OLWadI8aKjDlOH3rb+dYyPd2GTZuQC/Tihjct6F9GpXGZINo3Y/IVuZVTM1eDQB+/AOsjPUWH/WySDaXvw==
 
-"@webrecorder/wombat@^3.10.5":
-  version "3.10.5"
-  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.10.5.tgz#fdb7332b03ad8dd76103f546d7cbd443a61148fe"
-  integrity sha512-wliTz2EOsrurqBXuKYGeLNtxobVni+FTmQaMRdYGp16Fcoms2EW3jsnbAmu0Co05TANOiGpzb2QOrS7tibA29w==
+"@webrecorder/wombat@^3.10.6":
+  version "3.10.6"
+  resolved "https://registry.yarnpkg.com/@webrecorder/wombat/-/wombat-3.10.6.tgz#0a33f5a3a1789b7d4e28f25a7b5fe43122d6ab21"
+  integrity sha512-YzpGipRw8dTsVD/DoXOmJ6fIVDnsGJV+/s8IJo3KOBl9D8pvQbG4GGyzcYPeVOnZ01qulSlSVFexs2EwvDxYXA==
   dependencies:
     warcio "^2.4.10"
 
@@ -3967,10 +3967,10 @@ walk-up-path@^3.0.1:
   resolved "https://registry.yarnpkg.com/walk-up-path/-/walk-up-path-3.0.1.tgz#c8d78d5375b4966c717eb17ada73dbd41490e886"
   integrity sha512-9YlCL/ynK3CTlrSRrDxZvUauLzAswPCrsaCgilqFevUYpeEW0/3ScEjaa3kbW/T0ghhkEr7mv+fpjqn1Y1YuTA==
 
-warcio@^2.4.10:
-  version "2.4.10"
-  resolved "https://registry.yarnpkg.com/warcio/-/warcio-2.4.10.tgz#1d873b9c469a331441919776c2cad84dece878c3"
-  integrity sha512-jaqgnavBT//6scEMUGqi5eK2NXIZ8Tp8LJOY+oa07k7JpIt/BwQLJL3dQca/SgPHaW0yspQmi1IeF0p1wrUcaA==
+warcio@^2.4.10, warcio@^2.4.11:
+  version "2.4.11"
+  resolved "https://registry.yarnpkg.com/warcio/-/warcio-2.4.11.tgz#1ef9c33f37b0ab17662d7821dce718e385afdbd7"
+  integrity sha512-EXcT5+GepqtUBmFpwxcRm7uEbhrtYKhWVIVzAxgO/PZt84KLl3eZLlGsa4DwQCAWCK8b4nyjqBlyKfKhT1Govg==
   dependencies:
     "@types/pako" "^1.0.7"
     "@types/stream-buffers" "^3.0.7"
