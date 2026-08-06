@@ -53,7 +53,8 @@
 
         window.parent.postMessage(
           {
-            wb_type: window.errorReason,
+            wb_type: "archive-not-found",
+            reason: window.errorReason,
             url: window.requestURL,
             ts: $REQUEST_TS,
           },

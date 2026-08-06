@@ -17,7 +17,15 @@ export async function setNotFoundTemplate(url: string) {
 }
 
 export function notFound(request: Request, msg?: string, status = 404) {
-  return notFoundByTypeResponse(request, request.url, "", false, "archive-not-found", status, msg);
+  return notFoundByTypeResponse(
+    request,
+    request.url,
+    "",
+    false,
+    "archive-not-found",
+    status,
+    msg,
+  );
 }
 
 export function notFoundByTypeResponse(
@@ -41,7 +49,13 @@ export function notFoundByTypeResponse(
       break;
 
     case "script":
-      content = getScriptCSSNotFound("Script", requestURL, requestTS, reason, msg);
+      content = getScriptCSSNotFound(
+        "Script",
+        requestURL,
+        requestTS,
+        reason,
+        msg,
+      );
       contentType = "text/javascript; charset=utf-8";
       break;
 
@@ -102,7 +116,10 @@ function getHTMLNotFound(
     "$REDIRECT_NOT_FOUND",
     liveRedirectOnNotFound && request.mode === "navigate" ? "1" : "0",
   );
-  html = html.replaceAll("$TITLE", JSON.stringify(title || "Archived Page Not Found"));
+  html = html.replaceAll(
+    "$TITLE",
+    JSON.stringify(title || "Archived Page Not Found"),
+  );
   html = html.replaceAll(
     "$REQUEST_ERR_MSG",
     JSON.stringify(msg || "Sorry, this page was not found in this archive:"),
@@ -128,7 +145,12 @@ function getScriptCSSNotFound(
   `;
 }
 
-function getJSONNotFound(URL: string, TS: string, reason: NotFoundReason, error = "not_found") {
+function getJSONNotFound(
+  URL: string,
+  TS: string,
+  reason: NotFoundReason,
+  error = "not_found",
+) {
   return JSON.stringify({ error, URL, TS, reason });
 }
 

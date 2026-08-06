@@ -228,7 +228,7 @@ export class Collection {
           requestURL,
           requestTS,
           this.liveRedirectOnNotFound,
-          "archive-missing-original",
+          "missingOriginal",
           e.cdx.status,
           "Original Archived Page Missing",
           "This page is marked as a duplicate but the original page is missing from the archive or has been removed.",
