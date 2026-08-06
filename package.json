@@ -92,5 +92,6 @@
     "lint": "eslint --fix ./src/ ./test/",
     "format:check": "prettier --check ./src/ ./test/",
     "format": "prettier --write ./src/ ./test/"
-  }
+  },
+  "packageManager": "yarn@4.17.1"
 }
