@@ -1,3 +1,4 @@
+import { OriginalRecordMissingException } from "./remotearchivedb";
 import { ProxyRewriter, Rewriter, TO_MP } from "./rewrite";
 import { DISABLE_MEDIASOURCE_SCRIPT } from "./rewrite/dsruleset";
 
@@ -218,6 +219,19 @@ export class Collection {
         }
       }
     } catch (e) {
+      // If we couldn't load this due to a missing dependency,
+      // we're not going to be able to do anything else;
+      // immediately serve up a page informing the user
+      if (e instanceof OriginalRecordMissingException) {
+        return notFoundByTypeResponse(
+          request.request,
+          requestURL,
+          requestTS,
+          this.liveRedirectOnNotFound,
+          e.cdx.status,
+          "This page is marked as a duplicate but the original page could not be found.",
+        );
+      }
       if (await handleAuthNeeded(e, this.config)) {
         return notFound(
           request.request,
