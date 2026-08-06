@@ -4,6 +4,9 @@ import DEFAULT_ERROR_HTML from "./templates/notFound.html";
 
 let notFoundHtml = "";
 
+// Possible reasons for not found error:
+export type NotFoundReason = "archive-not-found" | "archive-missing-original";
+
 export async function setNotFoundTemplate(url: string) {
   try {
     const resp = await fetch(url);
@@ -14,7 +17,7 @@ export async function setNotFoundTemplate(url: string) {
 }
 
 export function notFound(request: Request, msg?: string, status = 404) {
-  return notFoundByTypeResponse(request, request.url, "", false, status, msg);
+  return notFoundByTypeResponse(request, request.url, "", false, "archive-not-found", status, msg);
 }
 
 export function notFoundByTypeResponse(
@@ -22,7 +25,9 @@ export function notFoundByTypeResponse(
   requestURL: string,
   requestTS: string,
   liveRedirectOnNotFound = false,
+  reason: NotFoundReason = "archive-not-found",
   status = 404,
+  title?: string,
   msg?: string,
 ) {
   let content: string;
@@ -31,17 +36,17 @@ export function notFoundByTypeResponse(
   switch (request.destination as string) {
     case "json":
     case "":
-      content = getJSONNotFound(requestURL, requestTS, msg);
+      content = getJSONNotFound(requestURL, requestTS, reason, msg);
       contentType = "application/json; charset=utf-8";
       break;
 
     case "script":
-      content = getScriptCSSNotFound("Script", requestURL, requestTS, msg);
+      content = getScriptCSSNotFound("Script", requestURL, requestTS, reason, msg);
       contentType = "text/javascript; charset=utf-8";
       break;
 
     case "style":
-      content = getScriptCSSNotFound("CSS", requestURL, requestTS, msg);
+      content = getScriptCSSNotFound("CSS", requestURL, requestTS, reason, msg);
       contentType = "text/css; charset=utf-8";
       break;
 
@@ -55,6 +60,8 @@ export function notFoundByTypeResponse(
         requestURL,
         requestTS,
         liveRedirectOnNotFound,
+        reason,
+        title,
         msg,
       );
       contentType = "text/html; charset=utf-8";
@@ -84,6 +91,8 @@ function getHTMLNotFound(
   requestURL: string,
   requestTS: string,
   liveRedirectOnNotFound: boolean,
+  reason: NotFoundReason,
+  title?: string,
   msg?: string,
 ) {
   let html = notFoundHtml || DEFAULT_ERROR_HTML;
@@ -93,10 +102,12 @@ function getHTMLNotFound(
     "$REDIRECT_NOT_FOUND",
     liveRedirectOnNotFound && request.mode === "navigate" ? "1" : "0",
   );
+  html = html.replaceAll("$TITLE", JSON.stringify(title || "Archived Page Not Found"));
   html = html.replaceAll(
     "$REQUEST_ERR_MSG",
     JSON.stringify(msg || "Sorry, this page was not found in this archive:"),
   );
+  html = html.replaceAll("$REASON", JSON.stringify(reason));
   return html;
 }
 
@@ -104,6 +115,7 @@ function getScriptCSSNotFound(
   type: string,
   requestURL: string,
   requestTS: string,
+  reason: string,
   msg?: string,
 ) {
   return `\
@@ -111,12 +123,13 @@ function getScriptCSSNotFound(
    ${msg || type + " Not Found"}
    URL: ${requestURL}
    TS: ${requestTS}
+   reason: ${reason}
 */
   `;
 }
 
-function getJSONNotFound(URL: string, TS: string, error = "not_found") {
-  return JSON.stringify({ error, URL, TS });
+function getJSONNotFound(URL: string, TS: string, reason: NotFoundReason, error = "not_found") {
+  return JSON.stringify({ error, URL, TS, reason });
 }
 
 export function getProxyNotFoundResponse(url: string, status: number) {

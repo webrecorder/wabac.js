@@ -228,8 +228,10 @@ export class Collection {
           requestURL,
           requestTS,
           this.liveRedirectOnNotFound,
+          "archive-missing-original",
           e.cdx.status,
-          "This page is marked as a duplicate but the original page could not be found.",
+          "Original Archived Page Missing",
+          "This page is marked as a duplicate but the original page is missing from the archive or has been removed.",
         );
       }
       if (await handleAuthNeeded(e, this.config)) {
