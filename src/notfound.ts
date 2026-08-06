@@ -35,7 +35,6 @@ export function notFoundByTypeResponse(
   liveRedirectOnNotFound = false,
   reason: NotFoundReason = "notFound",
   status = 404,
-  title?: string,
   msg?: string,
 ) {
   let content: string;
@@ -75,7 +74,6 @@ export function notFoundByTypeResponse(
         requestTS,
         liveRedirectOnNotFound,
         reason,
-        title,
         msg,
       );
       contentType = "text/html; charset=utf-8";
@@ -106,9 +104,23 @@ function getHTMLNotFound(
   requestTS: string,
   liveRedirectOnNotFound: boolean,
   reason: NotFoundReason,
-  title?: string,
   msg?: string,
 ) {
+  let msgDefault, title: string;
+
+  switch (reason) {
+    case "notFound":
+      title = "Archived Page Not Found";
+      msgDefault = "Sorry, this page was not found in this archive:";
+      break;
+
+    case "missingOriginalForDupe":
+      title = "Original Archived Page Missing";
+      msgDefault =
+        "This page is marked as a duplicate but the original page is missing from the archive or has been removed.";
+      break;
+  }
+
   let html = notFoundHtml || DEFAULT_ERROR_HTML;
   html = html.replaceAll("$REQUEST_URL", JSON.stringify(requestURL));
   html = html.replaceAll("$REQUEST_TS", JSON.stringify(requestTS));
@@ -116,14 +128,8 @@ function getHTMLNotFound(
     "$REDIRECT_NOT_FOUND",
     liveRedirectOnNotFound && request.mode === "navigate" ? "1" : "0",
   );
-  html = html.replaceAll(
-    "$TITLE",
-    JSON.stringify(title || "Archived Page Not Found"),
-  );
-  html = html.replaceAll(
-    "$REQUEST_ERR_MSG",
-    JSON.stringify(msg || "Sorry, this page was not found in this archive:"),
-  );
+  html = html.replaceAll("$TITLE", JSON.stringify(title));
+  html = html.replaceAll("$REQUEST_ERR_MSG", JSON.stringify(msg || msgDefault));
   html = html.replaceAll("$REASON", JSON.stringify(reason));
   return html;
 }
