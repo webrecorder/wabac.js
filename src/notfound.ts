@@ -5,7 +5,7 @@ import DEFAULT_ERROR_HTML from "./templates/notFound.html";
 let notFoundHtml = "";
 
 // Possible reasons for not found error:
-export type NotFoundReason = "notFound" | "missingOriginal";
+export type NotFoundReason = "notFound" | "missingOriginalForDupe";
 
 export async function setNotFoundTemplate(url: string) {
   try {
