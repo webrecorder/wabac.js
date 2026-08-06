@@ -5,7 +5,7 @@ import DEFAULT_ERROR_HTML from "./templates/notFound.html";
 let notFoundHtml = "";
 
 // Possible reasons for not found error:
-export type NotFoundReason = "archive-not-found" | "archive-missing-original";
+export type NotFoundReason = "notFound" | "missingOriginal";
 
 export async function setNotFoundTemplate(url: string) {
   try {
@@ -22,7 +22,7 @@ export function notFound(request: Request, msg?: string, status = 404) {
     request.url,
     "",
     false,
-    "archive-not-found",
+    "notFound",
     status,
     msg,
   );
@@ -33,7 +33,7 @@ export function notFoundByTypeResponse(
   requestURL: string,
   requestTS: string,
   liveRedirectOnNotFound = false,
-  reason: NotFoundReason = "archive-not-found",
+  reason: NotFoundReason = "notFound",
   status = 404,
   title?: string,
   msg?: string,
