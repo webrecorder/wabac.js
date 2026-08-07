@@ -279,6 +279,10 @@ export class Rewriter {
       isAjax,
     );
 
+    if (response.extraOpts?.detectedCT) {
+      headers.set("Content-Type", response.extraOpts.detectedCT);
+    }
+
     const encoding = response.headers.get("content-encoding");
     const te = response.headers.get("transfer-encoding");
 

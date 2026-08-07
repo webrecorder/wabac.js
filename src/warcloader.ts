@@ -424,6 +424,14 @@ class WARCLoader extends BaseParser {
       }
     }
 
+    const detectedCT = record.warcHeader("WARC-Identified-Payload-Type");
+    if (detectedCT) {
+      if (!entry.extraOpts) {
+        entry.extraOpts = {};
+      }
+      entry.extraOpts.detectedCT = detectedCT;
+    }
+
     const pageId = record.warcHeader("WARC-Page-ID");
 
     if (pageId) {
