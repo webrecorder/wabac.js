@@ -5,10 +5,12 @@
       window.requestURL = $REQUEST_URL;
       window.redirectOnNotFound = $REDIRECT_NOT_FOUND;
       window.errorMsg = $REQUEST_ERR_MSG;
+      window.errorTitle = $TITLE;
+      window.errorReason = $REASON;
     </script>
   </head>
   <body style="font-family: sans-serif">
-    <h2>Archived Page Not Found</h2>
+    <h2 id="title"></h2>
     <p id="msg"></p>
     <p>
       <code id="url" style="word-break: break-all; font-size: larger"></code>
@@ -34,6 +36,9 @@
     </p>
 
     <script>
+      document.querySelector("#title").innerText = window.errorTitle;
+      document.title = window.errorTitle;
+
       document.querySelector("#url").innerText = window.requestURL;
       document.querySelector("#msg").innerText = window.errorMsg;
       document.querySelector("#livelink").href = window.requestURL;
@@ -49,6 +54,7 @@
         window.parent.postMessage(
           {
             wb_type: "archive-not-found",
+            reason: window.errorReason,
             url: window.requestURL,
             ts: $REQUEST_TS,
           },

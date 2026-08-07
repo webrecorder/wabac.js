@@ -228,8 +228,8 @@ export class Collection {
           requestURL,
           requestTS,
           this.liveRedirectOnNotFound,
+          "missingOriginalForDupe",
           e.cdx.status,
-          "This page is marked as a duplicate but the original page could not be found.",
         );
       }
       if (await handleAuthNeeded(e, this.config)) {
