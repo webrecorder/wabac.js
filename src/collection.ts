@@ -365,6 +365,10 @@ export class Collection {
 
     response = await rewriter.rewrite(response, request);
 
+    if (response.extraOpts?.detectedCT) {
+      response.headers.set("Content-Type", response.extraOpts.detectedCT);
+    }
+
     response.headers.set("Content-Security-Policy", this.csp);
 
     return response;

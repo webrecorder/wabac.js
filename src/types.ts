@@ -39,6 +39,9 @@ export type ExtraOpts = {
 
   // if disabling media source extensions
   disableMSE?: number;
+
+  // if a detected content-type was provided
+  detectedCT?: string;
 };
 
 export type ResourceEntry = {
