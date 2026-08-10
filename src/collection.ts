@@ -229,7 +229,7 @@ export class Collection {
           requestTS,
           this.liveRedirectOnNotFound,
           "missingOriginalForDupe",
-          e.cdx.status,
+          404,
         );
       }
       if (await handleAuthNeeded(e, this.config)) {
