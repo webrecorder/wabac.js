@@ -1285,7 +1285,6 @@ export class MultiWACZ
 
     if (this.rootSourceType === "idx") {
       return await super.getResource(request, prefix, event, {
-        // @ts-expect-error [TODO] - TS2345 - Argument of type '{ waczname: string; }' is not assignable to parameter of type 'Opts'.
         waczname: DEFAULT_WACZ,
       });
     }
