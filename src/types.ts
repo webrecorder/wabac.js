@@ -292,6 +292,12 @@ export type MultiWACZJsonSpec = {
   pagesQueryUrl?: string;
 };
 
+export type IDXDirectConfig = {
+  profile: "idx-direct";
+  idxFile: string;
+  secondaryIdx?: string;
+};
+
 export type DataPackageWithRelation = {
   relation?: {
     requires: { filename: string; hash: string; crawlId?: string }[];
@@ -304,7 +310,7 @@ export type WACZCollConfig = CollConfig & {
   decode?: unknown;
   loadUrl: string;
   metadata?: CollMetadata &
-    Partial<MultiWACZJsonSpec> & {
+    Partial<MultiWACZJsonSpec | IDXDirectConfig> & {
       textIndex?: string;
     };
   extraConfig?: ExtraConfig & {

@@ -49,7 +49,9 @@ import {
   type RemoteResourceEntry,
   type WACZCollConfig,
   type LoadRangeOpts,
+  type IDXDirectConfig,
 } from "../types";
+import { IDXDirectMultiWACZLoader } from "./waczloader";
 
 const MAX_BLOCKS = 6;
 
@@ -92,7 +94,7 @@ export class MultiWACZ
   config: WACZCollConfig;
   waczfiles: Record<string, WACZFile>;
   waczNameForHash: Record<string, string>;
-  ziploadercache: Record<string, Promise<void>>;
+  ziploadercache: Record<string, Promise<void | boolean>>;
   updating: Promise<void> | null;
   rootSourceType: "wacz" | "json" | "idx";
   sourceLoader: BaseLoader | undefined;
@@ -141,17 +143,18 @@ export class MultiWACZ
       this.initConfig(config.extraConfig);
     }
 
-    if (config.metadata) {
-      this.pagesQueryUrl = config.metadata.pagesQueryUrl || "";
+    if (config.metadata && config.metadata.profile !== "idx-direct") {
+      const metadata = config.metadata as MultiWACZJsonSpec;
+      this.pagesQueryUrl = metadata.pagesQueryUrl || "";
 
-      if (config.metadata.preloadResources?.length) {
-        for (const { name } of config.metadata.preloadResources) {
+      if (metadata.preloadResources?.length) {
+        for (const { name } of metadata.preloadResources) {
           this.preloadResources.push(name);
         }
       }
 
-      if (typeof config.metadata.totalPages === "number") {
-        this.totalPages = config.metadata.totalPages;
+      if (typeof metadata.totalPages === "number") {
+        this.totalPages = metadata.totalPages;
       }
     }
   }
@@ -266,10 +269,14 @@ export class MultiWACZ
     return waczfile;
   }
 
+  isDirectIndex() {
+    return this.rootSourceType === "idx" || this.config.metadata?.profile === "idx-direct";
+  }
+
   override async init() {
     await super.init();
 
-    if (this.rootSourceType === "idx") {
+    if (this.isDirectIndex()) {
       this.initIDX();
       return;
     }
@@ -437,9 +444,10 @@ export class MultiWACZ
       waczname,
       "archive/" + path,
       params,
+      (this.config.metadata as IDXDirectConfig).secondaryIdx
     );
 
-    if (this.rootSourceType === "idx") {
+    if (this.isDirectIndex()) {
       isArc = !!path.match(/\.arc(?:.gz)(?:[?].*)?$/);
     } else {
       // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
@@ -458,7 +466,7 @@ export class MultiWACZ
   }
 
   async loadIndex(waczname: string) {
-    if (this.rootSourceType === "idx") {
+    if (this.isDirectIndex()) {
       return { indexType: INDEX_IDX, isNew: false };
     }
 
@@ -553,6 +561,7 @@ export class MultiWACZ
       total,
       hasher,
       filename,
+      false
     );
   }
 
@@ -565,6 +574,7 @@ export class MultiWACZ
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     hasher?: any,
     filename?: string,
+    isSecondary = false,
   ) {
     let batch: IDXLine[] = [];
 
@@ -654,7 +664,7 @@ export class MultiWACZ
 
         entry = {
           waczname,
-          prefix,
+          prefix: isSecondary ? "$ " + prefix : prefix,
           filename,
           offset,
           length,
@@ -701,11 +711,19 @@ export class MultiWACZ
     datetime = 0,
     isPrefix = false,
     useExactQuery = false,
+    isLeaf = false,
   ) {
+
+    if (!isLeaf) {
+      isLeaf = !(this.config.metadata as IDXDirectConfig | null)?.secondaryIdx;
+    }
+
     //const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
 
     // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
-    const surt = this.waczfiles[waczname].nonSurt ? url : getSurt(url);
+    const surtSuffix = this.waczfiles[waczname].nonSurt ? url : getSurt(url);
+
+    const surt = isLeaf ? surtSuffix : "$ " + surtSuffix;
 
     const upperBound = isPrefix ? this.prefixUpperBound(surt) : surt + " 9999";
 
@@ -737,28 +755,30 @@ export class MultiWACZ
       }
     }
 
-    // Added to mitigate issue from off-by-1 error in some WACZ CDX,
-    // (https://github.com/webrecorder/browsertrix-crawler/issues/1121)
-    // in rare circumstances, requires reading the next block to obtain the CDX.
-    for await (const cursor of tx.store.iterate(
-      IDBKeyRange.lowerBound([waczname, surt]),
-      "next",
-    )) {
-      const value = cursor.value as IDXLine | null;
+    //if (isLeaf) {
+      // Added to mitigate issue from off-by-1 error in some WACZ CDX,
+      // (https://github.com/webrecorder/browsertrix-crawler/issues/1121)
+      // in rare circumstances, requires reading the next block to obtain the CDX.
+      for await (const cursor of tx.store.iterate(
+        IDBKeyRange.lowerBound([waczname, surt]),
+        "next",
+      )) {
+        const value = cursor.value as IDXLine | null;
 
-      if (!value || value.waczname !== waczname) {
+        if (!value || value.waczname !== waczname) {
+          break;
+        }
+
+        if (values.indexOf(value) === -1) {
+          values.push(value);
+        }
         break;
       }
-
-      if (values.indexOf(value) === -1) {
-        values.push(value);
-      }
-      break;
-    }
+    //}
 
     await tx.done;
 
-    const cdxloaders: Promise<void>[] = [];
+    const cdxloaders: Promise<void | boolean>[] = [];
 
     if (matchKey === surt && values.length > MAX_BLOCKS && datetime) {
       values.sort((a, b) => {
@@ -786,10 +806,14 @@ export class MultiWACZ
       const cacheKey =
         waczname + ":" + zipblock.filename + ":" + zipblock.offset;
 
-      let cachedLoad = this.ziploadercache[cacheKey];
+      let cachedLoad : Promise<void | boolean> | undefined = this.ziploadercache[cacheKey];
 
       if (!cachedLoad) {
-        cachedLoad = this.doCDXLoad(cacheKey, zipblock, waczname);
+        if (!isLeaf) {
+          cachedLoad = this.doNestedIDXLoad(cacheKey, zipblock);
+        } else {
+          cachedLoad = this.doCDXLoad(cacheKey, zipblock, waczname);
+        }
         this.ziploadercache[cacheKey] = cachedLoad;
       }
       cdxloaders.push(cachedLoad);
@@ -806,7 +830,44 @@ export class MultiWACZ
     // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
     await this.waczfiles[waczname].save(this.db);
 
+    if (!isLeaf) {
+      // always load secondary idx for now
+      await this.loadCDXFromIDX("default", url, datetime, isPrefix, useExactQuery, true);
+    }
+
     return cdxloaders.length > 0;
+  }
+
+  async doNestedIDXLoad(
+    cacheKey: string,
+    zipblock: IDXLine,
+  ): Promise<void> {
+    try {
+      const params = {
+        offset: zipblock.offset,
+        length: zipblock.length,
+        unzip: true,
+        computeHash: !!zipblock.digest,
+      };
+      const { reader } = await this.loadFileFromNamedWACZ(
+        "default",
+        zipblock.filename,
+        params,
+      );
+
+      await this.loadIDXDirect(reader, "default", null);
+      
+      zipblock.loaded = true;
+      //@ts-expect-error [TODO] - TS2345 - Argument of type '"ziplines"' is not assignable to parameter of type 'StoreNames<DBType>'.
+      await this.db!.put("ziplines", zipblock);
+
+    } catch (e) {
+      if (!(await handleAuthNeeded(e, this.config))) {
+        console.warn(e);
+      }
+    } finally {
+      delete this.ziploadercache[cacheKey];
+    }
   }
 
   async doCDXLoad(
@@ -826,6 +887,7 @@ export class MultiWACZ
         waczname,
         filename,
         params,
+        (this.config.metadata as IDXDirectConfig).secondaryIdx
       );
 
       const loader = new CDXLoader(reader, null, "", { wacz: waczname });
@@ -1018,8 +1080,9 @@ export class MultiWACZ
     waczname: string,
     filename: string,
     opts: LoadRangeOpts,
+    secondaryIdx?: string
   ): LoadWACZEntry {
-    if (this.rootSourceType === "idx") {
+    if (this.isDirectIndex()) {
       let path;
       if (filename.startsWith("indexes/")) {
         path = filename.slice("indexes/".length);
@@ -1028,7 +1091,8 @@ export class MultiWACZ
       } else {
         path = filename;
       }
-      const url = new URL(path, this.config.loadUrl).href;
+      const url = new URL(path, secondaryIdx || this.config.loadUrl).href;
+      console.log("URL", url);
       const blockLoader = await createLoader({ url });
       const resp = await blockLoader.getRange(
         opts.offset || 0,
@@ -1096,6 +1160,10 @@ export class MultiWACZ
   }
 
   async loadWACZFiles(json: MultiWACZJsonSpec, parent: WACZLoadSource = this) {
+    if (json.pagesQueryUrl) {
+      this.pagesQueryUrl = json.pagesQueryUrl;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const promises: Promise<any>[] = [];
 
@@ -1145,6 +1213,12 @@ export class MultiWACZ
     if (typeof json.totalPages === "number") {
       this.totalPages = json.totalPages;
     }
+  }
+
+  async initIDXDirectConfig(data: IDXDirectConfig) {
+    const resp = await fetch(new URL(data.idxFile, this.config.loadUrl));
+    const summaryIndexLoader = new IDXDirectMultiWACZLoader(resp.body!, data.idxFile.endsWith(".gz"), true);
+    await summaryIndexLoader.load(this, null);
   }
 
   async addInitialPages(pagesImport: WACZPageEntry[]) {
@@ -1283,7 +1357,7 @@ export class MultiWACZ
       }
     }
 
-    if (this.rootSourceType === "idx") {
+    if (this.isDirectIndex()) {
       return await super.getResource(request, prefix, event, {
         waczname: DEFAULT_WACZ,
       });
@@ -1667,19 +1741,18 @@ export class MultiWACZ
       throw new AccessDeniedError();
     }
 
-    const data: MultiWACZJsonSpec = await response.json();
-
-    if (data.pagesQueryUrl) {
-      this.pagesQueryUrl = data.pagesQueryUrl;
-    }
+    const data: MultiWACZJsonSpec | IDXDirectConfig = await response.json();
 
     switch (data.profile) {
+      case "idx-direct":
+        await this.initIDXDirectConfig(data as IDXDirectConfig);
+        break;
+
       case "data-package":
       case "wacz-package":
-      //fallthrough
-
+        // fallthrough
       default:
-        await this.loadWACZFiles(data);
+        await this.loadWACZFiles(data as MultiWACZJsonSpec);
     }
 
     return data;
