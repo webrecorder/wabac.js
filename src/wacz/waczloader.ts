@@ -177,9 +177,11 @@ export class JSONResponseMultiWACZLoader implements ArchiveLoader {
 // ==========================================================================
 export class IDXDirectMultiWACZLoader implements ArchiveLoader {
   reader: AsyncIterReader;
+  isSecondary: boolean;
 
-  constructor(stream: ReadableStream<Uint8Array>, gzip: boolean) {
+  constructor(stream: ReadableStream<Uint8Array>, gzip: boolean, isSecondary = false) {
     this.reader = new AsyncIterReader(stream, gzip ? "gzip" : null);
+    this.isSecondary = isSecondary;
   }
 
   // [TODO]
@@ -188,7 +190,7 @@ export class IDXDirectMultiWACZLoader implements ArchiveLoader {
     try {
       const zdb = db as MultiWACZ;
       zdb.initIDX();
-      await zdb.loadIDXDirect(this.reader, DEFAULT_WACZ, progressUpdate, total);
+      await zdb.loadIDXDirect(this.reader, DEFAULT_WACZ, progressUpdate, total, undefined, undefined, this.isSecondary);
       return {};
     } catch (_) {
       return {};
