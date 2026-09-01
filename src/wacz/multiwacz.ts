@@ -754,7 +754,7 @@ export class MultiWACZ
       }
     }
 
-    if (isLeaf) {
+    if (isLeaf && !this.isDirectIndex()) {
       // Added to mitigate issue from off-by-1 error in some WACZ CDX,
       // (https://github.com/webrecorder/browsertrix-crawler/issues/1121)
       // in rare circumstances, requires reading the next block to obtain the CDX.
@@ -1090,7 +1090,6 @@ export class MultiWACZ
         path = filename;
       }
       const url = new URL(path, secondaryIdx || this.config.loadUrl).href;
-      console.log("URL", url);
       const blockLoader = await createLoader({ url });
       const resp = await blockLoader.getRange(
         opts.offset || 0,
