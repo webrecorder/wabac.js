@@ -190,7 +190,7 @@ export class IDXDirectMultiWACZLoader implements ArchiveLoader {
     try {
       const zdb = db as MultiWACZ;
       zdb.initIDX();
-      await zdb.loadIDXDirect(this.reader, DEFAULT_WACZ, progressUpdate, total, undefined, undefined, this.isSecondary);
+      await zdb.loadIDX(this.reader, DEFAULT_WACZ, progressUpdate, total, undefined, undefined, this.isSecondary);
       return {};
     } catch (_) {
       return {};

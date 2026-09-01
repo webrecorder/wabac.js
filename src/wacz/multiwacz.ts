@@ -74,7 +74,7 @@ export type IDXLine = {
 interface MDBType extends ADBType {
   ziplines: {
     key: [string, string];
-    value: unknown;
+    value: IDXLine;
   };
   waczfiles: {
     key: string;
@@ -497,7 +497,7 @@ export class MultiWACZ
         // For compressed indices
         console.log(`Loading IDX for ${waczname}`);
 
-        await this.loadIDX(filename, waczname);
+        await this.loadIDXFromWACZ(filename, waczname);
 
         indexType = INDEX_IDX;
       }
@@ -540,7 +540,7 @@ export class MultiWACZ
     return res;
   }
 
-  async loadIDX(
+  async loadIDXFromWACZ(
     filename: string,
     waczname: string,
     // [TODO]
@@ -554,7 +554,7 @@ export class MultiWACZ
       { computeHash: true },
     );
 
-    return await this.loadIDXDirect(
+    return await this.loadIDX(
       reader,
       waczname,
       progressUpdate,
@@ -565,7 +565,7 @@ export class MultiWACZ
     );
   }
 
-  async loadIDXDirect(
+  async loadIDX(
     reader: AsyncIterReader,
     waczname: string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -642,8 +642,7 @@ export class MultiWACZ
         const offset = Number(offsetStr);
         const length = Number(lengthStr);
 
-        // @ts-expect-error [TODO] - TS2322 - Type 'string | undefined' is not assignable to type 'string'.
-        entry = { waczname, prefix, filename, offset, length, loaded: false };
+        entry = { waczname, prefix: prefix || "", filename: filename || "", offset, length, loaded: false };
 
         nonSurt = false;
       } else {
@@ -718,10 +717,9 @@ export class MultiWACZ
       isLeaf = !(this.config.metadata as IDXDirectConfig | null)?.secondaryIdx;
     }
 
-    //const timestamp = datetime ? getTS(new Date(datetime).toISOString()) : "";
+    const waczfile = this.waczfiles[waczname]!;
 
-    // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
-    const surtSuffix = this.waczfiles[waczname].nonSurt ? url : getSurt(url);
+    const surtSuffix = waczfile.nonSurt ? url : getSurt(url);
 
     const surt = isLeaf ? surtSuffix : "$ " + surtSuffix;
 
@@ -729,8 +727,9 @@ export class MultiWACZ
 
     const key = IDBKeyRange.upperBound([waczname, upperBound], true);
 
-    // @ts-expect-error [TODO] - TS2769 - No overload matches this call.
-    const tx = this.db!.transaction("ziplines", "readonly");
+    const db = this.db as unknown as IDBPDatabase<MDBType>;
+
+    const tx = db.transaction("ziplines", "readonly");
 
     const values: IDXLine[] = [];
 
@@ -755,7 +754,7 @@ export class MultiWACZ
       }
     }
 
-    //if (isLeaf) {
+    if (isLeaf) {
       // Added to mitigate issue from off-by-1 error in some WACZ CDX,
       // (https://github.com/webrecorder/browsertrix-crawler/issues/1121)
       // in rare circumstances, requires reading the next block to obtain the CDX.
@@ -774,7 +773,7 @@ export class MultiWACZ
         }
         break;
       }
-    //}
+    }
 
     await tx.done;
 
@@ -827,8 +826,7 @@ export class MultiWACZ
       await Promise.allSettled(cdxloaders);
     }
 
-    // @ts-expect-error [TODO] - TS2532 - Object is possibly 'undefined'.
-    await this.waczfiles[waczname].save(this.db);
+    //await waczfile.save(db);
 
     if (!isLeaf) {
       // always load secondary idx for now
@@ -855,7 +853,7 @@ export class MultiWACZ
         params,
       );
 
-      await this.loadIDXDirect(reader, "default", null);
+      await this.loadIDX(reader, "default", null);
       
       zipblock.loaded = true;
       //@ts-expect-error [TODO] - TS2345 - Argument of type '"ziplines"' is not assignable to parameter of type 'StoreNames<DBType>'.
