@@ -270,7 +270,10 @@ export class MultiWACZ
   }
 
   isDirectIndex() {
-    return this.rootSourceType === "idx" || this.config.metadata?.profile === "idx-direct";
+    return (
+      this.rootSourceType === "idx" ||
+      this.config.metadata?.profile === "idx-direct"
+    );
   }
 
   override async init() {
@@ -444,7 +447,7 @@ export class MultiWACZ
       waczname,
       "archive/" + path,
       params,
-      (this.config.metadata as IDXDirectConfig).secondaryIdx
+      (this.config.metadata as IDXDirectConfig).secondaryIdx,
     );
 
     if (this.isDirectIndex()) {
@@ -561,7 +564,7 @@ export class MultiWACZ
       total,
       hasher,
       filename,
-      false
+      false,
     );
   }
 
@@ -642,7 +645,14 @@ export class MultiWACZ
         const offset = Number(offsetStr);
         const length = Number(lengthStr);
 
-        entry = { waczname, prefix: prefix || "", filename: filename || "", offset, length, loaded: false };
+        entry = {
+          waczname,
+          prefix: prefix || "",
+          filename: filename || "",
+          offset,
+          length,
+          loaded: false,
+        };
 
         nonSurt = false;
       } else {
@@ -712,7 +722,6 @@ export class MultiWACZ
     useExactQuery = false,
     isLeaf = false,
   ) {
-
     if (!isLeaf) {
       isLeaf = !(this.config.metadata as IDXDirectConfig | null)?.secondaryIdx;
     }
@@ -805,7 +814,8 @@ export class MultiWACZ
       const cacheKey =
         waczname + ":" + zipblock.filename + ":" + zipblock.offset;
 
-      let cachedLoad : Promise<void | boolean> | undefined = this.ziploadercache[cacheKey];
+      let cachedLoad: Promise<void | boolean> | undefined =
+        this.ziploadercache[cacheKey];
 
       if (!cachedLoad) {
         if (!isLeaf) {
@@ -830,16 +840,20 @@ export class MultiWACZ
 
     if (!isLeaf) {
       // always load secondary idx for now
-      await this.loadCDXFromIDX("default", url, datetime, isPrefix, useExactQuery, true);
+      await this.loadCDXFromIDX(
+        "default",
+        url,
+        datetime,
+        isPrefix,
+        useExactQuery,
+        true,
+      );
     }
 
     return cdxloaders.length > 0;
   }
 
-  async doNestedIDXLoad(
-    cacheKey: string,
-    zipblock: IDXLine,
-  ): Promise<void> {
+  async doNestedIDXLoad(cacheKey: string, zipblock: IDXLine): Promise<void> {
     try {
       const params = {
         offset: zipblock.offset,
@@ -854,11 +868,10 @@ export class MultiWACZ
       );
 
       await this.loadIDX(reader, "default", null);
-      
+
       zipblock.loaded = true;
       //@ts-expect-error [TODO] - TS2345 - Argument of type '"ziplines"' is not assignable to parameter of type 'StoreNames<DBType>'.
       await this.db!.put("ziplines", zipblock);
-
     } catch (e) {
       if (!(await handleAuthNeeded(e, this.config))) {
         console.warn(e);
@@ -885,7 +898,7 @@ export class MultiWACZ
         waczname,
         filename,
         params,
-        (this.config.metadata as IDXDirectConfig).secondaryIdx
+        (this.config.metadata as IDXDirectConfig).secondaryIdx,
       );
 
       const loader = new CDXLoader(reader, null, "", { wacz: waczname });
@@ -1078,7 +1091,7 @@ export class MultiWACZ
     waczname: string,
     filename: string,
     opts: LoadRangeOpts,
-    secondaryIdx?: string
+    secondaryIdx?: string,
   ): LoadWACZEntry {
     if (this.isDirectIndex()) {
       let path;
@@ -1214,7 +1227,11 @@ export class MultiWACZ
 
   async initIDXDirectConfig(data: IDXDirectConfig) {
     const resp = await fetch(new URL(data.idxFile, this.config.loadUrl));
-    const summaryIndexLoader = new IDXDirectMultiWACZLoader(resp.body!, data.idxFile.endsWith(".gz"), true);
+    const summaryIndexLoader = new IDXDirectMultiWACZLoader(
+      resp.body!,
+      data.idxFile.endsWith(".gz"),
+      true,
+    );
     await summaryIndexLoader.load(this, null);
   }
 
@@ -1747,7 +1764,7 @@ export class MultiWACZ
 
       case "data-package":
       case "wacz-package":
-        // fallthrough
+      // fallthrough
       default:
         await this.loadWACZFiles(data as MultiWACZJsonSpec);
     }

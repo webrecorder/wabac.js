@@ -886,10 +886,18 @@ Make sure this is a valid URL and you have access to this file.`,
         db = new MultiWACZ(config, sourceLoader, "json");
         loader = new JSONResponseMultiWACZLoader(response);
         type = "multiwacz";
-      } else if (sourceExt === ".idx" || sourceExt === ".summary" || sourceExt === ".idx.gz" || sourceExt === ".summary.gz") {
+      } else if (
+        sourceExt === ".idx" ||
+        sourceExt === ".summary" ||
+        sourceExt === ".idx.gz" ||
+        sourceExt === ".summary.gz"
+      ) {
         // @ts-expect-error [TODO] - TS2345 - Argument of type 'Record<string, any>' is not assignable to parameter of type 'Config'.
         db = new MultiWACZ(config, sourceLoader, "idx");
-        loader = new IDXDirectMultiWACZLoader(stream!, sourceExt.endsWith(".gz"));
+        loader = new IDXDirectMultiWACZLoader(
+          stream!,
+          sourceExt.endsWith(".gz"),
+        );
         type = "idx";
       }
 

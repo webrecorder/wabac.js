@@ -59,7 +59,7 @@ export function getKnownFileExtension(name: string) {
     ".idx",
     ".summary",
     ".idx.gz",
-    ".summary.gz"
+    ".summary.gz",
   ];
   for (const ext of fileExtensions) {
     if (name.endsWith(ext)) {

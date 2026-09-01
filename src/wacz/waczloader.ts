@@ -179,7 +179,11 @@ export class IDXDirectMultiWACZLoader implements ArchiveLoader {
   reader: AsyncIterReader;
   isSecondary: boolean;
 
-  constructor(stream: ReadableStream<Uint8Array>, gzip: boolean, isSecondary = false) {
+  constructor(
+    stream: ReadableStream<Uint8Array>,
+    gzip: boolean,
+    isSecondary = false,
+  ) {
     this.reader = new AsyncIterReader(stream, gzip ? "gzip" : null);
     this.isSecondary = isSecondary;
   }
@@ -190,7 +194,15 @@ export class IDXDirectMultiWACZLoader implements ArchiveLoader {
     try {
       const zdb = db as MultiWACZ;
       zdb.initIDX();
-      await zdb.loadIDX(this.reader, DEFAULT_WACZ, progressUpdate, total, undefined, undefined, this.isSecondary);
+      await zdb.loadIDX(
+        this.reader,
+        DEFAULT_WACZ,
+        progressUpdate,
+        total,
+        undefined,
+        undefined,
+        this.isSecondary,
+      );
       return {};
     } catch (_) {
       return {};
