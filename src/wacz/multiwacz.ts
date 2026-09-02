@@ -807,6 +807,10 @@ export class MultiWACZ
     let count = 0;
 
     for (const zipblock of values) {
+      if (++count >= MAX_BLOCKS) {
+        break;
+      }
+
       if (zipblock.loaded) {
         continue;
       }
@@ -826,17 +830,11 @@ export class MultiWACZ
         this.ziploadercache[cacheKey] = cachedLoad;
       }
       cdxloaders.push(cachedLoad);
-
-      if (++count > MAX_BLOCKS) {
-        break;
-      }
     }
 
     if (cdxloaders.length) {
       await Promise.allSettled(cdxloaders);
     }
-
-    //await waczfile.save(db);
 
     if (!isLeaf) {
       // always load secondary idx for now
