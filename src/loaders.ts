@@ -844,8 +844,9 @@ Make sure this is a valid URL and you have access to this file.`,
         (sourceExt === ".warc" || sourceExt === ".warc.gz")
       ) {
         if (
-          !config.noCache &&
-          (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand)
+          file.newFullImport ||
+          (!config.noCache &&
+            (contentLength < MAX_FULL_DOWNLOAD_SIZE || !config.onDemand))
         ) {
           loader = new WARCLoader(stream, abort, name);
         } else {
