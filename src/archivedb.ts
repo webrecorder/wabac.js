@@ -695,6 +695,22 @@ export class ArchiveDB implements DBStore {
       }
     }
 
+    // X uses a different GraphQL origin when replay lacks the original cookies.
+    // Try the recorded same-origin endpoint without changing the operation or
+    // query, and without indexing an alias over another captured response.
+    if (!result && request.method === "GET") {
+      const aliasUrl = url.replace(
+        /^https:\/\/api\.x\.com\/graphql\//,
+        "https://x.com/i/api/graphql/",
+      );
+      if (aliasUrl !== url) {
+        result = await this.lookupUrl(aliasUrl, ts, newOpts);
+        if (result) {
+          url = aliasUrl;
+        }
+      }
+    }
+
     if (!result && this.fuzzyPrefixSearch && !opts.noFuzzyCheck) {
       result = await this.lookupQueryPrefix(url, opts);
     }

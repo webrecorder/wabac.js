@@ -1,0 +1,105 @@
+<!doctype html><meta charset="utf-8" /><title>
+  Real IndexedDB X alias regression
+</title>
+<script>
+  window.verifyExport = async () => {
+    await navigator.serviceWorker.register("/worker.js");
+    await navigator.serviceWorker.ready;
+    if (!navigator.serviceWorker.controller)
+      await new Promise((resolve) =>
+        navigator.serviceWorker.addEventListener("controllerchange", resolve, {
+          once: true,
+        }),
+      );
+    const suffix =
+      "/graphql/recorded-query/UserTweets?variables=%7B%22userId%22%3A%22123%22%7D&features=%7B%22enabled%22%3Atrue%7D";
+    const api = "https://api.x.com" + suffix;
+    const same = "https://x.com/i/api" + suffix;
+    const queryOther = same.replace("123", "456");
+    const rows = [
+      { url: same, source: "same-origin" },
+      { url: api, source: "api-origin" },
+    ];
+    const tests = [
+      {
+        name: "missing API origin uses exact same-origin query",
+        target: api,
+        rows: [rows[0]],
+        expected: "same-origin",
+      },
+      {
+        name: "exact API wins with same timestamp, API inserted last",
+        target: api,
+        rows,
+        expected: "api-origin",
+      },
+      {
+        name: "exact API wins with same timestamp, API inserted first",
+        target: api,
+        rows: [...rows].reverse(),
+        expected: "api-origin",
+      },
+      {
+        name: "exact same origin wins with same timestamp, API inserted last",
+        target: same,
+        rows,
+        expected: "same-origin",
+      },
+      {
+        name: "exact same origin wins with same timestamp, API inserted first",
+        target: same,
+        rows: [...rows].reverse(),
+        expected: "same-origin",
+      },
+      {
+        name: "different user query is not reused",
+        target: api,
+        rows: [{ url: queryOther, source: "wrong-user" }],
+        expected: null,
+      },
+      {
+        name: "different operation is not reused",
+        target: api.replace("UserTweets", "UserByScreenName"),
+        rows: [rows[0]],
+        expected: null,
+      },
+      {
+        name: "different host is not rewritten",
+        target: api.replace("api.x.com", "api.x.com.example.org"),
+        rows: [rows[0]],
+        expected: null,
+      },
+      {
+        name: "unrelated endpoint is not rewritten",
+        target: api.replace("/graphql/", "/1.1/"),
+        rows: [rows[0]],
+        expected: null,
+      },
+      {
+        name: "POST is not retried as GET",
+        method: "POST",
+        target: api,
+        rows: [rows[0]],
+        expected: null,
+      },
+    ];
+    const results = [];
+    for (const test of tests) {
+      const params = new URLSearchParams({
+        target: test.target,
+        rows: JSON.stringify(test.rows),
+      });
+      const response = await fetch("/probe?" + params, {
+        method: test.method || "GET",
+      });
+      const actual =
+        response.status === 404 ? null : (await response.json()).source;
+      if (actual !== test.expected)
+        throw new Error(
+          test.name + ": expected " + test.expected + ", got " + actual,
+        );
+      results.push(test.name);
+    }
+    return { result: "PASS", tests: results };
+  };
+</script>
