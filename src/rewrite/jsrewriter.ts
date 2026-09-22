@@ -301,7 +301,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
           const name = expr.id.name;
           names.push({ name, kind: "let", hoist: true });
         }
-        // Check for class declarations, treat as 'var'
+        // Check for function declarations, treat as 'var'
       } else if (type === "FunctionDeclaration") {
         if (expr.id.name) {
           const name = expr.id.name;
