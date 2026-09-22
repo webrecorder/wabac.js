@@ -253,6 +253,8 @@ test(
   const B = 5;
   let C = 4;
   var D = 3;
+  function E() {}
+  async function* F() {}
 
   location = "http://example.com/2"`,
 
@@ -262,15 +264,21 @@ ${wrapScriptOpen(`
   const B = 5;
    C = 4;
   var D = 3;
+  function E() {}
+  async function* F() {}
 
   location = ((self.__WB_check_loc && self.__WB_check_loc(location, [])) || {}).maybeHref = "http://example.com/2"`)}
-;self.___WB_const_A = A;
-self.___WB_const_B = B;
+;self.___WB_hoist_A = A;
+self.___WB_hoist_B = B;
+self.___WB_hoist_E = E;
+self.___WB_hoist_F = F;
 
 
 }
-const A = self.___WB_const_A; delete self.___WB_const_A;
-const B = self.___WB_const_B; delete self.___WB_const_B;
+let A = self.___WB_hoist_A; delete self.___WB_hoist_A;
+const B = self.___WB_hoist_B; delete self.___WB_hoist_B;
+var E = self.___WB_hoist_E; delete self.___WB_hoist_E;
+var F = self.___WB_hoist_F; delete self.___WB_hoist_F;
 `,
 );
 
@@ -315,11 +323,11 @@ test(
   `let a;\n${wrapScriptOpen(
     ` a = document.location.href; var b = 5; const foo = 4`,
   )}
-;self.___WB_const_foo = foo;
+;self.___WB_hoist_foo = foo;
 
 
 }
-const foo = self.___WB_const_foo; delete self.___WB_const_foo;
+const foo = self.___WB_hoist_foo; delete self.___WB_hoist_foo;
 `,
 );
 
@@ -344,13 +352,13 @@ ${wrapScriptOpen(
   ` a = document.location.href, b = 1, c = 2;
 const foo = 4, bar = 5`,
 )}
-;self.___WB_const_foo = foo;
-self.___WB_const_bar = bar;
+;self.___WB_hoist_foo = foo;
+self.___WB_hoist_bar = bar;
 
 
 }
-const foo = self.___WB_const_foo; delete self.___WB_const_foo;
-const bar = self.___WB_const_bar; delete self.___WB_const_bar;
+const foo = self.___WB_hoist_foo; delete self.___WB_hoist_foo;
+const bar = self.___WB_hoist_bar; delete self.___WB_hoist_bar;
 `,
 );
 
@@ -366,11 +374,11 @@ document.write(x);`,
 
 const y = document.location;
 document.write(x);`)}
-;self.___WB_const_y = y;
+;self.___WB_hoist_y = y;
 ;document.close();
 
 }
-const y = self.___WB_const_y; delete self.___WB_const_y;
+const y = self.___WB_hoist_y; delete self.___WB_hoist_y;
 `,
 );
 
