@@ -4,9 +4,9 @@ import * as acorn from "acorn";
 
 type HoistEntry = {
   name: string;
-  kind: "let" | "const" | "var",
-  hoist: boolean
-}
+  kind: "let" | "const" | "var";
+  hoist: boolean;
+};
 
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
 const EXPORT_RX = /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/m;
@@ -295,19 +295,19 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
             }
           }
         }
-      // Check for class declarations, treat as 'let'
+        // Check for class declarations, treat as 'let'
       } else if (type === "ClassDeclaration") {
         if (expr.id.name) {
           const name = expr.id.name;
           names.push({ name, kind: "let", hoist: true });
         }
-      // Check for class declarations, treat as 'var'
+        // Check for class declarations, treat as 'var'
       } else if (type === "FunctionDeclaration") {
         if (expr.id.name) {
           const name = expr.id.name;
           names.push({ name, kind: "var", hoist: true });
         }
-      // Check for document.write() calls
+        // Check for document.write() calls
       } else if (!hasDocWrite && type === "ExpressionStatement") {
         const { expression } = expr;
         if (expression.type === "CallExpression") {
