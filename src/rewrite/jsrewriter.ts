@@ -2,6 +2,12 @@ import { type RWOpts } from "../types";
 import { type Rule, RxRewriter } from "./rxrewriter";
 import * as acorn from "acorn";
 
+type HoistEntry = {
+  name: string;
+  kind: "let" | "const" | "var";
+  hoist: boolean;
+};
+
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
 const EXPORT_RX = /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/m;
 
@@ -251,7 +257,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
     text: string,
     overrides: string[],
   ): {
-    names: { name: string; kind: string }[];
+    names: HoistEntry[];
     letOffsets: number[];
     firstBuff: string;
     lastBuff: string;
@@ -260,7 +266,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
     let hasDocWrite = false;
 
-    const names: { name: string; kind: string }[] = [];
+    const names: HoistEntry[] = [];
 
     const excludeOverrides = new Set();
 
@@ -278,22 +284,28 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
             if (overrides.includes(name)) {
               excludeOverrides.add(name);
-            } else if (kind === "const" || kind === "let") {
-              names.push({ name, kind });
-              if (kind === "let") {
-                if (lastStart !== start) {
-                  letOffsets.unshift(start);
-                }
-                lastStart = start;
+            } else if (kind === "const") {
+              names.push({ name, kind, hoist: true });
+            } else if (kind === "let") {
+              names.push({ name, kind, hoist: false });
+              if (lastStart !== start) {
+                letOffsets.unshift(start);
               }
+              lastStart = start;
             }
           }
         }
-        // Check for class declarations
+        // Check for class declarations, treat as 'let'
       } else if (type === "ClassDeclaration") {
         if (expr.id.name) {
           const name = expr.id.name;
-          names.push({ name, kind: "const" });
+          names.push({ name, kind: "let", hoist: true });
+        }
+        // Check for function declarations, treat as 'var'
+      } else if (type === "FunctionDeclaration") {
+        if (expr.id.name) {
+          const name = expr.id.name;
+          names.push({ name, kind: "var", hoist: true });
         }
         // Check for document.write() calls
       } else if (!hasDocWrite && type === "ExpressionStatement") {
@@ -417,15 +429,15 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
             newText = newText.slice(0, value) + newText.slice(value + 3);
           }
 
-          // set directly on global scope to avoid discrepancies between 'const X' and 'self.X' checks
-          for (const { name, kind } of globalNames) {
-            if (kind === "const") {
-              const varname = `self.___WB_const_${name}`;
+          // hoist: pass directly to global scope
+          // then, declare with appropriate declaration kind (const, let or var)
+          for (const { name, kind, hoist } of globalNames) {
+            if (hoist) {
+              const varname = `self.___WB_hoist_${name}`;
               inScopeGlobals += `${varname} = ${name};\n`;
               postScopeGlobals += `${kind} ${name} = ${varname}; delete ${varname};\n`;
-            } else if (kind === "let") {
+            } else {
               preScopeGlobals += `let ${name};\n`;
-              //newText = newText.replace(new RegExp("let\\s+" + name + "\\b"), name);
             }
           }
           if (inScopeGlobals) {
