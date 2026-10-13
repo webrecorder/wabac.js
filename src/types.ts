@@ -193,6 +193,11 @@ export type ExtraConfig = {
   isLive?: boolean;
 
   proxyHomePageUrl?: string;
+
+  // endpoint returning {url} to re-resolve an expired signed source URL.
+  // The expiring URL is passed as a `url` query param: a multi-WACZ collection
+  // shares one endpoint across every file, so it must be told which to re-sign.
+  refreshUrlEndpoint?: string;
 };
 
 export type CollConfig = {
