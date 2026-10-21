@@ -559,6 +559,7 @@ export class MultiWACZ
               `Unknown CDXJ format "${indexMetadata.format}", archive may not parse correctly`,
             );
           }
+          nonSurt = false;
           continue;
         }
       }
