@@ -187,6 +187,7 @@ export type ExtraConfig = {
   proxyBannerUrl?: string;
   proxyCustomInsert?: string;
   proxyPathOnly?: boolean;
+  proxyPassErrors?: boolean;
   proxyRewriteRelCanonical?: boolean;
   archivePrefix?: string;
   archiveMod?: string;
