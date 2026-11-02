@@ -292,6 +292,27 @@ test(
 );
 
 test(
+  "<meta> tag, comma separator",
+  rewriteHtml,
+  '<meta http-equiv="refresh" content="10, URL=/abc/def.html">',
+  '<meta http-equiv="refresh" content="10, URL=/prefix/20201226101010mp_/https://example.com/abc/def.html">',
+);
+
+test(
+  "<meta> tag, whitespace separator",
+  rewriteHtml,
+  '<meta http-equiv="refresh" content="10 URL=/abc/def.html">',
+  '<meta http-equiv="refresh" content="10 URL=/prefix/20201226101010mp_/https://example.com/abc/def.html">',
+);
+
+test(
+  "<meta> tag, whitespace separator, no URL=",
+  rewriteHtml,
+  '<meta http-equiv="refresh" content=" 0 /abc/def.html">',
+  '<meta http-equiv="refresh" content=" 0 /prefix/20201226101010mp_/https://example.com/abc/def.html">',
+);
+
+test(
   "<meta> tag, single-quoted URL",
   rewriteHtml,
   `<meta http-equiv="Refresh" content="0; url='/abc/def.html'" />`,
