@@ -292,6 +292,34 @@ test(
 );
 
 test(
+  "<meta> tag, single-quoted URL",
+  rewriteHtml,
+  `<meta http-equiv="Refresh" content="0; url='/abc/def.html'" />`,
+  `<meta http-equiv="Refresh" content="0; url='/prefix/20201226101010mp_/https://example.com/abc/def.html'"/>`,
+);
+
+test(
+  "<meta> tag, double-quoted URL",
+  rewriteHtml,
+  `<meta http-equiv="refresh" content='5; URL="/abc/def.html"'>`,
+  '<meta http-equiv="refresh" content="5; URL=&quot;/prefix/20201226101010mp_/https://example.com/abc/def.html&quot;">',
+);
+
+test(
+  "<meta> tag, unbalanced quote",
+  rewriteHtml,
+  `<meta http-equiv="Refresh" content="0; url='/abc/def.html" />`,
+  `<meta http-equiv="Refresh" content="0; url='/prefix/20201226101010mp_/https://example.com/abc/def.html"/>`,
+);
+
+test(
+  "<meta> tag, text after closing quote",
+  rewriteHtml,
+  `<meta http-equiv="Refresh" content="0; url='/abc/def.html'junk" />`,
+  `<meta http-equiv="Refresh" content="0; url='/prefix/20201226101010mp_/https://example.com/abc/def.html'junk"/>`,
+);
+
+test(
   "<meta> tag",
   rewriteHtml,
   '<meta http-equiv="Content-type" content="text/html; charset=utf-8" />',

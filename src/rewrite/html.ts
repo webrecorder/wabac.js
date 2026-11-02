@@ -20,8 +20,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 // ===========================================================================
-const META_REFRESH_REGEX =
-  /([\d.]+\s*;\s*(?:url\s*=)?\s*)['"]?(.+)['"]?(\s*)/im;
+const META_REFRESH_REGEX = /([\d.]+\s*;\s*(?:url\s*=)?\s*)(['"]?)(.+)/is;
 
 const DATA_RW_PROTOCOLS = ["http://", "https://", "//"];
 
@@ -166,8 +165,20 @@ export class HTMLRewriter {
     } else if (equiv === "refresh") {
       return attr.value.replace(
         META_REFRESH_REGEX,
-        (m, p1, p2: string, p3) =>
-          p1 + this.rewriteUrl(rewriter, p2, false, "mt_") + p3,
+        (m, prefix: string, quote: string, rest: string) => {
+          // per HTML spec: URL ends at matching quote, or at end of value
+          let end = quote ? rest.indexOf(quote) : -1;
+          if (end < 0) {
+            end = rest.trimEnd().length;
+          }
+          const url = this.rewriteUrl(
+            rewriter,
+            rest.slice(0, end),
+            false,
+            "mt_",
+          );
+          return prefix + quote + url + rest.slice(end);
+        },
       );
     } else if (this.getAttr(attrs, "name") === "referrer") {
       return "no-referrer-when-downgrade";
