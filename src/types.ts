@@ -42,6 +42,9 @@ export type ExtraOpts = {
 
   // if a detected content-type was provided
   detectedCT?: string;
+
+  // if browser preferred dark colour scheme at capture
+  darkColorSchemePreferred?: boolean;
 };
 
 export type ResourceEntry = {
