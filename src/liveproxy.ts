@@ -9,6 +9,7 @@ declare let self: ServiceWorkerGlobalScope;
 export class LiveProxy implements DBStore {
   prefix: string;
   proxyPathOnly: boolean;
+  proxyPassErrors: boolean;
   isLive: boolean;
   archivePrefix: string;
   archiveMod: string;
@@ -29,6 +30,7 @@ export class LiveProxy implements DBStore {
 
     this.prefix = extraConfig.prefix || "";
     this.proxyPathOnly = extraConfig.proxyPathOnly || false;
+    this.proxyPassErrors = extraConfig.proxyPassErrors || false;
     this.isLive = extraConfig.isLive !== undefined ? extraConfig.isLive : true;
     this.archivePrefix = extraConfig.archivePrefix || "";
     this.archiveMod = extraConfig.archiveMod || "id_";
@@ -157,6 +159,7 @@ export class LiveProxy implements DBStore {
     }
 
     if (
+      !this.proxyPassErrors &&
       response.status > 400 &&
       response.status !== 404 &&
       ["", "document", "iframe"].includes(request.destination)
