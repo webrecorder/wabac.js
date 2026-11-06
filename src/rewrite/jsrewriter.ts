@@ -120,14 +120,25 @@ const createJSRules: () => Rule[] = () => {
 
   function replaceThisProp() {
     return (x: string, _opts: RWOpts, offset: number, str: string) => {
-      const firstChar = str[offset];
-      if (firstChar === "\n") {
-        return x.replace("this", ";" + thisRw);
-      } else if (firstChar !== "." && firstChar !== "$") {
-        return x.replace("this", thisRw);
-      } else {
+      // Look back over any amount of whitespace (including newlines) to find
+      // the real previous token: "this" is a property access (not rewritten)
+      // if that token is "." or "$". A ";" is prepended if a newline was
+      // skipped over, to guard against JS's automatic semicolon insertion
+      // turning thisRw - an identifier immediately followed by "(" - into a
+      // call of whatever the previous statement evaluated to.
+      let pos = offset - 1;
+      let hasNewline = false;
+      while (pos >= 0 && /\s/.test(str.charAt(pos))) {
+        hasNewline = hasNewline || str.charAt(pos) === "\n";
+        pos--;
+      }
+      if (pos < 0 || str.charAt(pos) === "." || str.charAt(pos) === "$") {
         return x;
       }
+      if (hasNewline) {
+        return x.replace("this", ";" + thisRw);
+      }
+      return x.replace("this", thisRw);
     };
   }
 
@@ -171,12 +182,10 @@ const createJSRules: () => Rule[] = () => {
     // rewriting 'return this'
     [/\breturn\s+this\b\s*(?![\s\w.$])/, replaceThis()],
 
-    // rewriting 'this.' special properties access on new line, with ; prepended
-    // if prev char is '\n', or if prev is not '.' or '$', no semi
+    // rewriting 'this.' special properties access: see replaceThisProp for
+    // when it does or does not rewrite
     [
-      new RegExp(
-        `[^$.]\\s?\\bthis\\b(?=(?:\\.(?:${GLOBAL_OVERRIDES.join("|")})\\b))`,
-      ),
+      new RegExp(`\\bthis\\b(?=(?:\\.(?:${GLOBAL_OVERRIDES.join("|")})\\b))`),
       replaceThisProp(),
     ],
 
