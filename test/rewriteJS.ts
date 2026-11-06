@@ -170,6 +170,34 @@ test(
 (_____WB$wombat$check$this$function_____(this).location = x);`,
 );
 
+// Any amount of whitespace after a newline before "this.<prop>" must still
+// get the ";" prepended (previously only worked with exactly 2 spaces).
+// Written as a single test with an internal loop (rather than one `test()`
+// call per case through the `rewriteJS` macro) because AVA's title dedup
+// treats runs of whitespace as equivalent, which collides titles that only
+// differ by how many spaces they contain.
+test("this prop rewrite: newline followed by any amount of whitespace", async (t) => {
+  for (const spaces of [0, 1, 2, 3, 4]) {
+    const padding = " ".repeat(spaces);
+    const { text: actual } = await doRewrite({
+      content: `aaa\n${padding}this.window=red`,
+      contentType: "application/javascript",
+      useBaseRules: false,
+      url: "https://example.com/some/path/index.html",
+    });
+    t.is(
+      actual,
+      `aaa\n${padding};_____WB$wombat$check$this$function_____(this).window=red`,
+    );
+  }
+});
+
+// "this" preceded by "." or "$" and several spaces must not be rewritten
+// (previously the lookback was bounded to 1-2 chars, so it missed the "."/"$"
+// when there were 3+ spaces in between)
+test(rewriteJS, "aaa.   this.window=red", "");
+test(rewriteJS, "aaa$   this.window=red", "");
+
 test(
   rewriteJS,
   "return this.location",
