@@ -42,6 +42,11 @@ export type ExtraOpts = {
 
   // if a detected content-type was provided
   detectedCT?: string;
+
+  // if true, force dark color scheme
+  // if false, force light color scheme
+  // if undefined, neither
+  darkColorScheme?: boolean;
 };
 
 export type ResourceEntry = {

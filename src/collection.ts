@@ -734,6 +734,10 @@ window.home = "${this.rootPrefix}";
 
     const disableMSE = extraOpts?.disableMSE;
 
+    const darkMode = extraOpts?.darkColorScheme;
+    const colorScheme =
+      darkMode !== undefined ? (darkMode ? "dark" : "light") : undefined;
+
     return `
 <!-- WB Insert -->
 ${
@@ -745,6 +749,15 @@ ${
     : ""
 }
 <style>
+${
+  colorScheme
+    ? `
+:host {
+  color-scheme: ${colorScheme};
+}
+`
+    : ``
+}
 body {
   font-family: inherit;
   font-size: inherit;
@@ -781,6 +794,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   wbinfo.pixel_ratio = ${pixelRatio};
   wbinfo.convert_post_to_get = ${this.convertPostToGet};
   wbinfo.target_frame = "${REPLAY_TOP_FRAME_NAME}";
+${colorScheme ? `  wbinfo.colorScheme = "${colorScheme}";` : ``}
 </script>
 <script src='${this.staticPrefix}wombat.js'> </script>
 <script>
