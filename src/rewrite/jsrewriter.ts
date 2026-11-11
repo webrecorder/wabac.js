@@ -121,14 +121,13 @@ const createJSRules: () => Rule[] = () => {
 
   function replaceThisProp() {
     return (x: string, _opts: RWOpts, offset: number, str: string) => {
-      const firstChar = str[offset];
-      if (firstChar === "\n") {
+      // starts with a space, and there's a newline in leading up to
+      // this, add ';'
+      if (x.match(/^\s/) && str.slice(0, offset).match(/\n\s*$/)) {
         return x.replace("this", ";" + thisRw);
-      } else if (firstChar !== "." && firstChar !== "$") {
-        return x.replace("this", thisRw);
-      } else {
-        return x;
       }
+
+      return x.replace("this", thisRw);
     };
   }
 
@@ -176,7 +175,7 @@ const createJSRules: () => Rule[] = () => {
     // if prev char is '\n', or if prev is not '.' or '$', no semi
     [
       new RegExp(
-        `[^$.]\\s?\\bthis\\b(?=(?:\\.(?:${GLOBAL_OVERRIDES.join("|")})\\b))`,
+        `(?<![.]\\s*)(?:[^$]|^)\\bthis\\b(?=(?:\\.(?:${GLOBAL_OVERRIDES.join("|")})\\b))`,
       ),
       replaceThisProp(),
     ],
