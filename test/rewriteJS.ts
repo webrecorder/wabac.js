@@ -439,8 +439,7 @@ export { a };
 `,
 );
 
-// export const/let/var/function/async function/* are also module markers
-// (EXPORT_RX used to only recognize `export {...}`, `export default` and
+// additional tests for esm module detection based on export
 // `export class`)
 test(
   rewriteJSImport,
