@@ -9,7 +9,8 @@ type HoistEntry = {
 };
 
 const IMPORT_RX = /^\s*?import\s*?[{"'*]/;
-const EXPORT_RX = /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|class)\s+/m;
+const EXPORT_RX =
+  /^\s*?export\s*?({([\s\w,$\n]+?)}[\s;]*|default|\*|class|const|let|var|(?:async\s+)?function)\s+/m;
 
 const IMPORT_EXPORT_MATCH_RX =
   /(^|;)\s*?(?:im|ex)port(?:['"\s]*(?:[\w*${}\s,]+from\s*)?['"\s]?['"\s])(?:.*?)['"\s]/;

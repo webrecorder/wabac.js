@@ -439,6 +439,98 @@ export { a };
 `,
 );
 
+// additional tests for esm module detection based on export
+// `export class`)
+test(
+  rewriteJSImport,
+  `\
+a = this.location
+
+export const b = 1;
+`,
+
+  `\
+a = _____WB$wombat$check$this$function_____(this).location
+
+export const b = 1;
+`,
+);
+
+test(
+  rewriteJSImport,
+  `\
+a = this.location
+
+export let b = 1;
+`,
+
+  `\
+a = _____WB$wombat$check$this$function_____(this).location
+
+export let b = 1;
+`,
+);
+
+test(
+  rewriteJSImport,
+  `\
+a = this.location
+
+export var b = 1;
+`,
+
+  `\
+a = _____WB$wombat$check$this$function_____(this).location
+
+export var b = 1;
+`,
+);
+
+test(
+  rewriteJSImport,
+  `\
+a = this.location
+
+export function b() {}
+`,
+
+  `\
+a = _____WB$wombat$check$this$function_____(this).location
+
+export function b() {}
+`,
+);
+
+test(
+  rewriteJSImport,
+  `\
+a = this.location
+
+export async function b() {}
+`,
+
+  `\
+a = _____WB$wombat$check$this$function_____(this).location
+
+export async function b() {}
+`,
+);
+
+test(
+  rewriteJSImport,
+  `\
+a = this.location
+
+export * from "./other.js";
+`,
+
+  `\
+a = _____WB$wombat$check$this$function_____(this).location
+
+export * from "http://localhost:8080/prefix/20201226101010esm_/https://example.com/some/path/other.js";
+`,
+);
+
 // rewrite import same line
 test(
   rewriteJSImport,
