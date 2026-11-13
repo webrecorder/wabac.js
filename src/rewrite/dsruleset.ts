@@ -116,13 +116,7 @@ export const DISABLE_MEDIASOURCE_SCRIPT = `\
   ;Object.defineProperty(MediaSource, "isTypeSupported",\
   {value: () => false, configurable: false, writable: false});`;
 
-export const HTML_ONLY_RULES: Rules[] = [
-  {
-    contains: ["youtube.com", "youtube-nocookie.com"],
-    rxRules: [[/[^"]<head.*?>/, ruleDisableMediaSourceTypeSupported()]],
-  },
-  ...DEFAULT_RULES,
-];
+export const HTML_ONLY_RULES: Rules[] = [...DEFAULT_RULES];
 
 const RANGE_RULES = [
   {
@@ -202,13 +196,6 @@ function ruleReplacePad(replacement: string) {
     const diff = Math.max(0, matched.length - replacement.length);
     return replacement + " ".repeat(diff);
   };
-}
-
-// ===========================================================================
-function ruleDisableMediaSourceTypeSupported() {
-  return (x: string) => `
-    ${x}<script>${DISABLE_MEDIASOURCE_SCRIPT}</script>
-  `;
 }
 
 // ===========================================================================
