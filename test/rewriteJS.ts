@@ -152,12 +152,30 @@ test(
 
 test(
   rewriteJS,
+  `this.location = x;`,
+  `_____WB$wombat$check$this$function_____(this).location = x;`,
+);
+
+test(
+  rewriteJS,
   `a = 5
 
 this.location = x;`,
   `a = 5
 
 ;_____WB$wombat$check$this$function_____(this).location = x;`,
+);
+
+test(
+  rewriteJS,
+  "stmt  \n   this.location = 'x';",
+  "stmt  \n   ;_____WB$wombat$check$this$function_____(this).location = 'x';",
+);
+
+test(
+  rewriteJS,
+  "stmt$  \n   this.location = 'x';",
+  "stmt$  \n   ;_____WB$wombat$check$this$function_____(this).location = 'x';",
 );
 
 test(
@@ -617,13 +635,15 @@ test(rewriteJS, "{foo: bar, this: other}", "");
 
 test(rewriteJS, "this.$location = http://example.com/", "");
 
+test(rewriteJS, " $this.location = http://example.com/", "");
+
 test(rewriteJS, "this.  $location = http://example.com/", "");
 
 test(rewriteJS, "this. _location = http://example.com/", "");
 
 test(rewriteJS, "this. alocation = http://example.com/", "");
 
-test(rewriteJS, "this.location = http://example.com/", "");
+test(rewriteJS, "aaa.   this.window=red", "");
 
 test(rewriteJS, ",eval(a)", "");
 
