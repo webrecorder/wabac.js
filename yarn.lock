@@ -1275,7 +1275,7 @@ __metadata:
     "@types/wicg-file-system-access": "npm:^2023.10.5"
     "@typescript-eslint/eslint-plugin": "npm:^8.4.0"
     "@typescript-eslint/parser": "npm:^8.4.0"
-    "@webrecorder/wombat": "npm:^3.11.1"
+    "@webrecorder/wombat": "npm:^3.11.2"
     acorn: "npm:^8.15.0"
     auto-js-ipfs: "npm:^2.3.0"
     ava: "npm:^6.4.1"
@@ -1316,12 +1316,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@webrecorder/wombat@npm:^3.11.1":
-  version: 3.11.1
-  resolution: "@webrecorder/wombat@npm:3.11.1"
+"@webrecorder/wombat@npm:^3.11.2":
+  version: 3.11.2
+  resolution: "@webrecorder/wombat@npm:3.11.2"
   dependencies:
     warcio: "npm:^2.4.12"
-  checksum: 10c0/9aa4a00b28291ed9b42e6a23305b08f0e8ceee2e0401d7c39bb1c5df1a6eb9869c29a05d7c327d0c17dd8231d34704fafd995136c34cbe847855057bbf17568e
+  checksum: 10c0/9e5838ae750e3582903ae29453d4877a222b93b049d59b3aa8ece71fdf6cecfef17742875c3fac984e1bf341880c32b732457175c645ee4558d146e0b81b82ef
   languageName: node
   linkType: hard
 
