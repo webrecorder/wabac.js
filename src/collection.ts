@@ -413,6 +413,7 @@ export class Collection {
   self.__wbinfo = wbinfo;
 </script>
 <script src="${this.staticPrefix}wombatProxy.js"></script>
+<script src="${this.staticPrefix}wombatYoutube.js"></script>
 ${
   this.proxyBannerUrl
     ? `
@@ -796,6 +797,7 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   wbinfo.target_frame = "${REPLAY_TOP_FRAME_NAME}";
 ${colorScheme ? `  wbinfo.colorScheme = "${colorScheme}";` : ``}
 </script>
+<script src="${this.staticPrefix}wombatYoutube.js"></script>
 <script src='${this.staticPrefix}wombat.js'> </script>
 <script>
   wbinfo.wombat_ts = "${isLive ? timestamp : requestTS}";
