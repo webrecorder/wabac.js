@@ -343,6 +343,7 @@ export class CollectionLoader {
           headers: config.headers!,
           size: config.size!,
           extra: config.extra!,
+          refreshUrlEndpoint: config.extraConfig?.refreshUrlEndpoint,
         });
         store = new RemoteSourceArchiveDB(
           config.dbname,
@@ -367,6 +368,7 @@ export class CollectionLoader {
           url: config.loadUrl || config.sourceUrl,
           headers: config.headers,
           extra: config.extra,
+          refreshUrlEndpoint: config.extraConfig?.refreshUrlEndpoint,
         });
         store = new MultiWACZ(
           config as WACZCollConfig,
@@ -740,6 +742,7 @@ export class WorkerLoader extends CollectionLoader {
         size: file.size,
         extra: config.extra,
         blob: file.blob,
+        refreshUrlEndpoint: config.extraConfig?.refreshUrlEndpoint,
       });
 
       if (file.loadEager) {
@@ -755,6 +758,7 @@ export class WorkerLoader extends CollectionLoader {
           headers: config.headers,
           size: file.size,
           extra,
+          refreshUrlEndpoint: config.extraConfig?.refreshUrlEndpoint,
         });
       }
 
