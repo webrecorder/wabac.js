@@ -1,5 +1,6 @@
 type WbInfo = {
   timestamp: string;
+  url: string;
 };
 
 async function sleep(timeout: number) {
@@ -92,11 +93,15 @@ async function videoSourceExists(timestamp: string, videoId: string) {
 }
 
 async function patchYoutube() {
-  if (!isYoutubeVideo(window.location.href)) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wbinfo = (self as any).__wbinfo as WbInfo;
+  const { url, timestamp } = wbinfo;
+
+  if (!isYoutubeVideo(url)) {
     return;
   }
 
-  const videoId = youtubeId(window.location.href);
+  const videoId = youtubeId(url);
   if (!videoId) {
     return;
   }
@@ -106,10 +111,6 @@ async function patchYoutube() {
     return;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const wbinfo = (self as any).__wbinfo as WbInfo;
-
-  const timestamp = wbinfo.timestamp;
   if (!videoSourceExists(timestamp, videoId)) {
     return;
   }
