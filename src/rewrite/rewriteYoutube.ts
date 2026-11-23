@@ -1,6 +1,17 @@
 type WbInfo = {
   timestamp: string;
   url: string;
+  prefix: string;
+};
+
+type VideoInfo = {
+  format: string;
+  videoId?: string;
+  url: string;
+};
+
+type VideoResponse = {
+  videos: VideoInfo[];
 };
 
 async function sleep(timeout: number) {
@@ -35,29 +46,6 @@ export function isYoutubeWatchPage(url: string) {
   return false;
 }
 
-export function youtubeId(url: string): string | undefined {
-  const parsed = new URL(url);
-  if (!parsed) {
-    return;
-  }
-  // https://youtu.be/videoid
-  if (parsed.hostname.match(/(www.?)youtu.be/)) {
-    return parsed.pathname.replace(/^\//, "");
-  }
-  if (parsed.hostname.match(/(www.)youtube.com/)) {
-    // https://www.youtube.com/watch?v=videoid
-    if (parsed.pathname === "/watch") {
-      return parsed.searchParams.get("v") || undefined;
-    }
-    // https://www.youtube.com/embed/videoid
-    if (parsed.pathname.startsWith("/embed")) {
-      return parsed.pathname.replace(/^\/embed\//, "");
-    }
-  }
-
-  return;
-}
-
 // Continually waits for `interval` until the passed `predicate`
 // function returns true.
 async function waitUntil(predicate: () => boolean, interval = 200) {
@@ -75,7 +63,7 @@ export async function waitUntilElement(
   let stop = false;
   const waitP = waitUntil(() => {
     node = document.querySelector(selector);
-    return stop || (node !== null);
+    return stop || node !== null;
   }, interval);
   const timeoutP = new Promise((r) =>
     setTimeout(() => {
@@ -87,36 +75,60 @@ export async function waitUntilElement(
   return node;
 }
 
-async function videoSourceExists(timestamp: string, videoId: string) {
-  const resp = await fetch(`/id_/${timestamp}/https://fuzzy.replayweb.page/videoplayback?id=${videoId}`);
+function rewrittenVideoUrl(
+  prefix: string,
+  timestamp: string,
+  fuzzyUrl: string,
+): string {
+  return `${prefix}/${timestamp}/${fuzzyUrl}`;
+}
+
+async function videoSourceExists(
+  timestamp: string,
+  fuzzyUrl: string,
+): Promise<boolean> {
+  const resp = await fetch(`/id_/${timestamp}/${fuzzyUrl}`);
   return resp.status === 200;
 }
 
-async function patchYoutube() {
+async function patchVideo() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const wbinfo = (self as any).__wbinfo as WbInfo;
-  const { url, timestamp } = wbinfo;
+  const { prefix, url, timestamp } = wbinfo;
 
-  if (!isYoutubeVideo(url)) {
+  const response = await fetch(
+    `/id_/${timestamp}/https://urn:videoInfo:${url}`,
+  );
+  if (!response.ok) {
     return;
   }
+  const videoMetadata: VideoResponse = await response.json();
 
-  const videoId = youtubeId(url);
-  if (!videoId) {
-    return;
+  for (const video of videoMetadata.videos) {
+    const format: string = video.format;
+    if (format === "youtube") {
+      const videoUrl: string = video.url;
+      await patchYoutube(videoUrl, prefix, timestamp);
+    }
   }
+}
 
+async function patchYoutube(
+  fuzzyUrl: string,
+  prefix: string,
+  timestamp: string,
+) {
   const videoElement = await waitUntilElement("video", 20000);
   if (!videoElement) {
     return;
   }
 
-  if (!videoSourceExists(timestamp, videoId)) {
+  if (!(await videoSourceExists(timestamp, fuzzyUrl))) {
     return;
   }
 
   const source = document.createElement("source");
-  source.setAttribute("src", "http://localhost:5471/w/id-3b6ec7faadf3/:37a8eec1ce19687d132fe29051dca629d164e2c4958ba141d5f4133a33f0688f/20261112170822oe_/https://youtube.fuzzy.replayweb.page/videoplayback?id=pqobRu9aR3M");
+  source.setAttribute("src", rewrittenVideoUrl(prefix, timestamp, fuzzyUrl));
   source.setAttribute("type", "video/mp4");
 
   const newVideo = document.createElement("video");
@@ -132,7 +144,7 @@ async function patchYoutube() {
   }
 
   // Before we replace the video element, make sure to kill the error element
-  const error = await waitUntilElement("div.ytp-error", 20000)
+  const error = await waitUntilElement("div.ytp-error", 20000);
   if (error) {
     error.remove();
   }
@@ -141,4 +153,4 @@ async function patchYoutube() {
   await newVideo.play();
 }
 
-await patchYoutube();
+await patchVideo();
