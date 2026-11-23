@@ -18,34 +18,6 @@ async function sleep(timeout: number) {
   return new Promise((resolve) => setTimeout(resolve, timeout));
 }
 
-export function isYoutubeVideo(url: string) {
-  return isYoutubeShort(url) || isYoutubeWatchPage(url);
-}
-
-export function isYoutubeShort(url: string) {
-  const parsed = new URL(url);
-  if (
-    parsed.host.match(/(www.)?youtu.be/) &&
-    parsed.pathname.startsWith("/shorts/")
-  ) {
-    return true;
-  }
-  return false;
-}
-
-export function isYoutubeWatchPage(url: string) {
-  const parsed = new URL(url);
-  if (parsed.host.match(/(www.)?youtu.be/)) {
-    return true;
-  }
-  if (parsed.host.match(/(www.)?(youtube.com|youtube-nocookie.com)/)) {
-    return (
-      parsed.pathname === "/watch" || parsed.pathname.startsWith("/shorts")
-    );
-  }
-  return false;
-}
-
 // Continually waits for `interval` until the passed `predicate`
 // function returns true.
 async function waitUntil(predicate: () => boolean, interval = 200) {
