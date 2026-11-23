@@ -69,7 +69,7 @@ async function patchVideo() {
   const { prefix, url, timestamp } = wbinfo;
 
   const response = await fetch(
-    `/id_/${timestamp}/https://urn:videoInfo:${url}`,
+    `/id_/${timestamp}/https://urn:videoinfo:${url}`,
   );
   if (!response.ok) {
     return;
