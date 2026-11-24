@@ -67,7 +67,7 @@ class RewriteYtdlp {
     const parsed = new URL(this.url);
     parsed.searchParams.delete("themeRefresh");
     const response = await fetch(
-      `${this.prefix}${this.timestamp}id_/https://urn:videoinfo:${parsed.toString()}`,
+      `${this.prefix}${this.timestamp}id_/urn:videoinfo:${parsed.toString()}`,
     );
     if (!response.ok) {
       return;
