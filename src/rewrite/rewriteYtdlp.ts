@@ -128,8 +128,8 @@ class RewriteYtdlp {
   }
 
   async videoSourceExists(fuzzyUrl: string): Promise<boolean> {
-    const resp = await fetch(this.rewriteUrl(fuzzyUrl));
-    return resp.status === 200;
+    const resp = await fetch(this.rewriteUrl(fuzzyUrl, "oe_"));
+    return resp.ok;
   }
 
   rewriteUrl(url: string, modifier = ""): string {
