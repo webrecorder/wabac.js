@@ -67,7 +67,7 @@ class RewriteYtdlp {
     const parsed = new URL(this.url);
     parsed.searchParams.delete("themeRefresh");
     const response = await fetch(
-      `${this.prefix}/${this.timestamp}/https://urn:videoinfo:${parsed.toString()}`,
+      `${this.prefix}${this.timestamp}id_/https://urn:videoinfo:${parsed.toString()}`,
     );
     if (!response.ok) {
       return;
@@ -128,11 +128,11 @@ class RewriteYtdlp {
   }
 
   rewrittenVideoUrl(fuzzyUrl: string): string {
-    return `${this.prefix}/${this.timestamp}/${fuzzyUrl}`;
+    return `${this.prefix}${this.timestamp}/${fuzzyUrl}`;
   }
 
   async videoSourceExists(fuzzyUrl: string): Promise<boolean> {
-    const resp = await fetch(`${this.prefix}/${this.timestamp}/${fuzzyUrl}`);
+    const resp = await fetch(`${this.prefix}${this.timestamp}/${fuzzyUrl}`);
     return resp.status === 200;
   }
 }
