@@ -15,7 +15,7 @@ import { API } from "./api";
 import WOMBAT from "../dist-wombat/wombat.txt";
 import WOMBAT_WORKERS from "../dist-wombat/wombatWorkers.txt";
 import WOMBAT_PROXY from "../dist-wombat/wombatProxy.txt";
-import WOMBAT_YOUTUBE from "../dist-wombat/wombatYoutube.txt";
+import WOMBAT_YOUTUBE from "../dist-wombat/wombatYtdlp.txt";
 
 import {
   ArchiveRequest,
@@ -262,7 +262,7 @@ export class SWReplay {
       type: "application/javascript",
       content: WOMBAT_PROXY,
     });
-    this.staticData.set(this.staticPrefix + "wombatYoutube.js", {
+    this.staticData.set(this.staticPrefix + "wombatYtdlp.js", {
       type: "application/javascript",
       content: WOMBAT_YOUTUBE,
     });
