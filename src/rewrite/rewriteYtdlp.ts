@@ -62,8 +62,12 @@ class RewriteYtdlp {
   }
 
   async patchVideos() {
+    // videoinfo URL will be missing themeRefresh=1; if we were directed
+    // to that version, make sure to delete that param.
+    const parsed = new URL(this.url);
+    parsed.searchParams.delete("themeRefresh");
     const response = await fetch(
-      `/id_/${this.timestamp}/https://urn:videoinfo:${this.url}`,
+      `${this.prefix}/${this.timestamp}/https://urn:videoinfo:${parsed.toString()}`,
     );
     if (!response.ok) {
       return;
@@ -120,7 +124,7 @@ class RewriteYtdlp {
   }
 
   async videoSourceExists(fuzzyUrl: string): Promise<boolean> {
-    const resp = await fetch(`/id_/${this.timestamp}/${fuzzyUrl}`);
+    const resp = await fetch(`/${this.prefix}/${this.timestamp}/${fuzzyUrl}`);
     return resp.status === 200;
   }
 }
