@@ -102,7 +102,7 @@ class RewriteYtdlp {
     }
 
     const source = document.createElement("source");
-    source.setAttribute("src", this.rewriteUrl(fuzzyUrl));
+    source.setAttribute("src", this.rewriteUrl(fuzzyUrl, "oe_"));
     source.setAttribute("type", "video/mp4");
 
     const newVideo = document.createElement("video");
