@@ -132,7 +132,7 @@ class RewriteYtdlp {
   }
 
   async videoSourceExists(fuzzyUrl: string): Promise<boolean> {
-    const resp = await fetch(`/${this.prefix}/${this.timestamp}/${fuzzyUrl}`);
+    const resp = await fetch(`${this.prefix}/${this.timestamp}/${fuzzyUrl}`);
     return resp.status === 200;
   }
 }
