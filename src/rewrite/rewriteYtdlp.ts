@@ -61,7 +61,7 @@ class RewriteYtdlp {
     this.timestamp = wbinfo.timestamp;
   }
 
-  async patchVideos() {
+  async getVideoinfo(): Promise<VideoResponse | undefined> {
     // videoinfo URL will be missing themeRefresh=1; if we were directed
     // to that version, make sure to delete that param.
     const parsed = new URL(this.url);
@@ -73,6 +73,14 @@ class RewriteYtdlp {
       return;
     }
     const videoMetadata: VideoResponse = await response.json();
+    return videoMetadata;
+  }
+
+  async patchVideos() {
+    const videoMetadata = await this.getVideoinfo();
+    if (!videoMetadata) {
+      return;
+    }
 
     for (const video of videoMetadata.videos) {
       const format: string = video.format;
