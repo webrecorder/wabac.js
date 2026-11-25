@@ -91,6 +91,40 @@ class RewriteYtdlp {
     }
   }
 
+  getWidth(player: HTMLElement, oldVideo: HTMLElement): string {
+    const styleWidth = oldVideo.style["width"];
+    const elementWidth = player.clientWidth;
+    const elementWidthS = `${elementWidth}px`;
+
+    if (!styleWidth) {
+      return elementWidthS;
+    }
+
+    const styleWidthInt = Number(styleWidth.replace("px", ""));
+    if (styleWidthInt > elementWidth) {
+      return styleWidth;
+    } else {
+      return elementWidthS;
+    }
+  }
+
+  getHeight(player: HTMLElement, oldVideo: HTMLElement): string {
+    const styleHeight = oldVideo.style["height"];
+    const elementHeight = player.clientHeight;
+    const elementHeightS = `${elementHeight}px`;
+
+    if (!styleHeight) {
+      return elementHeightS;
+    }
+
+    const styleHeightInt = Number(styleHeight.replace("px", ""));
+    if (styleHeightInt > elementHeight) {
+      return styleHeight;
+    } else {
+      return elementHeightS;
+    }
+  }
+
   async patchYoutube(fuzzyUrl: string) {
     const videoElement = await waitUntilElement("video", 20000);
     if (!videoElement) {
@@ -116,6 +150,15 @@ class RewriteYtdlp {
       const value = videoElement.style[key];
       // @ts-expect-error
       newVideo.style[key] = value;
+    }
+
+    // And, if necessary, override the width/height with values from the
+    // main player element. (Sometimes the style element will have been
+    // loaded in with temporary smaller values.)
+    const player = document.querySelector("#player") as HTMLElement;
+    if (player) {
+      newVideo.style.width = this.getWidth(player, videoElement);
+      newVideo.style.height = this.getHeight(player, videoElement);
     }
 
     // Before we replace the video element, make sure to kill the error element
