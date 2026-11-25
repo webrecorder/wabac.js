@@ -106,6 +106,7 @@ class RewriteYtdlp {
     source.setAttribute("type", "video/mp4");
 
     const newVideo = document.createElement("video");
+    newVideo.controls = true;
     newVideo.appendChild(source);
 
     // Finally, copy the inline style tags - YouTube primarily uses this to
