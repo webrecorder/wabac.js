@@ -51,6 +51,7 @@ class RewriteYtdlp {
   prefix: string;
   url: string;
   timestamp: string;
+  // observer: ResizeObserver | undefined;
 
   constructor() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -91,40 +92,6 @@ class RewriteYtdlp {
     }
   }
 
-  getWidth(player: HTMLElement, oldVideo: HTMLElement): string {
-    const styleWidth = oldVideo.style["width"];
-    const elementWidth = player.clientWidth;
-    const elementWidthS = `${elementWidth}px`;
-
-    if (!styleWidth) {
-      return elementWidthS;
-    }
-
-    const styleWidthInt = Number(styleWidth.replace("px", ""));
-    if (styleWidthInt > elementWidth) {
-      return styleWidth;
-    } else {
-      return elementWidthS;
-    }
-  }
-
-  getHeight(player: HTMLElement, oldVideo: HTMLElement): string {
-    const styleHeight = oldVideo.style["height"];
-    const elementHeight = player.clientHeight;
-    const elementHeightS = `${elementHeight}px`;
-
-    if (!styleHeight) {
-      return elementHeightS;
-    }
-
-    const styleHeightInt = Number(styleHeight.replace("px", ""));
-    if (styleHeightInt > elementHeight) {
-      return styleHeight;
-    } else {
-      return elementHeightS;
-    }
-  }
-
   async patchYoutube(fuzzyUrl: string) {
     const videoElement = await waitUntilElement("video", 20000);
     if (!videoElement) {
@@ -142,24 +109,11 @@ class RewriteYtdlp {
     const newVideo = document.createElement("video");
     newVideo.controls = true;
     newVideo.appendChild(source);
-
-    // Finally, copy the inline style tags - YouTube primarily uses this to
-    // control the size of the video.
-    for (const key of videoElement.style) {
-      // @ts-expect-error
-      const value = videoElement.style[key];
-      // @ts-expect-error
-      newVideo.style[key] = value;
-    }
-
-    // And, if necessary, override the width/height with values from the
-    // main player element. (Sometimes the style element will have been
-    // loaded in with temporary smaller values.)
-    const player = document.querySelector("#player") as HTMLElement;
-    if (player) {
-      newVideo.style.width = this.getWidth(player, videoElement);
-      newVideo.style.height = this.getHeight(player, videoElement);
-    }
+    // The original YouTube player has a fixed width and height,
+    // but it seems to be reliable if we instead set it to 100%
+    // and let it inherit the size from the parent container.
+    newVideo.style.width = "100%";
+    newVideo.style.height = "100%";
 
     // Before we replace the video element, make sure to kill the error element
     const error = await waitUntilElement("div.ytp-error", 20000);
