@@ -106,6 +106,9 @@ class RewriteYtdlp {
     source.setAttribute("src", this.rewriteUrl(fuzzyUrl, "oe_"));
     source.setAttribute("type", "video/mp4");
 
+    // Note: original video element had `video-stream` and `html5-main-video`
+    // classes, but the replacement video element will not be
+    // positioned correctly if we copy those.
     const newVideo = document.createElement("video");
     newVideo.controls = true;
     newVideo.appendChild(source);
