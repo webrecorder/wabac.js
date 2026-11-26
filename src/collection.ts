@@ -212,8 +212,8 @@ export class Collection {
       } else {
         response = await this.getReplayResponse(request, event);
 
-        if (response && isInChromeExtension()) {
-          response = await this.resolveUnsafeRedirect(response, request, event);
+        if (response && request.mode !== "navigate" && isInChromeExtension()) {
+          response = await this.resolveRedirect(response, request, event);
         }
 
         requestURL = request.url;
@@ -310,18 +310,14 @@ export class Collection {
     return response.makeResponse(this.coHeaders, deleteDisposition);
   }
 
-  async resolveUnsafeRedirect(
+  async resolveRedirect(
     response: ArchiveResponse | Response | null,
     request: ArchiveRequest,
     event: FetchEvent,
   ) {
     let count = 0;
 
-    while (
-      response &&
-      request.mode !== "navigate" &&
-      isRedirectStatus(response.status)
-    ) {
+    while (response && isRedirectStatus(response.status)) {
       if (count++ > 5) {
         console.warn("Unsafe redirect resolving in loop");
         break;
@@ -334,7 +330,7 @@ export class Collection {
 
       try {
         request.url = new URL(loc, request.url).href;
-      } catch (_: unknown) {
+      } catch (_) {
         console.warn("Unsafe redirect to invalid URL");
         break;
       }
