@@ -323,14 +323,11 @@ export class Collection {
       isRedirectStatus(response.status)
     ) {
       if (count++ > 5) {
-        console.warn("Unsafe redirect loop, aborting resolve");
+        console.warn("Unsafe redirect resolving in loop");
         break;
       }
 
       const loc = response.headers.get("location");
-
-      console.log(`stopping unsafe redirect: ${loc}`);
-
       if (!loc) {
         break;
       }
