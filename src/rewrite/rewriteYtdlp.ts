@@ -124,6 +124,21 @@ class RewriteYtdlp {
       error.remove();
     }
 
+    // The on-click event that starts/pauses the video will sometimes
+    // fail to notice that we've replaced the video element and so won't
+    // trigger pause/playback as appropriate.
+    // Tacking on a new event lets us be more confident it'll work.
+    const player = await waitUntilElement(".html5-video-container");
+    if (player) {
+      player.addEventListener("click", () => {
+        if (newVideo.paused) {
+          void newVideo.play();
+        } else {
+          newVideo.pause();
+        }
+      });
+    }
+
     videoElement.replaceWith(newVideo);
     await newVideo.play();
   }
