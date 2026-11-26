@@ -212,9 +212,18 @@ export function parseSetCookie(setCookie: string, scheme: string) {
 }
 
 const NULL_STATUS = [101, 204, 205, 304];
+const REDIRECT_STATUS = [301, 302, 303, 307, 308];
 
 export function isNullBodyStatus(status: number) {
   return NULL_STATUS.includes(status);
+}
+
+export function isRedirectStatus(status: number) {
+  return REDIRECT_STATUS.includes(status);
+}
+
+export function isInChromeExtension() {
+  return self.location.protocol === "chrome-extension:";
 }
 
 export function getStatusText(status: number) {

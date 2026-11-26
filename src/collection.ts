@@ -10,6 +10,8 @@ import {
   REPLAY_TOP_FRAME_NAME,
   getCSP,
   addProxyAllowPaths,
+  isInChromeExtension,
+  isRedirectStatus,
 } from "./utils";
 
 import { ArchiveResponse } from "./response";
@@ -209,6 +211,11 @@ export class Collection {
         );
       } else {
         response = await this.getReplayResponse(request, event);
+
+        if (response && isInChromeExtension()) {
+          response = await this.resolveUnsafeRedirect(response, request, event);
+        }
+
         requestURL = request.url;
         if (
           response &&
@@ -301,6 +308,47 @@ export class Collection {
         request.destination === "iframe" || request.destination === "document";
     }
     return response.makeResponse(this.coHeaders, deleteDisposition);
+  }
+
+  async resolveUnsafeRedirect(
+    response: ArchiveResponse | Response | null,
+    request: ArchiveRequest,
+    event: FetchEvent,
+  ) {
+    let count = 0;
+
+    while (
+      response &&
+      request.mode !== "navigate" &&
+      isRedirectStatus(response.status)
+    ) {
+      if (count++ > 5) {
+        console.warn("Unsafe redirect loop, aborting resolve");
+        break;
+      }
+
+      const loc = response.headers.get("location");
+
+      console.log(`stopping unsafe redirect: ${loc}`);
+
+      if (!loc) {
+        break;
+      }
+
+      try {
+        request.url = new URL(loc, request.url).href;
+      } catch (_: unknown) {
+        console.warn("Unsafe redirect to invalid URL");
+        break;
+      }
+
+      response = await this.getReplayResponse(request, event);
+      if (response) {
+        response.headers.set("Content-Location", loc);
+      }
+    }
+
+    return response;
   }
 
   async fullRewrite(
@@ -472,7 +520,7 @@ ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
 
     try {
       const parsed = new URL(url);
-      if (parsed.href !== url) {
+      if (parsed.href !== url && !isInChromeExtension()) {
         if (parsed.pathname === "/") {
           let redirectUrl = this.prefix + timestamp + mod;
           if (timestamp || mod) {
