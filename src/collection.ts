@@ -454,6 +454,7 @@ export class Collection {
   self.__wbinfo = wbinfo;
 </script>
 <script src="${this.staticPrefix}wombatProxy.js"></script>
+<script src="${this.staticPrefix}wombatYtdlp.js"></script>
 ${
   this.proxyBannerUrl
     ? `
@@ -835,8 +836,10 @@ ${this.injectRelCanon ? `<link rel="canonical" href="${url}"/>` : ""}
   wbinfo.pixel_ratio = ${pixelRatio};
   wbinfo.convert_post_to_get = ${this.convertPostToGet};
   wbinfo.target_frame = "${REPLAY_TOP_FRAME_NAME}";
+  self.__wbinfo = wbinfo;
 ${colorScheme ? `  wbinfo.colorScheme = "${colorScheme}";` : ``}
 </script>
+<script src="${this.staticPrefix}wombatYtdlp.js"></script>
 <script src='${this.staticPrefix}wombat.js'> </script>
 <script>
   wbinfo.wombat_ts = "${isLive ? timestamp : requestTS}";

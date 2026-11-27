@@ -15,6 +15,7 @@ const wombatBuild = {
     wombat: "@webrecorder/wombat/src/wbWombat.js",
     wombatWorkers: "@webrecorder/wombat/src/wombatWorkers.js",
     wombatProxy: "./src/rewrite/proxyinject.ts",
+    wombatYtdlp: "./src/rewrite/rewriteYtdlp.ts",
   },
   output: {
     path: path.join(__dirname, "dist-wombat"),

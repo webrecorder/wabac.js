@@ -15,6 +15,7 @@ import { API } from "./api";
 import WOMBAT from "../dist-wombat/wombat.txt";
 import WOMBAT_WORKERS from "../dist-wombat/wombatWorkers.txt";
 import WOMBAT_PROXY from "../dist-wombat/wombatProxy.txt";
+import WOMBAT_YTDLP from "../dist-wombat/wombatYtdlp.txt";
 
 import {
   ArchiveRequest,
@@ -260,6 +261,10 @@ export class SWReplay {
     this.staticData.set(this.staticPrefix + "wombatProxy.js", {
       type: "application/javascript",
       content: WOMBAT_PROXY,
+    });
+    this.staticData.set(this.staticPrefix + "wombatYtdlp.js", {
+      type: "application/javascript",
+      content: WOMBAT_YTDLP,
     });
 
     if (sp.has("serveIndex")) {
