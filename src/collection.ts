@@ -10,6 +10,8 @@ import {
   REPLAY_TOP_FRAME_NAME,
   getCSP,
   addProxyAllowPaths,
+  isInChromeExtension,
+  isRedirectStatus,
 } from "./utils";
 
 import { ArchiveResponse } from "./response";
@@ -209,6 +211,11 @@ export class Collection {
         );
       } else {
         response = await this.getReplayResponse(request, event);
+
+        if (response && request.mode !== "navigate" && isInChromeExtension()) {
+          response = await this.resolveRedirect(response, request, event);
+        }
+
         requestURL = request.url;
         if (
           response &&
@@ -301,6 +308,40 @@ export class Collection {
         request.destination === "iframe" || request.destination === "document";
     }
     return response.makeResponse(this.coHeaders, deleteDisposition);
+  }
+
+  async resolveRedirect(
+    response: ArchiveResponse | Response | null,
+    request: ArchiveRequest,
+    event: FetchEvent,
+  ) {
+    let count = 0;
+
+    while (response && isRedirectStatus(response.status)) {
+      if (count++ > 5) {
+        console.warn("Unsafe redirect resolving in loop");
+        break;
+      }
+
+      const loc = response.headers.get("location");
+      if (!loc) {
+        break;
+      }
+
+      try {
+        request.url = new URL(loc, request.url).href;
+      } catch (_) {
+        console.warn("Unsafe redirect to invalid URL");
+        break;
+      }
+
+      response = await this.getReplayResponse(request, event);
+      if (response) {
+        response.headers.set("Content-Location", loc);
+      }
+    }
+
+    return response;
   }
 
   async fullRewrite(
@@ -472,7 +513,7 @@ ${disableMSE ? DISABLE_MEDIASOURCE_SCRIPT : ""}
 
     try {
       const parsed = new URL(url);
-      if (parsed.href !== url) {
+      if (parsed.href !== url && !isInChromeExtension()) {
         if (parsed.pathname === "/") {
           let redirectUrl = this.prefix + timestamp + mod;
           if (timestamp || mod) {
