@@ -1,6 +1,6 @@
 import yaml from "js-yaml";
 
-import { verifyWACZSignature } from "./certutils";
+import { type VerifySigData, verifyWACZSignature } from "./certutils";
 import { type MultiWACZ } from "./multiwacz";
 import { type WACZFile } from "./waczfile";
 import { type PageEntry } from "../types";
@@ -13,6 +13,12 @@ export const DATAPACKAGE_DIGEST_JSON = "datapackage-digest.json";
 const WEBARCHIVE_YAML = "webarchive.yaml";
 
 const PAGE_BATCH_SIZE = 500;
+
+type DatapackageDigest = {
+  hash: string;
+  path: string;
+  signedData?: VerifySigData;
+};
 
 // ==========================================================================
 export class WACZImporter {
@@ -44,15 +50,13 @@ export class WACZImporter {
     // process loading
     let metadata;
 
-    let datapackageDigest = null;
+    let datapackageDigest = "";
 
     if (this.file.containsFile(DATAPACKAGE_DIGEST_JSON)) {
       datapackageDigest = await this.loadDigestData(DATAPACKAGE_DIGEST_JSON);
     }
 
     if (this.file.containsFile(DATAPACKAGE_JSON)) {
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       metadata = await this.loadPackage(DATAPACKAGE_JSON, datapackageDigest);
     } else if (this.file.containsFile(WEBARCHIVE_YAML)) {
       metadata = await this.loadOldPackageYAML(WEBARCHIVE_YAML);
@@ -90,40 +94,43 @@ export class WACZImporter {
 
   async loadDigestData(filename: string) {
     try {
-      const digestData = JSON.parse(await this.loadTextFileFromWACZ(filename));
-      let datapackageHash;
+      const digestData = JSON.parse(
+        await this.loadTextFileFromWACZ(filename),
+      ) as DatapackageDigest;
+      let datapackageHash = "";
 
       if (digestData.path === DATAPACKAGE_JSON && digestData.hash) {
         datapackageHash = digestData.hash;
       }
 
       const store = this.store;
-      const sigPrefix = this.isRoot ? "" : this.waczname + ":";
+      const sigPrefix = this.getSigPrefix();
 
       if (
         !digestData.signedData ||
         digestData.signedData.hash !== datapackageHash
       ) {
-        await store.addVerifyData(sigPrefix, "signature", "");
-        return;
+        //await store.addVerifyData(sigPrefix, "signature", "");
+        return "";
       }
 
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      await store.addVerifyData(sigPrefix, "datapackageHash", datapackageHash);
+      await store.addVerifyData(
+        sigPrefix,
+        "datapackageHash",
+        digestData.signedData.hash,
+        datapackageHash,
+      );
 
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const results = await verifyWACZSignature(digestData.signedData);
 
       await store.addVerifyDataList(sigPrefix, results);
 
-      // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return datapackageHash;
     } catch (e) {
       console.warn(e);
     }
+
+    return "";
   }
 
   async loadPackage(filename: string, expectedDigest: string) {
@@ -175,6 +182,8 @@ export class WACZImporter {
     // @ts-expect-error [TODO] - TS4111 - Property 'metadata' comes from an index signature, so it must be accessed with ['metadata'].
     const metadata = datapackage.metadata || {};
 
+    const sigPrefix = this.getSigPrefix();
+
     let pagesHash = null;
 
     // @ts-expect-error [TODO] - TS4111 - Property 'resources' comes from an index signature, so it must be accessed with ['resources'].
@@ -182,12 +191,18 @@ export class WACZImporter {
       if (res.path === MAIN_PAGES_JSON) {
         pagesHash = res.hash;
         // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        await this.store.addVerifyData(this.waczname, res.path, res.hash);
+        await this.store.addVerifyData(
+          sigPrefix,
+          res.path as string,
+          res.hash as string,
+        );
       } else if (res.path.endsWith(".idx") || res.path.endsWith(".cdx")) {
         // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        await this.store.addVerifyData(this.waczname, res.path, res.hash);
+        await this.store.addVerifyData(
+          sigPrefix,
+          res.path as string,
+          res.hash as string,
+        );
       }
     }
 
@@ -328,7 +343,7 @@ export class WACZImporter {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (hasher && expectedHash) {
       await this.store.addVerifyData(
-        this.waczname,
+        this.getSigPrefix(),
         filename,
         expectedHash,
         hasher.getHash(),
@@ -338,5 +353,10 @@ export class WACZImporter {
     // [TODO]
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return pageListInfo;
+  }
+
+  getSigPrefix() {
+    //return this.isRoot ? "" : this.waczname + ":";
+    return this.waczname;
   }
 }

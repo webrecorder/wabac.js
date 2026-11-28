@@ -42,8 +42,12 @@ class LoadMoreException {
 // ===========================================================================
 let useHashCheck = false;
 
-export function setUseHashCHeck(use: boolean) {
+export function setUseHashCheck(use: boolean) {
   useHashCheck = use;
+}
+
+export function getUsingHashCheck() {
+  return useHashCheck;
 }
 
 // ===========================================================================

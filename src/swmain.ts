@@ -23,7 +23,7 @@ import {
 } from "./request";
 import { type ExtraConfig, type CollMetadata, type InitColl } from "./types";
 import { notFound, setNotFoundTemplate } from "./notfound";
-import { setUseHashCHeck } from "./wacz/ziprangereader";
+import { setUseHashCheck } from "./wacz/ziprangereader";
 
 const CACHE_PREFIX = "wabac-";
 const IS_AJAX_HEADER = "x-wabac-is-ajax-req";
@@ -292,7 +292,7 @@ export class SWReplay {
     }
 
     if (sp.get("useHashCheck") === "1") {
-      setUseHashCHeck(true);
+      setUseHashCheck(true);
     }
 
     if (sp.has("notFoundTemplateUrl")) {

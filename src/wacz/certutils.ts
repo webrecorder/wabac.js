@@ -5,15 +5,15 @@ import {
 import { base16 } from "../utils";
 
 import * as x509 from "@peculiar/x509";
-// import { AsnParser } from "@peculiar/asn1-schema";
-// import { ECDSASigValue } from "@peculiar/asn1-ecc";
+import { AsnParser } from "@peculiar/asn1-schema";
+import { ECDSASigValue } from "@peculiar/asn1-ecc";
 //import { ASN1 } from "asn1-parser";
 
-//import { concatChunks } from "warcio";
+import { concatChunks } from "warcio";
 
 const SPLIT_PEM = /-{5}(BEGIN|END) .*-{5}/gm;
 
-type VerifySigData = {
+export type VerifySigData = {
   hash: string;
   signature: string;
   publicKey: string;
@@ -23,7 +23,7 @@ type VerifySigData = {
   software: string;
 };
 
-type VerifyResult = {
+export type VerifyResult = {
   id: string;
   // [TODO]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,9 +45,9 @@ export async function verifyWACZSignature({
   let domainActual;
   const results: VerifyResult[] = [];
 
-  const signatureBuff = decodeBase64(signature);
-
   let publicKeyCrypto: CryptoKey;
+
+  let signatureBuff = decodeBase64(signature);
 
   if (domainCert && domain && !publicKey) {
     const certs = domainCert.split("\n\n");
@@ -85,7 +85,7 @@ export async function verifyWACZSignature({
       domainActual = cert.subject.substring(3);
     }
 
-    //signature = parseASN1Signature(signature);
+    signatureBuff = parseASN1Signature(signatureBuff);
   } else {
     const ecdsaImportParams = {
       name: "ECDSA",
@@ -103,12 +103,12 @@ export async function verifyWACZSignature({
     );
   }
 
+  const encoder = new TextEncoder();
+
   const ecdsaSignParams = {
     name: "ECDSA",
     hash: "SHA-256",
   };
-
-  const encoder = new TextEncoder();
 
   const sigValid = await crypto.subtle.verify(
     ecdsaSignParams,
@@ -134,23 +134,43 @@ export async function verifyWACZSignature({
   return results;
 }
 
-// function parseASN1Signature(signature: Uint8Array) {
-//   // extract r|s values from asn1
-//   try {
-//     const sig = AsnParser.parse(signature, ECDSASigValue);
+function parseASN1Signature(
+  signature: Uint8Array,
+  expectedLength = 32,
+): Uint8Array {
+  // already in correct format
+  if (signature.length === expectedLength * 2) {
+    return signature;
+  }
 
-//     const sigR = sig.r as Uint8Array;
-//     const sigS = sig.s as Uint8Array;
+  // extract r|s values from asn1
+  try {
+    const sig = AsnParser.parse(signature, ECDSASigValue);
 
-//     const r = sigR[0] === 0 ? sigR.slice(1) : sigR;
-//     const s = sigS[0] === 0 ? sigS.slice(1) : sigS;
-//     signature = concatChunks([r, s], r.length + s.length);
-//   } catch (se) {
-//     console.log(se);
-//   }
+    const normalizeBuf = (buf: ArrayBuffer): Uint8Array => {
+      let bytes = new Uint8Array(buf);
+      // Strip leading 0x00 sign byte(s) if longer than coordLength
+      while (bytes.length > expectedLength && bytes[0] === 0) {
+        bytes = bytes.slice(1);
+      }
+      // Left-pad with 0x00 if shorter than coordLength
+      if (bytes.length < expectedLength) {
+        const padded = new Uint8Array(expectedLength);
+        padded.set(bytes, expectedLength - bytes.length);
+        return padded;
+      }
+      return bytes;
+    };
 
-//   return signature;
-// }
+    const sigR = normalizeBuf(sig.r);
+    const sigS = normalizeBuf(sig.s);
+    signature = concatChunks([sigR, sigS], expectedLength * 2);
+  } catch (se) {
+    console.log(se);
+  }
+
+  return signature;
+}
 
 // function parseSignature2(signature) {
 //   // extract r|s values from asn1

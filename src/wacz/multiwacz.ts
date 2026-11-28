@@ -40,7 +40,7 @@ import {
 } from "../blockloaders";
 import { type ArchiveResponse } from "../response";
 import { type ArchiveRequest } from "../request";
-import { type LoadWACZEntry } from "./ziprangereader";
+import { getUsingHashCheck, type LoadWACZEntry } from "./ziprangereader";
 import {
   type WACZPageEntry,
   type MultiWACZJsonSpec,
@@ -320,7 +320,7 @@ export class MultiWACZ
     let matched = false;
 
     if (prefix) {
-      id = prefix + id;
+      id = prefix + ":" + id;
     }
 
     if (actual) {
@@ -328,7 +328,11 @@ export class MultiWACZ
       if (log) {
         console.log(`verify ${id}: ${matched}`);
       }
+    } else if (!getUsingHashCheck()) {
+      // this is a placeholder for file hash to be computed later, if not using file hash checking, ignoring
+      return;
     }
+
     // @ts-expect-error [TODO] - TS2345 - Argument of type '"verification"' is not assignable to parameter of type 'StoreNames<DBType>'.
     await this.db!.put("verification", { id, expected, matched });
   }
@@ -341,7 +345,7 @@ export class MultiWACZ
 
     for (const data of datalist) {
       if (prefix) {
-        data.id = prefix + data.id;
+        data.id = prefix + ":" + data.id;
       }
       // [TODO]
       // eslint-disable-next-line @typescript-eslint/no-floating-promises, @typescript-eslint/no-unsafe-argument
@@ -378,8 +382,10 @@ export class MultiWACZ
     for (const res of results) {
       // @ts-expect-error [TODO] - TS2531 - Object is possibly 'null'. | TS2339 - Property 'id' does not exist on type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; }'.
       // [TODO]
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      if (includeProps.includes(res.id)) {
+       
+      const id = (res.id.split(":")[1] as string) || "";
+
+      if (includeProps.includes(id)) {
         // @ts-expect-error [TODO] - TS2531 - Object is possibly 'null'. | TS2339 - Property 'id' does not exist on type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; }'. | TS2531 - Object is possibly 'null'. | TS2339 - Property 'expected' does not exist on type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; }'.
         info[res.id] = res.expected;
         // @ts-expect-error [TODO] - TS2531 - Object is possibly 'null'. | TS2339 - Property 'id' does not exist on type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; }'.
@@ -402,13 +408,11 @@ export class MultiWACZ
     return info;
   }
 
-  async getVerifyExpected(id: string) {
+  async getVerifyExpected(id: string): Promise<string | undefined> {
     // @ts-expect-error [TODO] - TS2345 - Argument of type '"verification"' is not assignable to parameter of type 'StoreNames<DBType>'.
     const res = await this.db!.get("verification", id);
     // @ts-expect-error [TODO] - TS2339 - Property 'expected' does not exist on type 'ResourceEntry | PageEntry | DigestRefCount | (PageEntry & { size?: number | undefined; }) | { pages?: unknown[] | undefined; show?: boolean | undefined; title?: string | undefined; desc?: string | undefined; slug?: string | undefined; } | { ...; }'.
-    // [TODO]
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return res?.expected;
+    return (res?.expected as string) || undefined;
   }
 
   override async clearAll() {
@@ -506,9 +510,7 @@ export class MultiWACZ
     if (hasher) {
       const expected = await this.getVerifyExpected(filename);
       if (expected) {
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises, @typescript-eslint/no-unsafe-argument
-        this.addVerifyData(waczname, filename, expected, hasher.getHash());
+        void this.addVerifyData(waczname, filename, expected, hasher.getHash());
       }
     }
 
@@ -612,9 +614,7 @@ export class MultiWACZ
     if (hasher) {
       const expected = await this.getVerifyExpected(filename);
       if (expected) {
-        // [TODO]
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises, @typescript-eslint/no-unsafe-argument
-        this.addVerifyData(waczname, filename, expected, hasher.getHash());
+        void this.addVerifyData(waczname, filename, expected, hasher.getHash());
       }
     }
 

@@ -613,7 +613,7 @@ class PayloadBufferingReader extends BaseAsyncIterReader {
         const hash = this.hasher.getHash();
         const { path, start, length } = this.source;
         const id = `${path}:${start}-${length}`;
-        void this.db.addVerifyData(id, this.expectedHash, hash);
+        void this.db.addVerifyData("", id, this.expectedHash, hash);
       }
 
       if (this.commit) {
